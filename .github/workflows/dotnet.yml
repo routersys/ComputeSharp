@@ -428,7 +428,7 @@ jobs:
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       run: |
-        gh release create "${{github.sha}}" artifacts/*.nupkg \
+        gh release create "build-${{github.sha}}" artifacts/*.nupkg \
           --target "${{github.sha}}" \
           --title "Nightly build ${{github.sha}}" \
           --generate-notes \
