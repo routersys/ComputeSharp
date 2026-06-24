@@ -1,7 +1,12 @@
 <Project>
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>preview</LangVersion>
+    <!--
+      言語バージョンを C# 13 に固定する。'preview' は使用する SDK ごとに意味が変わり、
+      .NET 10 SDK ではビルドが非再現的になる(例: CS9361 等のプレビュー規則が発火する)。
+      本コードが実際に必要とする最大の言語バージョンに固定することで、SDK に依存せず安定してビルドできる。
+    -->
+    <LangVersion>13.0</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 

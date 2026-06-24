@@ -41,3 +41,6 @@ dotnet_diagnostic.IDE0160.severity = none
 dotnet_diagnostic.IDE0180.severity = none
 dotnet_diagnostic.IDE0290.severity = none
 dotnet_diagnostic.IDE1006.severity = none
+# .NET 10 SDK で新規追加された規則。上流(TerraFX)由来のバインディングを一致させて保守するため抑制する。
+dotnet_diagnostic.IDE0370.severity = none
+dotnet_diagnostic.IDE0380.severity = none

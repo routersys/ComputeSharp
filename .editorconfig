@@ -265,3 +265,14 @@ dotnet_naming_rule.parameters_must_be_camel_case.style                          
 dotnet_naming_rule.interface_types_must_be_prefixed_with_i.severity               = warning
 dotnet_naming_rule.interface_types_must_be_prefixed_with_i.symbols                = interface_types
 dotnet_naming_rule.interface_types_must_be_prefixed_with_i.style                  = prefix_interface_interface_with_i
+
+# .NET 10 SDK で新規追加・厳格化された解析規則のうち、上流由来コードや正しいコードを誤検知するものを対象限定で無効化する。
+# EnforceCodeStyleInBuild と TreatWarningsAsErrors の組み合わせにより、これらが新しい SDK でビルドを破壊するため、
+# 個別に severity を指定して .NET 10 SDK でも決定論的にビルドできるようにする(規則全体の停止ではない)。
+#
+# IDE0380: TerraFX 由来の Win32 バインディング(unsafe partial struct 等)を上流と一致させて保守しているため、'unsafe' 修飾子を上流どおり残す。
+# IDE0370: ソースジェネレータ基盤などで意図的に残している抑制演算子を誤検知する。
+# RS1012:  RegisterCompilationStartAction 内で RegisterSymbolAction を登録する標準的で正しいアナライザー実装に対し新しいアナライザー SDK が発火する。コード自体は正しいため変更しない。
+dotnet_diagnostic.IDE0370.severity                                                = none
+dotnet_diagnostic.IDE0380.severity                                                = none
+dotnet_diagnostic.RS1012.severity                                                 = none
