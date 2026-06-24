@@ -109,7 +109,7 @@ internal static class WICFormatHelper
     /// <param name="filename">The target filename to get the container format for.</param>
     /// <returns>The WIC format container <see cref="Guid"/> value matching <paramref name="filename"/>.</returns>
     /// <exception cref="ArgumentException">Thrown when the input filename doesn't have a valid file extension.</exception>
-    public static Guid GetForFilename(ReadOnlySpan<char> filename)
+    public static unsafe Guid GetForFilename(ReadOnlySpan<char> filename)
     {
         Span<char> extension = stackalloc char[4];
 

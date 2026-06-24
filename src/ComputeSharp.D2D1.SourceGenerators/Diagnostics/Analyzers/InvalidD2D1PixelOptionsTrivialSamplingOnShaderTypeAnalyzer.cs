@@ -73,7 +73,7 @@ public sealed class InvalidD2D1PixelOptionsTrivialSamplingOnShaderTypeAnalyzer :
     /// <param name="d2DInputSimpleSymbolAttributeSymbol">The symbol for the <c>[D2DInputSimple]</c> attribute.</param>
     /// <param name="inputCount">The number of inputs for the shader.</param>
     /// <returns>Whether the shader only has simple inputs.</returns>
-    private static bool IsSimpleInputShader(
+    private static unsafe bool IsSimpleInputShader(
         INamedTypeSymbol structDeclarationSymbol,
         INamedTypeSymbol d2DInputSimpleSymbolAttributeSymbol,
         int inputCount)

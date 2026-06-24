@@ -19,7 +19,7 @@ public sealed class InvalidD2DInputDescriptionAttributeUseAnalyzer : DiagnosticA
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = [OutOfRangeInputDescriptionIndex, RepeatedD2DInputDescriptionIndices];
 
     /// <inheritdoc/>
-    public override void Initialize(AnalysisContext context)
+    public override unsafe void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.EnableConcurrentExecution();

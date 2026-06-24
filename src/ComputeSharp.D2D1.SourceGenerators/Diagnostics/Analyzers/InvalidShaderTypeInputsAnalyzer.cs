@@ -27,7 +27,7 @@ public sealed class InvalidShaderTypeInputsAnalyzer : DiagnosticAnalyzer
     ];
 
     /// <inheritdoc/>
-    public override void Initialize(AnalysisContext context)
+    public override unsafe void Initialize(AnalysisContext context)
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.EnableConcurrentExecution();
