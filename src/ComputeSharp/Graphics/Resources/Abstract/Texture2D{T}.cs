@@ -11,6 +11,7 @@ using ComputeSharp.Interop.Allocation;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
+using static ComputeSharp.Win32.D3D12_RESOURCE_DIMENSION;
 using static ComputeSharp.Win32.D3D12_RESOURCE_STATES;
 using static ComputeSharp.Win32.D3D12_SRV_DIMENSION;
 using static ComputeSharp.Win32.D3D12_UAV_DIMENSION;
@@ -102,6 +103,141 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
             ? D3D12_COMMAND_LIST_TYPE_COPY
             : D3D12_COMMAND_LIST_TYPE_COMPUTE;
+
+        device.D3D12Device->GetCopyableFootprint(
+            DXGIFormatHelper.GetForType<T>(),
+            (uint)width,
+            (uint)height,
+            out this.d3D12PlacedSubresourceFootprint,
+            out _,
+            out _);
+
+        device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
+
+        switch (resourceType)
+        {
+            case ResourceType.ReadOnly:
+                device.D3D12Device->CreateShaderResourceView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_SRV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                break;
+            case ResourceType.ReadWrite:
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandleNonShaderVisible);
+                break;
+        }
+
+        this.d3D12Resource.Get()->SetName(this);
+    }
+
+    /// <summary>
+    /// クロス API 共有が可能な <see cref="Texture2D{T}"/> インスタンスを生成します。
+    /// </summary>
+    /// <param name="device">現在のインスタンスに関連付ける <see cref="ComputeSharp.GraphicsDevice"/>。</param>
+    /// <param name="width">テクスチャの幅。</param>
+    /// <param name="height">テクスチャの高さ。</param>
+    /// <param name="resourceType">現在のテクスチャのリソース種別。</param>
+    /// <param name="d3D12FormatSupport">現在のテクスチャ型のフォーマット サポート。</param>
+    private protected Texture2D(GraphicsDevice device, int width, int height, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport)
+    {
+        using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
+
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(width, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(height, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+
+        using ReferenceTracker.Lease _1 = device.GetReferenceTracker().GetLease();
+
+        device.ThrowIfDeviceLost();
+
+        if (!device.D3D12Device->IsDxgiFormatSupported(DXGIFormatHelper.GetForType<T>(), d3D12FormatSupport))
+        {
+            UnsupportedTextureTypeException.ThrowForTexture2D<T>();
+        }
+
+        GraphicsDevice = device;
+
+        device.CreateSharedResource(
+            resourceType,
+            DXGIFormatHelper.GetForType<T>(),
+            (uint)width,
+            (uint)height,
+            out this.d3D12Resource,
+            out this.d3D12ResourceState);
+
+        this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
+            ? D3D12_COMMAND_LIST_TYPE_COPY
+            : D3D12_COMMAND_LIST_TYPE_COMPUTE;
+
+        device.D3D12Device->GetCopyableFootprint(
+            DXGIFormatHelper.GetForType<T>(),
+            (uint)width,
+            (uint)height,
+            out this.d3D12PlacedSubresourceFootprint,
+            out _,
+            out _);
+
+        device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
+
+        switch (resourceType)
+        {
+            case ResourceType.ReadOnly:
+                device.D3D12Device->CreateShaderResourceView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_SRV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                break;
+            case ResourceType.ReadWrite:
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandleNonShaderVisible);
+                break;
+        }
+
+        this.d3D12Resource.Get()->SetName(this);
+    }
+
+    /// <summary>
+    /// 外部 API が所有する共有リソースをラップする <see cref="Texture2D{T}"/> インスタンスを生成します。
+    /// </summary>
+    /// <param name="device">現在のインスタンスに関連付ける <see cref="ComputeSharp.GraphicsDevice"/>。</param>
+    /// <param name="d3D12Resource">ラップ対象の、共有ハンドルから開かれた <see cref="ID3D12Resource"/>。</param>
+    /// <param name="resourceType">現在のテクスチャのリソース種別。</param>
+    /// <param name="d3D12FormatSupport">現在のテクスチャ型のフォーマット サポート。</param>
+    private protected Texture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport)
+    {
+        using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
+
+        using ReferenceTracker.Lease _1 = device.GetReferenceTracker().GetLease();
+
+        device.ThrowIfDeviceLost();
+
+        if (!device.D3D12Device->IsDxgiFormatSupported(DXGIFormatHelper.GetForType<T>(), d3D12FormatSupport))
+        {
+            UnsupportedTextureTypeException.ThrowForTexture2D<T>();
+        }
+
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = d3D12Resource->GetDesc();
+
+        if (d3D12ResourceDescription.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+        {
+            static void Throw() => throw new ArgumentException("The shared resource is not a 2D texture.", "handle");
+
+            Throw();
+        }
+
+        if (d3D12ResourceDescription.Format != DXGIFormatHelper.GetForType<T>())
+        {
+            static void Throw() => throw new ArgumentException($"The shared resource format does not match the texture element type '{typeof(T)}'.", "handle");
+
+            Throw();
+        }
+
+        int width = (int)d3D12ResourceDescription.Width;
+        int height = (int)d3D12ResourceDescription.Height;
+
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(width, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(height, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+
+        GraphicsDevice = device;
+
+        this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
+        this.d3D12ResourceState = D3D12_RESOURCE_STATE_COMMON;
+
+        this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COPY;
 
         device.D3D12Device->GetCopyableFootprint(
             DXGIFormatHelper.GetForType<T>(),

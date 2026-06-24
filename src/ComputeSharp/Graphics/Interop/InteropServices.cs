@@ -21,7 +21,7 @@ namespace ComputeSharp.Interop;
 /// that relies on resources being disposed as soon as the relative allocation object is disposed.
 /// </para>
 /// </summary>
-public static unsafe class InteropServices
+public static unsafe partial class InteropServices
 {
     /// <summary>
     /// Gets the underlying COM object for a given device, as a specified interface. This method invokes

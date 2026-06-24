@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ComputeSharp.Graphics.Resources.Enums;
 using ComputeSharp.Resources;
 using ComputeSharp.Resources.Debug;
+using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FORMAT_SUPPORT1;
 
 namespace ComputeSharp;
@@ -24,6 +25,27 @@ public sealed partial class ReadWriteTexture2D<T> : Texture2D<T>
     /// <param name="allocationMode">The allocation mode to use for the new resource.</param>
     internal ReadWriteTexture2D(GraphicsDevice device, int width, int height, AllocationMode allocationMode)
         : base(device, width, height, ResourceType.ReadWrite, allocationMode, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+    {
+    }
+
+    /// <summary>
+    /// クロス API 共有が可能な <see cref="ReadWriteTexture2D{T}"/> インスタンスを生成します。
+    /// </summary>
+    /// <param name="device">現在のインスタンスに関連付ける <see cref="GraphicsDevice"/>。</param>
+    /// <param name="width">テクスチャの幅。</param>
+    /// <param name="height">テクスチャの高さ。</param>
+    internal ReadWriteTexture2D(GraphicsDevice device, int width, int height)
+        : base(device, width, height, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+    {
+    }
+
+    /// <summary>
+    /// 外部 API が所有する共有リソースをラップする <see cref="ReadWriteTexture2D{T}"/> インスタンスを生成します。
+    /// </summary>
+    /// <param name="device">現在のインスタンスに関連付ける <see cref="GraphicsDevice"/>。</param>
+    /// <param name="d3D12Resource">ラップ対象の、共有ハンドルから開かれた <see cref="ID3D12Resource"/>。</param>
+    internal unsafe ReadWriteTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource)
+        : base(device, d3D12Resource, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
     {
     }
 

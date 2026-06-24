@@ -271,6 +271,106 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
+    /// クロス API 共有が可能なコミット型の 2D テクスチャ リソースを生成します。
+    /// </summary>
+    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
+    /// <param name="resourceType">生成するリソースの種別。</param>
+    /// <param name="dxgiFormat">使用する <see cref="DXGI_FORMAT"/> 値。</param>
+    /// <param name="width">テクスチャの幅。</param>
+    /// <param name="height">テクスチャの高さ。</param>
+    /// <param name="d3D12ResourceStates">生成されたリソースの初期 <see cref="D3D12_RESOURCE_STATES"/> 値。</param>
+    /// <returns>共有可能な <see cref="ID3D12Resource"/> への参照。</returns>
+    public static ComPtr<ID3D12Resource> CreateSharedCommittedResource(
+        this ref ID3D12Device d3D12Device,
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        out D3D12_RESOURCE_STATES d3D12ResourceStates)
+    {
+        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = resourceType switch
+        {
+            ResourceType.ReadOnly => D3D12_RESOURCE_FLAG_NONE,
+            ResourceType.ReadWrite => D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS,
+            _ => default(ArgumentException).Throw<D3D12_RESOURCE_FLAGS>(nameof(resourceType))
+        };
+
+        d3D12ResourceStates = D3D12_RESOURCE_STATE_COMMON;
+
+        using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags);
+
+        d3D12Device.CreateCommittedResource(
+            &d3D12HeapProperties,
+            D3D12_HEAP_FLAG_SHARED,
+            &d3D12ResourceDescription,
+            d3D12ResourceStates,
+            null,
+            Windows.__uuidof<ID3D12Resource>(),
+            (void**)d3D12Resource.GetAddressOf()).Assert();
+
+        return d3D12Resource.Move();
+    }
+
+    /// <summary>
+    /// 他 API と共有可能な <see cref="ID3D12Fence"/> を生成します。
+    /// </summary>
+    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
+    /// <returns>共有可能な <see cref="ID3D12Fence"/> への参照。</returns>
+    public static ComPtr<ID3D12Fence> CreateSharedFence(this ref ID3D12Device d3D12Device)
+    {
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        d3D12Device.CreateFence(
+            0,
+            D3D12_FENCE_FLAG_SHARED,
+            Windows.__uuidof<ID3D12Fence>(),
+            (void**)d3D12Fence.GetAddressOf()).Assert();
+
+        return d3D12Fence.Move();
+    }
+
+    /// <summary>
+    /// 指定した COM オブジェクトに対する共有 NT ハンドルを生成します。
+    /// </summary>
+    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
+    /// <param name="pObject">共有ハンドルを生成する対象の COM オブジェクト。</param>
+    /// <returns>生成された共有 NT ハンドル。呼び出し側が <c>CloseHandle</c> で解放する責任を持ちます。</returns>
+    public static HANDLE CreateSharedHandle(this ref ID3D12Device d3D12Device, IUnknown* pObject)
+    {
+        HANDLE handle;
+
+        d3D12Device.CreateSharedHandle(pObject, null, Windows.GENERIC_ALL, null, &handle).Assert();
+
+        return handle;
+    }
+
+    /// <summary>
+    /// 指定した共有 NT ハンドルから <typeparamref name="T"/> 型の COM オブジェクトを開きます。
+    /// </summary>
+    /// <typeparam name="T">開く COM オブジェクトの型。</typeparam>
+    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
+    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
+    /// <returns>開かれた <typeparamref name="T"/> への参照。</returns>
+    public static ComPtr<T> OpenSharedHandle<T>(this ref ID3D12Device d3D12Device, HANDLE handle)
+        where T : unmanaged, IComObject
+    {
+        using ComPtr<T> obj = default;
+
+        d3D12Device.OpenSharedHandle(handle, Windows.__uuidof<T>(), (void**)obj.GetAddressOf()).Assert();
+
+        return obj.Move();
+    }
+
+    /// <summary>
     /// Creates a new <see cref="ID3D12InfoQueue"/> for a given device.
     /// </summary>
     /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the info queue.</param>

@@ -12,4 +12,7 @@ internal static partial class Windows
 
     [NativeTypeName("#define GENERIC_WRITE (0x40000000L)")]
     public const int GENERIC_WRITE = (0x40000000);
+
+    [NativeTypeName("#define GENERIC_ALL (0x10000000L)")]
+    public const uint GENERIC_ALL = (0x10000000);
 }
