@@ -406,34 +406,30 @@ jobs:
         dotnet publish tests\ComputeSharp.Pix.NuGet\ComputeSharp.Pix.NuGet.csproj -r win-x64 -v n;
         tests\ComputeSharp.Pix.NuGet\bin\Release\net8.0\win-x64\publish\ComputeSharp.Pix.NuGet.exe
 
-  # Publish the packages to GitHub packages
-  publish-nightlies-github:
+  # ビルドした NuGet パッケージ(.nupkg)を GitHub Release として公開する。
+  # GitHub Packages や Azure DevOps への push はフォークでは認証できず失敗する(403)ため、
+  # 代わりに自動生成のリリースノートを付けたリリースを作成し、.nupkg を資産として添付する。
+  publish-release:
     needs: [run-tests, run-tests-d3d12ma, run-tests-win2d, run-samples, run-samples-aot, verify-packages]
     runs-on: windows-2022
     if: ${{github.event_name == 'push'}}
+    permissions:
+      contents: write
     steps:
-    - uses: actions/download-artifact@v4
+    - name: Git checkout
+      uses: actions/checkout@v4
+    - name: Download package artifacts
+      uses: actions/download-artifact@v4
       with:
         name: nuget_packages
         path: artifacts
-    - run: dotnet nuget push "artifacts\*.nupkg" --source "https://nuget.pkg.github.com/${{github.repository_owner}}/index.json" --api-key ${{secrets.GITHUB_TOKEN}} --skip-duplicate
-
-  # Publish the packages to Azure DevOps. This step has will not fail the CI even if it is not
-  # successful, so as to not block PRs and hinder development just because eg. the Azure storage
-  # has exceeded the limit. These packages are rarely needed anyway, so that's fine.
-  publish-nightlies-azure-devops:
-    needs: [run-tests, run-tests-d3d12ma, run-tests-win2d, run-samples, run-samples-aot, verify-packages]
-    runs-on: windows-2022
-    if: ${{github.event_name == 'push'}}
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: nuget_packages
-        path: artifacts
-    - uses: actions/setup-dotnet@v4
-      with:
-        source-url: "https://sergio0694.pkgs.visualstudio.com/ComputeSharp/_packaging/ComputeSharp/nuget/v3/index.json"
+    - name: Create GitHub release with NuGet packages
+      shell: bash
       env:
-        NUGET_AUTH_TOKEN: ${{ secrets.ADO_FEED_PERSONAL_ACCESS_TOKEN }}
-    - run: dotnet nuget push "artifacts\*.nupkg" --api-key AzureDevOps --skip-duplicate
-      continue-on-error: true
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      run: |
+        gh release create "${{github.sha}}" artifacts/*.nupkg \
+          --target "${{github.sha}}" \
+          --title "Nightly build ${{github.sha}}" \
+          --generate-notes \
+          --prerelease
