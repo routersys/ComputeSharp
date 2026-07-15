@@ -1,6 +1,12 @@
 <Project>
   <Import Project="..\build\Directory.Build.props" />
 
+  <PropertyGroup Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props')">
+    <CustomAfterDirectoryBuildProps>$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.after.props</CustomAfterDirectoryBuildProps>
+  </PropertyGroup>
+
+  <Import Project="$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props" Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props')" />
+
   <!-- Centralized packaging metadata for published projects -->
   <PropertyGroup Condition="$(IsPackagedProject)">
 
