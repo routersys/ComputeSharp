@@ -35,7 +35,7 @@ public sealed class ReadOnlyTexture2D<T> : Texture2D<T>
     /// <param name="width">テクスチャの幅。</param>
     /// <param name="height">テクスチャの高さ。</param>
     internal ReadOnlyTexture2D(GraphicsDevice device, int width, int height)
-        : base(device, width, height, ResourceType.ReadOnly, D3D12_FORMAT_SUPPORT1_TEXTURE2D)
+        : base(device, width, height, ResourceType.ReadOnly, D3D12_FORMAT_SUPPORT1_TEXTURE2D, false)
     {
     }
 

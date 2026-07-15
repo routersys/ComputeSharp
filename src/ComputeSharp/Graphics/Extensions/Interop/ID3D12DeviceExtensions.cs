@@ -278,6 +278,7 @@ internal static unsafe class ID3D12DeviceExtensions
     /// <param name="dxgiFormat">使用する <see cref="DXGI_FORMAT"/> 値。</param>
     /// <param name="width">テクスチャの幅。</param>
     /// <param name="height">テクスチャの高さ。</param>
+    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
     /// <param name="d3D12ResourceStates">生成されたリソースの初期 <see cref="D3D12_RESOURCE_STATES"/> 値。</param>
     /// <returns>共有可能な <see cref="ID3D12Resource"/> への参照。</returns>
     public static ComPtr<ID3D12Resource> CreateSharedCommittedResource(
@@ -286,6 +287,7 @@ internal static unsafe class ID3D12DeviceExtensions
         DXGI_FORMAT dxgiFormat,
         uint width,
         uint height,
+        bool isRenderTarget,
         out D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
         D3D12_RESOURCE_FLAGS d3D12ResourceFlags = resourceType switch
@@ -294,6 +296,11 @@ internal static unsafe class ID3D12DeviceExtensions
             ResourceType.ReadWrite => D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS,
             _ => default(ArgumentException).Throw<D3D12_RESOURCE_FLAGS>(nameof(resourceType))
         };
+
+        if (isRenderTarget)
+        {
+            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
 
         d3D12ResourceStates = D3D12_RESOURCE_STATE_COMMON;
 

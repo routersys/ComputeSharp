@@ -35,7 +35,7 @@ public sealed partial class ReadWriteTexture2D<T> : Texture2D<T>
     /// <param name="width">テクスチャの幅。</param>
     /// <param name="height">テクスチャの高さ。</param>
     internal ReadWriteTexture2D(GraphicsDevice device, int width, int height)
-        : base(device, width, height, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+        : base(device, width, height, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW, false)
     {
     }
 

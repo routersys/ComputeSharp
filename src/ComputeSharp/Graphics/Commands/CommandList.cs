@@ -156,6 +156,13 @@ internal unsafe struct CommandList : IDisposable
         return this.device.ExecuteCommandListAsync(ref this);
     }
 
+    public void ExecuteWithoutWaiting()
+    {
+        this.d3D12GraphicsCommandList.Get()->Close().Assert();
+
+        this.device.ExecuteCommandListWithoutWaiting(ref this);
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

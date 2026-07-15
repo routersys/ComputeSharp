@@ -36,6 +36,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// </summary>
     private CommandList commandList;
 
+    private bool isSubmitted;
+
     /// <summary>
     /// Creates a new <see cref="ComputeContext"/> instance with the specified parameters.
     /// </summary>
@@ -44,6 +46,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     {
         this.device = device;
         this.commandList = default;
+        this.isSubmitted = false;
 
         // Increment the reference count for the device. This has to be released when disposing the context.
         // Not disposing the context is undefined behavior, so we can rely on that to release the reference.
@@ -245,6 +248,11 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
+        if (this.isSubmitted)
+        {
+            return;
+        }
+
         default(InvalidOperationException).ThrowIf(this.device is null);
 
         GraphicsDevice device = this.device;
@@ -272,6 +280,11 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask DisposeAsync()
     {
+        if (this.isSubmitted)
+        {
+            return ValueTask.CompletedTask;
+        }
+
         default(InvalidOperationException).ThrowIf(this.device is null);
 
         GraphicsDevice device = this.device;
@@ -288,6 +301,42 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         try
         {
             return this.commandList.ExecuteAndWaitForCompletionAsync();
+        }
+        finally
+        {
+            device.GetReferenceTracker().DangerousRelease();
+        }
+    }
+
+    /// <summary>
+    /// 現在のコンテキストに記録されたコマンドをGPUへ送信します。
+    /// </summary>
+    /// <remarks>
+    /// 通常はGPUでの完了を待たずに戻ります。内部の保留上限に達した場合は、最古の送信が完了するまで待機します。
+    /// コンテキストが参照するすべてのGPUリソースは、共有フェンスなどで送信した処理の完了を確認するまで保持する必要があります。
+    /// このメソッドを呼び出した後、スコープ終端の<see cref="Dispose()"/>および<see cref="DisposeAsync()"/>は何も行いません。
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">コンテキストが既に破棄または送信されている場合にスローされます。</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Submit()
+    {
+        default(InvalidOperationException).ThrowIf(this.device is null);
+
+        GraphicsDevice device = this.device;
+
+        this.device = null;
+        this.isSubmitted = true;
+
+        if (!this.commandList.IsAllocated)
+        {
+            device.GetReferenceTracker().DangerousRelease();
+
+            return;
+        }
+
+        try
+        {
+            this.commandList.ExecuteWithoutWaiting();
         }
         finally
         {

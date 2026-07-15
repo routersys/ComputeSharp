@@ -19,7 +19,8 @@ public static unsafe partial class InteropServices
     /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
     /// <remarks>
     /// 返されるテクスチャは <see cref="CreateSharedHandle{T}(Texture2D{T})"/> で共有 NT ハンドルをエクスポートでき、
-    /// D3D11 など他 API から <c>OpenSharedResource1</c> で開けます。クロス API の同期は共有フェンスで行ってください。
+    /// 対応する外部 API から開けます。D3D11およびDirect2Dの共有ターゲットには正規化オーバーロードを使用してください。
+    /// クロス API の同期は共有フェンスで行ってください。
     /// </remarks>
     public static ReadWriteTexture2D<T> AllocateSharedReadWriteTexture2D<T>(GraphicsDevice device, int width, int height)
         where T : unmanaged
@@ -27,6 +28,30 @@ public static unsafe partial class InteropServices
         default(ArgumentNullException).ThrowIfNull(device);
 
         return new ReadWriteTexture2D<T>(device, width, height);
+    }
+
+    /// <summary>
+    /// クロス API 共有が可能な正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> を確保します。
+    /// </summary>
+    /// <typeparam name="T">CPU側で使用するピクセルの型。</typeparam>
+    /// <typeparam name="TPixel">GPU側で使用する正規化ピクセルの型。</typeparam>
+    /// <param name="device">テクスチャの確保に使用する <see cref="GraphicsDevice"/>。</param>
+    /// <param name="width">テクスチャの幅。</param>
+    /// <param name="height">テクスチャの高さ。</param>
+    /// <returns>共有可能な正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> インスタンス。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <remarks>
+    /// 返されるテクスチャはUAV、同時アクセス、レンダーターゲットに対応します。D3D11から共有リソースとして開け、
+    /// 互換性のある形式ではDirect2Dの共有ターゲットとして開けます。
+    /// クロス API の同期は共有フェンスで行ってください。
+    /// </remarks>
+    public static ReadWriteTexture2D<T, TPixel> AllocateSharedReadWriteTexture2D<T, TPixel>(GraphicsDevice device, int width, int height)
+        where T : unmanaged, IPixel<T, TPixel>
+        where TPixel : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(device);
+
+        return new ReadWriteTexture2D<T, TPixel>(device, width, height);
     }
 
     /// <summary>
@@ -68,6 +93,32 @@ public static unsafe partial class InteropServices
         using ComPtr<ID3D12Resource> d3D12Resource = device.OpenSharedResource(new HANDLE((void*)handle));
 
         return new ReadWriteTexture2D<T>(device, d3D12Resource.Get());
+    }
+
+    /// <summary>
+    /// 外部 API が所有する共有 NT ハンドルを正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> として開きます。
+    /// </summary>
+    /// <typeparam name="T">CPU側で使用するピクセルの型。</typeparam>
+    /// <typeparam name="TPixel">GPU側で使用する正規化ピクセルの型。</typeparam>
+    /// <param name="device">リソースを開くために使用する <see cref="GraphicsDevice"/>。</param>
+    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
+    /// <returns>共有リソースをラップする正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> インスタンス。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <exception cref="ArgumentException">共有リソースが2Dテクスチャでない、またはフォーマットが <typeparamref name="T"/> と一致しない場合にスローされます。</exception>
+    /// <remarks>
+    /// 書き込み用に使用する場合、元のリソースはUAV対応かつ同時アクセス可能として作成されている必要があります。
+    /// クロス API の同期は共有フェンスで行ってください。
+    /// </remarks>
+    public static ReadWriteTexture2D<T, TPixel> OpenSharedReadWriteTexture2D<T, TPixel>(GraphicsDevice device, nint handle)
+        where T : unmanaged, IPixel<T, TPixel>
+        where TPixel : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(device);
+
+        using ReferenceTracker.Lease _0 = device.GetReferenceTracker().GetLease();
+        using ComPtr<ID3D12Resource> d3D12Resource = device.OpenSharedResource(new HANDLE((void*)handle));
+
+        return new ReadWriteTexture2D<T, TPixel>(device, d3D12Resource.Get());
     }
 
     /// <summary>

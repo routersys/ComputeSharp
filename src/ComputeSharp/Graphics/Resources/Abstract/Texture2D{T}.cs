@@ -136,7 +136,8 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
     /// <param name="height">テクスチャの高さ。</param>
     /// <param name="resourceType">現在のテクスチャのリソース種別。</param>
     /// <param name="d3D12FormatSupport">現在のテクスチャ型のフォーマット サポート。</param>
-    private protected Texture2D(GraphicsDevice device, int width, int height, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport)
+    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
+    private protected Texture2D(GraphicsDevice device, int width, int height, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport, bool isRenderTarget)
     {
         using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
 
@@ -159,6 +160,7 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
             DXGIFormatHelper.GetForType<T>(),
             (uint)width,
             (uint)height,
+            isRenderTarget,
             out this.d3D12Resource,
             out this.d3D12ResourceState);
 

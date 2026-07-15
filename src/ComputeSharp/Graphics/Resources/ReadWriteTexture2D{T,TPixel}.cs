@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ComputeSharp.Graphics.Resources.Enums;
 using ComputeSharp.Resources;
 using ComputeSharp.Resources.Debug;
+using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FORMAT_SUPPORT1;
 
 namespace ComputeSharp;
@@ -26,6 +27,16 @@ public sealed partial class ReadWriteTexture2D<T, TPixel> : Texture2D<T>, IReadW
     /// <param name="allocationMode">The allocation mode to use for the new resource.</param>
     internal ReadWriteTexture2D(GraphicsDevice device, int width, int height, AllocationMode allocationMode)
         : base(device, width, height, ResourceType.ReadWrite, allocationMode, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+    {
+    }
+
+    internal ReadWriteTexture2D(GraphicsDevice device, int width, int height)
+        : base(device, width, height, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW | D3D12_FORMAT_SUPPORT1_RENDER_TARGET, true)
+    {
+    }
+
+    internal unsafe ReadWriteTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource)
+        : base(device, d3D12Resource, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
     {
     }
 

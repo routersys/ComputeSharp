@@ -11,12 +11,17 @@ namespace ComputeSharp.Graphics.Commands.Interop;
 /// A type that acts as a pool to get new <see cref="ID3D12CommandList"/> instances wheen needed.
 /// </summary>
 /// <param name="d3D12CommandListType">The command list type to use.</param>
-internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType) : IDisposable
+/// <param name="d3D12Fence">The fence used to track deferred command list completion.</param>
+internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType, ID3D12Fence* d3D12Fence) : IDisposable
 {
+    private const int MaximumPendingCommandListCount = 16;
+
     /// <summary>
     /// The queue of <see cref="D3D12CommandListBundle"/> items with the available command lists.
     /// </summary>
-    private readonly Queue<D3D12CommandListBundle> d3D12CommandListBundleQueue = [];
+    private readonly Queue<D3D12CommandListBundle> d3D12CommandListBundleQueue = new(MaximumPendingCommandListCount * 2);
+
+    private readonly Queue<PendingD3D12CommandListBundle> pendingD3D12CommandListBundleQueue = new(MaximumPendingCommandListCount);
 
     /// <summary>
     /// Rents a <see cref="ID3D12GraphicsCommandList"/> and <see cref="ID3D12CommandAllocator"/> pair.
@@ -29,6 +34,8 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
     {
         lock (this.d3D12CommandListBundleQueue)
         {
+            ReclaimCompletedCommandLists();
+
             if (this.d3D12CommandListBundleQueue.TryDequeue(out D3D12CommandListBundle d3D12CommandListBundle))
             {
                 d3D12CommandList = d3D12CommandListBundle.D3D12CommandList;
@@ -68,18 +75,71 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         }
     }
 
+    public void ReturnWhenCompleted(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue)
+    {
+        lock (this.d3D12CommandListBundleQueue)
+        {
+            ReclaimCompletedCommandLists();
+
+            if (this.pendingD3D12CommandListBundleQueue.Count == MaximumPendingCommandListCount)
+            {
+                PendingD3D12CommandListBundle pendingD3D12CommandListBundle = this.pendingD3D12CommandListBundleQueue.Dequeue();
+
+                if (pendingD3D12CommandListBundle.FenceValue > d3D12Fence->GetCompletedValue())
+                {
+                    d3D12Fence->SetEventOnCompletion(pendingD3D12CommandListBundle.FenceValue, default).Assert();
+                }
+
+                this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
+            }
+
+            this.pendingD3D12CommandListBundleQueue.Enqueue(new PendingD3D12CommandListBundle(d3D12CommandList, d3D12CommandAllocator, fenceValue));
+        }
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
         lock (this.d3D12CommandListBundleQueue)
         {
+            ulong pendingFenceValue = 0;
+
+            foreach (PendingD3D12CommandListBundle current in this.pendingD3D12CommandListBundleQueue)
+            {
+                pendingFenceValue = Math.Max(pendingFenceValue, current.FenceValue);
+            }
+
+            if (pendingFenceValue > d3D12Fence->GetCompletedValue())
+            {
+                d3D12Fence->SetEventOnCompletion(pendingFenceValue, default).Assert();
+            }
+
             foreach (D3D12CommandListBundle d3D12CommandListBundle in this.d3D12CommandListBundleQueue)
             {
                 _ = d3D12CommandListBundle.D3D12CommandList->Release();
                 _ = d3D12CommandListBundle.D3D12CommandAllocator->Release();
             }
 
+            foreach (PendingD3D12CommandListBundle current in this.pendingD3D12CommandListBundleQueue)
+            {
+                _ = current.D3D12CommandListBundle.D3D12CommandList->Release();
+                _ = current.D3D12CommandListBundle.D3D12CommandAllocator->Release();
+            }
+
             this.d3D12CommandListBundleQueue.Clear();
+            this.pendingD3D12CommandListBundleQueue.Clear();
+        }
+    }
+
+    private void ReclaimCompletedCommandLists()
+    {
+        ulong completedValue = d3D12Fence->GetCompletedValue();
+
+        while (this.pendingD3D12CommandListBundleQueue.TryPeek(out PendingD3D12CommandListBundle pendingD3D12CommandListBundle) &&
+               pendingD3D12CommandListBundle.FenceValue <= completedValue)
+        {
+            _ = this.pendingD3D12CommandListBundleQueue.Dequeue();
+            this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
         }
     }
 
@@ -120,5 +180,12 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         /// The <see cref="ID3D12CommandAllocator"/> value for the current entry.
         /// </summary>
         public readonly ID3D12CommandAllocator* D3D12CommandAllocator = d3D12CommandAllocator;
+    }
+
+    private readonly struct PendingD3D12CommandListBundle(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue)
+    {
+        public readonly D3D12CommandListBundle D3D12CommandListBundle = new(d3D12CommandList, d3D12CommandAllocator);
+
+        public readonly ulong FenceValue = fenceValue;
     }
 }

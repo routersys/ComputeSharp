@@ -26,6 +26,7 @@ unsafe partial class GraphicsDevice
         ref readonly ID3D12CommandListPool commandListPool = ref Unsafe.NullRef<ID3D12CommandListPool>();
         ID3D12CommandQueue* d3D12CommandQueue;
         ID3D12Fence* d3D12Fence;
+        object d3D12CommandQueueLock;
         ref ulong d3D12FenceValue = ref Unsafe.NullRef<ulong>();
 
         // Get the target command queue, fence and pool for the list type
@@ -35,28 +36,25 @@ unsafe partial class GraphicsDevice
                 commandListPool = ref this.computeCommandListPool;
                 d3D12CommandQueue = this.d3D12ComputeCommandQueue.Get();
                 d3D12Fence = this.d3D12ComputeFence.Get();
+                d3D12CommandQueueLock = this.d3D12ComputeCommandQueueLock;
                 d3D12FenceValue = ref this.nextD3D12ComputeFenceValue;
                 break;
             case D3D12_COMMAND_LIST_TYPE_COPY:
                 commandListPool = ref this.copyCommandListPool;
                 d3D12CommandQueue = this.d3D12CopyCommandQueue.Get();
                 d3D12Fence = this.d3D12CopyFence.Get();
+                d3D12CommandQueueLock = this.d3D12CopyCommandQueueLock;
                 d3D12FenceValue = ref this.nextD3D12CopyFenceValue;
                 break;
             default: default(ArgumentException).Throw(nameof(commandList)); return;
         }
 
-        // Execute the command list
-        fixed (ID3D12CommandList** d3D12CommandList = &commandList.GetD3D12CommandListPinnableAddressOf())
-        {
-            d3D12CommandQueue->ExecuteCommandLists(1, d3D12CommandList);
-        }
-
-        ulong updatedFenceValue = Interlocked.Increment(ref d3D12FenceValue);
-
-        // Signal to the target fence with the updated value. Note that incrementing the
-        // target fence value to signal must be done after executing the command list.
-        d3D12CommandQueue->Signal(d3D12Fence, updatedFenceValue).Assert();
+        ulong updatedFenceValue = ExecuteCommandListCore(
+            ref commandList,
+            d3D12CommandQueue,
+            d3D12Fence,
+            ref d3D12FenceValue,
+            d3D12CommandQueueLock);
 
         // If the fence value hasn't been reached, wait until the operation completes
         if (updatedFenceValue > d3D12Fence->GetCompletedValue())
@@ -76,17 +74,12 @@ unsafe partial class GraphicsDevice
     /// <remarks>This method is only supported for compute operations.</remarks>
     internal ValueTask ExecuteCommandListAsync(ref CommandList commandList)
     {
-        // Execute the command list
-        fixed (ID3D12CommandList** d3D12CommandList = &commandList.GetD3D12CommandListPinnableAddressOf())
-        {
-            this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists(1, d3D12CommandList);
-        }
-
-        ulong updatedFenceValue = Interlocked.Increment(ref this.nextD3D12ComputeFenceValue);
-
-        // Signal to the target fence with the updated value. Note that incrementing the
-        // target fence value to signal must be done after executing the command list.
-        this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), updatedFenceValue).Assert();
+        ulong updatedFenceValue = ExecuteCommandListCore(
+            ref commandList,
+            this.d3D12ComputeCommandQueue.Get(),
+            this.d3D12ComputeFence.Get(),
+            ref this.nextD3D12ComputeFenceValue,
+            this.d3D12ComputeCommandQueueLock);
 
         // If the fence value has been reached, complete synchronously
         if (updatedFenceValue <= this.d3D12ComputeFence.Get()->GetCompletedValue())
@@ -103,6 +96,43 @@ unsafe partial class GraphicsDevice
             this,
             commandList.DetachD3D12CommandList(),
             commandList.DetachD3D12CommandAllocator()).AsValueTask();
+    }
+
+    internal void ExecuteCommandListWithoutWaiting(ref CommandList commandList)
+    {
+        ulong updatedFenceValue = ExecuteCommandListCore(
+            ref commandList,
+            this.d3D12ComputeCommandQueue.Get(),
+            this.d3D12ComputeFence.Get(),
+            ref this.nextD3D12ComputeFenceValue,
+            this.d3D12ComputeCommandQueueLock);
+
+        this.computeCommandListPool.ReturnWhenCompleted(
+            commandList.DetachD3D12CommandList(),
+            commandList.DetachD3D12CommandAllocator(),
+            updatedFenceValue);
+    }
+
+    private static ulong ExecuteCommandListCore(
+        ref CommandList commandList,
+        ID3D12CommandQueue* d3D12CommandQueue,
+        ID3D12Fence* d3D12Fence,
+        ref ulong d3D12FenceValue,
+        object d3D12CommandQueueLock)
+    {
+        lock (d3D12CommandQueueLock)
+        {
+            fixed (ID3D12CommandList** d3D12CommandList = &commandList.GetD3D12CommandListPinnableAddressOf())
+            {
+                d3D12CommandQueue->ExecuteCommandLists(1, d3D12CommandList);
+            }
+
+            ulong updatedFenceValue = ++d3D12FenceValue;
+
+            d3D12CommandQueue->Signal(d3D12Fence, updatedFenceValue).Assert();
+
+            return updatedFenceValue;
+        }
     }
 
     /// <summary>

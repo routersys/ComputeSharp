@@ -43,6 +43,10 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     /// </summary>
     private ComPtr<ID3D12CommandQueue> d3D12CopyCommandQueue;
 
+    private readonly object d3D12ComputeCommandQueueLock = new();
+
+    private readonly object d3D12CopyCommandQueueLock = new();
+
     /// <summary>
     /// The <see cref="ID3D12Fence"/> instance used for compute operations.
     /// </summary>
@@ -150,8 +154,8 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         this.d3D12ComputeFence = d3D12Device->CreateFence();
         this.d3D12CopyFence = d3D12Device->CreateFence();
         this.shaderResourceViewDescriptorAllocator = new ID3D12DescriptorHandleAllocator(d3D12Device);
-        this.computeCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COMPUTE);
-        this.copyCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COPY);
+        this.computeCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COMPUTE, this.d3D12ComputeFence.Get());
+        this.copyCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COPY, this.d3D12CopyFence.Get());
         this.allocator = new ComPtr<ID3D12MemoryAllocator>(allocator);
 
         Luid = Luid.FromLUID(dxgiDescription1->AdapterLuid);
@@ -423,13 +427,13 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     {
         DeviceHelper.NotifyDisposedDevice(this);
 
+        this.computeCommandListPool.Dispose();
+        this.copyCommandListPool.Dispose();
         this.d3D12Device.Dispose();
         this.d3D12ComputeCommandQueue.Dispose();
         this.d3D12CopyCommandQueue.Dispose();
         this.d3D12ComputeFence.Dispose();
         this.d3D12CopyFence.Dispose();
-        this.computeCommandListPool.Dispose();
-        this.copyCommandListPool.Dispose();
         this.shaderResourceViewDescriptorAllocator.Dispose();
         this.allocator.Dispose();
 

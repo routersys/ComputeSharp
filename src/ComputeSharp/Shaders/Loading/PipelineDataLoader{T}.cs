@@ -21,6 +21,8 @@ internal static unsafe class PipelineDataLoader<T>
     /// </summary>
     private static readonly ConditionalWeakTable<GraphicsDevice, PipelineData> CachedPipelines = [];
 
+    private static readonly object PipelineCreationLock = new();
+
     /// <summary>
     /// Gets the <see cref="PipelineData"/> instance for a given shader.
     /// </summary>
@@ -28,11 +30,29 @@ internal static unsafe class PipelineDataLoader<T>
     /// <returns>The <see cref="PipelineData"/> instance for a given shader.</returns>
     public static PipelineData GetPipelineData(GraphicsDevice device)
     {
-        return CachedPipelines.GetValue(device, CreatePipelineData);
+        if (CachedPipelines.TryGetValue(device, out PipelineData? pipelineData))
+        {
+            return pipelineData;
+        }
+
+        lock (PipelineCreationLock)
+        {
+            if (CachedPipelines.TryGetValue(device, out pipelineData))
+            {
+                return pipelineData;
+            }
+
+            pipelineData = CreatePipelineData(device);
+
+            CachedPipelines.Add(device, pipelineData);
+            device.RegisterPipelineData(pipelineData);
+
+            return pipelineData;
+        }
     }
 
     /// <summary>
-    /// Creates and caches a <see cref="PipelineData"/> instance for a given shader.
+    /// Creates a <see cref="PipelineData"/> instance for a given shader.
     /// </summary>
     /// <param name="device">The <see cref="GraphicsDevice"/> to use to run the shader.</param>
     /// <returns>The resulting <see cref="PipelineData"/> instance to use to run the shader.</returns>
@@ -48,12 +68,6 @@ internal static unsafe class PipelineDataLoader<T>
 
             pipelineData = new PipelineData(d3D12RootSignature.Get(), d3D12PipelineState.Get());
         }
-
-        // Add the pipeline to the cache for this type
-        CachedPipelines.Add(device, pipelineData);
-
-        // Register the newly created pipeline data to enable early disposal
-        device.RegisterPipelineData(pipelineData);
 
         return pipelineData;
     }

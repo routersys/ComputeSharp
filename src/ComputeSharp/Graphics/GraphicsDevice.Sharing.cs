@@ -15,6 +15,7 @@ unsafe partial class GraphicsDevice
     /// <param name="dxgiFormat">使用する <see cref="DXGI_FORMAT"/> 値。</param>
     /// <param name="width">テクスチャの幅。</param>
     /// <param name="height">テクスチャの高さ。</param>
+    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
     /// <param name="d3D12Resource">生成された <see cref="ID3D12Resource"/> オブジェクト。</param>
     /// <param name="d3D12ResourceStates">生成されたリソースの初期 <see cref="D3D12_RESOURCE_STATES"/> 値。</param>
     internal void CreateSharedResource(
@@ -22,10 +23,11 @@ unsafe partial class GraphicsDevice
         DXGI_FORMAT dxgiFormat,
         uint width,
         uint height,
+        bool isRenderTarget,
         out ComPtr<ID3D12Resource> d3D12Resource,
         out D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
-        d3D12Resource = this.d3D12Device.Get()->CreateSharedCommittedResource(resourceType, dxgiFormat, width, height, out d3D12ResourceStates);
+        d3D12Resource = this.d3D12Device.Get()->CreateSharedCommittedResource(resourceType, dxgiFormat, width, height, isRenderTarget, out d3D12ResourceStates);
     }
 
     /// <summary>
@@ -74,7 +76,10 @@ unsafe partial class GraphicsDevice
     /// <param name="value">シグナルする値。</param>
     internal void SignalSharedFence(ID3D12Fence* d3D12Fence, ulong value)
     {
-        this.d3D12ComputeCommandQueue.Get()->Signal(d3D12Fence, value).Assert();
+        lock (this.d3D12ComputeCommandQueueLock)
+        {
+            this.d3D12ComputeCommandQueue.Get()->Signal(d3D12Fence, value).Assert();
+        }
     }
 
     /// <summary>
@@ -84,6 +89,9 @@ unsafe partial class GraphicsDevice
     /// <param name="value">待機する目標値。</param>
     internal void WaitForSharedFence(ID3D12Fence* d3D12Fence, ulong value)
     {
-        this.d3D12ComputeCommandQueue.Get()->Wait(d3D12Fence, value).Assert();
+        lock (this.d3D12ComputeCommandQueueLock)
+        {
+            this.d3D12ComputeCommandQueue.Get()->Wait(d3D12Fence, value).Assert();
+        }
     }
 }
