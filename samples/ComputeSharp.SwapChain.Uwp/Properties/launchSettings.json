@@ -1,7 +1,0 @@
-{
-  "profiles": {
-    "ComputeSharp.SwapChain.Uwp": {
-      "commandName": "MsixPackage"
-    }
-  }
-}

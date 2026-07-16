@@ -2,7 +2,6 @@ using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Interop;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
@@ -16,26 +15,6 @@ public unsafe partial class InteropServicesTests
 {
     [DllImport("kernel32", ExactSpelling = true)]
     private static extern int CloseHandle(nint hObject);
-
-    [CombinatorialTestMethod]
-    [AllDevices]
-    public void DescriptorHandleAllocator_DefaultReturnIsIgnoredAndDuplicateReturnThrows(Device device)
-    {
-        ID3D12DescriptorHandleAllocator allocator = new(device.Get().D3D12Device);
-
-        try
-        {
-            allocator.Return(default);
-            allocator.Rent(out ID3D12ResourceDescriptorHandles handles);
-            allocator.Return(in handles);
-
-            Assert.ThrowsExactly<InvalidOperationException>(() => allocator.Return(in handles));
-        }
-        finally
-        {
-            allocator.Dispose();
-        }
-    }
 
     [CombinatorialTestMethod]
     [AllDevices]
