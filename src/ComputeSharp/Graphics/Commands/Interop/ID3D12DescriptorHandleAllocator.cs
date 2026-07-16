@@ -108,6 +108,13 @@ internal unsafe struct ID3D12DescriptorHandleAllocator : IDisposable
     /// <param name="d3D12ResourceDescriptorHandles">The returned <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> value.</param>
     public void Return(in ID3D12ResourceDescriptorHandles d3D12ResourceDescriptorHandles)
     {
+        if (d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle.ptr == 0 &&
+            d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle.ptr == 0 &&
+            d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandleNonShaderVisible.ptr == 0)
+        {
+            return;
+        }
+
         lock (this.d3D12DescriptorHandlePairs)
         {
             default(InvalidOperationException).ThrowIf(this.size >= DescriptorsPerHeap);
