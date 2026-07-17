@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -340,6 +341,260 @@ public unsafe partial class InteropServicesTests
         }
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_SubmitTwiceThrows(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+        using ComputeContext context = device.Get().CreateComputeContext();
+
+        context.For(16, 16, new SharedTextureFillShader(texture));
+        context.Submit();
+
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => context.Submit());
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_DispatchAfterSubmitThrows(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+        using ComputeContext context = device.Get().CreateComputeContext();
+
+        context.For(16, 16, new SharedTextureFillShader(texture));
+        context.Submit();
+
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => context.For(16, 16, new SharedTextureFillShader(texture)));
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_SubmitAfterDisposeThrows(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+
+        ComputeContext context = device.Get().CreateComputeContext();
+
+        context.For(16, 16, new SharedTextureFillShader(texture));
+        context.Dispose();
+
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => context.Submit());
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_SubmitWithoutCommandsKeepsDeviceUsable(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+
+        using (ComputeContext context = device.Get().CreateComputeContext())
+        {
+            context.Submit();
+        }
+
+        device.Get().For(16, 16, new SharedTextureFillShader(texture));
+
+        float[] result = new float[16 * 16];
+
+        texture.CopyTo(result);
+
+        Assert.AreEqual(30, result[(16 * 16) - 1]);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_SubmitsCompleteBeforeLaterBlockingDispatch(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+
+        device.Get().For(16, 16, new SharedTextureFillShader(texture));
+
+        for (int i = 0; i < 16; i++)
+        {
+            using ComputeContext context = device.Get().CreateComputeContext();
+
+            context.For(16, 16, new SharedTextureIncrementShader(texture));
+            context.Submit();
+        }
+
+        device.Get().For(16, 16, new SharedTextureIncrementShader(texture));
+
+        float[] result = new float[16 * 16];
+
+        texture.CopyTo(result);
+
+        for (int y = 0; y < 16; y++)
+        {
+            for (int x = 0; x < 16; x++)
+            {
+                Assert.AreEqual(x + y + 17, result[(y * 16) + x]);
+            }
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_SustainedSubmitsBeyondPendingLimit(Device device)
+    {
+        using ReadWriteTexture2D<Bgra32, Float4> texture = InteropServices.AllocateSharedReadWriteTexture2D<Bgra32, Float4>(device.Get(), 16, 16);
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        nint handle = 0;
+
+        InteropServices.CreateSharedFence(device.Get(), Windows.__uuidof<ID3D12Fence>(), (void**)d3D12Fence.GetAddressOf(), &handle);
+
+        try
+        {
+            for (int i = 0; i < 64; i++)
+            {
+                using ComputeContext context = device.Get().CreateComputeContext();
+
+                context.For(16, 16, new SharedNormalizedTextureFillShader(texture));
+                context.Submit();
+            }
+
+            InteropServices.SignalSharedFence(device.Get(), d3D12Fence.Get(), 1);
+
+            while (d3D12Fence.Get()->GetCompletedValue() < 1)
+            {
+                _ = Thread.Yield();
+            }
+
+            Bgra32[] result = new Bgra32[16 * 16];
+
+            texture.CopyTo(result);
+
+            foreach (Bgra32 pixel in result)
+            {
+                Assert.AreEqual(0xFF808080u, pixel.PackedValue);
+            }
+        }
+        finally
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ComputeContext_ConcurrentSubmitsFromMultipleThreads(Device device)
+    {
+        const int threadCount = 4;
+        const int iterationCount = 24;
+
+        ReadWriteTexture2D<float>[] textures = new ReadWriteTexture2D<float>[threadCount];
+
+        try
+        {
+            for (int i = 0; i < threadCount; i++)
+            {
+                textures[i] = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+            }
+
+            _ = Parallel.For(0, threadCount, i =>
+            {
+                using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+                nint handle = 0;
+
+                InteropServices.CreateSharedFence(device.Get(), Windows.__uuidof<ID3D12Fence>(), (void**)d3D12Fence.GetAddressOf(), &handle);
+
+                try
+                {
+                    for (int j = 0; j < iterationCount; j++)
+                    {
+                        using ComputeContext context = device.Get().CreateComputeContext();
+
+                        context.For(16, 16, new SharedTextureFillShader(textures[i]));
+                        context.Submit();
+                    }
+
+                    InteropServices.SignalSharedFence(device.Get(), d3D12Fence.Get(), 1);
+
+                    while (d3D12Fence.Get()->GetCompletedValue() < 1)
+                    {
+                        _ = Thread.Yield();
+                    }
+                }
+                finally
+                {
+                    _ = CloseHandle(handle);
+                }
+            });
+
+            float[] result = new float[16 * 16];
+
+            for (int i = 0; i < threadCount; i++)
+            {
+                textures[i].CopyTo(result);
+
+                for (int y = 0; y < 16; y++)
+                {
+                    for (int x = 0; x < 16; x++)
+                    {
+                        Assert.AreEqual(x + y, result[(y * 16) + x]);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            foreach (ReadWriteTexture2D<float>? texture in textures)
+            {
+                texture?.Dispose();
+            }
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void OpenSharedReadWriteTexture2D_FormatMismatchThrows(Device device)
+    {
+        using ReadWriteTexture2D<float> source = InteropServices.AllocateSharedReadWriteTexture2D<float>(device.Get(), 16, 16);
+
+        nint handle = InteropServices.CreateSharedHandle(source);
+
+        try
+        {
+            _ = Assert.ThrowsExactly<ArgumentException>(() => InteropServices.OpenSharedReadWriteTexture2D<int>(device.Get(), handle));
+        }
+        finally
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void OpenSharedReadWriteTexture2D_FenceHandleThrows(Device device)
+    {
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        nint handle = 0;
+
+        InteropServices.CreateSharedFence(device.Get(), Windows.__uuidof<ID3D12Fence>(), (void**)d3D12Fence.GetAddressOf(), &handle);
+
+        nint openedHandle = handle;
+
+        try
+        {
+            _ = Assert.ThrowsExactly<Win32Exception>(() => InteropServices.OpenSharedReadWriteTexture2D<float>(device.Get(), openedHandle));
+        }
+        finally
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void CreateSharedHandle_NonSharedTextureThrows(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = device.Get().AllocateReadWriteTexture2D<float>(16, 16);
+
+        _ = Assert.ThrowsExactly<Win32Exception>(() => InteropServices.CreateSharedHandle(texture));
+    }
+
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
     [GeneratedComputeShaderDescriptor]
@@ -363,6 +618,19 @@ public unsafe partial class InteropServicesTests
         public void Execute()
         {
             this.texture[ThreadIds.XY] = new Float4(0.5f, 0.5f, 0.5f, 1f);
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct SharedTextureIncrementShader : IComputeShader
+    {
+        public readonly ReadWriteTexture2D<float> texture;
+
+        public void Execute()
+        {
+            this.texture[ThreadIds.XY] += 1f;
         }
     }
 
