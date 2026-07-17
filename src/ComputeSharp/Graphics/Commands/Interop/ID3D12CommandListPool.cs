@@ -77,25 +77,35 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
 
     public void ReturnWhenCompleted(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue, GraphicsResourceLeaseSet? resourceLeases)
     {
+        PendingD3D12CommandListBundle pendingD3D12CommandListBundle = default;
+        bool hasPendingD3D12CommandListBundle = false;
+
         lock (this.d3D12CommandListBundleQueue)
         {
             ReclaimCompletedCommandLists();
 
             if (this.pendingD3D12CommandListBundleQueue.Count == MaximumPendingCommandListCount)
             {
-                PendingD3D12CommandListBundle pendingD3D12CommandListBundle = this.pendingD3D12CommandListBundleQueue.Dequeue();
-
-                if (pendingD3D12CommandListBundle.FenceValue > d3D12Fence->GetCompletedValue())
-                {
-                    d3D12Fence->SetEventOnCompletion(pendingD3D12CommandListBundle.FenceValue, default).Assert();
-                }
-
-                pendingD3D12CommandListBundle.ResourceLeases?.Release();
-
-                this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
+                pendingD3D12CommandListBundle = this.pendingD3D12CommandListBundleQueue.Dequeue();
+                hasPendingD3D12CommandListBundle = true;
             }
 
             this.pendingD3D12CommandListBundleQueue.Enqueue(new PendingD3D12CommandListBundle(d3D12CommandList, d3D12CommandAllocator, fenceValue, resourceLeases));
+        }
+
+        if (hasPendingD3D12CommandListBundle)
+        {
+            if (pendingD3D12CommandListBundle.FenceValue > d3D12Fence->GetCompletedValue())
+            {
+                d3D12Fence->SetEventOnCompletion(pendingD3D12CommandListBundle.FenceValue, default).Assert();
+            }
+
+            pendingD3D12CommandListBundle.ResourceLeases?.Release();
+
+            lock (this.d3D12CommandListBundleQueue)
+            {
+                this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
+            }
         }
     }
 
