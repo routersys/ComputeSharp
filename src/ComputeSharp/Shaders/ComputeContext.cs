@@ -30,7 +30,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// <summary>
     /// The <see cref="GraphicsDevice"/> instance owning the current context.
     /// </summary>
-    private GraphicsDevice? device;
+    private readonly GraphicsDevice? device;
 
     /// <summary>
     /// The current <see cref="CommandList"/> instance used to dispatch shaders.
@@ -39,7 +39,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
     private GraphicsResourceLeaseSet? resourceLeases;
 
-    private bool isSubmitted;
+    private ContextState state;
 
     /// <summary>
     /// Creates a new <see cref="ComputeContext"/> instance with the specified parameters.
@@ -50,7 +50,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         this.device = device;
         this.commandList = default;
         this.resourceLeases = null;
-        this.isSubmitted = false;
+        this.state = ContextState.Recording;
 
         // Increment the reference count for the device. This has to be released when disposing the context.
         // Not disposing the context is undefined behavior, so we can rely on that to release the reference.
@@ -64,7 +64,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     {
         get
         {
-            default(InvalidOperationException).ThrowIf(this.device is null);
+            default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
             return this.device!;
         }
@@ -76,7 +76,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to insert the barrier for.</param>
     internal readonly unsafe void Barrier(ID3D12Resource* d3D12Resource)
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
         ref CommandList commandList = ref GetCommandList();
 
@@ -96,7 +96,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle,
         bool isNormalized)
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
         ref CommandList commandList = ref GetCommandList(pipelineState: null);
 
@@ -116,7 +116,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle,
         Float4 value)
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
         ref CommandList commandList = ref GetCommandList(pipelineState: null);
 
@@ -157,7 +157,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     internal readonly unsafe void Run<T>(int x, int y, int z, in T shader)
         where T : struct, IComputeShader, IComputeShaderDescriptor<T>
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
         default(ArgumentOutOfRangeException).ThrowIfNegativeOrZero(x);
         default(ArgumentOutOfRangeException).ThrowIfNegativeOrZero(y);
         default(ArgumentOutOfRangeException).ThrowIfNegativeOrZero(z);
@@ -198,7 +198,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         where T : struct, IComputeShader<TPixel>, IComputeShaderDescriptor<T>
         where TPixel : unmanaged
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
         int x = texture.Width;
         int y = texture.Height;
@@ -245,7 +245,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         D3D12_RESOURCE_STATES d3D12ResourceStatesBefore,
         D3D12_RESOURCE_STATES d3D12ResourceStatesAfter)
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
         ref CommandList commandList = ref GetCommandList(pipelineState: null);
 
@@ -256,16 +256,16 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (this.isSubmitted)
+        if (this.state is ContextState.Submitted)
         {
             return;
         }
 
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
-        GraphicsDevice device = this.device;
+        GraphicsDevice device = this.device!;
 
-        this.device = null;
+        this.state = ContextState.Disposed;
 
         GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
 
@@ -296,16 +296,16 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask DisposeAsync()
     {
-        if (this.isSubmitted)
+        if (this.state is ContextState.Submitted)
         {
             return ValueTask.CompletedTask;
         }
 
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
-        GraphicsDevice device = this.device;
+        GraphicsDevice device = this.device!;
 
-        this.device = null;
+        this.state = ContextState.Disposed;
 
         GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
 
@@ -378,12 +378,11 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Submit()
     {
-        default(InvalidOperationException).ThrowIf(this.device is null);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
-        GraphicsDevice device = this.device;
+        GraphicsDevice device = this.device!;
 
-        this.device = null;
-        this.isSubmitted = true;
+        this.state = ContextState.Submitted;
 
         GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
 
@@ -470,5 +469,13 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         resourceLeases.Add(lease);
 
         lease = default;
+    }
+
+    private enum ContextState
+    {
+        None,
+        Recording,
+        Submitted,
+        Disposed
     }
 }
