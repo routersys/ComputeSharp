@@ -279,6 +279,8 @@ internal struct ReferenceTracker : IDisposable
             this.trackedObject = trackedObject;
         }
 
+        internal readonly IReferenceTrackedObject? TrackedObject => this.trackedObject;
+
         /// <inheritdoc/>
         public void Dispose()
         {
