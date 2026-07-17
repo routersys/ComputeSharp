@@ -367,14 +367,14 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// 現在のコンテキストに記録されたコマンドをGPUへ送信します。
+    /// Submits the commands recorded in the current context to the GPU.
     /// </summary>
     /// <remarks>
-    /// 通常はGPUでの完了を待たずに戻ります。内部の保留上限に達した場合は、最古の送信が完了するまで待機します。
-    /// コンテキストが参照するすべてのGPUリソースは、共有フェンスなどで送信した処理の完了を確認するまで保持する必要があります。
-    /// このメソッドを呼び出した後、スコープ終端の<see cref="Dispose()"/>および<see cref="DisposeAsync()"/>は何も行いません。
+    /// This method normally returns without waiting for the GPU to complete. If the internal pending limit is reached, it waits until the oldest submission has completed.
+    /// All GPU resources referenced by the context must be kept alive until the submitted work is confirmed to be completed, such as with a shared fence.
+    /// After calling this method, <see cref="Dispose()"/> and <see cref="DisposeAsync()"/> at the end of the scope do nothing.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">コンテキストが既に破棄または送信されている場合にスローされます。</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the context has already been disposed or submitted.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Submit()
     {

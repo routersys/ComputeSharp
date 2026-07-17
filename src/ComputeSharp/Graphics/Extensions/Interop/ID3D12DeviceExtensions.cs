@@ -271,16 +271,16 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
-    /// クロス API 共有が可能なコミット型の 2D テクスチャ リソースを生成します。
+    /// Creates a committed 2D texture resource that can be shared across APIs.
     /// </summary>
-    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
-    /// <param name="resourceType">生成するリソースの種別。</param>
-    /// <param name="dxgiFormat">使用する <see cref="DXGI_FORMAT"/> 値。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
-    /// <param name="d3D12ResourceStates">生成されたリソースの初期 <see cref="D3D12_RESOURCE_STATES"/> 値。</param>
-    /// <returns>共有可能な <see cref="ID3D12Resource"/> への参照。</returns>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <param name="resourceType">The resource type of the resource to create.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
+    /// <param name="d3D12ResourceStates">The initial <see cref="D3D12_RESOURCE_STATES"/> value for the created resource.</param>
+    /// <returns>A reference to the shareable <see cref="ID3D12Resource"/> created.</returns>
     public static ComPtr<ID3D12Resource> CreateSharedCommittedResource(
         this ref ID3D12Device d3D12Device,
         ResourceType resourceType,
@@ -328,10 +328,10 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
-    /// 他 API と共有可能な <see cref="ID3D12Fence"/> を生成します。
+    /// Creates an <see cref="ID3D12Fence"/> that can be shared with other APIs.
     /// </summary>
-    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
-    /// <returns>共有可能な <see cref="ID3D12Fence"/> への参照。</returns>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <returns>A reference to the shareable <see cref="ID3D12Fence"/> created.</returns>
     public static ComPtr<ID3D12Fence> CreateSharedFence(this ref ID3D12Device d3D12Device)
     {
         using ComPtr<ID3D12Fence> d3D12Fence = default;
@@ -346,11 +346,11 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
-    /// 指定した COM オブジェクトに対する共有 NT ハンドルを生成します。
+    /// Creates a shared NT handle for the specified COM object.
     /// </summary>
-    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
-    /// <param name="pObject">共有ハンドルを生成する対象の COM オブジェクト。</param>
-    /// <returns>生成された共有 NT ハンドル。呼び出し側が <c>CloseHandle</c> で解放する責任を持ちます。</returns>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <param name="pObject">The COM object to create the shared handle for.</param>
+    /// <returns>The created shared NT handle. The caller is responsible for releasing it with <c>CloseHandle</c>.</returns>
     public static HANDLE CreateSharedHandle(this ref ID3D12Device d3D12Device, IUnknown* pObject)
     {
         HANDLE handle;
@@ -361,12 +361,12 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
-    /// 指定した共有 NT ハンドルから <typeparamref name="T"/> 型の COM オブジェクトを開きます。
+    /// Opens a COM object of type <typeparamref name="T"/> from the specified shared NT handle.
     /// </summary>
-    /// <typeparam name="T">開く COM オブジェクトの型。</typeparam>
-    /// <param name="d3D12Device">使用する <see cref="ID3D12Device"/> インスタンス。</param>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>開かれた <typeparamref name="T"/> への参照。</returns>
+    /// <typeparam name="T">The type of COM object to open.</typeparam>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A reference to the opened <typeparamref name="T"/>.</returns>
     public static ComPtr<T> OpenSharedHandle<T>(this ref ID3D12Device d3D12Device, HANDLE handle)
         where T : unmanaged, IComObject
     {

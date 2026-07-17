@@ -9,15 +9,15 @@ namespace ComputeSharp;
 unsafe partial class GraphicsDevice
 {
     /// <summary>
-    /// クロス API 共有が可能な 2D テクスチャ リソースを生成します。
+    /// Creates a 2D texture resource that can be shared across APIs.
     /// </summary>
-    /// <param name="resourceType">生成するリソースの種別。</param>
-    /// <param name="dxgiFormat">使用する <see cref="DXGI_FORMAT"/> 値。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
-    /// <param name="d3D12Resource">生成された <see cref="ID3D12Resource"/> オブジェクト。</param>
-    /// <param name="d3D12ResourceStates">生成されたリソースの初期 <see cref="D3D12_RESOURCE_STATES"/> 値。</param>
+    /// <param name="resourceType">The resource type of the resource to create.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
+    /// <param name="d3D12Resource">The created <see cref="ID3D12Resource"/> object.</param>
+    /// <param name="d3D12ResourceStates">The initial <see cref="D3D12_RESOURCE_STATES"/> value for the created resource.</param>
     internal void CreateSharedResource(
         ResourceType resourceType,
         DXGI_FORMAT dxgiFormat,
@@ -31,49 +31,49 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
-    /// 指定した COM オブジェクトに対する共有 NT ハンドルを生成します。
+    /// Creates a shared NT handle for the specified COM object.
     /// </summary>
-    /// <param name="pObject">共有ハンドルを生成する対象の COM オブジェクト。</param>
-    /// <returns>生成された共有 NT ハンドル。</returns>
+    /// <param name="pObject">The COM object to create the shared handle for.</param>
+    /// <returns>The created shared NT handle.</returns>
     internal HANDLE CreateSharedHandle(IUnknown* pObject)
     {
         return this.d3D12Device.Get()->CreateSharedHandle(pObject);
     }
 
     /// <summary>
-    /// 指定した共有 NT ハンドルから <see cref="ID3D12Resource"/> を開きます。
+    /// Opens an <see cref="ID3D12Resource"/> from the specified shared NT handle.
     /// </summary>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>開かれた <see cref="ID3D12Resource"/> への参照。</returns>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A reference to the opened <see cref="ID3D12Resource"/>.</returns>
     internal ComPtr<ID3D12Resource> OpenSharedResource(HANDLE handle)
     {
         return this.d3D12Device.Get()->OpenSharedHandle<ID3D12Resource>(handle);
     }
 
     /// <summary>
-    /// 他 API と共有可能な <see cref="ID3D12Fence"/> を生成します。
+    /// Creates an <see cref="ID3D12Fence"/> that can be shared with other APIs.
     /// </summary>
-    /// <returns>共有可能な <see cref="ID3D12Fence"/> への参照。</returns>
+    /// <returns>A reference to the shareable <see cref="ID3D12Fence"/> created.</returns>
     internal ComPtr<ID3D12Fence> CreateSharedFence()
     {
         return this.d3D12Device.Get()->CreateSharedFence();
     }
 
     /// <summary>
-    /// 指定した共有 NT ハンドルから <see cref="ID3D12Fence"/> を開きます。
+    /// Opens an <see cref="ID3D12Fence"/> from the specified shared NT handle.
     /// </summary>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>開かれた <see cref="ID3D12Fence"/> への参照。</returns>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A reference to the opened <see cref="ID3D12Fence"/>.</returns>
     internal ComPtr<ID3D12Fence> OpenSharedFence(HANDLE handle)
     {
         return this.d3D12Device.Get()->OpenSharedHandle<ID3D12Fence>(handle);
     }
 
     /// <summary>
-    /// コンピュート キュー上で指定した共有フェンスに値をシグナルします。
+    /// Signals the specified shared fence with a value on the compute queue.
     /// </summary>
-    /// <param name="d3D12Fence">対象の <see cref="ID3D12Fence"/>。</param>
-    /// <param name="value">シグナルする値。</param>
+    /// <param name="d3D12Fence">The target <see cref="ID3D12Fence"/>.</param>
+    /// <param name="value">The value to signal.</param>
     internal void SignalSharedFence(ID3D12Fence* d3D12Fence, ulong value)
     {
         lock (this.d3D12ComputeCommandQueueLock)
@@ -83,10 +83,10 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
-    /// コンピュート キュー上で指定した共有フェンスが目標値に達するまで待機するよう登録します。
+    /// Enqueues a wait on the compute queue until the specified shared fence reaches the target value.
     /// </summary>
-    /// <param name="d3D12Fence">対象の <see cref="ID3D12Fence"/>。</param>
-    /// <param name="value">待機する目標値。</param>
+    /// <param name="d3D12Fence">The target <see cref="ID3D12Fence"/>.</param>
+    /// <param name="value">The target value to wait for.</param>
     internal void WaitForSharedFence(ID3D12Fence* d3D12Fence, ulong value)
     {
         lock (this.d3D12ComputeCommandQueueLock)

@@ -29,21 +29,21 @@ public sealed partial class ReadWriteTexture2D<T> : Texture2D<T>
     }
 
     /// <summary>
-    /// クロス API 共有が可能な <see cref="ReadWriteTexture2D{T}"/> インスタンスを生成します。
+    /// Creates a new <see cref="ReadWriteTexture2D{T}"/> instance that can be shared across APIs.
     /// </summary>
-    /// <param name="device">現在のインスタンスに関連付ける <see cref="GraphicsDevice"/>。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
+    /// <param name="device">The <see cref="GraphicsDevice"/> associated with the current instance.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
     internal ReadWriteTexture2D(GraphicsDevice device, int width, int height)
         : base(device, width, height, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW, false)
     {
     }
 
     /// <summary>
-    /// 外部 API が所有する共有リソースをラップする <see cref="ReadWriteTexture2D{T}"/> インスタンスを生成します。
+    /// Creates a new <see cref="ReadWriteTexture2D{T}"/> instance wrapping a shared resource owned by an external API.
     /// </summary>
-    /// <param name="device">現在のインスタンスに関連付ける <see cref="GraphicsDevice"/>。</param>
-    /// <param name="d3D12Resource">ラップ対象の、共有ハンドルから開かれた <see cref="ID3D12Resource"/>。</param>
+    /// <param name="device">The <see cref="GraphicsDevice"/> associated with the current instance.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> opened from a shared handle to wrap.</param>
     internal unsafe ReadWriteTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource)
         : base(device, d3D12Resource, ResourceType.ReadWrite, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
     {

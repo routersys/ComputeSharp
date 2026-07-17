@@ -131,14 +131,14 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
     }
 
     /// <summary>
-    /// クロス API 共有が可能な <see cref="Texture2D{T}"/> インスタンスを生成します。
+    /// Creates a new <see cref="Texture2D{T}"/> instance that can be shared across APIs.
     /// </summary>
-    /// <param name="device">現在のインスタンスに関連付ける <see cref="ComputeSharp.GraphicsDevice"/>。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <param name="resourceType">現在のテクスチャのリソース種別。</param>
-    /// <param name="d3D12FormatSupport">現在のテクスチャ型のフォーマット サポート。</param>
-    /// <param name="isRenderTarget">レンダーターゲットとして使用可能にするかどうか。</param>
+    /// <param name="device">The <see cref="ComputeSharp.GraphicsDevice"/> associated with the current instance.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <param name="resourceType">The resource type for the current texture.</param>
+    /// <param name="d3D12FormatSupport">The format support for the current texture type.</param>
+    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
     private protected Texture2D(GraphicsDevice device, int width, int height, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport, bool isRenderTarget)
     {
         using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
@@ -195,12 +195,12 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
     }
 
     /// <summary>
-    /// 外部 API が所有する共有リソースをラップする <see cref="Texture2D{T}"/> インスタンスを生成します。
+    /// Creates a new <see cref="Texture2D{T}"/> instance wrapping a shared resource owned by an external API.
     /// </summary>
-    /// <param name="device">現在のインスタンスに関連付ける <see cref="ComputeSharp.GraphicsDevice"/>。</param>
-    /// <param name="d3D12Resource">ラップ対象の、共有ハンドルから開かれた <see cref="ID3D12Resource"/>。</param>
-    /// <param name="resourceType">現在のテクスチャのリソース種別。</param>
-    /// <param name="d3D12FormatSupport">現在のテクスチャ型のフォーマット サポート。</param>
+    /// <param name="device">The <see cref="ComputeSharp.GraphicsDevice"/> associated with the current instance.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> opened from a shared handle to wrap.</param>
+    /// <param name="resourceType">The resource type for the current texture.</param>
+    /// <param name="d3D12FormatSupport">The format support for the current texture type.</param>
     private protected Texture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource, ResourceType resourceType, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport)
     {
         using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);

@@ -9,18 +9,18 @@ namespace ComputeSharp.Interop;
 public static unsafe partial class InteropServices
 {
     /// <summary>
-    /// クロス API 共有が可能な <see cref="ReadWriteTexture2D{T}"/> を確保します。
+    /// Allocates a <see cref="ReadWriteTexture2D{T}"/> that can be shared across APIs.
     /// </summary>
-    /// <typeparam name="T">テクスチャに格納する要素の型。</typeparam>
-    /// <param name="device">テクスチャの確保に使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <returns>共有可能な <see cref="ReadWriteTexture2D{T}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to allocate the texture.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <returns>A shareable <see cref="ReadWriteTexture2D{T}"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// 返されるテクスチャは <see cref="CreateSharedHandle{T}(Texture2D{T})"/> で共有 NT ハンドルをエクスポートでき、
-    /// 対応する外部 API から開けます。D3D11およびDirect2Dの共有ターゲットには正規化オーバーロードを使用してください。
-    /// クロス API の同期は共有フェンスで行ってください。
+    /// The returned texture can export a shared NT handle via <see cref="CreateSharedHandle{T}(Texture2D{T})"/>,
+    /// which can then be opened from compatible external APIs. Use the normalized overloads for D3D11 and Direct2D shared targets.
+    /// Use a shared fence for cross API synchronization.
     /// </remarks>
     public static ReadWriteTexture2D<T> AllocateSharedReadWriteTexture2D<T>(GraphicsDevice device, int width, int height)
         where T : unmanaged
@@ -31,19 +31,19 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// クロス API 共有が可能な正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> を確保します。
+    /// Allocates a normalized <see cref="ReadWriteTexture2D{T, TPixel}"/> that can be shared across APIs.
     /// </summary>
-    /// <typeparam name="T">CPU側で使用するピクセルの型。</typeparam>
-    /// <typeparam name="TPixel">GPU側で使用する正規化ピクセルの型。</typeparam>
-    /// <param name="device">テクスチャの確保に使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <returns>共有可能な正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <typeparam name="T">The type of pixels used on the CPU side.</typeparam>
+    /// <typeparam name="TPixel">The type of normalized pixels used on the GPU side.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to allocate the texture.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <returns>A shareable normalized <see cref="ReadWriteTexture2D{T, TPixel}"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// 返されるテクスチャはUAV、同時アクセス、レンダーターゲットに対応します。D3D11から共有リソースとして開け、
-    /// 互換性のある形式ではDirect2Dの共有ターゲットとして開けます。
-    /// クロス API の同期は共有フェンスで行ってください。
+    /// The returned texture supports UAV, simultaneous access and render target usage. It can be opened as a shared resource from D3D11,
+    /// and as a Direct2D shared target for compatible formats.
+    /// Use a shared fence for cross API synchronization.
     /// </remarks>
     public static ReadWriteTexture2D<T, TPixel> AllocateSharedReadWriteTexture2D<T, TPixel>(GraphicsDevice device, int width, int height)
         where T : unmanaged, IPixel<T, TPixel>
@@ -55,14 +55,14 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// クロス API 共有が可能な <see cref="ReadOnlyTexture2D{T}"/> を確保します。
+    /// Allocates a <see cref="ReadOnlyTexture2D{T}"/> that can be shared across APIs.
     /// </summary>
-    /// <typeparam name="T">テクスチャに格納する要素の型。</typeparam>
-    /// <param name="device">テクスチャの確保に使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="width">テクスチャの幅。</param>
-    /// <param name="height">テクスチャの高さ。</param>
-    /// <returns>共有可能な <see cref="ReadOnlyTexture2D{T}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to allocate the texture.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <returns>A shareable <see cref="ReadOnlyTexture2D{T}"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     public static ReadOnlyTexture2D<T> AllocateSharedReadOnlyTexture2D<T>(GraphicsDevice device, int width, int height)
         where T : unmanaged
     {
@@ -72,17 +72,17 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// 外部 API が所有する共有 NT ハンドルを <see cref="ReadWriteTexture2D{T}"/> として開きます。
+    /// Opens a shared NT handle owned by an external API as a <see cref="ReadWriteTexture2D{T}"/>.
     /// </summary>
-    /// <typeparam name="T">テクスチャに格納する要素の型。</typeparam>
-    /// <param name="device">リソースを開くために使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>共有リソースをラップする <see cref="ReadWriteTexture2D{T}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="ArgumentException">共有リソースが 2D テクスチャでない、またはフォーマットが <typeparamref name="T"/> と一致しない場合にスローされます。</exception>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to open the resource.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A <see cref="ReadWriteTexture2D{T}"/> instance wrapping the shared resource.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if the shared resource is not a 2D texture, or if its format does not match <typeparamref name="T"/>.</exception>
     /// <remarks>
-    /// インポートしたリソースを <see cref="ReadWriteTexture2D{T}"/> として書き込み用に使用する場合、元のリソースは UAV 対応かつ
-    /// 同時アクセス可能 (simultaneous access) として作成されている必要があります。クロス API の同期は共有フェンスで行ってください。
+    /// To use the imported resource for writing as a <see cref="ReadWriteTexture2D{T}"/>, the original resource must have been
+    /// created with UAV support and simultaneous access. Use a shared fence for cross API synchronization.
     /// </remarks>
     public static ReadWriteTexture2D<T> OpenSharedReadWriteTexture2D<T>(GraphicsDevice device, nint handle)
         where T : unmanaged
@@ -96,18 +96,18 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// 外部 API が所有する共有 NT ハンドルを正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> として開きます。
+    /// Opens a shared NT handle owned by an external API as a normalized <see cref="ReadWriteTexture2D{T, TPixel}"/>.
     /// </summary>
-    /// <typeparam name="T">CPU側で使用するピクセルの型。</typeparam>
-    /// <typeparam name="TPixel">GPU側で使用する正規化ピクセルの型。</typeparam>
-    /// <param name="device">リソースを開くために使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>共有リソースをラップする正規化 <see cref="ReadWriteTexture2D{T, TPixel}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="ArgumentException">共有リソースが2Dテクスチャでない、またはフォーマットが <typeparamref name="T"/> と一致しない場合にスローされます。</exception>
+    /// <typeparam name="T">The type of pixels used on the CPU side.</typeparam>
+    /// <typeparam name="TPixel">The type of normalized pixels used on the GPU side.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to open the resource.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A normalized <see cref="ReadWriteTexture2D{T, TPixel}"/> instance wrapping the shared resource.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if the shared resource is not a 2D texture, or if its format does not match <typeparamref name="T"/>.</exception>
     /// <remarks>
-    /// 書き込み用に使用する場合、元のリソースはUAV対応かつ同時アクセス可能として作成されている必要があります。
-    /// クロス API の同期は共有フェンスで行ってください。
+    /// To use the resource for writing, the original resource must have been created with UAV support and simultaneous access.
+    /// Use a shared fence for cross API synchronization.
     /// </remarks>
     public static ReadWriteTexture2D<T, TPixel> OpenSharedReadWriteTexture2D<T, TPixel>(GraphicsDevice device, nint handle)
         where T : unmanaged, IPixel<T, TPixel>
@@ -122,14 +122,14 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// 外部 API が所有する共有 NT ハンドルを <see cref="ReadOnlyTexture2D{T}"/> として開きます。
+    /// Opens a shared NT handle owned by an external API as a <see cref="ReadOnlyTexture2D{T}"/>.
     /// </summary>
-    /// <typeparam name="T">テクスチャに格納する要素の型。</typeparam>
-    /// <param name="device">リソースを開くために使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <returns>共有リソースをラップする <see cref="ReadOnlyTexture2D{T}"/> インスタンス。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="ArgumentException">共有リソースが 2D テクスチャでない、またはフォーマットが <typeparamref name="T"/> と一致しない場合にスローされます。</exception>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to open the resource.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A <see cref="ReadOnlyTexture2D{T}"/> instance wrapping the shared resource.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown if the shared resource is not a 2D texture, or if its format does not match <typeparamref name="T"/>.</exception>
     public static ReadOnlyTexture2D<T> OpenSharedReadOnlyTexture2D<T>(GraphicsDevice device, nint handle)
         where T : unmanaged
     {
@@ -142,15 +142,15 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// 共有可能なテクスチャの基になる <see cref="ID3D12Resource"/> に対する共有 NT ハンドルをエクスポートします。
+    /// Exports a shared NT handle for the <see cref="ID3D12Resource"/> backing a shareable texture.
     /// </summary>
-    /// <typeparam name="T">テクスチャに格納する要素の型。</typeparam>
-    /// <param name="texture">共有ハンドルをエクスポートする対象の <see cref="Texture2D{T}"/>。</param>
-    /// <returns>エクスポートされた共有 NT ハンドル。呼び出し側が <c>CloseHandle</c> で解放する責任を持ちます。</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="texture"/> が <see langword="null"/> の場合にスローされます。</exception>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="texture">The <see cref="Texture2D{T}"/> to export the shared handle for.</param>
+    /// <returns>The exported shared NT handle. The caller is responsible for releasing it with <c>CloseHandle</c>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="texture"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// このメソッドは、<see cref="AllocateSharedReadWriteTexture2D{T}(GraphicsDevice, int, int)"/> など共有可能として
-    /// 作成されたテクスチャに対してのみ成功します。共有用に作成されていないテクスチャに対しては失敗します。
+    /// This method only succeeds for textures created as shareable, such as with
+    /// <see cref="AllocateSharedReadWriteTexture2D{T}(GraphicsDevice, int, int)"/>. It fails for textures not created for sharing.
     /// </remarks>
     public static nint CreateSharedHandle<T>(Texture2D<T> texture)
         where T : unmanaged
@@ -165,18 +165,18 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// クロス API 同期に使用する共有フェンスを生成し、要求されたインターフェイスとして取得します。
+    /// Creates a shared fence to use for cross API synchronization, and retrieves it as the requested interface.
     /// </summary>
-    /// <param name="device">フェンスの生成に使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="riid">取得するフェンス インターフェイスの識別子 (IID) への参照。</param>
-    /// <param name="ppvFence"><paramref name="riid"/> で指定したインターフェイスへのポインターのアドレス。</param>
-    /// <param name="sharedHandle">生成されたフェンスの共有 NT ハンドルを書き込む先のアドレス。呼び出し側が <c>CloseHandle</c> で解放する責任を持ちます。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="System.ComponentModel.Win32Exception">フェンスの生成、ハンドルのエクスポート、またはインターフェイスの取得に失敗した場合にスローされます。</exception>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to create the fence.</param>
+    /// <param name="riid">A reference to the identifier (IID) of the fence interface to retrieve.</param>
+    /// <param name="ppvFence">The address of a pointer to the interface specified by <paramref name="riid"/>.</param>
+    /// <param name="sharedHandle">The address to write the shared NT handle of the created fence to. The caller is responsible for releasing it with <c>CloseHandle</c>.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ComponentModel.Win32Exception">Thrown if creating the fence, exporting the handle, or retrieving the interface fails.</exception>
     /// <remarks>
-    /// エクスポートされた <paramref name="sharedHandle"/> は、D3D11 側で <c>ID3D11Device5::OpenSharedFence</c> により開けます。
-    /// 取得した <paramref name="ppvFence"/> は <see cref="SignalSharedFence(GraphicsDevice, void*, ulong)"/> および
-    /// <see cref="WaitForSharedFence(GraphicsDevice, void*, ulong)"/> に渡して、コンピュート キュー上での同期に使用できます。
+    /// The exported <paramref name="sharedHandle"/> can be opened on the D3D11 side via <c>ID3D11Device5::OpenSharedFence</c>.
+    /// The retrieved <paramref name="ppvFence"/> can be passed to <see cref="SignalSharedFence(GraphicsDevice, void*, ulong)"/> and
+    /// <see cref="WaitForSharedFence(GraphicsDevice, void*, ulong)"/> to synchronize on the compute queue.
     /// </remarks>
     public static void CreateSharedFence(GraphicsDevice device, Guid* riid, void** ppvFence, nint* sharedHandle)
     {
@@ -193,14 +193,14 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// 共有 NT ハンドルから他 API が生成した共有フェンスを開き、要求されたインターフェイスとして取得します。
+    /// Opens a shared fence created by another API from a shared NT handle, and retrieves it as the requested interface.
     /// </summary>
-    /// <param name="device">フェンスを開くために使用する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="handle">開く対象の共有 NT ハンドル。</param>
-    /// <param name="riid">取得するフェンス インターフェイスの識別子 (IID) への参照。</param>
-    /// <param name="ppvFence"><paramref name="riid"/> で指定したインターフェイスへのポインターのアドレス。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="System.ComponentModel.Win32Exception">フェンスを開く、またはインターフェイスの取得に失敗した場合にスローされます。</exception>
+    /// <param name="device">The <see cref="GraphicsDevice"/> to use to open the fence.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <param name="riid">A reference to the identifier (IID) of the fence interface to retrieve.</param>
+    /// <param name="ppvFence">The address of a pointer to the interface specified by <paramref name="riid"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ComponentModel.Win32Exception">Thrown if opening the fence or retrieving the interface fails.</exception>
     public static void OpenSharedFence(GraphicsDevice device, nint handle, Guid* riid, void** ppvFence)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -212,13 +212,13 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// コンピュート キュー上で指定した共有フェンスに値をシグナルします。
+    /// Signals the specified shared fence with a value on the compute queue.
     /// </summary>
-    /// <param name="device">操作を発行する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="d3D12Fence">対象の <c>ID3D12Fence</c> COM オブジェクトへのポインター。</param>
-    /// <param name="value">シグナルする値。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="System.ComponentModel.Win32Exception">シグナルの発行に失敗した場合にスローされます。</exception>
+    /// <param name="device">The <see cref="GraphicsDevice"/> issuing the operation.</param>
+    /// <param name="d3D12Fence">A pointer to the target <c>ID3D12Fence</c> COM object.</param>
+    /// <param name="value">The value to signal.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ComponentModel.Win32Exception">Thrown if issuing the signal fails.</exception>
     public static void SignalSharedFence(GraphicsDevice device, void* d3D12Fence, ulong value)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -229,13 +229,13 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
-    /// コンピュート キュー上で指定した共有フェンスが目標値に達するまで待機するよう登録します。
+    /// Enqueues a wait on the compute queue until the specified shared fence reaches the target value.
     /// </summary>
-    /// <param name="device">操作を発行する <see cref="GraphicsDevice"/>。</param>
-    /// <param name="d3D12Fence">対象の <c>ID3D12Fence</c> COM オブジェクトへのポインター。</param>
-    /// <param name="value">待機する目標値。</param>
-    /// <exception cref="ArgumentNullException"><paramref name="device"/> が <see langword="null"/> の場合にスローされます。</exception>
-    /// <exception cref="System.ComponentModel.Win32Exception">待機の登録に失敗した場合にスローされます。</exception>
+    /// <param name="device">The <see cref="GraphicsDevice"/> issuing the operation.</param>
+    /// <param name="d3D12Fence">A pointer to the target <c>ID3D12Fence</c> COM object.</param>
+    /// <param name="value">The target value to wait for.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ComponentModel.Win32Exception">Thrown if enqueueing the wait fails.</exception>
     public static void WaitForSharedFence(GraphicsDevice device, void* d3D12Fence, ulong value)
     {
         default(ArgumentNullException).ThrowIfNull(device);

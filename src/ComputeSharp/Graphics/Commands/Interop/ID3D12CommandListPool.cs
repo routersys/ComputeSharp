@@ -12,7 +12,7 @@ namespace ComputeSharp.Graphics.Commands.Interop;
 /// </summary>
 /// <param name="d3D12CommandListType">The command list type to use.</param>
 /// <param name="d3D12Fence">The fence used to track deferred command list completion.</param>
-/// <param name="maximumPendingCommandListCount">保留可能なコマンドリスト数の上限。</param>
+/// <param name="maximumPendingCommandListCount">The maximum number of pending command lists.</param>
 internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType, ID3D12Fence* d3D12Fence, int maximumPendingCommandListCount) : IDisposable
 {
     /// <summary>

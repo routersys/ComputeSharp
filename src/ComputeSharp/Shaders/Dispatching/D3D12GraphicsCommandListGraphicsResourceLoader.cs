@@ -49,7 +49,7 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
     /// <param name="d3D12GraphicsCommandList">The <see cref="ID3D12GraphicsCommandList"/> object to use.</param>
     /// <param name="graphicsDevice">The <see cref="GraphicsDevice"/> instance that <paramref name="d3D12GraphicsCommandList"/> is tied to.</param>
     /// <param name="rootParameterOffset">The offset into the compute root descriptor table for loaded resources.</param>
-    /// <param name="resourceLeases">読み込んだリソースのリースを保持する <see cref="GraphicsResourceLeaseSet"/> インスタンス。</param>
+    /// <param name="resourceLeases">The <see cref="GraphicsResourceLeaseSet"/> instance holding the leases for loaded resources.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal D3D12GraphicsCommandListGraphicsResourceLoader(
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
