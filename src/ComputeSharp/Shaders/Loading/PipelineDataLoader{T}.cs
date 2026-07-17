@@ -21,7 +21,7 @@ internal static unsafe class PipelineDataLoader<T>
     /// </summary>
     private static readonly ConditionalWeakTable<GraphicsDevice, PipelineData> CachedPipelines = [];
 
-    private static readonly object PipelineCreationLock = new();
+    private static readonly ConditionalWeakTable<GraphicsDevice, object> PipelineCreationLocks = [];
 
     /// <summary>
     /// Gets the <see cref="PipelineData"/> instance for a given shader.
@@ -35,7 +35,7 @@ internal static unsafe class PipelineDataLoader<T>
             return pipelineData;
         }
 
-        lock (PipelineCreationLock)
+        lock (PipelineCreationLocks.GetOrCreateValue(device))
         {
             if (CachedPipelines.TryGetValue(device, out pipelineData))
             {
