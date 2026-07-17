@@ -12,16 +12,15 @@ namespace ComputeSharp.Graphics.Commands.Interop;
 /// </summary>
 /// <param name="d3D12CommandListType">The command list type to use.</param>
 /// <param name="d3D12Fence">The fence used to track deferred command list completion.</param>
-internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType, ID3D12Fence* d3D12Fence) : IDisposable
+/// <param name="maximumPendingCommandListCount">保留可能なコマンドリスト数の上限。</param>
+internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType, ID3D12Fence* d3D12Fence, int maximumPendingCommandListCount) : IDisposable
 {
-    private const int MaximumPendingCommandListCount = 16;
-
     /// <summary>
     /// The queue of <see cref="D3D12CommandListBundle"/> items with the available command lists.
     /// </summary>
-    private readonly Queue<D3D12CommandListBundle> d3D12CommandListBundleQueue = new(MaximumPendingCommandListCount * 2);
+    private readonly Queue<D3D12CommandListBundle> d3D12CommandListBundleQueue = new(maximumPendingCommandListCount * 2);
 
-    private readonly Queue<PendingD3D12CommandListBundle> pendingD3D12CommandListBundleQueue = new(MaximumPendingCommandListCount);
+    private readonly Queue<PendingD3D12CommandListBundle> pendingD3D12CommandListBundleQueue = new(maximumPendingCommandListCount);
 
     /// <summary>
     /// Rents a <see cref="ID3D12GraphicsCommandList"/> and <see cref="ID3D12CommandAllocator"/> pair.
@@ -84,7 +83,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         {
             ReclaimCompletedCommandLists();
 
-            if (this.pendingD3D12CommandListBundleQueue.Count == MaximumPendingCommandListCount)
+            if (this.pendingD3D12CommandListBundleQueue.Count >= maximumPendingCommandListCount)
             {
                 pendingD3D12CommandListBundle = this.pendingD3D12CommandListBundleQueue.Dequeue();
                 hasPendingD3D12CommandListBundle = true;

@@ -153,9 +153,11 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         this.d3D12CopyCommandQueue = d3D12Device->CreateCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
         this.d3D12ComputeFence = d3D12Device->CreateFence();
         this.d3D12CopyFence = d3D12Device->CreateFence();
+        int maximumPendingCommandListCount = GetMaximumPendingCommandListCount();
+
         this.shaderResourceViewDescriptorAllocator = new ID3D12DescriptorHandleAllocator(d3D12Device);
-        this.computeCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COMPUTE, this.d3D12ComputeFence.Get());
-        this.copyCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COPY, this.d3D12CopyFence.Get());
+        this.computeCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COMPUTE, this.d3D12ComputeFence.Get(), maximumPendingCommandListCount);
+        this.copyCommandListPool = new ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE_COPY, this.d3D12CopyFence.Get(), maximumPendingCommandListCount);
         this.allocator = new ComPtr<ID3D12MemoryAllocator>(allocator);
 
         Luid = Luid.FromLUID(dxgiDescription1->AdapterLuid);
@@ -340,6 +342,16 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         return this.d3D12Device.Get()->IsDxgiFormatSupported(
             DXGIFormatHelper.GetForType<T>(),
             D3D12_FORMAT_SUPPORT1_TEXTURE3D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW);
+    }
+
+    private static int GetMaximumPendingCommandListCount()
+    {
+        return AppContext.GetData("ComputeSharp.MaximumPendingCommandListCount") switch
+        {
+            int count when count > 0 => count,
+            string text when int.TryParse(text, out int count) && count > 0 => count,
+            _ => 16
+        };
     }
 
     /// <summary>
