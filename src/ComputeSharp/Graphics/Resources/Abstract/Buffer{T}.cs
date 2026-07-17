@@ -22,7 +22,7 @@ namespace ComputeSharp.Resources;
 /// A <see langword="class"/> representing a typed buffer stored on GPU memory.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the buffer.</typeparam>
-public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadOnlyResource
+public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource
     where T : unmanaged
 {
     /// <summary>
@@ -54,6 +54,8 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     /// The size in bytes of the current buffer (this value is never negative).
     /// </summary>
     protected readonly nint SizeInBytes;
+
+    private D3D12ComputeFenceTracker d3D12ComputeFenceTracker;
 
     /// <summary>
     /// Creates a new <see cref="Buffer{T}"/> instance with the specified parameters.
@@ -153,6 +155,14 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     /// Gets the <see cref="D3D12_GPU_DESCRIPTOR_HANDLE"/> instance for the current resource.
     /// </summary>
     internal D3D12_GPU_DESCRIPTOR_HANDLE D3D12GpuDescriptorHandle => this.d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle;
+
+    internal ulong D3D12ComputeFenceValue => this.d3D12ComputeFenceTracker.Value;
+
+    /// <inheritdoc/>
+    void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
+    {
+        this.d3D12ComputeFenceTracker.Mark(d3D12FenceValue);
+    }
 
     /// <summary>
     /// Reads the contents of the specified range from the current <see cref="Buffer{T}"/> instance and writes them into a target memory area.

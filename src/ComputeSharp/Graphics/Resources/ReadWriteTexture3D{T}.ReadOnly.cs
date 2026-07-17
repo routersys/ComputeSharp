@@ -56,7 +56,7 @@ partial class ReadWriteTexture3D<T>
     /// <summary>
     /// A wrapper for a <see cref="ReadWriteTexture3D{T}"/> resource that has been temporarily transitioned to readonly.
     /// </summary>
-    private sealed unsafe class ReadOnly : ReferenceTrackedObject, IReadOnlyTexture3D<T>, ID3D12ReadOnlyResource
+    private sealed unsafe class ReadOnly : ReferenceTrackedObject, IReadOnlyTexture3D<T>, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource
     {
         /// <summary>
         /// The owning <see cref="ReadWriteTexture3D{T}"/> instance being wrapped.
@@ -130,6 +130,12 @@ partial class ReadWriteTexture3D<T>
             this.owner.ThrowIfDeviceMismatch(device);
 
             return this.owner.D3D12Resource;
+        }
+
+        /// <inheritdoc/>
+        void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
+        {
+            ((ID3D12ComputeFenceTrackedResource)this.owner).MarkComputeFence(d3D12FenceValue);
         }
 
         /// <inheritdoc/>

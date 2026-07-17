@@ -46,6 +46,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
+            GraphicsDevice.WaitForComputeFence(D3D12ComputeFenceValue);
+
             using ID3D12ResourceMap resource = D3D12Resource->Map();
 
             fixed (void* destinationPointer = &destination)
@@ -77,6 +79,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
             using (CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY))
             {
+                copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+
                 copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(d3D12Resource.Get(), 0, D3D12Resource, (ulong)byteOffset, (ulong)byteLength);
                 copyCommandList.ExecuteAndWaitForCompletion();
             }
@@ -124,6 +128,9 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             // Directly copy the input buffer
             using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
 
+            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+            copyCommandList.AddComputeFenceWait(destination.D3D12ComputeFenceValue);
+
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(
                 destination.D3D12Resource,
                 (ulong)destinationByteOffset,
@@ -165,6 +172,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
+            GraphicsDevice.WaitForComputeFence(D3D12ComputeFenceValue);
+
             using ID3D12ResourceMap resource = D3D12Resource->Map();
 
             MemoryHelper.Copy<T>(
@@ -183,6 +192,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             ulong byteLength = (uint)count * (uint)sizeof(T);
 
             using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+
+            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(destination.D3D12Resource, byteDestinationOffset, D3D12Resource, byteOffset, byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();
@@ -203,6 +214,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
+            GraphicsDevice.WaitForComputeFence(D3D12ComputeFenceValue);
+
             using ID3D12ResourceMap resource = D3D12Resource->Map();
 
             fixed (void* sourcePointer = &source)
@@ -249,6 +262,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
             using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
 
+            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(D3D12Resource, (ulong)byteOffset, d3D12Resource.Get(), 0, (ulong)byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();
         }
@@ -280,6 +295,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
+            GraphicsDevice.WaitForComputeFence(D3D12ComputeFenceValue);
+
             using ID3D12ResourceMap resource = D3D12Resource->Map();
 
             MemoryHelper.Copy<T>(
@@ -298,6 +315,8 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             ulong byteLength = (uint)count * (uint)sizeof(T);
 
             using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+
+            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(D3D12Resource, byteOffset, source.D3D12Resource, byteSourceOffset, byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();

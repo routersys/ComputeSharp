@@ -24,7 +24,7 @@ namespace ComputeSharp.Resources;
 /// A <see langword="class"/> representing a typed 3D texture stored on GPU memory.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
-public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource
+public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource, ID3D12ComputeFenceTrackedResource
     where T : unmanaged
 {
     /// <summary>
@@ -61,6 +61,8 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
     /// The current <see cref="D3D12_RESOURCE_STATES"/> value for the current resource.
     /// </summary>
     private D3D12_RESOURCE_STATES d3D12ResourceState;
+
+    private D3D12ComputeFenceTracker d3D12ComputeFenceTracker;
 
     /// <summary>
     /// Creates a new <see cref="Texture3D{T}"/> instance with the specified parameters.
@@ -159,6 +161,14 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
     /// </summary>
     internal D3D12_GPU_DESCRIPTOR_HANDLE D3D12GpuDescriptorHandle => this.d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle;
 
+    internal ulong D3D12ComputeFenceValue => this.d3D12ComputeFenceTracker.Value;
+
+    /// <inheritdoc/>
+    void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
+    {
+        this.d3D12ComputeFenceTracker.Mark(d3D12FenceValue);
+    }
+
     /// <summary>
     /// Reads the contents of the specified range from the current <see cref="Texture3D{T}"/> instance and writes them into a target memory area.
     /// </summary>
@@ -209,6 +219,8 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
 
         using (CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType))
         {
+            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+
             if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
             {
                 copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -301,6 +313,9 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
 
         using CommandList copyCommandList = new(GraphicsDevice, d3D12CommandListType);
 
+        copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+        copyCommandList.AddComputeFenceWait(destination.D3D12ComputeFenceValue);
+
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
             copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -372,6 +387,8 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
         destination.ThrowIfDeviceMismatch(GraphicsDevice);
 
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
+
+        copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
@@ -468,6 +485,8 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
 
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
 
+        copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
             copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
@@ -538,6 +557,8 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
         source.ThrowIfDeviceMismatch(GraphicsDevice);
 
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
+
+        copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
