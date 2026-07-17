@@ -98,7 +98,7 @@ unsafe partial class GraphicsDevice
             commandList.DetachD3D12CommandAllocator()).AsValueTask();
     }
 
-    internal void ExecuteCommandListWithoutWaiting(ref CommandList commandList)
+    internal void ExecuteCommandListWithoutWaiting(ref CommandList commandList, ref GraphicsResourceLeaseSet? resourceLeases)
     {
         ulong updatedFenceValue = ExecuteCommandListCore(
             ref commandList,
@@ -107,10 +107,15 @@ unsafe partial class GraphicsDevice
             ref this.nextD3D12ComputeFenceValue,
             this.d3D12ComputeCommandQueueLock);
 
+        GraphicsResourceLeaseSet? pendingResourceLeases = resourceLeases;
+
+        resourceLeases = null;
+
         this.computeCommandListPool.ReturnWhenCompleted(
             commandList.DetachD3D12CommandList(),
             commandList.DetachD3D12CommandAllocator(),
-            updatedFenceValue);
+            updatedFenceValue,
+            pendingResourceLeases);
     }
 
     private static ulong ExecuteCommandListCore(

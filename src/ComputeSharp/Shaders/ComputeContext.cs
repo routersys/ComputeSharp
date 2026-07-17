@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using ComputeSharp.Descriptors;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Extensions;
+using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Shaders.Dispatching;
 using ComputeSharp.Shaders.Loading;
@@ -36,6 +37,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// </summary>
     private CommandList commandList;
 
+    private GraphicsResourceLeaseSet? resourceLeases;
+
     private bool isSubmitted;
 
     /// <summary>
@@ -46,6 +49,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     {
         this.device = device;
         this.commandList = default;
+        this.resourceLeases = null;
         this.isSubmitted = false;
 
         // Increment the reference count for the device. This has to be released when disposing the context.
@@ -62,7 +66,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         {
             default(InvalidOperationException).ThrowIf(this.device is null);
 
-            return this.device;
+            return this.device!;
         }
     }
 
@@ -166,7 +170,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsY, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION, nameof(groupsX));
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsZ, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION, nameof(groupsX));
 
-        PipelineData pipelineData = PipelineDataLoader<T>.GetPipelineData(this.device);
+        PipelineData pipelineData = PipelineDataLoader<T>.GetPipelineData(this.device!);
 
         ref CommandList commandList = ref GetCommandList(pipelineData.D3D12PipelineState);
 
@@ -176,7 +180,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         T.LoadConstantBuffer(in shader, ref dataLoader, x, y, z);
 
-        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device, rootParameterOffset: 1);
+        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device!, rootParameterOffset: 1, this.resourceLeases!);
 
         T.LoadGraphicsResources(in shader, ref graphicsResourceLoader);
 
@@ -204,7 +208,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsX, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsY, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION, nameof(groupsX));
 
-        PipelineData pipelineData = PipelineDataLoader<T>.GetPipelineData(this.device);
+        PipelineData pipelineData = PipelineDataLoader<T>.GetPipelineData(this.device!);
 
         ref CommandList commandList = ref GetCommandList(pipelineData.D3D12PipelineState);
 
@@ -214,14 +218,18 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         T.LoadConstantBuffer(in shader, ref constantBufferLoader, x, y, 1);
 
-        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device, rootParameterOffset: 2);
+        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device!, rootParameterOffset: 2, this.resourceLeases!);
 
         T.LoadGraphicsResources(in shader, ref graphicsResourceLoader);
+
+        _ = ((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(this.device!, out ReferenceTracker.Lease textureLease);
+
+        this.resourceLeases!.Add(textureLease);
 
         // Load the implicit output texture
         commandList.D3D12GraphicsCommandList->SetComputeRootDescriptorTable(
             1,
-            ((ID3D12ReadOnlyResource)texture).ValidateAndGetGpuDescriptorHandle(this.device));
+            ((ID3D12ReadOnlyResource)texture).ValidateAndGetGpuDescriptorHandle(this.device!));
 
         commandList.D3D12GraphicsCommandList->Dispatch((uint)groupsX, (uint)groupsY, 1);
     }
@@ -259,8 +267,14 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         this.device = null;
 
+        GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
+
+        this.resourceLeases = null;
+
         if (!this.commandList.IsAllocated)
         {
+            resourceLeases?.Release();
+
             device.GetReferenceTracker().DangerousRelease();
 
             return;
@@ -272,6 +286,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         }
         finally
         {
+            resourceLeases?.Release();
+
             device.GetReferenceTracker().DangerousRelease();
         }
     }
@@ -291,8 +307,14 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         this.device = null;
 
+        GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
+
+        this.resourceLeases = null;
+
         if (!this.commandList.IsAllocated)
         {
+            resourceLeases?.Release();
+
             device.GetReferenceTracker().DangerousRelease();
 
             return ValueTask.CompletedTask;
@@ -300,11 +322,47 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         try
         {
-            return this.commandList.ExecuteAndWaitForCompletionAsync();
+            ValueTask executeTask = this.commandList.ExecuteAndWaitForCompletionAsync();
+
+            if (resourceLeases is null)
+            {
+                return executeTask;
+            }
+
+            if (executeTask.IsCompletedSuccessfully)
+            {
+                resourceLeases.Release();
+
+                return executeTask;
+            }
+
+            ValueTask releaseTask = ReleaseWhenCompletedAsync(executeTask, resourceLeases);
+
+            resourceLeases = null;
+
+            return releaseTask;
+        }
+        catch
+        {
+            resourceLeases?.Release();
+
+            throw;
         }
         finally
         {
             device.GetReferenceTracker().DangerousRelease();
+        }
+    }
+
+    private static async ValueTask ReleaseWhenCompletedAsync(ValueTask executeTask, GraphicsResourceLeaseSet resourceLeases)
+    {
+        try
+        {
+            await executeTask.ConfigureAwait(false);
+        }
+        finally
+        {
+            resourceLeases.Release();
         }
     }
 
@@ -327,8 +385,14 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         this.device = null;
         this.isSubmitted = true;
 
+        GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
+
+        this.resourceLeases = null;
+
         if (!this.commandList.IsAllocated)
         {
+            resourceLeases?.Release();
+
             device.GetReferenceTracker().DangerousRelease();
 
             return;
@@ -336,10 +400,12 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         try
         {
-            this.commandList.ExecuteWithoutWaiting();
+            this.commandList.ExecuteWithoutWaiting(ref resourceLeases);
         }
         finally
         {
+            resourceLeases?.Release();
+
             device.GetReferenceTracker().DangerousRelease();
         }
     }
@@ -386,8 +452,23 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         else
         {
             commandList = new CommandList(this.device!, pipelineState);
+
+            ref GraphicsResourceLeaseSet? resourceLeases = ref Unsafe.AsRef(in this.resourceLeases);
+
+            resourceLeases ??= GraphicsResourceLeaseSet.Rent();
         }
 
         return ref commandList;
+    }
+
+    internal readonly void TrackResourceLease(ref ReferenceTracker.Lease lease)
+    {
+        ref GraphicsResourceLeaseSet? resourceLeases = ref Unsafe.AsRef(in this.resourceLeases);
+
+        resourceLeases ??= GraphicsResourceLeaseSet.Rent();
+
+        resourceLeases.Add(lease);
+
+        lease = default;
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
+using ComputeSharp.Graphics.Commands;
+using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Descriptors;
 using ComputeSharp.Win32;
@@ -39,21 +41,26 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
     /// </remarks>
     private readonly uint rootParameterOffset;
 
+    private readonly GraphicsResourceLeaseSet resourceLeases;
+
     /// <summary>
     /// Creates a new <see cref="D3D12GraphicsCommandListGraphicsResourceLoader"/> instance.
     /// </summary>
     /// <param name="d3D12GraphicsCommandList">The <see cref="ID3D12GraphicsCommandList"/> object to use.</param>
     /// <param name="graphicsDevice">The <see cref="GraphicsDevice"/> instance that <paramref name="d3D12GraphicsCommandList"/> is tied to.</param>
     /// <param name="rootParameterOffset">The offset into the compute root descriptor table for loaded resources.</param>
+    /// <param name="resourceLeases">読み込んだリソースのリースを保持する <see cref="GraphicsResourceLeaseSet"/> インスタンス。</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal D3D12GraphicsCommandListGraphicsResourceLoader(
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
         GraphicsDevice graphicsDevice,
-        uint rootParameterOffset)
+        uint rootParameterOffset,
+        GraphicsResourceLeaseSet resourceLeases)
     {
         this.d3D12GraphicsCommandList = d3D12GraphicsCommandList;
         this.graphicsDevice = graphicsDevice;
         this.rootParameterOffset = rootParameterOffset;
+        this.resourceLeases = resourceLeases;
     }
 
     /// <inheritdoc/>
@@ -67,6 +74,10 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
 
             return;
         }
+
+        _ = readOnlyResource.ValidateAndGetID3D12Resource(this.graphicsDevice, out ReferenceTracker.Lease lease);
+
+        this.resourceLeases.Add(lease);
 
         this.d3D12GraphicsCommandList->SetComputeRootDescriptorTable(
             RootParameterIndex: this.rootParameterOffset + index,

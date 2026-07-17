@@ -156,11 +156,11 @@ internal unsafe struct CommandList : IDisposable
         return this.device.ExecuteCommandListAsync(ref this);
     }
 
-    public void ExecuteWithoutWaiting()
+    public void ExecuteWithoutWaiting(ref GraphicsResourceLeaseSet? resourceLeases)
     {
         this.d3D12GraphicsCommandList.Get()->Close().Assert();
 
-        this.device.ExecuteCommandListWithoutWaiting(ref this);
+        this.device.ExecuteCommandListWithoutWaiting(ref this, ref resourceLeases);
     }
 
     /// <inheritdoc/>

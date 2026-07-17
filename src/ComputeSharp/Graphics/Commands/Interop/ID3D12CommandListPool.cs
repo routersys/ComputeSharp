@@ -75,7 +75,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         }
     }
 
-    public void ReturnWhenCompleted(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue)
+    public void ReturnWhenCompleted(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue, GraphicsResourceLeaseSet? resourceLeases)
     {
         lock (this.d3D12CommandListBundleQueue)
         {
@@ -90,10 +90,12 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
                     d3D12Fence->SetEventOnCompletion(pendingD3D12CommandListBundle.FenceValue, default).Assert();
                 }
 
+                pendingD3D12CommandListBundle.ResourceLeases?.Release();
+
                 this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
             }
 
-            this.pendingD3D12CommandListBundleQueue.Enqueue(new PendingD3D12CommandListBundle(d3D12CommandList, d3D12CommandAllocator, fenceValue));
+            this.pendingD3D12CommandListBundleQueue.Enqueue(new PendingD3D12CommandListBundle(d3D12CommandList, d3D12CommandAllocator, fenceValue, resourceLeases));
         }
     }
 
@@ -122,6 +124,8 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
 
             foreach (PendingD3D12CommandListBundle current in this.pendingD3D12CommandListBundleQueue)
             {
+                current.ResourceLeases?.Release();
+
                 _ = current.D3D12CommandListBundle.D3D12CommandList->Release();
                 _ = current.D3D12CommandListBundle.D3D12CommandAllocator->Release();
             }
@@ -139,6 +143,9 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
                pendingD3D12CommandListBundle.FenceValue <= completedValue)
         {
             _ = this.pendingD3D12CommandListBundleQueue.Dequeue();
+
+            pendingD3D12CommandListBundle.ResourceLeases?.Release();
+
             this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
         }
     }
@@ -182,10 +189,12 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         public readonly ID3D12CommandAllocator* D3D12CommandAllocator = d3D12CommandAllocator;
     }
 
-    private readonly struct PendingD3D12CommandListBundle(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue)
+    private readonly struct PendingD3D12CommandListBundle(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator, ulong fenceValue, GraphicsResourceLeaseSet? resourceLeases)
     {
         public readonly D3D12CommandListBundle D3D12CommandListBundle = new(d3D12CommandList, d3D12CommandAllocator);
 
         public readonly ulong FenceValue = fenceValue;
+
+        public readonly GraphicsResourceLeaseSet? ResourceLeases = resourceLeases;
     }
 }
