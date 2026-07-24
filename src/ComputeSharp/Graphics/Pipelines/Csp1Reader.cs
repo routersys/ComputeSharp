@@ -7,8 +7,6 @@ namespace ComputeSharp.Graphics.Pipelines;
 
 internal ref struct Csp1Reader(ReadOnlySpan<byte> data)
 {
-    private const uint NullStringMarker = 0xFFFFFFFFu;
-
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     private readonly ReadOnlySpan<byte> data = data;
@@ -18,6 +16,8 @@ internal ref struct Csp1Reader(ReadOnlySpan<byte> data)
     public readonly int Position => this.position;
 
     public readonly int Length => this.data.Length;
+
+    public readonly int Remaining => this.data.Length - this.position;
 
     public readonly bool IsAtEnd => this.position == this.data.Length;
 
@@ -36,55 +36,21 @@ internal ref struct Csp1Reader(ReadOnlySpan<byte> data)
         return BinaryPrimitives.ReadUInt32LittleEndian(Take(4));
     }
 
-    public int ReadNonNegativeInt32()
-    {
-        uint value = ReadUInt32();
-
-        if (value > int.MaxValue)
-        {
-            ThrowInvalidData();
-        }
-
-        return (int)value;
-    }
-
     public ReadOnlySpan<byte> ReadBytes(int count)
     {
         return Take(count);
     }
 
-    public string ReadString()
+    public string ReadUtf8(int byteLength)
     {
-        uint length = ReadUInt32();
-
-        if (length is NullStringMarker or > int.MaxValue)
-        {
-            ThrowInvalidData();
-        }
-
-        string value = StrictUtf8.GetString(Take((int)length));
-
-        if (!value.IsNormalized(NormalizationForm.FormC))
-        {
-            ThrowInvalidData();
-        }
-
-        return value;
-    }
-
-    public readonly void EnsureFullyConsumed()
-    {
-        if (this.position != this.data.Length)
-        {
-            ThrowInvalidData();
-        }
+        return StrictUtf8.GetString(Take(byteLength));
     }
 
     private ReadOnlySpan<byte> Take(int count)
     {
         if ((uint)count > (uint)(this.data.Length - this.position))
         {
-            ThrowInvalidData();
+            throw new InvalidDataException("The canonical pipeline descriptor payload is malformed.");
         }
 
         ReadOnlySpan<byte> slice = this.data.Slice(this.position, count);
@@ -92,10 +58,5 @@ internal ref struct Csp1Reader(ReadOnlySpan<byte> data)
         this.position += count;
 
         return slice;
-    }
-
-    private static void ThrowInvalidData()
-    {
-        throw new InvalidDataException("The canonical pipeline descriptor payload is malformed.");
     }
 }
