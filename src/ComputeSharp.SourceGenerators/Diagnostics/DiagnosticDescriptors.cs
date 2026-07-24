@@ -932,4 +932,84 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Shaders not performing any double precision operations should not be annotated with [RequiresDoublePrecisionSupport], as the attribute is not needed in that case.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute pipeline host type that is not a sealed partial class.
+    /// <para>
+    /// Format: <c>"The type {0} annotated with [ComputePipelineHost] must be a sealed partial class"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputePipelineHostType = new(
+        id: "CMPS0066",
+        title: "Invalid compute pipeline host type",
+        messageFormat: "The type {0} annotated with [ComputePipelineHost] must be a sealed partial class",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A type annotated with [ComputePipelineHost] must be a sealed partial class.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an invalid maximum concurrent invocations value.
+    /// <para>
+    /// Format: <c>"The [ComputePipelineHost] attribute on type {0} must specify a maximum concurrent invocations value greater than or equal to 1"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputePipelineHostMaximumConcurrentInvocations = new(
+        id: "CMPS0068",
+        title: "Invalid maximum concurrent invocations value",
+        messageFormat: "The [ComputePipelineHost] attribute on type {0} must specify a maximum concurrent invocations value greater than or equal to 1",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The [ComputePipelineHost] attribute must specify a maximum concurrent invocations value greater than or equal to 1.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute interop resource set type that is not a sealed partial class.
+    /// <para>
+    /// Format: <c>"The type {0} annotated with [ComputeInteropResourceSet] must be a sealed partial class"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputeInteropResourceSetType = new(
+        id: "CMPS0074",
+        title: "Invalid compute interop resource set type",
+        messageFormat: "The type {0} annotated with [ComputeInteropResourceSet] must be a sealed partial class",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A type annotated with [ComputeInteropResourceSet] must be a sealed partial class.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute resource group type that is not a sealed partial class.
+    /// <para>
+    /// Format: <c>"The type {0} annotated with [ComputeResourceGroup] must be a sealed partial class and cannot be a struct"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputeResourceGroupType = new(
+        id: "CMPS0100",
+        title: "Invalid compute resource group type",
+        messageFormat: "The type {0} annotated with [ComputeResourceGroup] must be a sealed partial class and cannot be a struct",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A type annotated with [ComputeResourceGroup] must be a sealed partial class and cannot be a struct.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a generic or non-partially-nested compute pipeline container type.
+    /// <para>
+    /// Format: <c>"The type {0} annotated with [{1}] cannot be generic and must have all its containing types declared as partial"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputePipelineContainerType = new(
+        id: "CMPS0106",
+        title: "Invalid compute pipeline container type",
+        messageFormat: "The type {0} annotated with [{1}] cannot be generic and must have all its containing types declared as partial",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A type annotated with [ComputePipelineHost], [ComputeInteropResourceSet] or [ComputeResourceGroup] cannot be generic and must have all its containing types declared as partial.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
