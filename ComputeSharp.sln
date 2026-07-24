@@ -1,6 +1,7 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31825.309
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.7.12002.237 oobstable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeSharp", "src\ComputeSharp\ComputeSharp.csproj", "{314EB353-E7E3-4146-8111-685CC83EC1DE}"
 EndProject
@@ -97,10 +98,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "arm64", "arm64", "{B4F6A41C
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
 		Debug|ARM64 = Debug|ARM64
-		Release|x64 = Release|x64
+		Debug|x64 = Debug|x64
 		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{314EB353-E7E3-4146-8111-685CC83EC1DE}.Debug|ARM64.ActiveCfg = Debug|Any CPU
@@ -194,48 +195,15 @@ Global
 		SolutionGuid = {4664C5E3-0340-4E22-BCFD-98AAEDF5F2DC}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{0071701e-b9c5-4098-be5f-ef556c4553c6}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{0071701e-b9c5-4098-be5f-ef556c4553c6}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.UI\ComputeSharp.SwapChain.UI.projitems*{0071701e-b9c5-4098-be5f-ef556c4553c6}*SharedItemsImports = 5
 		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{0800bd51-499d-44c2-9417-fd1f7fdfe9c4}*SharedItemsImports = 13
-		src\ComputeSharp.UI\ComputeSharp.UI.projitems*{1cd1d9c5-7e00-43fb-a8c3-cfe98a885d3b}*SharedItemsImports = 13
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{209c95a3-fa53-431b-b688-3299ca6c29d2}*SharedItemsImports = 5
 		src\ComputeSharp.CodeFixing\ComputeSharp.CodeFixing.projitems*{29f6e256-ba0e-4f3b-854e-50839d67c6dd}*SharedItemsImports = 13
-		src\ComputeSharp.UI\ComputeSharp.UI.projitems*{2c4c1a6b-7e38-41ec-84d9-007676571441}*SharedItemsImports = 5
 		src\ComputeSharp.Win32.D3D12\ComputeSharp.Win32.D3D12.projitems*{314eb353-e7e3-4146-8111-685cc83ec1de}*SharedItemsImports = 5
-		src\ComputeSharp.Win32.D2D1\ComputeSharp.Win32.D2D1.projitems*{4d7d9ba8-a821-4b1c-9ee2-cbcf5849906e}*SharedItemsImports = 5
 		src\ComputeSharp.Win32.D3D12\ComputeSharp.Win32.D3D12.projitems*{514ff00e-bbf0-4d55-a47c-eeeb6208adce}*SharedItemsImports = 13
 		src\ComputeSharp.SourceGeneration\ComputeSharp.SourceGeneration.projitems*{51d5a422-d3a5-4c4d-8a6d-a048940bf279}*SharedItemsImports = 13
-		src\ComputeSharp.CodeFixing\ComputeSharp.CodeFixing.projitems*{54654960-54b5-4e19-b3ed-993591ca39e5}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI.SourceGenerators\ComputeSharp.D2D1.UI.SourceGenerators.projitems*{690c4014-a06b-44db-b717-aea4cafa9d68}*SharedItemsImports = 5
-		src\ComputeSharp.SourceGeneration\ComputeSharp.SourceGeneration.projitems*{690c4014-a06b-44db-b717-aea4cafa9d68}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{6a861d53-2dbd-4b4f-8543-90dc8c0f2dc8}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{6a861d53-2dbd-4b4f-8543-90dc8c0f2dc8}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.UI\ComputeSharp.SwapChain.UI.projitems*{6a861d53-2dbd-4b4f-8543-90dc8c0f2dc8}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.UI\ComputeSharp.SwapChain.UI.projitems*{6bc471c6-72f9-43cf-ae1e-f6d3e5ed3129}*SharedItemsImports = 13
-		src\ComputeSharp.D2D1.UI\ComputeSharp.D2D1.UI.projitems*{716df19e-69ba-4a9c-9ca4-bfd196152f46}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{73c32d0f-64db-4674-84e9-8fcc41228474}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI.CodeFixers\ComputeSharp.D2D1.UI.CodeFixers.projitems*{8be73db3-16e0-41f4-a87f-0c2ab43856a2}*SharedItemsImports = 5
 		src\ComputeSharp.SourceGeneration.Hlsl\ComputeSharp.SourceGeneration.Hlsl.projitems*{9ac496a3-bbf0-4c8f-a50d-a20bf01c5e05}*SharedItemsImports = 13
 		src\ComputeSharp.CodeFixing\ComputeSharp.CodeFixing.projitems*{9b4448b1-200f-4966-8a13-a508691b3003}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI.CodeFixers\ComputeSharp.D2D1.UI.CodeFixers.projitems*{9d3c872e-d64e-47e7-bdc8-077a151dbb7d}*SharedItemsImports = 5
-		src\ComputeSharp.Win32.D2D1\ComputeSharp.Win32.D2D1.projitems*{9da1da9f-f8b2-4b25-be80-c21f773029e3}*SharedItemsImports = 13
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{9ea5ae9d-c39a-4f43-b03e-0a848ea2558a}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{9fbe070e-a210-4cef-9f04-61c2b269c600}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI\ComputeSharp.D2D1.UI.projitems*{a2a2171b-0baf-4a2a-bfb3-3357ef714bf0}*SharedItemsImports = 13
-		src\ComputeSharp.D2D1.UI\ComputeSharp.D2D1.UI.projitems*{bd9e6556-357e-4c20-bfcd-fb131f9372fa}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{c12d7ace-98ed-4813-8118-6667c34f484f}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI.CodeFixers\ComputeSharp.D2D1.UI.CodeFixers.projitems*{ce85dc5a-e455-42fe-9b64-0d5f0d7ee366}*SharedItemsImports = 13
-		src\ComputeSharp.D2D1.UI.SourceGenerators\ComputeSharp.D2D1.UI.SourceGenerators.projitems*{d20e610f-eb37-46e7-b028-04784d7400d5}*SharedItemsImports = 13
-		src\ComputeSharp.SourceGeneration.Hlsl\ComputeSharp.SourceGeneration.Hlsl.projitems*{e44053bd-a761-47fb-aa78-087a599672ea}*SharedItemsImports = 5
-		src\ComputeSharp.SourceGeneration\ComputeSharp.SourceGeneration.projitems*{e44053bd-a761-47fb-aa78-087a599672ea}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{e7c9247d-016b-4819-af9f-0e9b3591e04b}*SharedItemsImports = 5
 		samples\ComputeSharp.SwapChain.Shaders\ComputeSharp.SwapChain.Shaders.projitems*{e91f4d24-922a-4921-a8d7-9c45a143c45d}*SharedItemsImports = 5
 		src\ComputeSharp.SourceGeneration.Hlsl\ComputeSharp.SourceGeneration.Hlsl.projitems*{eb52cb67-4162-4722-874b-44ea8da5450e}*SharedItemsImports = 5
 		src\ComputeSharp.SourceGeneration\ComputeSharp.SourceGeneration.projitems*{eb52cb67-4162-4722-874b-44ea8da5450e}*SharedItemsImports = 5
-		samples\ComputeSharp.SwapChain.Shaders.D2D1\ComputeSharp.SwapChain.Shaders.D2D1.projitems*{f8bf7666-7ccf-4fe4-b055-2eba4bcd4564}*SharedItemsImports = 13
-		src\ComputeSharp.UI\ComputeSharp.UI.projitems*{fa18ba9f-76bf-4de0-8d24-02fc7657e6cb}*SharedItemsImports = 5
-		src\ComputeSharp.D2D1.UI.SourceGenerators\ComputeSharp.D2D1.UI.SourceGenerators.projitems*{febec83a-fe70-4d4b-9b00-76db31e75f17}*SharedItemsImports = 5
-		src\ComputeSharp.SourceGeneration\ComputeSharp.SourceGeneration.projitems*{febec83a-fe70-4d4b-9b00-76db31e75f17}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
