@@ -1012,4 +1012,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A type annotated with [ComputePipelineHost], [ComputeInteropResourceSet] or [ComputeResourceGroup] cannot be generic and must have all its containing types declared as partial.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a shared texture field not declaring a ReadWrite compute access.
+    /// <para>
+    /// Format: <c>"The shared texture field {0} must declare a compute access of ReadWrite"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputeSharedTextureComputeAccess = new(
+        id: "CMPS0076",
+        title: "Invalid shared texture compute access",
+        messageFormat: "The shared texture field {0} must declare a compute access of ReadWrite",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A field annotated with [ComputeSharedTexture] must declare a compute access of ReadWrite, as it is bound to a shader as a ReadWriteTexture2D.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }

@@ -46,6 +46,7 @@
 
     <!-- ComputeSharp APIs -->
     <Compile Include="..\ComputeSharp\Attributes\Enums\CompileOptions.cs" Link="ComputeSharp\Attributes\Enums\CompileOptions.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceAccess.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceAccess.cs" />
     <Compile Include="..\ComputeSharp\Attributes\Enums\DefaultThreadGroupSizes.cs" Link="ComputeSharp\Attributes\Enums\DefaultThreadGroupSizes.cs" />
     <Compile Include="..\ComputeSharp\Dispatch\DispatchSize.cs" Link="ComputeSharp\Dispatch\DispatchSize.cs" />
     <Compile Include="..\ComputeSharp\Dispatch\GridIds.cs" Link="ComputeSharp\Dispatch\GridIds.cs" />
