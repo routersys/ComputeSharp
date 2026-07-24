@@ -1060,4 +1060,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A compute pipeline method cannot be static, generic, async or an iterator.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a graphics resource parameter missing [ComputeResource].
+    /// <para>
+    /// Format: <c>"The parameter {0} of a compute pipeline method is a graphics resource and must be annotated with [ComputeResource]"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor MissingComputeResourceAttribute = new(
+        id: "CMPS0070",
+        title: "Missing [ComputeResource] attribute",
+        messageFormat: "The parameter {0} of a compute pipeline method is a graphics resource and must be annotated with [ComputeResource]",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A graphics resource parameter of a compute pipeline method must be annotated with [ComputeResource].",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }

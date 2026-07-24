@@ -8,6 +8,7 @@ Rule ID | Category | Severity | Notes
 CMPS0066 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0068 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0069 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
+CMPS0070 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0074 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0076 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0091 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
