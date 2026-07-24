@@ -1028,4 +1028,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A field annotated with [ComputeSharedTexture] must declare a compute access of ReadWrite, as it is bound to a shader as a ReadWriteTexture2D.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute pipeline method with an invalid signature.
+    /// <para>
+    /// Format: <c>"The compute pipeline method {0} has an invalid signature (it must return void, take an 'in ComputeContext' as its first parameter, and only declare value or 'in' parameters otherwise)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputePipelineMethodSignature = new(
+        id: "CMPS0069",
+        title: "Invalid compute pipeline method signature",
+        messageFormat: "The compute pipeline method {0} has an invalid signature (it must return void, take an 'in ComputeContext' as its first parameter, and only declare value or 'in' parameters otherwise)",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline method must return void, take an 'in ComputeContext' as its first parameter, and only declare value or 'in' parameters otherwise.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute pipeline method with an unsupported form.
+    /// <para>
+    /// Format: <c>"The compute pipeline method {0} has an unsupported form (it cannot be static, generic, async or an iterator)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedComputePipelineMethodForm = new(
+        id: "CMPS0091",
+        title: "Unsupported compute pipeline method form",
+        messageFormat: "The compute pipeline method {0} has an unsupported form (it cannot be static, generic, async or an iterator)",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline method cannot be static, generic, async or an iterator.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
