@@ -1108,4 +1108,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A compute pipeline host or interop resource set cannot declare an instance constructor, a finalizer, a Dispose() method or a WaitForDisposal() method, as those are generated.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an invalid compute pipeline host device field.
+    /// <para>
+    /// Format: <c>"The compute pipeline host {0} must declare a 'private readonly GraphicsDevice' field named {1} with no initializer"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputePipelineHostDeviceField = new(
+        id: "CMPS0067",
+        title: "Invalid compute pipeline host device field",
+        messageFormat: "The compute pipeline host {0} must declare a 'private readonly GraphicsDevice' field named {1} with no initializer",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline host must declare a 'private readonly GraphicsDevice' field with the configured name and no initializer.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
