@@ -1092,4 +1092,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A compute interop method must declare at least one parameter annotated with [ComputeResource] using an external sharing.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a user-declared generated lifecycle member.
+    /// <para>
+    /// Format: <c>"The type {0} cannot declare the member {1}, as it is generated for compute pipeline hosts and interop resource sets"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidGeneratedLifecycleMemberDeclaration = new(
+        id: "CMPS0095",
+        title: "Invalid generated lifecycle member declaration",
+        messageFormat: "The type {0} cannot declare the member {1}, as it is generated for compute pipeline hosts and interop resource sets",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline host or interop resource set cannot declare an instance constructor, a finalizer, a Dispose() method or a WaitForDisposal() method, as those are generated.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
