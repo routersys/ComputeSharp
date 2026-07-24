@@ -2,7 +2,7 @@ using System;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
-internal readonly record struct PipelineSchemaVersion(ushort Major, ushort Minor, ushort Descriptor);
+internal readonly record struct PipelineSchemaVersion(ushort Major, ushort Minor, ushort DescriptorFormat);
 
 internal readonly struct ContractHash256(ulong littleEndianPart0, ulong littleEndianPart1, ulong littleEndianPart2, ulong littleEndianPart3)
 {
