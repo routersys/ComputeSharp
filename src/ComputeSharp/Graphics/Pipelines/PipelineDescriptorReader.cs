@@ -13,6 +13,10 @@ internal static class PipelineDescriptorReader
 
     private const uint NullStringMarker = 0xFFFFFFFFu;
 
+    private const int LengthDimensionMask = 1 << (int)ResourcePlanDimensionKind.Length;
+
+    private const int Texture2DDimensionMask = (1 << (int)ResourcePlanDimensionKind.Width) | (1 << (int)ResourcePlanDimensionKind.Height);
+
     public static PipelineDescriptorSet Read(ReadOnlySpan<byte> descriptor)
     {
         if (descriptor.Length < HeaderSize)
@@ -204,7 +208,7 @@ internal static class PipelineDescriptorReader
                 intermediate.Recovery,
                 planFields.AsMemory(intermediate.FieldStart, intermediate.FieldCount));
 
-            slotResourceCounts[i] = GetSlotResourceCount(planFields, intermediate.FieldStart, intermediate.FieldCount);
+            slotResourceCounts[i] = ValidateSlotPlanFields(planFields, intermediate.FieldStart, intermediate.FieldCount, intermediate.PlanKind);
         }
 
         foreach (ResourceContractDescriptor resource in resources)
@@ -433,23 +437,95 @@ internal static class PipelineDescriptorReader
         }
     }
 
-    private static uint GetSlotResourceCount(ResourcePlanFieldDescriptor[] planFields, int start, int count)
+    private static uint ValidateSlotPlanFields(ResourcePlanFieldDescriptor[] planFields, int start, int count, ResourcePlanKind planKind)
     {
+        if (count == 0)
+        {
+            throw Invalid();
+        }
+
         uint resourceCount = 0;
 
         for (int i = 0; i < count; i++)
         {
             uint slotResourceIndex = planFields[start + i].SlotResourceIndex;
 
-            if (slotResourceIndex == uint.MaxValue)
+            if (slotResourceIndex >= (uint)count)
             {
                 throw Invalid();
             }
 
             resourceCount = Math.Max(resourceCount, slotResourceIndex + 1);
+
+            for (int j = i + 1; j < count; j++)
+            {
+                if (planFields[start + i].PlanParameterName == planFields[start + j].PlanParameterName)
+                {
+                    throw Invalid();
+                }
+            }
+        }
+
+        if (planKind is ResourcePlanKind.Buffer or ResourcePlanKind.Texture2D && resourceCount != 1)
+        {
+            throw Invalid();
+        }
+
+        for (uint index = 0; index < resourceCount; index++)
+        {
+            ValidateSlotPlanResource(planFields, start, count, index, planKind);
         }
 
         return resourceCount;
+    }
+
+    private static void ValidateSlotPlanResource(ResourcePlanFieldDescriptor[] planFields, int start, int count, uint index, ResourcePlanKind planKind)
+    {
+        int dimensionMask = 0;
+        string? memberMetadataName = null;
+        string? resourceTypeMetadataName = null;
+
+        for (int i = 0; i < count; i++)
+        {
+            ResourcePlanFieldDescriptor field = planFields[start + i];
+
+            if (field.SlotResourceIndex != index)
+            {
+                continue;
+            }
+
+            int dimensionBit = 1 << (int)field.DimensionKind;
+
+            if ((dimensionMask & dimensionBit) != 0)
+            {
+                throw Invalid();
+            }
+
+            if (memberMetadataName is not null &&
+                (memberMetadataName != field.MemberMetadataName || resourceTypeMetadataName != field.ResourceTypeMetadataName))
+            {
+                throw Invalid();
+            }
+
+            dimensionMask |= dimensionBit;
+            memberMetadataName = field.MemberMetadataName;
+            resourceTypeMetadataName = field.ResourceTypeMetadataName;
+        }
+
+        if (dimensionMask is not (LengthDimensionMask or Texture2DDimensionMask))
+        {
+            throw Invalid();
+        }
+
+        if (planKind is ResourcePlanKind.Buffer && dimensionMask != LengthDimensionMask)
+        {
+            throw Invalid();
+        }
+
+        if (planKind is ResourcePlanKind.Texture2D && dimensionMask != Texture2DDimensionMask)
+        {
+            throw Invalid();
+        }
     }
 
     private static void VerifyContractHash(ReadOnlySpan<byte> schemaHeader, ReadOnlySpan<byte> payload, ReadOnlySpan<byte> expected)
