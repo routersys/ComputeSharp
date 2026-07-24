@@ -159,6 +159,8 @@ internal static class PipelineDescriptorReader
             ResourcePlanKind planKind = (ResourcePlanKind)ReadEnumByte(ref reader, (byte)ResourcePlanKind.SharedTexture2D);
             ComputeResourceRecovery recovery = (ComputeResourceRecovery)ReadEnumByte(ref reader, (byte)ComputeResourceRecovery.CapacityOnly);
 
+            ValidateSlotContract(ownership, planKind);
+
             int fieldStart = planFieldList.Count;
             int fieldCount = ReadPlanFields(ref reader, planFieldList);
 
@@ -207,7 +209,7 @@ internal static class PipelineDescriptorReader
 
         foreach (ResourceContractDescriptor resource in resources)
         {
-            ValidateResourceSlotBinding(resource, slotCount, slotResourceCounts);
+            ValidateResourceSlotBinding(resource, slots, slotResourceCounts);
         }
 
         PipelineDescriptor[] pipelines = new PipelineDescriptor[pipelineCount];
@@ -369,7 +371,22 @@ internal static class PipelineDescriptorReader
         return count;
     }
 
-    private static void ValidateResourceSlotBinding(ResourceContractDescriptor resource, int slotCount, uint[] slotResourceCounts)
+    private static void ValidateSlotContract(ResourceOwnershipKind ownership, ResourcePlanKind planKind)
+    {
+        bool isValid = ownership switch
+        {
+            ResourceOwnershipKind.OwnedSlot => planKind is ResourcePlanKind.Buffer or ResourcePlanKind.Texture2D,
+            ResourceOwnershipKind.OwnedGroupSlot => planKind is ResourcePlanKind.ResourceGroup,
+            _ => false
+        };
+
+        if (!isValid)
+        {
+            throw Invalid();
+        }
+    }
+
+    private static void ValidateResourceSlotBinding(ResourceContractDescriptor resource, OwnedSlotDescriptor[] slots, uint[] slotResourceCounts)
     {
         bool expectsSlot = resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot or ResourceOwnershipKind.SharedTextureSlot;
 
@@ -390,8 +407,26 @@ internal static class PipelineDescriptorReader
 
         if (resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot)
         {
-            if (resource.Slot.Value >= (uint)slotCount ||
-                resource.SlotResourceIndex >= slotResourceCounts[(int)resource.Slot.Value])
+            if (resource.Slot.Value >= (uint)slots.Length)
+            {
+                throw Invalid();
+            }
+
+            int slotIndex = (int)resource.Slot.Value;
+
+            if (slots[slotIndex].Ownership != resource.Ownership)
+            {
+                throw Invalid();
+            }
+
+            if (resource.Ownership is ResourceOwnershipKind.OwnedSlot)
+            {
+                if (resource.SlotResourceIndex != 0)
+                {
+                    throw Invalid();
+                }
+            }
+            else if (resource.SlotResourceIndex >= slotResourceCounts[slotIndex])
             {
                 throw Invalid();
             }
