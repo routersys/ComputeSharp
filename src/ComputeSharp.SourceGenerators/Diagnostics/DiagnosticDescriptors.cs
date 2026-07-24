@@ -1076,4 +1076,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A graphics resource parameter of a compute pipeline method must be annotated with [ComputeResource].",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a compute interop method without any external resource parameter.
+    /// <para>
+    /// Format: <c>"The compute interop method {0} must declare at least one parameter annotated with [ComputeResource] using an external sharing"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor MissingExternalComputeResourceInInteropMethod = new(
+        id: "CMPS0072",
+        title: "Missing external resource in compute interop method",
+        messageFormat: "The compute interop method {0} must declare at least one parameter annotated with [ComputeResource] using an external sharing",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute interop method must declare at least one parameter annotated with [ComputeResource] using an external sharing.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
