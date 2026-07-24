@@ -11,6 +11,8 @@ internal static class PipelineDescriptorReader
 {
     private const int HeaderSize = 48;
 
+    private const uint NullStringMarker = 0xFFFFFFFFu;
+
     public static PipelineDescriptorSet Read(ReadOnlySpan<byte> descriptor)
     {
         if (descriptor.Length < HeaderSize)
@@ -445,12 +447,21 @@ internal static class PipelineDescriptorReader
     {
         uint length = reader.ReadUInt32();
 
-        if (length > (uint)reader.Remaining)
+        if (length == NullStringMarker || length > (uint)reader.Remaining)
         {
             throw Invalid();
         }
 
-        string value = reader.ReadUtf8((int)length);
+        string value;
+
+        try
+        {
+            value = reader.ReadUtf8((int)length);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new InvalidDataException("The canonical pipeline descriptor contains invalid UTF-8.", exception);
+        }
 
         if (!value.IsNormalized(NormalizationForm.FormC))
         {
