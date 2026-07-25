@@ -22,6 +22,7 @@ public class PreparedGenerationRollbackTests
                 {
                     Id = new ResourceGenerationId((ulong)i + 1),
                     Lifecycle = ResourceGenerationState.Active,
+                    OwnerReferenceCount = 1,
                     ExternalObjectsReleased = externalObjectsReleased
                 };
             }
@@ -40,6 +41,14 @@ public class PreparedGenerationRollbackTests
     private static ResourceGenerationSetHandle Handle(int resourceCount, int externalObjectsReleased)
     {
         return new ResourceGenerationSetHandle(new GenerationOwner(7, resourceCount, externalObjectsReleased));
+    }
+
+    private static void AssertAllOwnerReferencesReleased(ResourceGenerationSetHandle handle)
+    {
+        for (int i = 0; i < handle.Owner.ResourceCount; i++)
+        {
+            Assert.AreEqual(0, handle.Owner.GetResourceRecord(i).OwnerReferenceCount);
+        }
     }
 
     private static void AssertAllLifecycles(ResourceGenerationSetHandle handle, ResourceGenerationState expected)
@@ -64,6 +73,7 @@ public class PreparedGenerationRollbackTests
         PreparedGenerationRollback.RollbackUnpublished(prepared);
 
         AssertAllLifecycles(prepared, ResourceGenerationState.RetiredReady);
+        AssertAllOwnerReferencesReleased(prepared);
     }
 
     [TestMethod]
@@ -86,6 +96,11 @@ public class PreparedGenerationRollbackTests
         PreparedGenerationRollback.RollbackUnpublished(prepared);
 
         AssertAllLifecycles(prepared, ResourceGenerationState.RetiredPending);
+        AssertAllOwnerReferencesReleased(prepared);
+
+        prepared.Owner.GetResourceRecord(0).ReleaseCpuReference();
+
+        Assert.IsTrue(prepared.Owner.GetResourceRecord(0).TryPromoteRetiredReady(isRetirementFenceCompleted: true));
     }
 
     [TestMethod]
@@ -97,5 +112,6 @@ public class PreparedGenerationRollbackTests
         PreparedGenerationRollback.RollbackUnpublished(prepared);
 
         AssertAllLifecycles(prepared, ResourceGenerationState.RetiredReady);
+        AssertAllOwnerReferencesReleased(prepared);
     }
 }

@@ -15,7 +15,11 @@ internal static class PreparedGenerationRollback
         {
             ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
 
-            _ = record.TryRequestRetire();
+            if (record.TryRequestRetire())
+            {
+                record.ReleaseOwnerReference();
+            }
+
             _ = record.TryPromoteRetiredReady(record.RetirementFence.IsNone);
         }
     }
