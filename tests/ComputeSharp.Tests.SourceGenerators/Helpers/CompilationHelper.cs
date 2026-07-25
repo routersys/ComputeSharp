@@ -15,9 +15,21 @@ internal static class CompilationHelper
 
     public static CSharpCompilation CreateCompilation(string source, string assemblyName)
     {
+        return CreateCompilation([source], assemblyName);
+    }
+
+    public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName)
+    {
+        SyntaxTree[] syntaxTrees = new SyntaxTree[sources.Length];
+
+        for (int i = 0; i < sources.Length; i++)
+        {
+            syntaxTrees[i] = CSharpSyntaxTree.ParseText(sources[i]);
+        }
+
         CSharpCompilation compilation = CSharpCompilation.Create(
             assemblyName,
-            [CSharpSyntaxTree.ParseText(source)],
+            syntaxTrees,
             References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
