@@ -376,4 +376,139 @@ public class HostResourceCollectorTests
             """,
             "HostResourceCollectorPropertyTests"));
     }
+
+    [TestMethod]
+    public void RejectsOwnedSlotWithoutInitializer()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index;
+            }
+            """,
+            "HostResourceCollectorSlotInitializerTests"));
+
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceGroupSlot<Grid> grid;
+            }
+            """,
+            "HostResourceCollectorGroupSlotInitializerTests"));
+    }
+
+    [TestMethod]
+    public void RejectsResourceGroupWithSettableMember()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            [ComputeResourceGroup]
+            public sealed partial class Settable
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> Valid { get; } = null!;
+
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> Invalid { get; set; } = null!;
+            }
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceGroupSlot<Settable> group = new();
+            }
+            """,
+            "HostResourceCollectorSettableMemberTests"));
+    }
+
+    [TestMethod]
+    public void RejectsResourceGroupWithAnnotatedField()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            [ComputeResourceGroup]
+            public sealed partial class WithField
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> Valid { get; } = null!;
+
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> Field = null!;
+            }
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceGroupSlot<WithField> group = new();
+            }
+            """,
+            "HostResourceCollectorAnnotatedFieldTests"));
+    }
+
+    [TestMethod]
+    public void RejectsResourceGroupWithCollidingCanonicalMemberNames()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            [ComputeResourceGroup]
+            public sealed partial class Colliding
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> Color { get; } = null!;
+
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                public ReadWriteBuffer<int> _Color { get; } = null!;
+            }
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceGroupSlot<Colliding> group = new();
+            }
+            """,
+            "HostResourceCollectorGroupCollisionTests"));
+    }
+
+    [TestMethod]
+    public void RejectsResourceGroupWithMemberRecovery()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            [ComputeResourceGroup]
+            public sealed partial class WithRecovery
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                public ReadWriteBuffer<int> Color { get; } = null!;
+            }
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceGroupSlot<WithRecovery> group = new();
+            }
+            """,
+            "HostResourceCollectorGroupRecoveryTests"));
+    }
 }
