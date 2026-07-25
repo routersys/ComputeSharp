@@ -32,11 +32,13 @@ public class PipelineExternalBindingValidatorTests
 
     private static SharedTextureContractDescriptor SharedTexture(
         string resourceTypeMetadataName = TextureTypeMetadataName,
-        ComputeResourceAccess computeAccess = ComputeResourceAccess.ReadWrite)
+        ComputeResourceAccess computeAccess = ComputeResourceAccess.ReadWrite,
+        uint ordinal = 0,
+        string memberMetadataName = "Source")
     {
         return new SharedTextureContractDescriptor(
-            new SlotOrdinal(0),
-            "Source",
+            new SlotOrdinal(ordinal),
+            memberMetadataName,
             resourceTypeMetadataName,
             ComputeResourceResizePolicy.Exact,
             computeAccess,
@@ -100,7 +102,14 @@ public class PipelineExternalBindingValidatorTests
     [TestMethod]
     public void AcceptsSameResourceTypeForDistinctSharedTextures()
     {
-        PipelineExternalBindingValidator.Validate(Parameter(), SharedTexture());
-        PipelineExternalBindingValidator.Validate(Parameter(), SharedTexture());
+        SharedTextureContractDescriptor source = SharedTexture(ordinal: 0, memberMetadataName: "Source");
+        SharedTextureContractDescriptor output = SharedTexture(ordinal: 1, memberMetadataName: "Output");
+
+        Assert.AreEqual(source.ResourceTypeMetadataName, output.ResourceTypeMetadataName);
+        Assert.AreNotEqual(source.Ordinal, output.Ordinal);
+        Assert.AreNotEqual(source.MemberMetadataName, output.MemberMetadataName);
+
+        PipelineExternalBindingValidator.Validate(Parameter(), source);
+        PipelineExternalBindingValidator.Validate(Parameter(), output);
     }
 }
