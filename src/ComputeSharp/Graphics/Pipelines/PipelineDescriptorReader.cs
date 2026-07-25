@@ -19,7 +19,7 @@ internal static class PipelineDescriptorReader
 
     public static PipelineDescriptorSet Read(ReadOnlySpan<byte> descriptor)
     {
-        if (descriptor.Length < HeaderSize)
+        if (descriptor.Length is < HeaderSize or > PipelineDescriptorLimits.MaximumDescriptorByteLength)
         {
             throw Invalid();
         }
@@ -83,7 +83,10 @@ internal static class PipelineDescriptorReader
         int structuralMaximumCommandListSegments = ReadInt32(ref reader);
         int structuralOwnedSlotCount = ReadInt32(ref reader);
 
-        int pipelineCount = ReadCount(ref reader);
+        int pipelineCount = ReadCount(
+            ref reader,
+            PipelineDescriptorLimits.MaximumPipelineCount,
+            PipelineDescriptorLimits.PipelineDescriptorMinimumByteLength);
 
         if (pipelineCount == 0)
         {
@@ -109,11 +112,11 @@ internal static class PipelineDescriptorReader
             int maximumCommandListSegments = ReadInt32(ref reader);
 
             int parameterStart = resourceList.Count;
-            int parameterCount = ReadResourceContracts(ref reader, resourceList, 0);
+            int parameterCount = ReadResourceContracts(ref reader, resourceList, 0, PipelineDescriptorLimits.MaximumResourcesPerPipeline);
             int internalStart = resourceList.Count;
-            int internalCount = ReadResourceContracts(ref reader, resourceList, parameterCount);
+            int internalCount = ReadResourceContracts(ref reader, resourceList, parameterCount, PipelineDescriptorLimits.MaximumResourcesPerPipeline - parameterCount);
 
-            if (maximumTrackedResourceCount != (long)parameterCount + internalCount)
+            if (maximumTrackedResourceCount != checked(parameterCount + internalCount))
             {
                 throw Invalid();
             }
@@ -140,7 +143,10 @@ internal static class PipelineDescriptorReader
             aggregateMaximumCommandListSegments = Math.Max(aggregateMaximumCommandListSegments, maximumCommandListSegments);
         }
 
-        int slotCount = ReadCount(ref reader);
+        int slotCount = ReadCount(
+            ref reader,
+            PipelineDescriptorLimits.MaximumSlotCount,
+            PipelineDescriptorLimits.OwnedSlotDescriptorMinimumByteLength);
 
         if (slotCount != structuralOwnedSlotCount)
         {
@@ -255,7 +261,10 @@ internal static class PipelineDescriptorReader
         string resourceSetTypeMetadataName = ReadString(ref reader);
         int sharedTextureSlotCount = ReadInt32(ref reader);
 
-        int count = ReadCount(ref reader);
+        int count = ReadCount(
+            ref reader,
+            PipelineDescriptorLimits.MaximumSharedTextureCount,
+            PipelineDescriptorLimits.SharedTextureContractDescriptorMinimumByteLength);
 
         if (count != sharedTextureSlotCount)
         {
@@ -311,9 +320,9 @@ internal static class PipelineDescriptorReader
         return new PipelineDescriptorSet(DescriptorKind.InteropResourceSet, default, resourceSet);
     }
 
-    private static int ReadResourceContracts(ref Csp1Reader reader, List<ResourceContractDescriptor> resourceList, int ordinalBase)
+    private static int ReadResourceContracts(ref Csp1Reader reader, List<ResourceContractDescriptor> resourceList, int ordinalBase, int maximumCount)
     {
-        int count = ReadCount(ref reader);
+        int count = ReadCount(ref reader, maximumCount, PipelineDescriptorLimits.ResourceContractDescriptorMinimumByteLength);
 
         for (int i = 0; i < count; i++)
         {
@@ -348,7 +357,10 @@ internal static class PipelineDescriptorReader
 
     private static int ReadPlanFields(ref Csp1Reader reader, List<ResourcePlanFieldDescriptor> planFieldList)
     {
-        int count = ReadCount(ref reader);
+        int count = ReadCount(
+            ref reader,
+            PipelineDescriptorLimits.MaximumPlanFieldsPerSlot,
+            PipelineDescriptorLimits.ResourcePlanFieldDescriptorMinimumByteLength);
 
         for (int i = 0; i < count; i++)
         {
@@ -558,7 +570,9 @@ internal static class PipelineDescriptorReader
     {
         uint length = reader.ReadUInt32();
 
-        if (length == NullStringMarker || length > (uint)reader.Remaining)
+        if (length == NullStringMarker ||
+            length > PipelineDescriptorLimits.MaximumStringUtf8ByteLength ||
+            length > (uint)reader.Remaining)
         {
             throw Invalid();
         }
@@ -582,11 +596,11 @@ internal static class PipelineDescriptorReader
         return value;
     }
 
-    private static int ReadCount(ref Csp1Reader reader)
+    private static int ReadCount(ref Csp1Reader reader, int maximumCount, int minimumElementByteLength)
     {
         uint count = reader.ReadUInt32();
 
-        if (count > (uint)reader.Remaining)
+        if (count > (uint)maximumCount || count > (uint)(reader.Remaining / minimumElementByteLength))
         {
             throw Invalid();
         }
