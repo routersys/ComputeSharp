@@ -46,9 +46,20 @@
 
     <!-- ComputeSharp APIs -->
     <Compile Include="..\ComputeSharp\Attributes\Enums\CompileOptions.cs" Link="ComputeSharp\Attributes\Enums\CompileOptions.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeAlphaMode.cs" Link="ComputeSharp\Attributes\Enums\ComputeAlphaMode.cs" />
     <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceAccess.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceAccess.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceAliasing.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceAliasing.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceRecovery.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceRecovery.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceResizePolicy.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceResizePolicy.cs" />
     <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeResourceSharing.cs" Link="ComputeSharp\Attributes\Enums\ComputeResourceSharing.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ComputeSharedTextureInitialOwner.cs" Link="ComputeSharp\Attributes\Enums\ComputeSharedTextureInitialOwner.cs" />
     <Compile Include="..\ComputeSharp\Attributes\Enums\DefaultThreadGroupSizes.cs" Link="ComputeSharp\Attributes\Enums\DefaultThreadGroupSizes.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ExternalResourceAccess.cs" Link="ComputeSharp\Attributes\Enums\ExternalResourceAccess.cs" />
+    <Compile Include="..\ComputeSharp\Attributes\Enums\ExternalTextureUsage.cs" Link="ComputeSharp\Attributes\Enums\ExternalTextureUsage.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" Link="ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" />
     <Compile Include="..\ComputeSharp\Dispatch\DispatchSize.cs" Link="ComputeSharp\Dispatch\DispatchSize.cs" />
     <Compile Include="..\ComputeSharp\Dispatch\GridIds.cs" Link="ComputeSharp\Dispatch\GridIds.cs" />
     <Compile Include="..\ComputeSharp\Dispatch\GroupIds.cs" Link="ComputeSharp\Dispatch\GroupIds.cs" />
