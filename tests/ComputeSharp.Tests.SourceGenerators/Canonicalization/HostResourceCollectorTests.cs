@@ -511,4 +511,41 @@ public class HostResourceCollectorTests
             """,
             "HostResourceCollectorGroupRecoveryTests"));
     }
+
+    [TestMethod]
+    public void RejectsOwnedSlotWithNonObjectCreationInitializer()
+    {
+        Assert.IsFalse(TryCollect(
+            """
+
+            namespace Ukiyoe;
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = null!;
+            }
+            """,
+            "HostResourceCollectorSlotNullInitializerTests"));
+    }
+
+    [TestMethod]
+    public void AcceptsOwnedSlotWithExplicitObjectCreation()
+    {
+        (EquatableArray<OwnedSlotContractInfo> slots, _) = Collect(
+            """
+
+            namespace Ukiyoe;
+
+            public sealed partial class Host
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new ComputeResourceSlot<ReadWriteBuffer<int>>();
+            }
+            """,
+            "HostResourceCollectorSlotExplicitCreationTests");
+
+        Assert.AreEqual(1, slots.Length);
+        Assert.AreEqual("index", slots.AsImmutableArray()[0].MemberMetadataName);
+    }
 }
