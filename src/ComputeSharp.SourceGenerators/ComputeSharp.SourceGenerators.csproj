@@ -59,6 +59,7 @@
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" Link="ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\PipelineDescriptorLimits.cs" Link="ComputeSharp\Graphics\Pipelines\PipelineDescriptorLimits.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\PipelineFlags.cs" Link="ComputeSharp\Graphics\Pipelines\PipelineFlags.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\PipelineSchema.cs" Link="ComputeSharp\Graphics\Pipelines\PipelineSchema.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" />
