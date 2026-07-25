@@ -47,7 +47,7 @@ internal static class InteropResourceSetContractModelBuilder
                 continue;
             }
 
-            if (memberSymbol is not IFieldSymbol { IsReadOnly: true, IsStatic: false } fieldSymbol ||
+            if (memberSymbol is not IFieldSymbol { DeclaredAccessibility: Accessibility.Private, IsReadOnly: true, IsStatic: false } fieldSymbol ||
                 HasInitializer(fieldSymbol) ||
                 !GeneratedIdentifier.TryCreateCanonicalName(fieldSymbol.MetadataName, out string canonicalName) ||
                 !canonicalNames.Add(canonicalName) ||
@@ -151,7 +151,7 @@ internal static class InteropResourceSetContractModelBuilder
             values.ComputeAccess is ComputeResourceAccess.ReadWrite &&
             values.ExternalAccess is ExternalResourceAccess.Read or ExternalResourceAccess.Write or ExternalResourceAccess.ReadWrite &&
             values.ExternalUsage is ExternalTextureUsage.Sampled or ExternalTextureUsage.RenderTarget &&
-            values.AlphaMode is ComputeAlphaMode.Straight or ComputeAlphaMode.Premultiplied &&
+            values.AlphaMode is ComputeAlphaMode.Ignore or ComputeAlphaMode.Premultiplied or ComputeAlphaMode.Straight &&
             values.InitialOwner is ComputeSharedTextureInitialOwner.Compute or ComputeSharedTextureInitialOwner.External &&
             values.Recovery is ComputeResourceRecovery.Discardable or ComputeResourceRecovery.RecreateFromHost or ComputeResourceRecovery.Recompute or ComputeResourceRecovery.CapacityOnly;
     }
