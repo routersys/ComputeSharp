@@ -10,22 +10,15 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     where TView : class
 {
     /// <summary>
-    /// The leased external view.
-    /// </summary>
-    private readonly TView view;
-
-    /// <summary>
     /// Whether the current lease has been disposed.
     /// </summary>
     private volatile bool isDisposed;
 
     /// <summary>
-    /// Creates a new <see cref="ExternalTextureLease{TView}"/> instance with the specified parameters.
+    /// Creates a new <see cref="ExternalTextureLease{TView}"/> instance.
     /// </summary>
-    /// <param name="view">The leased external view.</param>
-    internal ExternalTextureLease(TView view)
+    internal ExternalTextureLease()
     {
-        this.view = view;
     }
 
     /// <summary>
@@ -39,9 +32,7 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     /// <returns>The leased external view.</returns>
     public TView DangerousGetView()
     {
-        default(InvalidOperationException).ThrowIf(this.isDisposed, "The external texture view lease has been disposed.");
-
-        return this.view;
+        throw new InvalidOperationException("The external texture view lease holds no external view.");
     }
 
     /// <summary>
@@ -50,9 +41,7 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     /// <returns>A scoped operation holding the external queue ownership.</returns>
     public ExternalQueueOperation BeginExternalQueueOperation()
     {
-        default(InvalidOperationException).ThrowIf(this.isDisposed, "The external texture view lease has been disposed.");
-
-        return default;
+        throw new InvalidOperationException("The external texture view lease holds no external view.");
     }
 
     /// <inheritdoc/>
