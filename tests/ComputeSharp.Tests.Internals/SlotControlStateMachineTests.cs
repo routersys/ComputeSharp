@@ -70,6 +70,108 @@ public class SlotControlStateMachineTests
         return slot;
     }
 
+    private static void AssertAllRetireRequested(ResourceGenerationSetHandle handle)
+    {
+        for (int i = 0; i < handle.Owner.ResourceCount; i++)
+        {
+            Assert.AreEqual(ResourceGenerationState.RetireRequested, handle.Owner.GetResourceRecord(i).Lifecycle);
+        }
+    }
+
+    [TestMethod]
+    public void RetiresEveryMemberOfReplacedGeneration()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 3);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        ResourceGenerationSetHandle replacement = Handle(2, 2, resourceCount: 3);
+
+        Assert.IsTrue(slot.TryInstallPrepared(replacement, 2));
+        Assert.IsTrue(slot.TryCommitReplacement(active.SetId, slot.BindingEpoch, 2, out _));
+
+        AssertAllRetireRequested(active);
+
+        for (int i = 0; i < replacement.Owner.ResourceCount; i++)
+        {
+            Assert.AreEqual(ResourceGenerationState.Active, replacement.Owner.GetResourceRecord(i).Lifecycle);
+        }
+    }
+
+    [TestMethod]
+    public void RetiresEveryMemberOnTrim()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+        Assert.IsTrue(slot.TryTrim());
+
+        AssertAllRetireRequested(active);
+    }
+
+    [TestMethod]
+    public void RetiresEveryMemberOnDisposeWithoutRetiredGeneration()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        _ = slot.RequestDispose();
+
+        Assert.AreEqual(SlotControlState.RetiringActive, slot.State);
+
+        AssertAllRetireRequested(active);
+
+        _ = slot.RequestDispose();
+
+        AssertAllRetireRequested(active);
+    }
+
+    [TestMethod]
+    public void RetiresActiveGenerationWhenRetiredSetIsCleared()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle retired = Handle(1, 1);
+
+        Assert.IsTrue(slot.TryInstallPrepared(retired, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        ResourceGenerationSetHandle active = Handle(2, 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 2));
+        Assert.IsTrue(slot.TryCommitReplacement(retired.SetId, slot.BindingEpoch, 2, out _));
+
+        _ = slot.RequestDispose();
+
+        Assert.AreEqual(SlotControlState.DisposeWaitingForRetired, slot.State);
+        Assert.AreEqual(ResourceGenerationState.Active, active.Owner.GetResourceRecord(0).Lifecycle);
+
+        ReleaseAll(retired);
+
+        Assert.IsTrue(slot.TryClearRetired(retired.SetId));
+        Assert.AreEqual(SlotControlState.RetiringActive, slot.State);
+
+        AssertAllRetireRequested(active);
+    }
+
     [TestMethod]
     public void BindsOnlyOnce()
     {
