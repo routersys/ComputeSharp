@@ -7,6 +7,11 @@ internal static class PipelineExternalBindingValidator
 {
     public static void Validate(in PipelineHostDescriptor host, in InteropResourceSetDescriptor resourceSet)
     {
+        if (host.Schema != resourceSet.Schema)
+        {
+            throw Invalid();
+        }
+
         ReadOnlySpan<PipelineDescriptor> pipelines = host.Pipelines.Span;
         ReadOnlySpan<SharedTextureContractDescriptor> sharedTextures = resourceSet.SharedTextures.Span;
 
