@@ -8,4 +8,8 @@ namespace ComputeSharp.SourceGenerators.Models;
 /// </summary>
 /// <param name="Hierarchy">The hierarchy info for the annotated type.</param>
 /// <param name="Descriptor">The canonical binary descriptor of the annotated type.</param>
-internal sealed record PipelineDescriptorInfo(HierarchyInfo Hierarchy, EquatableArray<byte> Descriptor);
+/// <param name="Plans">The exact resource plans of the annotated type, in canonical slot ordinal order.</param>
+internal sealed record PipelineDescriptorInfo(
+    HierarchyInfo Hierarchy,
+    EquatableArray<byte> Descriptor,
+    EquatableArray<ResourcePlanInfo> Plans);

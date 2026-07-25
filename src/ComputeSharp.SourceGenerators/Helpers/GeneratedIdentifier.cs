@@ -64,6 +64,27 @@ internal static class GeneratedIdentifier
     }
 
     /// <summary>
+    /// Creates the generated plan property name for a given canonical member name and dimension.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the owned member.</param>
+    /// <param name="dimensionKind">The dimension the property carries.</param>
+    /// <returns>The generated plan property name.</returns>
+    public static string CreatePlanPropertyName(string canonicalMemberName, ResourcePlanDimensionKind dimensionKind)
+    {
+        return canonicalMemberName + GetDimensionName(dimensionKind);
+    }
+
+    /// <summary>
+    /// Creates the generated plan type name for a given canonical member name.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the owned member.</param>
+    /// <returns>The generated plan type name.</returns>
+    public static string CreatePlanTypeName(string canonicalMemberName)
+    {
+        return canonicalMemberName + "Plan";
+    }
+
+    /// <summary>
     /// Gets the generated name for a given dimension.
     /// </summary>
     /// <param name="dimensionKind">The dimension to get the name for.</param>
