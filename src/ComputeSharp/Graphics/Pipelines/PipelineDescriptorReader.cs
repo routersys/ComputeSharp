@@ -409,9 +409,19 @@ internal static class PipelineDescriptorReader
 
     private static void ValidateResourceSlotBinding(ResourceContractDescriptor resource, OwnedSlotDescriptor[] slots, uint[] slotResourceCounts)
     {
-        bool expectsSlot = resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot or ResourceOwnershipKind.SharedTextureSlot;
+        if (resource.Ownership is ResourceOwnershipKind.SharedTextureSlot)
+        {
+            throw Invalid();
+        }
+
+        bool expectsSlot = resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot;
 
         if (resource.HasSlot != expectsSlot)
+        {
+            throw Invalid();
+        }
+
+        if (resource.Sharing is ComputeResourceSharing.External && resource.HasSlot)
         {
             throw Invalid();
         }
