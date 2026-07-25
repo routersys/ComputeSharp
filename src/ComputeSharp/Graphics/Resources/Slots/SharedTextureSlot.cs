@@ -63,7 +63,7 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <summary>
     /// Gets whether disposal of the current slot has been requested.
     /// </summary>
-    public bool IsDisposeRequested
+    internal bool IsDisposeRequested
     {
         get
         {
