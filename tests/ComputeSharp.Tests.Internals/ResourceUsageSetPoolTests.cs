@@ -155,6 +155,8 @@ public class ResourceUsageSetPoolTests
             0,
             new ResourceGenerationId(5),
             ComputeResourceAccess.Read,
+            TrackedResourceState.UnorderedAccess,
+            TrackedResourceState.UnorderedAccess,
             out _,
             out _));
 
@@ -178,13 +180,13 @@ public class ResourceUsageSetPoolTests
         ResourceUsageSetPartition second = pool.ReservePartition(2, 1);
 
         Assert.IsTrue(ResourceUsageTracker.TryAddUsage(
-            first.Storage, ref first.GetSet(0), Handle(1), 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out _, out _));
+            first.Storage, ref first.GetSet(0), Handle(1), 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         Assert.IsTrue(ResourceUsageTracker.TryAddUsage(
-            first.Storage, ref first.GetSet(1), Handle(1), 0, new ResourceGenerationId(2), ComputeResourceAccess.Write, out _, out _));
+            first.Storage, ref first.GetSet(1), Handle(1), 0, new ResourceGenerationId(2), ComputeResourceAccess.Write, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         Assert.IsTrue(ResourceUsageTracker.TryAddUsage(
-            second.Storage, ref second.GetSet(0), Handle(1), 0, new ResourceGenerationId(3), ComputeResourceAccess.ReadWrite, out _, out _));
+            second.Storage, ref second.GetSet(0), Handle(1), 0, new ResourceGenerationId(3), ComputeResourceAccess.ReadWrite, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         Assert.AreEqual(1, first.GetSet(0).Count);
         Assert.AreEqual(1, first.GetSet(1).Count);

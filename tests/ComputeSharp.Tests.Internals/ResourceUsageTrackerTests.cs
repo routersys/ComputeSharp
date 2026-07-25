@@ -75,8 +75,8 @@ public class ResourceUsageTrackerTests
         UsageSetPoolEntry usageSet = Set(0, 4);
         ResourceGenerationSetHandle set = Handle(1);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out int first, out bool isFirstAliased));
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Write, out int second, out bool isSecondAliased));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out int first, out bool isFirstAliased));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Write, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out int second, out bool isSecondAliased));
 
         Assert.AreEqual(0, first);
         Assert.AreEqual(1, second);
@@ -85,8 +85,8 @@ public class ResourceUsageTrackerTests
         Assert.AreEqual(2, usageSet.Count);
         Assert.AreEqual(ComputeResourceAccess.Read, storage[0].Access);
         Assert.AreEqual(ComputeResourceAccess.Write, storage[1].Access);
-        Assert.AreEqual(TrackedResourceState.Unknown, storage[0].FirstState);
-        Assert.AreEqual(TrackedResourceState.Unknown, storage[0].FinalState);
+        Assert.AreEqual(TrackedResourceState.UnorderedAccess, storage[0].FirstState);
+        Assert.AreEqual(TrackedResourceState.UnorderedAccess, storage[0].FinalState);
     }
 
     [TestMethod]
@@ -96,8 +96,8 @@ public class ResourceUsageTrackerTests
         UsageSetPoolEntry usageSet = Set(0, 4);
         ResourceGenerationSetHandle set = Handle(1);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, out _, out bool isFirstAliased));
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Write, out int index, out bool isSecondAliased));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out bool isFirstAliased));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Write, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out int index, out bool isSecondAliased));
 
         Assert.IsFalse(isFirstAliased);
         Assert.IsTrue(isSecondAliased);
@@ -114,15 +114,15 @@ public class ResourceUsageTrackerTests
         ResourceGenerationSetHandle set = Handle(1);
         ResourceGenerationSetHandle other = Handle(2);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, out _, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         UsageSetPoolEntry capturedSet = usageSet;
 
         _ = Assert.ThrowsExactly<InvalidOperationException>(
-            () => ResourceUsageTracker.TryAddUsage(storage, ref capturedSet, set, 1, new ResourceGenerationId(7), ComputeResourceAccess.Read, out _, out _));
+            () => ResourceUsageTracker.TryAddUsage(storage, ref capturedSet, set, 1, new ResourceGenerationId(7), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         _ = Assert.ThrowsExactly<InvalidOperationException>(
-            () => ResourceUsageTracker.TryAddUsage(storage, ref capturedSet, other, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, out _, out _));
+            () => ResourceUsageTracker.TryAddUsage(storage, ref capturedSet, other, 0, new ResourceGenerationId(7), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
     }
 
     [TestMethod]
@@ -133,8 +133,8 @@ public class ResourceUsageTrackerTests
         UsageSetPoolEntry second = Set(3, 3);
         ResourceGenerationSetHandle set = Handle(1);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref first, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out _, out _));
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref second, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Write, out _, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref first, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref second, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Write, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         Assert.AreEqual(1, first.Count);
         Assert.AreEqual(1, second.Count);
@@ -149,8 +149,8 @@ public class ResourceUsageTrackerTests
         UsageSetPoolEntry usageSet = Set(0, 1);
         ResourceGenerationSetHandle set = Handle(1);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out _, out _));
-        Assert.IsFalse(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Read, out int index, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
+        Assert.IsFalse(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out int index, out _));
 
         Assert.AreEqual(-1, index);
         Assert.AreEqual(1, usageSet.Count);
@@ -165,10 +165,10 @@ public class ResourceUsageTrackerTests
         ResourceGenerationSetHandle set = Handle(1);
 
         _ = Assert.ThrowsExactly<ArgumentException>(
-            () => ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, default, ComputeResourceAccess.Read, out _, out _));
+            () => ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, default, ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         _ = Assert.ThrowsExactly<ArgumentException>(
-            () => ResourceUsageTracker.TryAddUsage(storage, ref usageSet, default, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out _, out _));
+            () => ResourceUsageTracker.TryAddUsage(storage, ref usageSet, default, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
     }
 
     [TestMethod]
@@ -178,8 +178,8 @@ public class ResourceUsageTrackerTests
         UsageSetPoolEntry usageSet = Set(0, 2);
         ResourceGenerationSetHandle set = Handle(1);
 
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, out _, out _));
-        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Read, out _, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 0, new ResourceGenerationId(1), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
+        Assert.IsTrue(ResourceUsageTracker.TryAddUsage(storage, ref usageSet, set, 1, new ResourceGenerationId(2), ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess, out _, out _));
 
         ResourceUsageTracker.ClearUsages(storage, ref usageSet);
 
