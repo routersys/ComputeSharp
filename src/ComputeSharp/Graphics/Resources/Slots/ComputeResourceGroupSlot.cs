@@ -7,7 +7,7 @@ namespace ComputeSharp;
 /// A slot owning the successive generations of a compute resource group declared by a compute pipeline host.
 /// </summary>
 /// <typeparam name="TGroup">The type of the owned compute resource group.</typeparam>
-public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
+public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable, IComputeOwnedSlot
     where TGroup : class
 {
     /// <summary>
@@ -31,6 +31,21 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     /// Gets whether disposal of the current slot has been requested.
     /// </summary>
     public bool IsDisposeRequested => this.slotGate.IsDisposeRequested;
+
+    /// <inheritdoc/>
+    bool IComputeOwnedSlot.IsDisposalComplete => this.slotGate.IsDisposalComplete;
+
+    /// <inheritdoc/>
+    bool IComputeOwnedSlot.TryBind(int[] planStorage, in SlotResourcePlanStateRecord planState)
+    {
+        return this.slotGate.TryBind(planStorage, in planState);
+    }
+
+    /// <inheritdoc/>
+    void IComputeOwnedSlot.RequestDispose()
+    {
+        Dispose();
+    }
 
     /// <inheritdoc/>
     public void Dispose()
