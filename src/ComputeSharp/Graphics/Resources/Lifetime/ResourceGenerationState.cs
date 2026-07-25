@@ -1,6 +1,6 @@
 namespace ComputeSharp.Resources.Lifetime;
 
-internal enum ResourceGenerationState : byte
+internal enum ResourceGenerationState : int
 {
     Constructing = 0,
     Active = 1,

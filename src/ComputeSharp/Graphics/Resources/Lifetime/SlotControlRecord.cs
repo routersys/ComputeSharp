@@ -125,7 +125,7 @@ internal struct SlotControlRecord
 
         if (!this.Active.IsEmpty)
         {
-            RequestRetireAll(this.Active);
+            RetireAndReleaseOwnership(this.Active);
 
             this.Retired = this.Active;
         }
@@ -168,7 +168,7 @@ internal struct SlotControlRecord
             return false;
         }
 
-        RequestRetireAll(this.Active);
+        RetireAndReleaseOwnership(this.Active);
 
         this.Retired = this.Active;
         this.Active = default;
@@ -217,7 +217,7 @@ internal struct SlotControlRecord
             return detachedPrepared;
         }
 
-        RequestRetireAll(this.Active);
+        RetireAndReleaseOwnership(this.Active);
 
         this.State = SlotControlState.RetiringActive;
 
@@ -241,7 +241,7 @@ internal struct SlotControlRecord
             }
             else
             {
-                RequestRetireAll(this.Active);
+                RetireAndReleaseOwnership(this.Active);
 
                 this.State = SlotControlState.RetiringActive;
             }
@@ -295,20 +295,31 @@ internal struct SlotControlRecord
         return true;
     }
 
-    private static void RequestRetireAll(in ResourceGenerationSetHandle handle)
+    private static void RetireAndReleaseOwnership(in ResourceGenerationSetHandle handle)
     {
         IResourceGenerationOwner owner = handle.Owner;
 
         for (int i = 0; i < owner.ResourceCount; i++)
         {
+            ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
+
             default(InvalidOperationException).ThrowIf(
-                owner.GetResourceRecord(i).Lifecycle is not ResourceGenerationState.Active,
+                record.ReadLifecycle() is not ResourceGenerationState.Active,
                 "The retiring resource generation is not active.");
+
+            default(InvalidOperationException).ThrowIf(
+                record.OwnerReferenceCount <= 0,
+                "The retiring resource generation is not owned by the slot.");
         }
 
         for (int i = 0; i < owner.ResourceCount; i++)
         {
-            _ = owner.GetResourceRecord(i).TryRequestRetire();
+            ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
+
+            if (record.TryRequestRetire())
+            {
+                record.ReleaseOwnerReference();
+            }
         }
     }
 
@@ -323,7 +334,7 @@ internal struct SlotControlRecord
 
         for (int i = 0; i < owner.ResourceCount; i++)
         {
-            if (owner.GetResourceRecord(i).Lifecycle is not ResourceGenerationState.Released)
+            if (owner.GetResourceRecord(i).ReadLifecycle() is not ResourceGenerationState.Released)
             {
                 return false;
             }

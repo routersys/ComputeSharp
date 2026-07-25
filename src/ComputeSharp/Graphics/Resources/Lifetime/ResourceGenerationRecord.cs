@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
@@ -58,7 +59,7 @@ internal struct ResourceGenerationRecord
 
     public bool TryAcquireRecordingReference()
     {
-        if (this.Lifecycle is not ResourceGenerationState.Active)
+        if (ReadLifecycle() is not ResourceGenerationState.Active)
         {
             return false;
         }
@@ -90,7 +91,7 @@ internal struct ResourceGenerationRecord
 
     public bool TryAcquireExternalReference()
     {
-        if (this.Lifecycle is not ResourceGenerationState.Active)
+        if (ReadLifecycle() is not ResourceGenerationState.Active)
         {
             return false;
         }
@@ -107,7 +108,7 @@ internal struct ResourceGenerationRecord
 
     public bool TryAcquireCpuReference()
     {
-        if (this.Lifecycle is not ResourceGenerationState.Active)
+        if (ReadLifecycle() is not ResourceGenerationState.Active)
         {
             return false;
         }
@@ -129,78 +130,102 @@ internal struct ResourceGenerationRecord
 
     public bool TryRequestRetire()
     {
-        if (this.Lifecycle is not ResourceGenerationState.Active)
-        {
-            return false;
-        }
-
-        this.Lifecycle = ResourceGenerationState.RetireRequested;
-
-        return true;
+        return TryTransitionLifecycle(ResourceGenerationState.Active, ResourceGenerationState.RetireRequested);
     }
 
     public bool TryPromoteRetiredReady(bool isRetirementFenceCompleted)
     {
-        if (this.Lifecycle is not (ResourceGenerationState.RetireRequested or ResourceGenerationState.RetiredPending))
+        while (true)
         {
-            return false;
+            ResourceGenerationState current = ReadLifecycle();
+
+            if (current is not (ResourceGenerationState.RetireRequested or ResourceGenerationState.RetiredPending))
+            {
+                return false;
+            }
+
+            if (HasReferences || !isRetirementFenceCompleted || Volatile.Read(in this.ExternalObjectsReleased) == 0)
+            {
+                _ = TryTransitionLifecycle(ResourceGenerationState.RetireRequested, ResourceGenerationState.RetiredPending);
+
+                return false;
+            }
+
+            if (TryTransitionLifecycle(current, ResourceGenerationState.RetiredReady))
+            {
+                return true;
+            }
         }
-
-        if (HasReferences || !isRetirementFenceCompleted || this.ExternalObjectsReleased == 0)
-        {
-            this.Lifecycle = ResourceGenerationState.RetiredPending;
-
-            return false;
-        }
-
-        this.Lifecycle = ResourceGenerationState.RetiredReady;
-
-        return true;
     }
 
     public bool TryBeginRelease(ResourceReleaseAuthority authority)
     {
-        bool isAuthorized = this.Lifecycle switch
+        while (true)
         {
-            ResourceGenerationState.RetiredReady => authority is ResourceReleaseAuthority.NormalCompletion,
-            ResourceGenerationState.Faulted => authority is ResourceReleaseAuthority.DomainTeardown,
-            ResourceGenerationState.TerminalRetained => authority is ResourceReleaseAuthority.DeviceTeardown,
-            _ => false
-        };
+            ResourceGenerationState current = ReadLifecycle();
 
-        if (!isAuthorized)
-        {
-            return false;
+            bool isAuthorized = current switch
+            {
+                ResourceGenerationState.RetiredReady => authority is ResourceReleaseAuthority.NormalCompletion,
+                ResourceGenerationState.Faulted => authority is ResourceReleaseAuthority.DomainTeardown,
+                ResourceGenerationState.TerminalRetained => authority is ResourceReleaseAuthority.DeviceTeardown,
+                _ => false
+            };
+
+            if (!isAuthorized)
+            {
+                return false;
+            }
+
+            if (TryTransitionLifecycle(current, ResourceGenerationState.Releasing))
+            {
+                this.ReleaseAuthority = authority;
+
+                return true;
+            }
         }
-
-        this.ReleaseAuthority = authority;
-        this.Lifecycle = ResourceGenerationState.Releasing;
-
-        return true;
     }
 
     public bool TryCompleteRelease(ResourceReleaseAuthority authority)
     {
-        if (this.Lifecycle is not ResourceGenerationState.Releasing || this.ReleaseAuthority != authority)
+        if (this.ReleaseAuthority != authority)
         {
             return false;
         }
 
-        this.Lifecycle = ResourceGenerationState.Released;
-
-        return true;
+        return TryTransitionLifecycle(ResourceGenerationState.Releasing, ResourceGenerationState.Released);
     }
 
     public bool TryMarkTerminalRetained()
     {
-        if (this.Lifecycle is ResourceGenerationState.Releasing or ResourceGenerationState.Released)
+        while (true)
         {
-            return false;
+            ResourceGenerationState current = ReadLifecycle();
+
+            if (current is ResourceGenerationState.Releasing or ResourceGenerationState.Released)
+            {
+                return false;
+            }
+
+            if (current is ResourceGenerationState.TerminalRetained ||
+                TryTransitionLifecycle(current, ResourceGenerationState.TerminalRetained))
+            {
+                return true;
+            }
         }
+    }
 
-        this.Lifecycle = ResourceGenerationState.TerminalRetained;
+    public readonly ResourceGenerationState ReadLifecycle()
+    {
+        return (ResourceGenerationState)Volatile.Read(in Unsafe.As<ResourceGenerationState, int>(ref Unsafe.AsRef(in this.Lifecycle)));
+    }
 
-        return true;
+    private bool TryTransitionLifecycle(ResourceGenerationState expected, ResourceGenerationState next)
+    {
+        return Interlocked.CompareExchange(
+            ref Unsafe.As<ResourceGenerationState, int>(ref this.Lifecycle),
+            (int)next,
+            (int)expected) == (int)expected;
     }
 
     private static void Increment(ref int count)
