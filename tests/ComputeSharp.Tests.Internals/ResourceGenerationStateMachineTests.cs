@@ -102,8 +102,11 @@ public class ResourceGenerationStateMachineTests
 
         Assert.IsTrue(record.TryAcquireRecordingReference());
 
-        record.AddPendingSubmissionReference();
-        record.ReleaseRecordingReference();
+        record.ConvertRecordingToPendingSubmission();
+
+        Assert.AreEqual(0, record.RecordingReferenceCount);
+        Assert.AreEqual(1, record.PendingSubmissionReferenceCount);
+
         record.ReleaseOwnerReference();
 
         Assert.IsTrue(record.TryRequestRetire());
@@ -160,18 +163,32 @@ public class ResourceGenerationStateMachineTests
     {
         ResourceGenerationRecord record = ActiveRecord();
 
-        Assert.IsFalse(record.TryCompleteRelease());
+        Assert.IsFalse(record.TryCompleteRelease(ResourceReleaseAuthority.NormalCompletion));
 
         record.Lifecycle = ResourceGenerationState.RetiredReady;
 
         Assert.IsTrue(record.TryBeginRelease(ResourceReleaseAuthority.NormalCompletion));
-        Assert.IsTrue(record.TryCompleteRelease());
+        Assert.IsTrue(record.TryCompleteRelease(ResourceReleaseAuthority.NormalCompletion));
         Assert.AreEqual(ResourceGenerationState.Released, record.Lifecycle);
-        Assert.IsFalse(record.TryCompleteRelease());
+        Assert.IsFalse(record.TryCompleteRelease(ResourceReleaseAuthority.NormalCompletion));
     }
 
     [TestMethod]
-    public void MarksTerminalRetainedForAnyNonReleasedState()
+    public void RejectsReleaseCompletionWithMismatchedAuthority()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        record.Lifecycle = ResourceGenerationState.Faulted;
+
+        Assert.IsTrue(record.TryBeginRelease(ResourceReleaseAuthority.DomainTeardown));
+        Assert.IsFalse(record.TryCompleteRelease(ResourceReleaseAuthority.NormalCompletion));
+        Assert.IsFalse(record.TryCompleteRelease(ResourceReleaseAuthority.DeviceTeardown));
+        Assert.AreEqual(ResourceGenerationState.Releasing, record.Lifecycle);
+        Assert.IsTrue(record.TryCompleteRelease(ResourceReleaseAuthority.DomainTeardown));
+    }
+
+    [TestMethod]
+    public void MarksTerminalRetainedForAnyNonReleasingState()
     {
         ResourceGenerationRecord record = ActiveRecord();
 
@@ -181,5 +198,42 @@ public class ResourceGenerationStateMachineTests
         record.Lifecycle = ResourceGenerationState.Released;
 
         Assert.IsFalse(record.TryMarkTerminalRetained());
+    }
+
+    [TestMethod]
+    public void RejectsTerminalRetainedRegressionFromReleasing()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        record.Lifecycle = ResourceGenerationState.RetiredReady;
+
+        Assert.IsTrue(record.TryBeginRelease(ResourceReleaseAuthority.NormalCompletion));
+        Assert.IsFalse(record.TryMarkTerminalRetained());
+        Assert.AreEqual(ResourceGenerationState.Releasing, record.Lifecycle);
+    }
+
+    [TestMethod]
+    public void PreservesTotalReferenceCountOnConversion()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        Assert.IsTrue(record.TryAcquireRecordingReference());
+        Assert.IsTrue(record.TryAcquireRecordingReference());
+
+        int before = record.RecordingReferenceCount + record.PendingSubmissionReferenceCount;
+
+        record.ConvertRecordingToPendingSubmission();
+
+        Assert.AreEqual(before, record.RecordingReferenceCount + record.PendingSubmissionReferenceCount);
+        Assert.AreEqual(1, record.RecordingReferenceCount);
+        Assert.AreEqual(1, record.PendingSubmissionReferenceCount);
+    }
+
+    [TestMethod]
+    public void RejectsConversionWithoutRecordingReference()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        _ = Assert.ThrowsException<InvalidOperationException>(() => record.ConvertRecordingToPendingSubmission());
     }
 }
