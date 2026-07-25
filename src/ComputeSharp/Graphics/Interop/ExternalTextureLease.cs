@@ -17,7 +17,7 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     /// <summary>
     /// Creates a new <see cref="ExternalTextureLease{TView}"/> instance.
     /// </summary>
-    internal ExternalTextureLease()
+    private ExternalTextureLease()
     {
     }
 
