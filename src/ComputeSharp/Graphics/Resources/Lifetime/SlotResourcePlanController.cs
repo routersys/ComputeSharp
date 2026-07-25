@@ -85,6 +85,16 @@ internal static class SlotResourcePlanController
             return false;
         }
 
+        Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(storage, planState);
+
+        for (int i = 0; i < requestedPlan.Length; i++)
+        {
+            if (requestedPlan[i] > activePhysicalCapacity[i])
+            {
+                return false;
+            }
+        }
+
         requestedPlan.CopyTo(SlotResourcePlanStorage.GetActiveLogicalPlan(storage, planState));
 
         return true;
