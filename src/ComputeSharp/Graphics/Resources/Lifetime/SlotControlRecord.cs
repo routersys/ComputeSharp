@@ -75,6 +75,15 @@ internal struct SlotControlRecord
         record.ReleaseRecordingReference();
     }
 
+    public readonly bool CanApplyLogicalUpdate(ResourceGenerationSetId expectedActiveSetId, ulong expectedBindingEpoch)
+    {
+        return !this.IsDisposeRequested &&
+            this.State is SlotControlState.Active &&
+            !this.Active.IsEmpty &&
+            this.Active.SetId == expectedActiveSetId &&
+            this.BindingEpoch == expectedBindingEpoch;
+    }
+
     public bool TryInstallPrepared(ResourceGenerationSetHandle prepared, ulong preparedToken)
     {
         if (this.IsDisposeRequested ||
