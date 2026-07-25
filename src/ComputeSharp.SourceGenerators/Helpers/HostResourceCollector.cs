@@ -307,11 +307,11 @@ internal static class HostResourceCollector
 
         switch (attribute.ConstructorArguments)
         {
-            case [{ Value: int accessValue }]:
+            case [{ Value: byte accessValue }]:
                 access = (ComputeResourceAccess)accessValue;
 
                 return IsKnownAccess(access);
-            case [{ Value: int accessValueWithRecovery }, { Value: int recoveryValue }]:
+            case [{ Value: byte accessValueWithRecovery }, { Value: byte recoveryValue }]:
                 access = (ComputeResourceAccess)accessValueWithRecovery;
                 hasRecovery = true;
                 recovery = (ComputeResourceRecovery)recoveryValue;
