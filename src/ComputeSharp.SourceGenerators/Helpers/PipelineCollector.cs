@@ -76,6 +76,7 @@ internal static class PipelineCollector
                 DeclaredAccessibility: Accessibility.Private,
                 IsStatic: false,
                 IsGenericMethod: false,
+                IsAsync: false,
                 ReturnsVoid: true,
                 Parameters: [{ RefKind: RefKind.In } contextParameter, ..]
             } ||
@@ -102,7 +103,8 @@ internal static class PipelineCollector
             }
 
             if (!TryGetResourceContract(attribute, out ComputeResourceAccess access, out ComputeResourceSharing sharing, out ComputeResourceAliasing aliasing) ||
-                !parameterSymbol.Type.HasInterfaceWithType(symbols.GraphicsResourceInterface))
+                !parameterSymbol.Type.HasInterfaceWithType(symbols.GraphicsResourceInterface) ||
+                !ComputeAccessContract.IsCompatible(parameterSymbol.Type, access))
             {
                 return false;
             }
