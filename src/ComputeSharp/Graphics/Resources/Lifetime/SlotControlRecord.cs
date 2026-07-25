@@ -125,6 +125,8 @@ internal struct SlotControlRecord
 
         if (!this.Active.IsEmpty)
         {
+            RequestRetireAll(this.Active);
+
             this.Retired = this.Active;
         }
 
@@ -166,6 +168,8 @@ internal struct SlotControlRecord
             return false;
         }
 
+        RequestRetireAll(this.Active);
+
         this.Retired = this.Active;
         this.Active = default;
         this.BindingEpoch = checked(this.BindingEpoch + 1);
@@ -179,7 +183,7 @@ internal struct SlotControlRecord
 
         ResourceGenerationSetHandle detachedPrepared = default;
 
-        if (this.State is SlotControlState.Disposed)
+        if (this.State is SlotControlState.Disposed or SlotControlState.DisposeWaitingForRetired or SlotControlState.RetiringActive)
         {
             return detachedPrepared;
         }
@@ -213,6 +217,8 @@ internal struct SlotControlRecord
             return detachedPrepared;
         }
 
+        RequestRetireAll(this.Active);
+
         this.State = SlotControlState.RetiringActive;
 
         return detachedPrepared;
@@ -229,7 +235,16 @@ internal struct SlotControlRecord
 
         if (this.State is SlotControlState.DisposeWaitingForRetired)
         {
-            this.State = this.Active.IsEmpty ? SlotControlState.Disposed : SlotControlState.RetiringActive;
+            if (this.Active.IsEmpty)
+            {
+                this.State = SlotControlState.Disposed;
+            }
+            else
+            {
+                RequestRetireAll(this.Active);
+
+                this.State = SlotControlState.RetiringActive;
+            }
         }
 
         return true;
@@ -278,6 +293,23 @@ internal struct SlotControlRecord
         this.State = SlotControlState.RetiringActive;
 
         return true;
+    }
+
+    private static void RequestRetireAll(in ResourceGenerationSetHandle handle)
+    {
+        IResourceGenerationOwner owner = handle.Owner;
+
+        for (int i = 0; i < owner.ResourceCount; i++)
+        {
+            default(InvalidOperationException).ThrowIf(
+                owner.GetResourceRecord(i).Lifecycle is not ResourceGenerationState.Active,
+                "The retiring resource generation is not active.");
+        }
+
+        for (int i = 0; i < owner.ResourceCount; i++)
+        {
+            _ = owner.GetResourceRecord(i).TryRequestRetire();
+        }
     }
 
     private static bool AreAllReleased(in ResourceGenerationSetHandle handle)
