@@ -187,102 +187,43 @@ internal static class HostResourceCollector
         ref readonly ImmutableArrayBuilder<OwnedSlotContractInfo> slotBuilder,
         ref readonly ImmutableArrayBuilder<UnorderedInternalResourceContract> resourceBuilder)
     {
-        if (groupTypeSymbol is not INamedTypeSymbol { IsGenericType: false } groupSymbol ||
-            !groupSymbol.HasAttributeWithType(symbols.ResourceGroupAttribute) ||
-            !TryCollectGroupMembers(groupSymbol, symbols, out IPropertySymbol[]? groupMembers))
+        if (groupTypeSymbol is not INamedTypeSymbol groupSymbol ||
+            !ResourceGroupContractModelBuilder.TryBuild(groupSymbol, symbols, out ResourceGroupContractInfo group))
         {
             return false;
         }
 
-        using ImmutableArrayBuilder<ResourcePlanFieldContractInfo> planFieldBuilder = new();
         using ImmutableArrayBuilder<UnorderedInternalResourceContract> memberBuilder = new();
 
-        HashSet<string> canonicalNames = [];
-
-        for (int i = 0; i < groupMembers.Length; i++)
+        foreach (ResourceGroupMemberContractInfo member in group.Members)
         {
-            IPropertySymbol memberSymbol = groupMembers[i];
-
-            if (!memberSymbol.TryGetAttributeWithType(symbols.PipelineResourceAttribute, out AttributeData? memberAttribute) ||
-                !PipelineResourceContractReader.TryRead(memberAttribute, out ComputeResourceAccess memberAccess, out bool memberHasRecovery, out _) ||
-                memberHasRecovery ||
-                !IsAccessWithin(memberAccess, slotAccess) ||
-                !GeneratedIdentifier.TryCreateCanonicalName(memberSymbol.MetadataName, out string canonicalName) ||
-                !canonicalNames.Add(canonicalName) ||
-                !ResourcePlanGrammar.TryAppendPlanFields(memberSymbol.Type, memberSymbol.MetadataName, (uint)i, in planFieldBuilder))
+            if (!IsAccessWithin(member.Access, slotAccess))
             {
                 return false;
             }
 
             memberBuilder.Add(new UnorderedInternalResourceContract(
                 fieldSymbol.MetadataName,
-                memberSymbol.MetadataName,
-                CanonicalTypeNameBuilder.GetCanonicalTypeName(memberSymbol.Type),
-                memberAccess,
+                member.MemberMetadataName,
+                member.ResourceTypeMetadataName,
+                member.Access,
                 ComputeResourceSharing.Internal,
                 ComputeResourceAliasing.Disallow,
                 ResourceOwnershipKind.OwnedGroupSlot,
-                (uint)i,
+                member.SlotResourceIndex,
                 new SlotContractKey(fieldSymbol.MetadataName)));
         }
 
         slotBuilder.Add(new OwnedSlotContractInfo(
             uint.MaxValue,
             fieldSymbol.MetadataName,
-            CanonicalTypeNameBuilder.GetCanonicalTypeName(groupSymbol),
+            group.GroupTypeMetadataName,
             ResourceOwnershipKind.OwnedGroupSlot,
             ResourcePlanKind.ResourceGroup,
             recovery,
-            PipelineCanonicalOrdering.OrderPlanFields(planFieldBuilder.ToImmutable())));
+            group.PlanFields));
 
         resourceBuilder.AddRange(memberBuilder.WrittenSpan);
-
-        return true;
-    }
-
-    /// <summary>
-    /// Tries to collect every annotated member of a given resource group, in canonical order.
-    /// </summary>
-    /// <param name="groupSymbol">The resource group type.</param>
-    /// <param name="symbols">The well known symbols to resolve the declarations with.</param>
-    /// <param name="groupMembers">The resulting annotated members, in canonical order.</param>
-    /// <returns>Whether every annotated member of <paramref name="groupSymbol"/> is a valid group member.</returns>
-    private static bool TryCollectGroupMembers(
-        INamedTypeSymbol groupSymbol,
-        PipelineWellKnownSymbols symbols,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPropertySymbol[]? groupMembers)
-    {
-        using ImmutableArrayBuilder<IPropertySymbol> builder = new();
-
-        foreach (ISymbol memberSymbol in groupSymbol.GetMembers())
-        {
-            if (!memberSymbol.HasAttributeWithType(symbols.PipelineResourceAttribute))
-            {
-                continue;
-            }
-
-            if (memberSymbol is not IPropertySymbol { SetMethod: null, GetMethod: not null, IsIndexer: false, IsStatic: false } propertySymbol)
-            {
-                groupMembers = null;
-
-                return false;
-            }
-
-            builder.Add(propertySymbol);
-        }
-
-        if (builder.Count == 0)
-        {
-            groupMembers = null;
-
-            return false;
-        }
-
-        IPropertySymbol[] members = [.. builder.ToImmutable()];
-
-        System.Array.Sort(members, static (left, right) => string.CompareOrdinal(left.MetadataName, right.MetadataName));
-
-        groupMembers = members;
 
         return true;
     }
