@@ -64,7 +64,7 @@ internal static class PipelineHostContractModelBuilder
             orderedPipelines,
             slots);
 
-        return true;
+        return PipelineContractLimitValidator.IsWithinLimits(host);
     }
 
     /// <summary>
