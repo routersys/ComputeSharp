@@ -5,6 +5,7 @@ using ComputeSharp.SourceGeneration.Extensions;
 using ComputeSharp.SourceGeneration.Helpers;
 using ComputeSharp.SourceGenerators.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ComputeSharp.SourceGenerators.Helpers;
 
@@ -84,12 +85,14 @@ internal static class HostResourceCollector
             if (SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, symbols.ResourceSlot))
             {
                 return hasRecovery &&
+                    HasInitializer(fieldSymbol) &&
                     TryCollectOwnedSlot(fieldSymbol, slotTypeSymbol.TypeArguments[0], access, recovery, in slotBuilder, in resourceBuilder);
             }
 
             if (SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, symbols.ResourceGroupSlot))
             {
                 return hasRecovery &&
+                    HasInitializer(fieldSymbol) &&
                     TryCollectOwnedGroupSlot(fieldSymbol, slotTypeSymbol.TypeArguments[0], access, recovery, symbols, in slotBuilder, in resourceBuilder);
             }
         }
@@ -185,20 +188,16 @@ internal static class HostResourceCollector
         ref readonly ImmutableArrayBuilder<UnorderedInternalResourceContract> resourceBuilder)
     {
         if (groupTypeSymbol is not INamedTypeSymbol { IsGenericType: false } groupSymbol ||
-            !groupSymbol.HasAttributeWithType(symbols.ResourceGroupAttribute))
-        {
-            return false;
-        }
-
-        IPropertySymbol[] groupMembers = CollectGroupMembers(groupSymbol, symbols);
-
-        if (groupMembers.Length == 0)
+            !groupSymbol.HasAttributeWithType(symbols.ResourceGroupAttribute) ||
+            !TryCollectGroupMembers(groupSymbol, symbols, out IPropertySymbol[]? groupMembers))
         {
             return false;
         }
 
         using ImmutableArrayBuilder<ResourcePlanFieldContractInfo> planFieldBuilder = new();
         using ImmutableArrayBuilder<UnorderedInternalResourceContract> memberBuilder = new();
+
+        HashSet<string> canonicalNames = [];
 
         for (int i = 0; i < groupMembers.Length; i++)
         {
@@ -208,7 +207,8 @@ internal static class HostResourceCollector
                 !TryGetAccess(memberAttribute, out ComputeResourceAccess memberAccess, out bool memberHasRecovery, out _) ||
                 memberHasRecovery ||
                 !IsAccessWithin(memberAccess, slotAccess) ||
-                !GeneratedIdentifier.TryCreateCanonicalName(memberSymbol.MetadataName, out _) ||
+                !GeneratedIdentifier.TryCreateCanonicalName(memberSymbol.MetadataName, out string canonicalName) ||
+                !canonicalNames.Add(canonicalName) ||
                 !ResourcePlanGrammar.TryAppendPlanFields(memberSymbol.Type, memberSymbol.MetadataName, (uint)i, in planFieldBuilder))
             {
                 return false;
@@ -241,29 +241,50 @@ internal static class HostResourceCollector
     }
 
     /// <summary>
-    /// Collects the annotated get-only properties of a given resource group, in canonical order.
+    /// Tries to collect every annotated member of a given resource group, in canonical order.
     /// </summary>
     /// <param name="groupSymbol">The resource group type.</param>
     /// <param name="symbols">The well known symbols to resolve the declarations with.</param>
-    /// <returns>The annotated get-only properties of <paramref name="groupSymbol"/>, in canonical order.</returns>
-    private static IPropertySymbol[] CollectGroupMembers(INamedTypeSymbol groupSymbol, PipelineWellKnownSymbols symbols)
+    /// <param name="groupMembers">The resulting annotated members, in canonical order.</param>
+    /// <returns>Whether every annotated member of <paramref name="groupSymbol"/> is a valid group member.</returns>
+    private static bool TryCollectGroupMembers(
+        INamedTypeSymbol groupSymbol,
+        PipelineWellKnownSymbols symbols,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPropertySymbol[]? groupMembers)
     {
         using ImmutableArrayBuilder<IPropertySymbol> builder = new();
 
         foreach (ISymbol memberSymbol in groupSymbol.GetMembers())
         {
-            if (memberSymbol is IPropertySymbol { SetMethod: null, GetMethod: not null } propertySymbol &&
-                propertySymbol.HasAttributeWithType(symbols.PipelineResourceAttribute))
+            if (!memberSymbol.HasAttributeWithType(symbols.PipelineResourceAttribute))
             {
-                builder.Add(propertySymbol);
+                continue;
             }
+
+            if (memberSymbol is not IPropertySymbol { SetMethod: null, GetMethod: not null, IsIndexer: false, IsStatic: false } propertySymbol)
+            {
+                groupMembers = null;
+
+                return false;
+            }
+
+            builder.Add(propertySymbol);
+        }
+
+        if (builder.Count == 0)
+        {
+            groupMembers = null;
+
+            return false;
         }
 
         IPropertySymbol[] members = [.. builder.ToImmutable()];
 
         System.Array.Sort(members, static (left, right) => string.CompareOrdinal(left.MetadataName, right.MetadataName));
 
-        return members;
+        groupMembers = members;
+
+        return true;
     }
 
     /// <summary>
@@ -320,6 +341,24 @@ internal static class HostResourceCollector
             default:
                 return false;
         }
+    }
+
+    /// <summary>
+    /// Checks whether a given field is initialized in its declaration.
+    /// </summary>
+    /// <param name="fieldSymbol">The field to check.</param>
+    /// <returns>Whether <paramref name="fieldSymbol"/> is initialized in its declaration.</returns>
+    private static bool HasInitializer(IFieldSymbol fieldSymbol)
+    {
+        foreach (SyntaxReference syntaxReference in fieldSymbol.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax() is VariableDeclaratorSyntax { Initializer: not null })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
