@@ -38,7 +38,9 @@ internal static class CompilationHelper
 
         foreach (string location in trustedAssemblies.Split(Path.PathSeparator))
         {
-            if (location.Length == 0 || !locations.Add(location))
+            if (location.Length == 0 ||
+                !locations.Add(location) ||
+                Path.GetFileName(location) is "ComputeSharp.SourceGenerators.dll")
             {
                 continue;
             }
