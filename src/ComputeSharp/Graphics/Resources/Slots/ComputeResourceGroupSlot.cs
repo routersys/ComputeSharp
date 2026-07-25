@@ -35,7 +35,7 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        _ = this.slotGate.RequestDispose();
+        PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
     }
 
     /// <summary>

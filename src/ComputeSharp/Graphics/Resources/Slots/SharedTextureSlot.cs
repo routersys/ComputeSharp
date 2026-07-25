@@ -106,7 +106,7 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        _ = this.slotGate.RequestDispose();
+        PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
     }
 
     /// <summary>
