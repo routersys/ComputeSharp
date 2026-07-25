@@ -131,6 +131,23 @@ public class SlotResourcePlanStateTests
         return slot;
     }
 
+    private static SlotControlRecord SlotWithRetiredGeneration(
+        int[] storage,
+        SlotResourcePlanStateRecord planState,
+        ResourceGenerationSetHandle retired,
+        ResourceGenerationSetHandle active,
+        int[] retiredPlan,
+        int[] activePlan)
+    {
+        SlotControlRecord slot = PublishedSlot(storage, planState, retired, retiredPlan);
+
+        Assert.IsTrue(SlotResourcePlanController.TryInstallPrepared(ref slot, storage, planState, active, 2, activePlan));
+        Assert.IsTrue(SlotResourcePlanController.TryCommitReplacement(ref slot, storage, planState, retired.SetId, slot.BindingEpoch, 2, out _));
+        Assert.AreEqual(retired.SetId, slot.Retired.SetId);
+
+        return slot;
+    }
+
     [TestMethod]
     public void ReservesContiguousHostPlanStorage()
     {
@@ -345,6 +362,75 @@ public class SlotResourcePlanStateTests
         Assert.IsFalse(SlotResourcePlanController.TryApplyLogicalUpdate(ref slot, storage, planState, slot.Active.SetId, slot.BindingEpoch + 1, [320, 240]));
 
         CollectionAssert.AreEqual(new[] { 640, 480, 640, 480, 0, 0 }, storage);
+    }
+
+    [TestMethod]
+    public void RejectsLogicalUpdateBeyondPhysicalCapacity()
+    {
+        SlotResourcePlanStateRecord planState = new(0, 2);
+        int[] storage = new int[6];
+
+        SlotControlRecord slot = PublishedSlot(storage, planState, Handle(1, 1), 640, 480);
+
+        Assert.IsFalse(SlotResourcePlanController.TryApplyLogicalUpdate(ref slot, storage, planState, slot.Active.SetId, slot.BindingEpoch, [641, 480]));
+        Assert.IsFalse(SlotResourcePlanController.TryApplyLogicalUpdate(ref slot, storage, planState, slot.Active.SetId, slot.BindingEpoch, [640, 481]));
+
+        CollectionAssert.AreEqual(new[] { 640, 480, 640, 480, 0, 0 }, storage);
+    }
+
+    [TestMethod]
+    public void AppliesLogicalUpdateWhileRetiredGenerationIsPending()
+    {
+        SlotResourcePlanStateRecord planState = new(0, 2);
+        int[] storage = new int[6];
+
+        ResourceGenerationSetHandle retired = Handle(1, 1);
+        ResourceGenerationSetHandle active = Handle(2, 2);
+        SlotControlRecord slot = SlotWithRetiredGeneration(storage, planState, retired, active, [640, 480], [800, 600]);
+
+        Assert.IsTrue(SlotResourcePlanController.TryApplyLogicalUpdate(ref slot, storage, planState, active.SetId, slot.BindingEpoch, [640, 480]));
+
+        CollectionAssert.AreEqual(new[] { 640, 480, 800, 600, 0, 0 }, storage);
+        Assert.AreEqual(active.SetId, slot.Active.SetId);
+        Assert.AreEqual(retired.SetId, slot.Retired.SetId);
+        Assert.AreEqual(2ul, slot.BindingEpoch);
+    }
+
+    [TestMethod]
+    public void ReportsIdenticalWhileRetiredGenerationIsPending()
+    {
+        SlotResourcePlanStateRecord planState = new(0, 2);
+        int[] storage = new int[6];
+
+        ResourceGenerationSetHandle retired = Handle(1, 1);
+        ResourceGenerationSetHandle active = Handle(2, 2);
+        SlotControlRecord slot = SlotWithRetiredGeneration(storage, planState, retired, active, [640, 480], [800, 600]);
+
+        Assert.AreEqual(
+            ResourcePlanDecision.Identical,
+            SlotResourcePlanController.EvaluateSharedTexture(slot, storage, planState, SharedTexture(0, ComputeResourceResizePolicy.GrowOnly), 800, 600));
+        Assert.AreEqual(retired.SetId, slot.Retired.SetId);
+    }
+
+    [TestMethod]
+    public void RejectsReplacementWhileRetiredGenerationIsPending()
+    {
+        SlotResourcePlanStateRecord planState = new(0, 2);
+        int[] storage = new int[6];
+
+        ResourceGenerationSetHandle retired = Handle(1, 1);
+        ResourceGenerationSetHandle active = Handle(2, 2);
+        SlotControlRecord slot = SlotWithRetiredGeneration(storage, planState, retired, active, [640, 480], [800, 600]);
+
+        Assert.AreEqual(
+            ResourcePlanDecision.Replacement,
+            SlotResourcePlanController.EvaluateSharedTexture(slot, storage, planState, SharedTexture(0, ComputeResourceResizePolicy.GrowOnly), 1024, 768));
+        Assert.IsFalse(SlotResourcePlanController.TryInstallPrepared(ref slot, storage, planState, Handle(3, 3), 3, [1024, 768]));
+
+        Assert.IsTrue(slot.Prepared.IsEmpty);
+        Assert.AreEqual(0ul, slot.PreparedToken);
+        CollectionAssert.AreEqual(new[] { 800, 600, 800, 600, 0, 0 }, storage);
+        Assert.AreEqual(2ul, slot.BindingEpoch);
     }
 
     [TestMethod]
