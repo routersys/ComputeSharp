@@ -228,6 +228,11 @@ internal static class PipelineDescriptorReader
         {
             PipelineIntermediate intermediate = pipelineIntermediates[i];
 
+            PipelineCanonicalSignatureValidator.Validate(
+                intermediate.CanonicalSignature,
+                hostTypeMetadataName,
+                intermediate.MethodMetadataName);
+
             pipelines[i] = new PipelineDescriptor(
                 new PipelineOrdinal((uint)i),
                 intermediate.MethodMetadataName,
