@@ -5,15 +5,6 @@ using ComputeSharp.Win32;
 
 namespace ComputeSharp.Graphics.Commands.Interop;
 
-internal readonly unsafe struct PipelineCommandListRental(int index, ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator)
-{
-    public int Index { get; } = index;
-
-    public ID3D12GraphicsCommandList* D3D12CommandList { get; } = d3D12CommandList;
-
-    public ID3D12CommandAllocator* D3D12CommandAllocator { get; } = d3D12CommandAllocator;
-}
-
 internal sealed unsafe class PipelineCommandListPartition : IDisposable
 {
     private struct Entry
@@ -29,6 +20,10 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
 
     private readonly int[] freeIndices;
 
+    private readonly nint[] sortedCommandLists;
+
+    private readonly int[] sortedEntryIndices;
+
     private int head;
 
     private int tail;
@@ -43,6 +38,8 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
 
         this.entries = new Entry[entryCount];
         this.freeIndices = new int[entryCount];
+        this.sortedCommandLists = new nint[entryCount];
+        this.sortedEntryIndices = new int[entryCount];
         this.head = 0;
         this.tail = 0;
         this.size = entryCount;
@@ -61,6 +58,8 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
                 this.entries[createdCount].D3D12CommandAllocator = d3D12CommandAllocator.Detach();
                 this.entries[createdCount].D3D12CommandList = d3D12CommandList.Detach();
                 this.freeIndices[createdCount] = createdCount;
+                this.sortedCommandLists[createdCount] = (nint)this.entries[createdCount].D3D12CommandList;
+                this.sortedEntryIndices[createdCount] = createdCount;
             }
         }
         catch
@@ -69,6 +68,8 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
 
             throw;
         }
+
+        Array.Sort(this.sortedCommandLists, this.sortedEntryIndices);
     }
 
     public int Capacity => this.entries.Length;
@@ -84,7 +85,18 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
         }
     }
 
-    public void Rent(ID3D12PipelineState* d3D12PipelineState, out PipelineCommandListRental rental)
+    public bool HasRentedEntries
+    {
+        get
+        {
+            lock (this.entries)
+            {
+                return this.size != this.entries.Length;
+            }
+        }
+    }
+
+    public void Rent(ID3D12PipelineState* d3D12PipelineState, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator)
     {
         int index;
 
@@ -104,21 +116,20 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
             this.entries[index].IsRented = true;
         }
 
-        ID3D12CommandAllocator* d3D12CommandAllocator = this.entries[index].D3D12CommandAllocator;
-        ID3D12GraphicsCommandList* d3D12CommandList = this.entries[index].D3D12CommandList;
+        d3D12CommandAllocator = this.entries[index].D3D12CommandAllocator;
+        d3D12CommandList = this.entries[index].D3D12CommandList;
 
         d3D12CommandAllocator->Reset().Assert();
         d3D12CommandList->Reset(d3D12CommandAllocator, d3D12PipelineState).Assert();
-
-        rental = new PipelineCommandListRental(index, d3D12CommandList, d3D12CommandAllocator);
     }
 
-    public void Return(int index, bool isCommandListClosed)
+    public void Return(ID3D12GraphicsCommandList* d3D12CommandList, bool isCommandListClosed)
     {
+        int index = IndexOf((nint)d3D12CommandList);
+
         lock (this.entries)
         {
             default(InvalidOperationException).ThrowIf(this.isDisposed, "The command list partition has been disposed.");
-            default(ArgumentOutOfRangeException).ThrowIfNotInRange(index, 0, this.entries.Length);
             default(InvalidOperationException).ThrowIf(!this.entries[index].IsRented, "The command list entry is not rented.");
 
             this.entries[index].IsRented = false;
@@ -142,17 +153,6 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
         }
     }
 
-    public bool HasRentedEntries
-    {
-        get
-        {
-            lock (this.entries)
-            {
-                return this.size != this.entries.Length;
-            }
-        }
-    }
-
     public void Dispose()
     {
         lock (this.entries)
@@ -166,6 +166,15 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
         }
 
         ReleaseEntries(this.entries.Length);
+    }
+
+    private int IndexOf(nint commandList)
+    {
+        int position = Array.BinarySearch(this.sortedCommandLists, commandList);
+
+        default(ArgumentException).ThrowIf(position < 0, nameof(commandList));
+
+        return this.sortedEntryIndices[position];
     }
 
     private void ReleaseEntries(int count)

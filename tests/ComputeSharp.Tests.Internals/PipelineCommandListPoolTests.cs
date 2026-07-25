@@ -3,6 +3,7 @@ using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 
 namespace ComputeSharp.Tests.Internals;
@@ -35,29 +36,27 @@ public unsafe partial class PipelineCommandListPoolTests
 
         try
         {
-            partition.Rent(null, out PipelineCommandListRental first);
-            partition.Rent(null, out PipelineCommandListRental second);
+            partition.Rent(null, out ID3D12GraphicsCommandList* firstList, out ID3D12CommandAllocator* firstAllocator);
+            partition.Rent(null, out ID3D12GraphicsCommandList* secondList, out ID3D12CommandAllocator* secondAllocator);
 
             Assert.AreEqual(0, partition.AvailableCount);
-            Assert.AreNotEqual(first.Index, second.Index);
-            Assert.IsTrue(first.D3D12CommandList != second.D3D12CommandList);
-            Assert.IsTrue(first.D3D12CommandAllocator != second.D3D12CommandAllocator);
-            Assert.IsTrue(first.D3D12CommandList is not null);
-            Assert.IsTrue(first.D3D12CommandAllocator is not null);
+            Assert.IsTrue(firstList != secondList);
+            Assert.IsTrue(firstAllocator != secondAllocator);
+            Assert.IsTrue(firstList is not null);
+            Assert.IsTrue(firstAllocator is not null);
 
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _));
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _, out _));
 
-            partition.Return(first.Index, isCommandListClosed: false);
-            partition.Return(second.Index, isCommandListClosed: false);
+            partition.Return(firstList, isCommandListClosed: false);
+            partition.Return(secondList, isCommandListClosed: false);
 
             Assert.AreEqual(2, partition.AvailableCount);
 
-            partition.Rent(null, out PipelineCommandListRental reused);
+            partition.Rent(null, out ID3D12GraphicsCommandList* reusedList, out _);
 
-            Assert.AreEqual(first.Index, reused.Index);
-            Assert.IsTrue(reused.D3D12CommandList == first.D3D12CommandList);
+            Assert.IsTrue(reusedList == firstList);
 
-            partition.Return(reused.Index, isCommandListClosed: false);
+            partition.Return(reusedList, isCommandListClosed: false);
         }
         finally
         {
@@ -73,17 +72,17 @@ public unsafe partial class PipelineCommandListPoolTests
 
         try
         {
-            partition.Rent(null, out PipelineCommandListRental rental);
+            partition.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out _);
 
-            _ = rental.D3D12CommandList->Close();
+            _ = d3D12CommandList->Close();
 
-            partition.Return(rental.Index, isCommandListClosed: true);
+            partition.Return(d3D12CommandList, isCommandListClosed: true);
 
-            partition.Rent(null, out PipelineCommandListRental reused);
+            partition.Rent(null, out ID3D12GraphicsCommandList* reusedList, out _);
 
-            _ = reused.D3D12CommandList->Close();
+            _ = reusedList->Close();
 
-            partition.Return(reused.Index, isCommandListClosed: true);
+            partition.Return(reusedList, isCommandListClosed: true);
         }
         finally
         {
@@ -99,14 +98,12 @@ public unsafe partial class PipelineCommandListPoolTests
 
         try
         {
-            _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => partition.Return(1, isCommandListClosed: false));
-            _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => partition.Return(-1, isCommandListClosed: false));
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Return(0, isCommandListClosed: false));
+            _ = Assert.ThrowsExactly<ArgumentException>(() => partition.Return(null, isCommandListClosed: false));
 
-            partition.Rent(null, out PipelineCommandListRental rental);
-            partition.Return(rental.Index, isCommandListClosed: false);
+            partition.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out _);
+            partition.Return(d3D12CommandList, isCommandListClosed: false);
 
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Return(rental.Index, isCommandListClosed: false));
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Return(d3D12CommandList, isCommandListClosed: false));
         }
         finally
         {
@@ -120,19 +117,19 @@ public unsafe partial class PipelineCommandListPoolTests
     {
         PipelineCommandListPartition partition = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE, 1);
 
-        partition.Rent(null, out PipelineCommandListRental rental);
+        partition.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out _);
 
         Assert.IsTrue(partition.HasRentedEntries);
 
-        partition.Return(rental.Index, isCommandListClosed: false);
+        partition.Return(d3D12CommandList, isCommandListClosed: false);
 
         Assert.IsFalse(partition.HasRentedEntries);
 
         partition.Dispose();
         partition.Dispose();
 
-        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _));
-        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Return(0, isCommandListClosed: false));
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _, out _));
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Return(d3D12CommandList, isCommandListClosed: false));
     }
 
     [CombinatorialTestMethod]
@@ -145,7 +142,7 @@ public unsafe partial class PipelineCommandListPoolTests
         {
             Assert.AreEqual(0, partition.Capacity);
 
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _));
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _, out _));
         }
         finally
         {
@@ -166,16 +163,16 @@ public unsafe partial class PipelineCommandListPoolTests
 
             Assert.AreEqual(2, pool.PartitionCount);
 
-            first.Rent(null, out PipelineCommandListRental rental);
+            first.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out _);
 
             Assert.AreEqual(0, first.AvailableCount);
             Assert.AreEqual(2, second.AvailableCount);
 
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => first.Rent(null, out _));
-
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => first.Rent(null, out _, out _));
+            _ = Assert.ThrowsExactly<ArgumentException>(() => second.Return(d3D12CommandList, isCommandListClosed: false));
             _ = Assert.ThrowsExactly<InvalidOperationException>(() => pool.DestroyPartition(first));
 
-            first.Return(rental.Index, isCommandListClosed: false);
+            first.Return(d3D12CommandList, isCommandListClosed: false);
 
             pool.DestroyPartition(first);
 
@@ -205,6 +202,6 @@ public unsafe partial class PipelineCommandListPoolTests
         Assert.AreEqual(0, pool.PartitionCount);
 
         _ = Assert.ThrowsExactly<InvalidOperationException>(() => pool.CreatePartition(1));
-        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _));
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => partition.Rent(null, out _, out _));
     }
 }
