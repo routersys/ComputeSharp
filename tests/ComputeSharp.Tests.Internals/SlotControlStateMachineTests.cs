@@ -1,3 +1,4 @@
+using System;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -76,6 +77,124 @@ public class SlotControlStateMachineTests
         {
             Assert.AreEqual(ResourceGenerationState.RetireRequested, handle.Owner.GetResourceRecord(i).Lifecycle);
         }
+    }
+
+    private static void AssertAllOwnerReferencesReleased(ResourceGenerationSetHandle handle)
+    {
+        for (int i = 0; i < handle.Owner.ResourceCount; i++)
+        {
+            Assert.AreEqual(0, handle.Owner.GetResourceRecord(i).OwnerReferenceCount);
+        }
+    }
+
+    [TestMethod]
+    public void ReleasesOwnerReferenceOfReplacedGenerationExactlyOnce()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        ResourceGenerationSetHandle replacement = Handle(2, 2, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(replacement, 2));
+        Assert.IsTrue(slot.TryCommitReplacement(active.SetId, slot.BindingEpoch, 2, out _));
+
+        AssertAllOwnerReferencesReleased(active);
+
+        for (int i = 0; i < replacement.Owner.ResourceCount; i++)
+        {
+            Assert.AreEqual(1, replacement.Owner.GetResourceRecord(i).OwnerReferenceCount);
+        }
+
+        Assert.IsTrue(active.Owner.GetResourceRecord(0).TryPromoteRetiredReady(isRetirementFenceCompleted: true));
+    }
+
+    [TestMethod]
+    public void ReleasesOwnerReferenceOnTrim()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+        Assert.IsTrue(slot.TryTrim());
+
+        AssertAllOwnerReferencesReleased(active);
+    }
+
+    [TestMethod]
+    public void ReleasesOwnerReferenceOnDisposeOnlyOnce()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        _ = slot.RequestDispose();
+        _ = slot.RequestDispose();
+
+        AssertAllOwnerReferencesReleased(active);
+    }
+
+    [TestMethod]
+    public void ReleasesOwnerReferenceWhenRetiredSetIsCleared()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle retired = Handle(1, 1);
+
+        Assert.IsTrue(slot.TryInstallPrepared(retired, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        ResourceGenerationSetHandle active = Handle(2, 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 2));
+        Assert.IsTrue(slot.TryCommitReplacement(retired.SetId, slot.BindingEpoch, 2, out _));
+
+        _ = slot.RequestDispose();
+
+        Assert.AreEqual(1, active.Owner.GetResourceRecord(0).OwnerReferenceCount);
+
+        ReleaseAll(retired);
+
+        Assert.IsTrue(slot.TryClearRetired(retired.SetId));
+
+        AssertAllOwnerReferencesReleased(active);
+    }
+
+    [TestMethod]
+    public void RejectsRetirementOfGenerationWithoutOwnerReference()
+    {
+        SlotControlRecord slot = default;
+
+        Assert.IsTrue(slot.TryBind());
+
+        ResourceGenerationSetHandle active = Handle(1, 1, resourceCount: 2);
+
+        Assert.IsTrue(slot.TryInstallPrepared(active, 1));
+        Assert.IsTrue(slot.TryCommitReplacement(default, 0, 1, out _));
+
+        active.Owner.GetResourceRecord(1).ReleaseOwnerReference();
+
+        _ = Assert.ThrowsException<InvalidOperationException>(() => slot.TryTrim());
+
+        Assert.AreEqual(ResourceGenerationState.Active, active.Owner.GetResourceRecord(0).Lifecycle);
+        Assert.AreEqual(1, active.Owner.GetResourceRecord(0).OwnerReferenceCount);
+        Assert.AreEqual(SlotControlState.Active, slot.State);
     }
 
     [TestMethod]
