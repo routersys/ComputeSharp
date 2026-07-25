@@ -85,14 +85,14 @@ internal static class HostResourceCollector
             if (SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, symbols.ResourceSlot))
             {
                 return hasRecovery &&
-                    HasInitializer(fieldSymbol) &&
+                    HasObjectCreationInitializer(fieldSymbol) &&
                     TryCollectOwnedSlot(fieldSymbol, slotTypeSymbol.TypeArguments[0], access, recovery, in slotBuilder, in resourceBuilder);
             }
 
             if (SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, symbols.ResourceGroupSlot))
             {
                 return hasRecovery &&
-                    HasInitializer(fieldSymbol) &&
+                    HasObjectCreationInitializer(fieldSymbol) &&
                     TryCollectOwnedGroupSlot(fieldSymbol, slotTypeSymbol.TypeArguments[0], access, recovery, symbols, in slotBuilder, in resourceBuilder);
             }
         }
@@ -344,15 +344,15 @@ internal static class HostResourceCollector
     }
 
     /// <summary>
-    /// Checks whether a given field is initialized in its declaration.
+    /// Checks whether a given field is initialized in its declaration with an object creation expression.
     /// </summary>
     /// <param name="fieldSymbol">The field to check.</param>
-    /// <returns>Whether <paramref name="fieldSymbol"/> is initialized in its declaration.</returns>
-    private static bool HasInitializer(IFieldSymbol fieldSymbol)
+    /// <returns>Whether <paramref name="fieldSymbol"/> is initialized in its declaration with an object creation expression.</returns>
+    private static bool HasObjectCreationInitializer(IFieldSymbol fieldSymbol)
     {
         foreach (SyntaxReference syntaxReference in fieldSymbol.DeclaringSyntaxReferences)
         {
-            if (syntaxReference.GetSyntax() is VariableDeclaratorSyntax { Initializer: not null })
+            if (syntaxReference.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: BaseObjectCreationExpressionSyntax })
             {
                 return true;
             }
