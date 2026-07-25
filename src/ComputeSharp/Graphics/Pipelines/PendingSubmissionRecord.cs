@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -150,4 +152,162 @@ internal struct PendingSubmissionRecord
     public SubmissionRetention Retention;
 
     public ulong SubmissionSequence;
+
+    public readonly SubmissionState ReadState()
+    {
+        return (SubmissionState)Volatile.Read(in Unsafe.As<SubmissionState, int>(ref Unsafe.AsRef(in this.State)));
+    }
+
+    public bool TryReserve(PipelineKey pipeline, ulong submissionSequence)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotZero(submissionSequence == 0 ? 1 : 0, nameof(submissionSequence));
+
+        if (!TryTransition(SubmissionState.Returned, SubmissionState.Reserved))
+        {
+            return false;
+        }
+
+        this.Pipeline = pipeline;
+        this.SubmissionSequence = submissionSequence;
+        this.Completion = FencePoint.None;
+        this.Retention = default;
+
+        return true;
+    }
+
+    public bool TryBeginRecording()
+    {
+        return TryTransition(SubmissionState.Reserved, SubmissionState.Recording);
+    }
+
+    public bool TryCompleteValidation()
+    {
+        return TryTransition(SubmissionState.Recording, SubmissionState.Prepared);
+    }
+
+    public bool TryMarkExecutionIssued()
+    {
+        return TryTransition(SubmissionState.Prepared, SubmissionState.ExecutionIssued);
+    }
+
+    public bool TryMarkCompletionSignaled()
+    {
+        return TryTransition(SubmissionState.ExecutionIssued, SubmissionState.CompletionSignaled);
+    }
+
+    public bool TryCommitHazards()
+    {
+        return TryTransition(SubmissionState.CompletionSignaled, SubmissionState.HazardCommitted);
+    }
+
+    public bool TryCommitAndPublish(FencePoint completion, in SubmissionRetention retention)
+    {
+        if (ReadState() is not SubmissionState.HazardCommitted)
+        {
+            return false;
+        }
+
+        this.Completion = completion;
+        this.Retention = retention;
+
+        if (TryTransition(SubmissionState.HazardCommitted, SubmissionState.Committed))
+        {
+            return true;
+        }
+
+        this.Completion = FencePoint.None;
+        this.Retention = default;
+
+        return false;
+    }
+
+    public bool TryMarkCompletionReady()
+    {
+        return TryTransition(SubmissionState.Committed, SubmissionState.CompletionReady);
+    }
+
+    public bool TryClaimForReturn()
+    {
+        return TryTransition(SubmissionState.CompletionReady, SubmissionState.Returning);
+    }
+
+    public bool TryDetachRetention(out SubmissionRetention retention)
+    {
+        if (ReadState() is not SubmissionState.Returning)
+        {
+            retention = default;
+
+            return false;
+        }
+
+        retention = this.Retention;
+
+        this.Retention = default;
+
+        return true;
+    }
+
+    public bool TryCompleteReturn()
+    {
+        if (!TryTransition(SubmissionState.Returning, SubmissionState.Returned))
+        {
+            return false;
+        }
+
+        this.Pipeline = default;
+        this.Completion = FencePoint.None;
+        this.Retention = default;
+        this.SubmissionSequence = 0;
+
+        return true;
+    }
+
+    public bool TryAbort()
+    {
+        while (true)
+        {
+            SubmissionState current = ReadState();
+
+            if (current is not (SubmissionState.Reserved or SubmissionState.Recording or SubmissionState.Prepared))
+            {
+                return false;
+            }
+
+            if (TryTransition(current, SubmissionState.Returned))
+            {
+                this.Pipeline = default;
+                this.Completion = FencePoint.None;
+                this.Retention = default;
+                this.SubmissionSequence = 0;
+
+                return true;
+            }
+        }
+    }
+
+    public bool TryMarkTerminalRetained()
+    {
+        while (true)
+        {
+            SubmissionState current = ReadState();
+
+            if (current is not (SubmissionState.ExecutionIssued or SubmissionState.CompletionSignaled))
+            {
+                return false;
+            }
+
+            if (TryTransition(current, SubmissionState.TerminalRetained))
+            {
+                return true;
+            }
+        }
+    }
+
+    private bool TryTransition(SubmissionState expected, SubmissionState next)
+    {
+        return Interlocked.CompareExchange(
+            ref Unsafe.As<SubmissionState, int>(ref this.State),
+            (int)next,
+            (int)expected) == (int)expected;
+    }
 }

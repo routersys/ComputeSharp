@@ -1,6 +1,6 @@
 namespace ComputeSharp.Graphics.Pipelines;
 
-internal enum SubmissionState : byte
+internal enum SubmissionState : int
 {
     Reserved = 0,
     Recording = 1,
