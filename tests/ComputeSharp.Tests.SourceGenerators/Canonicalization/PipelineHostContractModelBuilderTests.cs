@@ -265,4 +265,50 @@ public class PipelineHostContractModelBuilderTests
             ],
             "HostContractModelInvalidResourceTests"));
     }
+
+    [TestMethod]
+    public void RejectsReadWriteParameterWithNarrowerAccess()
+    {
+        Assert.IsFalse(TryBuild(
+            [
+                SlotSource,
+                HostSource("""
+                        [ComputePipeline]
+                        private void Run(in ComputeContext context, [ComputeResource(ComputeResourceAccess.Read)] ReadWriteBuffer<int> buffer)
+                        {
+                        }
+                    """)
+            ],
+            "HostContractModelNarrowAccessTests"));
+
+        Assert.IsFalse(TryBuild(
+            [
+                SlotSource,
+                HostSource("""
+                        [ComputePipeline]
+                        private void Run(in ComputeContext context, [ComputeResource(ComputeResourceAccess.Write)] ReadWriteTexture2D<Bgra32, Float4> texture)
+                        {
+                        }
+                    """)
+            ],
+            "HostContractModelNarrowTextureAccessTests"));
+    }
+
+    [TestMethod]
+    public void AcceptsReadOnlyParameterWithReadAccess()
+    {
+        PipelineHostContractInfo host = Build(
+            [
+                SlotSource,
+                HostSource("""
+                        [ComputePipeline]
+                        private void Run(in ComputeContext context, [ComputeResource(ComputeResourceAccess.Read)] ReadOnlyBuffer<int> buffer)
+                        {
+                        }
+                    """)
+            ],
+            "HostContractModelReadOnlyAccessTests");
+
+        Assert.AreEqual(ComputeResourceAccess.Read, host.Pipelines.AsImmutableArray()[0].Parameters.AsImmutableArray()[0].Access);
+    }
 }
