@@ -22,7 +22,7 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <summary>
     /// The gate protecting the state of the current slot.
     /// </summary>
-    private readonly SlotGate slotGate = new();
+    private SlotGate slotGate;
 
     /// <summary>
     /// Creates a new <see cref="SharedTextureSlot{T, TPixel, TView}"/> instance that is not bound to a resource set.

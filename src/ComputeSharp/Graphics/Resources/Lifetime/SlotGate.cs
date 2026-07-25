@@ -1,27 +1,41 @@
 using System;
+using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 
 namespace ComputeSharp.Resources.Lifetime;
 
-internal sealed class SlotGate
+internal struct SlotGate
 {
     private const int PlanRegionCount = 3;
 
-    private readonly object gate = new();
+    private SpinLock exclusion;
 
     private SlotControlRecord control;
 
     private SlotResourcePlanStateRecord planState;
 
-    private int[] planStorage = [];
+    private int[]? planStorage;
+
+    private readonly int[] PlanStorage => this.planStorage ?? [];
 
     public bool IsAllocated
     {
         get
         {
-            lock (this.gate)
+            bool taken = false;
+
+            try
             {
+                this.exclusion.Enter(ref taken);
+
                 return this.control.IsAllocated;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    this.exclusion.Exit(useMemoryBarrier: true);
+                }
             }
         }
     }
@@ -30,9 +44,20 @@ internal sealed class SlotGate
     {
         get
         {
-            lock (this.gate)
+            bool taken = false;
+
+            try
             {
+                this.exclusion.Enter(ref taken);
+
                 return this.control.IsDisposeRequested;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    this.exclusion.Exit(useMemoryBarrier: true);
+                }
             }
         }
     }
@@ -41,9 +66,20 @@ internal sealed class SlotGate
     {
         get
         {
-            lock (this.gate)
+            bool taken = false;
+
+            try
             {
+                this.exclusion.Enter(ref taken);
+
                 return this.control.State is SlotControlState.Unbound;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    this.exclusion.Exit(useMemoryBarrier: true);
+                }
             }
         }
     }
@@ -52,9 +88,20 @@ internal sealed class SlotGate
     {
         get
         {
-            lock (this.gate)
+            bool taken = false;
+
+            try
             {
+                this.exclusion.Enter(ref taken);
+
                 return this.control.State is SlotControlState.Unbound or SlotControlState.Disposed;
+            }
+            finally
+            {
+                if (taken)
+                {
+                    this.exclusion.Exit(useMemoryBarrier: true);
+                }
             }
         }
     }
@@ -68,8 +115,12 @@ internal sealed class SlotGate
             checked(planState.StorageOffset + (PlanRegionCount * planState.FieldCount)) > planStorage.Length,
             nameof(planState));
 
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             if (!this.control.TryBind())
             {
                 return false;
@@ -80,6 +131,13 @@ internal sealed class SlotGate
 
             return true;
         }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
     }
 
     public bool TryPin(
@@ -89,45 +147,89 @@ internal sealed class SlotGate
         int resourceIndex,
         out ResourceGenerationPin pin)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return this.control.TryPin(setId, generationId, bindingEpoch, resourceIndex, out pin);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public ResourcePlanDecision Evaluate(in OwnedSlotDescriptor descriptor, ReadOnlySpan<int> requestedPlan)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
-            return SlotResourcePlanController.Evaluate(in this.control, this.planStorage, in this.planState, in descriptor, requestedPlan);
+            this.exclusion.Enter(ref taken);
+
+            return SlotResourcePlanController.Evaluate(in this.control, this.PlanStorage, in this.planState, in descriptor, requestedPlan);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public ResourcePlanDecision EvaluateSharedTexture(in SharedTextureContractDescriptor descriptor, int requestedWidth, int requestedHeight)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return SlotResourcePlanController.EvaluateSharedTexture(
                 in this.control,
-                this.planStorage,
+                this.PlanStorage,
                 in this.planState,
                 in descriptor,
                 requestedWidth,
                 requestedHeight);
         }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
     }
 
     public bool TryInstallPrepared(ResourceGenerationSetHandle prepared, ulong preparedToken, ReadOnlySpan<int> requestedPlan)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return SlotResourcePlanController.TryInstallPrepared(
                 ref this.control,
-                this.planStorage,
+                this.PlanStorage,
                 in this.planState,
                 prepared,
                 preparedToken,
                 requestedPlan);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
@@ -137,29 +239,51 @@ internal sealed class SlotGate
         ulong preparedToken,
         out ResourceGenerationSetHandle detachedPrepared)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return SlotResourcePlanController.TryCommitReplacement(
                 ref this.control,
-                this.planStorage,
+                this.PlanStorage,
                 in this.planState,
                 expectedActiveSetId,
                 expectedBindingEpoch,
                 preparedToken,
                 out detachedPrepared);
         }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
     }
 
     public bool TryAbortReplacement(ulong preparedToken, out ResourceGenerationSetHandle detachedPrepared)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return SlotResourcePlanController.TryAbortReplacement(
                 ref this.control,
-                this.planStorage,
+                this.PlanStorage,
                 in this.planState,
                 preparedToken,
                 out detachedPrepared);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
@@ -168,63 +292,140 @@ internal sealed class SlotGate
         ulong expectedBindingEpoch,
         ReadOnlySpan<int> requestedPlan)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return SlotResourcePlanController.TryApplyLogicalUpdate(
                 ref this.control,
-                this.planStorage,
+                this.PlanStorage,
                 in this.planState,
                 expectedActiveSetId,
                 expectedBindingEpoch,
                 requestedPlan);
         }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
     }
 
     public bool TryTrim()
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
-            return SlotResourcePlanController.TryTrim(ref this.control, this.planStorage, in this.planState);
+            this.exclusion.Enter(ref taken);
+
+            return SlotResourcePlanController.TryTrim(ref this.control, this.PlanStorage, in this.planState);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public ResourceGenerationSetHandle RequestDispose()
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
-            return SlotResourcePlanController.RequestDispose(ref this.control, this.planStorage, in this.planState);
+            this.exclusion.Enter(ref taken);
+
+            return SlotResourcePlanController.RequestDispose(ref this.control, this.PlanStorage, in this.planState);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public bool TryClearRetired(ResourceGenerationSetId expectedSetId)
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
-            return SlotResourcePlanController.TryClearRetired(ref this.control, this.planStorage, in this.planState, expectedSetId);
+            this.exclusion.Enter(ref taken);
+
+            return SlotResourcePlanController.TryClearRetired(ref this.control, this.PlanStorage, in this.planState, expectedSetId);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public bool TryCompleteRetiringActive()
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
-            return SlotResourcePlanController.TryCompleteRetiringActive(ref this.control, this.planStorage, in this.planState);
+            this.exclusion.Enter(ref taken);
+
+            return SlotResourcePlanController.TryCompleteRetiringActive(ref this.control, this.PlanStorage, in this.planState);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public bool TryMarkDeviceTerminal()
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return this.control.TryMarkDeviceTerminal();
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 
     public ulong GetBindingEpoch()
     {
-        lock (this.gate)
+        bool taken = false;
+
+        try
         {
+            this.exclusion.Enter(ref taken);
+
             return this.control.BindingEpoch;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
         }
     }
 }

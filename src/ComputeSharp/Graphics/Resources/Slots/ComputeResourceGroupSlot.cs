@@ -13,7 +13,7 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     /// <summary>
     /// The gate protecting the state of the current slot.
     /// </summary>
-    private readonly SlotGate slotGate = new();
+    private SlotGate slotGate;
 
     /// <summary>
     /// Creates a new <see cref="ComputeResourceGroupSlot{TGroup}"/> instance that is not bound to a host.

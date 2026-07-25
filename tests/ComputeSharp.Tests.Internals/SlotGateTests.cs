@@ -57,73 +57,78 @@ public class SlotGateTests
             });
     }
 
-    private static SlotGate BoundGate(out int[] storage)
+    private sealed class GateHolder
     {
-        SlotGate gate = new();
+        public SlotGate Gate;
+    }
+
+    private static GateHolder BoundGate(out int[] storage)
+    {
+        GateHolder holder = new();
 
         storage = new int[3];
 
-        Assert.IsTrue(gate.TryBind(storage, new SlotResourcePlanStateRecord(0, 1)));
+        Assert.IsTrue(holder.Gate.TryBind(storage, new SlotResourcePlanStateRecord(0, 1)));
 
-        return gate;
+        return holder;
     }
 
-    private static SlotGate PublishedGate(out ResourceGenerationSetHandle active)
+    private static GateHolder PublishedGate(out ResourceGenerationSetHandle active)
     {
-        SlotGate gate = BoundGate(out _);
+        GateHolder holder = BoundGate(out _);
 
         active = Handle(1, 1);
 
-        Assert.IsTrue(gate.TryInstallPrepared(active, 1, [16]));
-        Assert.IsTrue(gate.TryCommitReplacement(default, 0, 1, out _));
+        Assert.IsTrue(holder.Gate.TryInstallPrepared(active, 1, [16]));
+        Assert.IsTrue(holder.Gate.TryCommitReplacement(default, 0, 1, out _));
 
-        return gate;
+        return holder;
     }
 
     [TestMethod]
     public void CreatesUnboundGate()
     {
-        SlotGate gate = new();
+        GateHolder holder = new();
 
-        Assert.IsTrue(gate.IsUnbound);
-        Assert.IsTrue(gate.IsDisposalComplete);
-        Assert.IsFalse(gate.IsAllocated);
-        Assert.IsFalse(gate.IsDisposeRequested);
-        Assert.AreEqual(0UL, gate.GetBindingEpoch());
-        Assert.IsFalse(gate.TryPin(new ResourceGenerationSetId(1), new ResourceGenerationId(1), 0, 0, out _));
+        Assert.IsTrue(holder.Gate.IsUnbound);
+        Assert.IsTrue(holder.Gate.IsDisposalComplete);
+        Assert.IsFalse(holder.Gate.IsAllocated);
+        Assert.IsFalse(holder.Gate.IsDisposeRequested);
+        Assert.AreEqual(0UL, holder.Gate.GetBindingEpoch());
+        Assert.IsFalse(holder.Gate.TryPin(new ResourceGenerationSetId(1), new ResourceGenerationId(1), 0, 0, out _));
     }
 
     [TestMethod]
     public void BindsOnlyOnce()
     {
-        SlotGate gate = BoundGate(out int[] storage);
+        GateHolder holder = BoundGate(out int[] storage);
 
-        Assert.IsFalse(gate.IsUnbound);
-        Assert.IsFalse(gate.IsDisposalComplete);
-        Assert.IsFalse(gate.TryBind(storage, new SlotResourcePlanStateRecord(0, 1)));
+        Assert.IsFalse(holder.Gate.IsUnbound);
+        Assert.IsFalse(holder.Gate.IsDisposalComplete);
+        Assert.IsFalse(holder.Gate.TryBind(storage, new SlotResourcePlanStateRecord(0, 1)));
     }
 
     [TestMethod]
     public void RejectsPlanStateOutsideStorage()
     {
-        SlotGate gate = new();
+        GateHolder holder = new();
 
-        _ = Assert.ThrowsException<ArgumentNullException>(() => gate.TryBind(null!, new SlotResourcePlanStateRecord(0, 1)));
-        _ = Assert.ThrowsException<ArgumentException>(() => gate.TryBind(new int[2], new SlotResourcePlanStateRecord(0, 1)));
-        _ = Assert.ThrowsException<ArgumentException>(() => gate.TryBind(new int[3], new SlotResourcePlanStateRecord(1, 1)));
-        _ = Assert.ThrowsException<ArgumentOutOfRangeException>(() => gate.TryBind(new int[3], new SlotResourcePlanStateRecord(-1, 1)));
+        _ = Assert.ThrowsException<ArgumentNullException>(() => holder.Gate.TryBind(null!, new SlotResourcePlanStateRecord(0, 1)));
+        _ = Assert.ThrowsException<ArgumentException>(() => holder.Gate.TryBind(new int[2], new SlotResourcePlanStateRecord(0, 1)));
+        _ = Assert.ThrowsException<ArgumentException>(() => holder.Gate.TryBind(new int[3], new SlotResourcePlanStateRecord(1, 1)));
+        _ = Assert.ThrowsException<ArgumentOutOfRangeException>(() => holder.Gate.TryBind(new int[3], new SlotResourcePlanStateRecord(-1, 1)));
     }
 
     [TestMethod]
     public void PublishesGenerationThroughGate()
     {
-        SlotGate gate = PublishedGate(out ResourceGenerationSetHandle active);
+        GateHolder holder = PublishedGate(out ResourceGenerationSetHandle active);
 
-        Assert.IsTrue(gate.IsAllocated);
-        Assert.AreEqual(1UL, gate.GetBindingEpoch());
-        Assert.AreEqual(ResourcePlanDecision.Identical, gate.Evaluate(BufferSlot(), [16]));
-        Assert.AreEqual(ResourcePlanDecision.Replacement, gate.Evaluate(BufferSlot(), [32]));
-        Assert.IsTrue(gate.TryPin(active.SetId, new ResourceGenerationId(1), 1, 0, out ResourceGenerationPin pin));
+        Assert.IsTrue(holder.Gate.IsAllocated);
+        Assert.AreEqual(1UL, holder.Gate.GetBindingEpoch());
+        Assert.AreEqual(ResourcePlanDecision.Identical, holder.Gate.Evaluate(BufferSlot(), [16]));
+        Assert.AreEqual(ResourcePlanDecision.Replacement, holder.Gate.Evaluate(BufferSlot(), [32]));
+        Assert.IsTrue(holder.Gate.TryPin(active.SetId, new ResourceGenerationId(1), 1, 0, out ResourceGenerationPin pin));
 
         SlotControlRecord.ReleasePin(in pin);
     }
@@ -131,79 +136,79 @@ public class SlotGateTests
     [TestMethod]
     public void RejectsPinWithStaleBindingEpoch()
     {
-        SlotGate gate = PublishedGate(out ResourceGenerationSetHandle active);
+        GateHolder holder = PublishedGate(out ResourceGenerationSetHandle active);
 
-        Assert.IsFalse(gate.TryPin(active.SetId, new ResourceGenerationId(1), 0, 0, out _));
-        Assert.IsFalse(gate.TryPin(new ResourceGenerationSetId(2), new ResourceGenerationId(1), 1, 0, out _));
-        Assert.IsFalse(gate.TryPin(active.SetId, new ResourceGenerationId(2), 1, 0, out _));
+        Assert.IsFalse(holder.Gate.TryPin(active.SetId, new ResourceGenerationId(1), 0, 0, out _));
+        Assert.IsFalse(holder.Gate.TryPin(new ResourceGenerationSetId(2), new ResourceGenerationId(1), 1, 0, out _));
+        Assert.IsFalse(holder.Gate.TryPin(active.SetId, new ResourceGenerationId(2), 1, 0, out _));
     }
 
     [TestMethod]
     public void AbortsPreparedReplacementThroughGate()
     {
-        SlotGate gate = PublishedGate(out _);
+        GateHolder holder = PublishedGate(out _);
         ResourceGenerationSetHandle prepared = Handle(2, 2);
 
-        Assert.IsTrue(gate.TryInstallPrepared(prepared, 2, [32]));
-        Assert.IsTrue(gate.TryAbortReplacement(2, out ResourceGenerationSetHandle detachedPrepared));
+        Assert.IsTrue(holder.Gate.TryInstallPrepared(prepared, 2, [32]));
+        Assert.IsTrue(holder.Gate.TryAbortReplacement(2, out ResourceGenerationSetHandle detachedPrepared));
         Assert.AreEqual(prepared.SetId, detachedPrepared.SetId);
-        Assert.AreEqual(1UL, gate.GetBindingEpoch());
-        Assert.AreEqual(ResourcePlanDecision.Identical, gate.Evaluate(BufferSlot(), [16]));
+        Assert.AreEqual(1UL, holder.Gate.GetBindingEpoch());
+        Assert.AreEqual(ResourcePlanDecision.Identical, holder.Gate.Evaluate(BufferSlot(), [16]));
     }
 
     [TestMethod]
     public void AppliesLogicalUpdateThroughGate()
     {
-        SlotGate gate = PublishedGate(out ResourceGenerationSetHandle active);
+        GateHolder holder = PublishedGate(out ResourceGenerationSetHandle active);
 
-        Assert.IsTrue(gate.TryApplyLogicalUpdate(active.SetId, 1, [8]));
-        Assert.AreEqual(1UL, gate.GetBindingEpoch());
-        Assert.AreEqual(ResourcePlanDecision.Identical, gate.Evaluate(BufferSlot(), [8]));
-        Assert.IsFalse(gate.TryApplyLogicalUpdate(active.SetId, 1, [32]));
+        Assert.IsTrue(holder.Gate.TryApplyLogicalUpdate(active.SetId, 1, [8]));
+        Assert.AreEqual(1UL, holder.Gate.GetBindingEpoch());
+        Assert.AreEqual(ResourcePlanDecision.Identical, holder.Gate.Evaluate(BufferSlot(), [8]));
+        Assert.IsFalse(holder.Gate.TryApplyLogicalUpdate(active.SetId, 1, [32]));
     }
 
     [TestMethod]
     public void TrimsActiveGenerationThroughGate()
     {
-        SlotGate gate = PublishedGate(out _);
+        GateHolder holder = PublishedGate(out _);
 
-        Assert.IsTrue(gate.TryTrim());
-        Assert.IsFalse(gate.IsAllocated);
-        Assert.AreEqual(2UL, gate.GetBindingEpoch());
-        Assert.AreEqual(ResourcePlanDecision.Replacement, gate.Evaluate(BufferSlot(), [16]));
+        Assert.IsTrue(holder.Gate.TryTrim());
+        Assert.IsFalse(holder.Gate.IsAllocated);
+        Assert.AreEqual(2UL, holder.Gate.GetBindingEpoch());
+        Assert.AreEqual(ResourcePlanDecision.Replacement, holder.Gate.Evaluate(BufferSlot(), [16]));
     }
 
     [TestMethod]
     public void RequestsDisposeThroughGate()
     {
-        SlotGate gate = PublishedGate(out _);
+        GateHolder holder = PublishedGate(out _);
 
-        _ = gate.RequestDispose();
+        _ = holder.Gate.RequestDispose();
 
-        Assert.IsTrue(gate.IsDisposeRequested);
-        Assert.IsFalse(gate.IsDisposalComplete);
-        Assert.IsFalse(gate.TryTrim());
+        Assert.IsTrue(holder.Gate.IsDisposeRequested);
+        Assert.IsFalse(holder.Gate.IsDisposalComplete);
+        Assert.IsFalse(holder.Gate.TryTrim());
     }
 
     [TestMethod]
     public void CompletesDisposalOfUnboundGate()
     {
-        SlotGate gate = new();
+        GateHolder holder = new();
 
-        _ = gate.RequestDispose();
+        _ = holder.Gate.RequestDispose();
 
-        Assert.IsTrue(gate.IsDisposeRequested);
-        Assert.IsTrue(gate.IsDisposalComplete);
-        Assert.IsFalse(gate.TryBind(new int[3], new SlotResourcePlanStateRecord(0, 1)));
+        Assert.IsTrue(holder.Gate.IsDisposeRequested);
+        Assert.IsTrue(holder.Gate.IsDisposalComplete);
+        Assert.IsFalse(holder.Gate.TryBind(new int[3], new SlotResourcePlanStateRecord(0, 1)));
     }
 
     [TestMethod]
     public void MarksDeviceTerminalThroughGate()
     {
-        SlotGate gate = PublishedGate(out _);
+        GateHolder holder = PublishedGate(out _);
 
-        Assert.IsTrue(gate.TryMarkDeviceTerminal());
-        Assert.IsTrue(gate.IsDisposeRequested);
-        Assert.IsFalse(gate.TryCompleteRetiringActive());
+        Assert.IsTrue(holder.Gate.TryMarkDeviceTerminal());
+        Assert.IsTrue(holder.Gate.IsDisposeRequested);
+        Assert.IsFalse(holder.Gate.TryCompleteRetiringActive());
     }
 }
