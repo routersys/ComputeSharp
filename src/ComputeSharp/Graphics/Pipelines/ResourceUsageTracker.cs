@@ -31,6 +31,8 @@ internal static class ResourceUsageTracker
         uint resourceIndex,
         ResourceGenerationId generation,
         ComputeResourceAccess observedAccess,
+        TrackedResourceState firstState,
+        TrackedResourceState finalState,
         out int entryIndex,
         out bool isAliased)
     {
@@ -51,6 +53,7 @@ internal static class ResourceUsageTracker
                 "The resource generation is already tracked under a different generation set slot.");
 
             entries[i].Access = Union(entries[i].Access, observedAccess);
+            entries[i].FinalState = finalState;
 
             entryIndex = i;
             isAliased = true;
@@ -74,8 +77,8 @@ internal static class ResourceUsageTracker
             ResourceIndex = resourceIndex,
             Generation = generation,
             Access = observedAccess,
-            FirstState = TrackedResourceState.Unknown,
-            FinalState = TrackedResourceState.Unknown
+            FirstState = firstState,
+            FinalState = finalState
         };
 
         usageSet.Count++;
