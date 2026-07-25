@@ -8,6 +8,7 @@
     <InternalsVisibleTo Include="ComputeSharp.D3D12MemoryAllocator, PublicKey=$(AssemblySignPublicKey)" />
     <InternalsVisibleTo Include="ComputeSharp.Dxc, PublicKey=$(AssemblySignPublicKey)" />
     <InternalsVisibleTo Include="ComputeSharp.Tests.Internals, PublicKey=$(AssemblySignPublicKey)" />
+    <InternalsVisibleTo Include="ComputeSharp.Tests.SourceGenerators, PublicKey=$(AssemblySignPublicKey)" />
   </ItemGroup>
 
   <ItemGroup>
