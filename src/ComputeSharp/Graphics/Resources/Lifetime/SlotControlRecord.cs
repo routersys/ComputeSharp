@@ -1,3 +1,4 @@
+using System;
 using ComputeSharp.Graphics.Pipelines;
 
 namespace ComputeSharp.Resources.Lifetime;
@@ -32,36 +33,53 @@ internal struct SlotControlRecord
         return true;
     }
 
-    public readonly bool TryPin(ResourceGenerationSetId setId, ResourceGenerationId generationId, ulong bindingEpoch, int resourceIndex)
+    public readonly bool TryPin(
+        ResourceGenerationSetId setId,
+        ResourceGenerationId generationId,
+        ulong bindingEpoch,
+        int resourceIndex,
+        out ResourceGenerationPin pin)
     {
+        pin = default;
+
+        ResourceGenerationSetHandle active = this.Active;
+
         if (this.IsDisposeRequested ||
             this.State is not (SlotControlState.Active or SlotControlState.ReplacementPrepared) ||
-            this.Active.IsEmpty ||
-            this.Active.SetId != setId ||
-            this.BindingEpoch != bindingEpoch)
+            active.IsEmpty ||
+            active.SetId != setId ||
+            this.BindingEpoch != bindingEpoch ||
+            (uint)resourceIndex >= (uint)active.Owner.ResourceCount)
         {
             return false;
         }
 
-        ref ResourceGenerationRecord record = ref this.Active.Owner.GetResourceRecord(resourceIndex);
+        ref ResourceGenerationRecord record = ref active.Owner.GetResourceRecord(resourceIndex);
 
-        if (record.Id != generationId)
+        if (record.Id != generationId || !record.TryAcquireRecordingReference())
         {
             return false;
         }
 
-        return record.TryAcquireRecordingReference();
+        pin = new ResourceGenerationPin(active, generationId, resourceIndex);
+
+        return true;
     }
 
-    public readonly void ReleasePin(int resourceIndex)
+    public static void ReleasePin(in ResourceGenerationPin pin)
     {
-        this.Active.Owner.GetResourceRecord(resourceIndex).ReleaseRecordingReference();
+        ref ResourceGenerationRecord record = ref pin.Handle.Owner.GetResourceRecord(pin.ResourceIndex);
+
+        default(InvalidOperationException).ThrowIf(record.Id != pin.GenerationId, "The pinned generation no longer matches.");
+
+        record.ReleaseRecordingReference();
     }
 
     public bool TryInstallPrepared(ResourceGenerationSetHandle prepared, ulong preparedToken)
     {
         if (this.IsDisposeRequested ||
             this.State is not SlotControlState.Active ||
+            prepared.IsEmpty ||
             !this.Prepared.IsEmpty ||
             !this.Retired.IsEmpty ||
             preparedToken == 0)
@@ -76,8 +94,14 @@ internal struct SlotControlRecord
         return true;
     }
 
-    public bool TryCommitReplacement(ResourceGenerationSetId expectedActiveSetId, ulong expectedBindingEpoch, ulong preparedToken)
+    public bool TryCommitReplacement(
+        ResourceGenerationSetId expectedActiveSetId,
+        ulong expectedBindingEpoch,
+        ulong preparedToken,
+        out ResourceGenerationSetHandle detachedPrepared)
     {
+        detachedPrepared = default;
+
         if (this.State is not SlotControlState.ReplacementPrepared ||
             this.IsDisposeRequested ||
             this.PreparedToken != preparedToken ||
@@ -85,7 +109,7 @@ internal struct SlotControlRecord
             this.BindingEpoch != expectedBindingEpoch ||
             ActiveSetId() != expectedActiveSetId)
         {
-            _ = TryAbortReplacement(preparedToken);
+            _ = TryAbortReplacement(preparedToken, out detachedPrepared);
 
             return false;
         }
@@ -104,12 +128,16 @@ internal struct SlotControlRecord
         return true;
     }
 
-    public bool TryAbortReplacement(ulong preparedToken)
+    public bool TryAbortReplacement(ulong preparedToken, out ResourceGenerationSetHandle detachedPrepared)
     {
+        detachedPrepared = default;
+
         if (this.State is not SlotControlState.ReplacementPrepared || this.PreparedToken != preparedToken)
         {
             return false;
         }
+
+        detachedPrepared = this.Prepared;
 
         this.Prepared = default;
         this.PreparedToken = 0;
@@ -136,24 +164,28 @@ internal struct SlotControlRecord
         return true;
     }
 
-    public void RequestDispose()
+    public ResourceGenerationSetHandle RequestDispose()
     {
         this.IsDisposeRequested = true;
 
+        ResourceGenerationSetHandle detachedPrepared = default;
+
         if (this.State is SlotControlState.Disposed)
         {
-            return;
+            return detachedPrepared;
         }
 
         if (this.State is SlotControlState.Unbound)
         {
             this.State = SlotControlState.Disposed;
 
-            return;
+            return detachedPrepared;
         }
 
         if (this.State is SlotControlState.ReplacementPrepared)
         {
+            detachedPrepared = this.Prepared;
+
             this.Prepared = default;
             this.PreparedToken = 0;
         }
@@ -162,22 +194,24 @@ internal struct SlotControlRecord
         {
             this.State = SlotControlState.DisposeWaitingForRetired;
 
-            return;
+            return detachedPrepared;
         }
 
         if (this.Active.IsEmpty)
         {
             this.State = SlotControlState.Disposed;
 
-            return;
+            return detachedPrepared;
         }
 
         this.State = SlotControlState.RetiringActive;
+
+        return detachedPrepared;
     }
 
-    public bool TryClearRetired()
+    public bool TryClearRetired(ResourceGenerationSetId expectedSetId)
     {
-        if (this.Retired.IsEmpty)
+        if (this.Retired.IsEmpty || this.Retired.SetId != expectedSetId || !AreAllReleased(this.Retired))
         {
             return false;
         }
@@ -186,14 +220,7 @@ internal struct SlotControlRecord
 
         if (this.State is SlotControlState.DisposeWaitingForRetired)
         {
-            if (this.Active.IsEmpty)
-            {
-                this.State = SlotControlState.Disposed;
-            }
-            else
-            {
-                this.State = SlotControlState.RetiringActive;
-            }
+            this.State = this.Active.IsEmpty ? SlotControlState.Disposed : SlotControlState.RetiringActive;
         }
 
         return true;
@@ -201,13 +228,26 @@ internal struct SlotControlRecord
 
     public bool TryCompleteRetiringActive()
     {
-        if (this.State is not SlotControlState.RetiringActive)
+        if (this.State is not SlotControlState.RetiringActive ||
+            !AreAllReleased(this.Active) ||
+            !AreAllReleased(this.Prepared) ||
+            !AreAllReleased(this.Retired))
         {
             return false;
         }
 
+        bool activeChanged = !this.Active.IsEmpty;
+
         this.Active = default;
+        this.Prepared = default;
+        this.Retired = default;
+        this.PreparedToken = 0;
         this.State = SlotControlState.Disposed;
+
+        if (activeChanged)
+        {
+            this.BindingEpoch = checked(this.BindingEpoch + 1);
+        }
 
         return true;
     }
@@ -219,11 +259,51 @@ internal struct SlotControlRecord
             return false;
         }
 
-        this.Prepared = default;
+        this.IsDisposeRequested = true;
         this.PreparedToken = 0;
+
+        MarkTerminalRetained(this.Active);
+        MarkTerminalRetained(this.Prepared);
+        MarkTerminalRetained(this.Retired);
+
         this.State = SlotControlState.RetiringActive;
 
         return true;
+    }
+
+    private static bool AreAllReleased(in ResourceGenerationSetHandle handle)
+    {
+        if (handle.IsEmpty)
+        {
+            return true;
+        }
+
+        IResourceGenerationOwner owner = handle.Owner;
+
+        for (int i = 0; i < owner.ResourceCount; i++)
+        {
+            if (owner.GetResourceRecord(i).Lifecycle is not ResourceGenerationState.Released)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void MarkTerminalRetained(in ResourceGenerationSetHandle handle)
+    {
+        if (handle.IsEmpty)
+        {
+            return;
+        }
+
+        IResourceGenerationOwner owner = handle.Owner;
+
+        for (int i = 0; i < owner.ResourceCount; i++)
+        {
+            _ = owner.GetResourceRecord(i).TryMarkTerminalRetained();
+        }
     }
 
     private readonly ResourceGenerationSetId ActiveSetId()
