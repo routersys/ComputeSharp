@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -22,6 +23,25 @@ internal static class SymbolHelper
         Assert.Fail($"The method '{methodName}' was not found on '{typeMetadataName}'.");
 
         return null!;
+    }
+
+    public static ImmutableArray<IMethodSymbol> GetMethods(string source, string typeMetadataName, string methodName, string assemblyName)
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation(source, assemblyName);
+        INamedTypeSymbol typeSymbol = GetType(compilation, typeMetadataName);
+        ImmutableArray<IMethodSymbol>.Builder builder = ImmutableArray.CreateBuilder<IMethodSymbol>();
+
+        foreach (ISymbol memberSymbol in typeSymbol.GetMembers(methodName))
+        {
+            if (memberSymbol is IMethodSymbol methodSymbol)
+            {
+                builder.Add(methodSymbol);
+            }
+        }
+
+        Assert.AreNotEqual(0, builder.Count, $"The method '{methodName}' was not found on '{typeMetadataName}'.");
+
+        return builder.ToImmutable();
     }
 
     public static ITypeSymbol GetFieldType(string source, string typeMetadataName, string fieldName, string assemblyName)
