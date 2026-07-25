@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ComputeSharp\ComputeSharp.csproj" />
+    <ProjectReference Include="..\..\src\ComputeSharp\ComputeSharp.csproj" Aliases="runtime" />
     <ProjectReference Include="..\..\src\ComputeSharp.SourceGenerators\ComputeSharp.SourceGenerators.csproj" />
   </ItemGroup>
 </Project>
