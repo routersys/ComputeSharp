@@ -70,42 +70,9 @@ internal static class CanonicalTypeNameBuilder
     /// <param name="builder">The target <see cref="ImmutableArrayBuilder{T}"/> instance.</param>
     private static void AppendCanonicalNamedTypeName(INamedTypeSymbol symbol, ref readonly ImmutableArrayBuilder<char> builder)
     {
-        AppendDefinitionName(symbol, in builder);
-
-        using ImmutableArrayBuilder<ITypeSymbol> typeArguments = new();
-
-        AppendTypeArguments(symbol, in typeArguments);
-
-        if (typeArguments.Count == 0)
-        {
-            return;
-        }
-
-        builder.Add('[');
-
-        for (int i = 0; i < typeArguments.Count; i++)
-        {
-            if (i > 0)
-            {
-                builder.Add(',');
-            }
-
-            AppendCanonicalTypeName(typeArguments.WrittenSpan[i], in builder);
-        }
-
-        builder.Add(']');
-    }
-
-    /// <summary>
-    /// Appends the definition metadata name for a given <see cref="INamedTypeSymbol"/> instance to a target builder.
-    /// </summary>
-    /// <param name="symbol">The input <see cref="INamedTypeSymbol"/> instance.</param>
-    /// <param name="builder">The target <see cref="ImmutableArrayBuilder{T}"/> instance.</param>
-    private static void AppendDefinitionName(INamedTypeSymbol symbol, ref readonly ImmutableArrayBuilder<char> builder)
-    {
         if (symbol.ContainingType is INamedTypeSymbol containingTypeSymbol)
         {
-            AppendDefinitionName(containingTypeSymbol, in builder);
+            AppendCanonicalNamedTypeName(containingTypeSymbol, in builder);
             builder.Add('+');
         }
         else if (symbol.ContainingNamespace is INamespaceSymbol { IsGlobalNamespace: false } namespaceSymbol)
@@ -115,6 +82,8 @@ internal static class CanonicalTypeNameBuilder
         }
 
         builder.AddRange(symbol.MetadataName.AsSpan());
+
+        AppendTypeArguments(symbol, in builder);
     }
 
     /// <summary>
@@ -134,26 +103,30 @@ internal static class CanonicalTypeNameBuilder
     }
 
     /// <summary>
-    /// Appends the type arguments for a given <see cref="INamedTypeSymbol"/> instance, from the outermost containing type inwards.
+    /// Appends the type arguments declared by a given <see cref="INamedTypeSymbol"/> instance to a target builder.
     /// </summary>
     /// <param name="symbol">The input <see cref="INamedTypeSymbol"/> instance.</param>
     /// <param name="builder">The target <see cref="ImmutableArrayBuilder{T}"/> instance.</param>
-    private static void AppendTypeArguments(INamedTypeSymbol symbol, ref readonly ImmutableArrayBuilder<ITypeSymbol> builder)
+    private static void AppendTypeArguments(INamedTypeSymbol symbol, ref readonly ImmutableArrayBuilder<char> builder)
     {
-        if (symbol.ContainingType is INamedTypeSymbol containingTypeSymbol)
+        if (symbol.TypeArguments.Length == 0 || symbol.TypeArguments[0] is ITypeParameterSymbol)
         {
-            AppendTypeArguments(containingTypeSymbol, in builder);
+            return;
         }
 
-        foreach (ITypeSymbol typeArgumentSymbol in symbol.TypeArguments)
+        builder.Add('[');
+
+        for (int i = 0; i < symbol.TypeArguments.Length; i++)
         {
-            if (typeArgumentSymbol is ITypeParameterSymbol)
+            if (i > 0)
             {
-                continue;
+                builder.Add(',');
             }
 
-            builder.Add(typeArgumentSymbol);
+            AppendCanonicalTypeName(symbol.TypeArguments[i], in builder);
         }
+
+        builder.Add(']');
     }
 
     /// <summary>
