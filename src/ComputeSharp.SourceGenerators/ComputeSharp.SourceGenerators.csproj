@@ -94,5 +94,6 @@
   <!-- Give access to the code fixers project for the exported diagnostic ids and properties -->
   <ItemGroup>
     <InternalsVisibleTo Include="ComputeSharp.CodeFixers, PublicKey=$(AssemblySignPublicKey)" />
+    <InternalsVisibleTo Include="ComputeSharp.Tests.SourceGenerators, PublicKey=$(AssemblySignPublicKey)" />
   </ItemGroup>
 </Project>
