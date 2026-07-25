@@ -162,7 +162,7 @@ public class PipelineDescriptorReaderLimitsTests
 
         for (int i = 0; i < pipelineCount; i++)
         {
-            WritePipeline(builder, i, parameterCount, internalCount, "S");
+            WritePipeline(builder, i, parameterCount, internalCount, Signature(69));
         }
 
         _ = builder.UInt32((uint)slotCount);
@@ -190,7 +190,7 @@ public class PipelineDescriptorReaderLimitsTests
 
         for (int i = 0; i < signatureLengths.Length; i++)
         {
-            WritePipeline(builder, i, 0, 0, new string('S', signatureLengths[i]));
+            WritePipeline(builder, i, 0, 0, Signature(signatureLengths[i]));
         }
 
         return builder.UInt32(0).ToArray();
@@ -222,6 +222,13 @@ public class PipelineDescriptorReaderLimitsTests
         }
 
         return builder.ToArray();
+    }
+
+    private static string Signature(int totalLength)
+    {
+        const string Prefix = "H|M|00000000|System.Void|00000002|03:ComputeSharp.ComputeContext|00:";
+
+        return Prefix + new string('T', totalLength - Prefix.Length);
     }
 
     private static int[] SignatureLengthsForTotalLength(int totalLength)
