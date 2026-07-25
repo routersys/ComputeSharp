@@ -224,6 +224,40 @@ public class PipelineDescriptorReaderLimitsTests
         return builder.ToArray();
     }
 
+    private static byte[] HostPayloadWithResource(byte sharing, byte ownership, byte hasSlot, uint slot, uint slotResourceIndex)
+    {
+        PayloadBuilder builder = new();
+
+        _ = builder
+            .Byte(0)
+            .Text("H")
+            .UInt32(1)
+            .UInt32(1)
+            .UInt32(2)
+            .UInt32(0)
+            .UInt32(1)
+            .UInt32(0)
+            .Text("M")
+            .Text(Signature(69))
+            .UInt32(0)
+            .UInt32(1)
+            .UInt32(2)
+            .UInt32(1)
+            .UInt32(0)
+            .Text("T")
+            .Byte(0)
+            .Byte(sharing)
+            .Byte(0)
+            .Byte(ownership)
+            .Byte(hasSlot)
+            .UInt32(slot)
+            .UInt32(slotResourceIndex)
+            .UInt32(0)
+            .UInt32(0);
+
+        return builder.ToArray();
+    }
+
     private static string Signature(int totalLength)
     {
         const string Prefix = "H|M|00000000|System.Void|00000002|03:ComputeSharp.ComputeContext|00:";
@@ -445,5 +479,29 @@ public class PipelineDescriptorReaderLimitsTests
         byte[] payload = builder.UInt32(0).UInt32(0).ToArray();
 
         _ = Assert.ThrowsException<InvalidDataException>(() => PipelineDescriptorReader.Read(Descriptor(payload)));
+    }
+
+    [TestMethod]
+    public void RejectsSharedTextureSlotOwnershipInResourceContract()
+    {
+        byte[] payload = HostPayloadWithResource(1, 3, 1, 0, 0);
+
+        _ = Assert.ThrowsException<InvalidDataException>(() => PipelineDescriptorReader.Read(Descriptor(payload)));
+    }
+
+    [TestMethod]
+    public void RejectsExternalSharingBoundToSlot()
+    {
+        byte[] payload = HostPayloadWithResource(1, 1, 1, 0, 0);
+
+        _ = Assert.ThrowsException<InvalidDataException>(() => PipelineDescriptorReader.Read(Descriptor(payload)));
+    }
+
+    [TestMethod]
+    public void AcceptsExternalSharingWithoutSlot()
+    {
+        byte[] payload = HostPayloadWithResource(1, 0, 0, 0, 0);
+
+        Assert.AreEqual(DescriptorKind.PipelineHost, PipelineDescriptorReader.Read(Descriptor(payload)).Kind);
     }
 }
