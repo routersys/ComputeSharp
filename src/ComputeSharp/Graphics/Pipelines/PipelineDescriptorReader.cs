@@ -217,9 +217,19 @@ internal static class PipelineDescriptorReader
             slotResourceCounts[i] = ValidateSlotPlanFields(planFields, intermediate.FieldStart, intermediate.FieldCount, intermediate.PlanKind);
         }
 
-        foreach (ResourceContractDescriptor resource in resources)
+        for (int i = 0; i < pipelineCount; i++)
         {
-            ValidateResourceSlotBinding(resource, slots, slotResourceCounts);
+            PipelineIntermediate intermediate = pipelineIntermediates[i];
+
+            for (int j = 0; j < intermediate.ParameterCount; j++)
+            {
+                ValidateParameterContract(resources[intermediate.ParameterStart + j]);
+            }
+
+            for (int j = 0; j < intermediate.InternalCount; j++)
+            {
+                ValidateInternalResourceContract(resources[intermediate.InternalStart + j], slots, slotResourceCounts);
+            }
         }
 
         PipelineDescriptor[] pipelines = new PipelineDescriptor[pipelineCount];
@@ -407,28 +417,27 @@ internal static class PipelineDescriptorReader
         }
     }
 
-    private static void ValidateResourceSlotBinding(ResourceContractDescriptor resource, OwnedSlotDescriptor[] slots, uint[] slotResourceCounts)
+    private static void ValidateParameterContract(ResourceContractDescriptor parameter)
     {
-        if (resource.Ownership is ResourceOwnershipKind.SharedTextureSlot)
+        if (parameter.Ownership is not ResourceOwnershipKind.Borrowed ||
+            parameter.HasSlot ||
+            parameter.Slot.Value != 0 ||
+            parameter.SlotResourceIndex != 0)
+        {
+            throw Invalid();
+        }
+    }
+
+    private static void ValidateInternalResourceContract(ResourceContractDescriptor resource, OwnedSlotDescriptor[] slots, uint[] slotResourceCounts)
+    {
+        if (resource.Sharing is not ComputeResourceSharing.Internal)
         {
             throw Invalid();
         }
 
-        bool expectsSlot = resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot;
-
-        if (resource.HasSlot != expectsSlot)
+        if (resource.Ownership is ResourceOwnershipKind.Borrowed)
         {
-            throw Invalid();
-        }
-
-        if (resource.Sharing is ComputeResourceSharing.External && resource.HasSlot)
-        {
-            throw Invalid();
-        }
-
-        if (!resource.HasSlot)
-        {
-            if (resource.Slot.Value != 0 || resource.SlotResourceIndex != 0)
+            if (resource.HasSlot || resource.Slot.Value != 0 || resource.SlotResourceIndex != 0)
             {
                 throw Invalid();
             }
@@ -436,31 +445,30 @@ internal static class PipelineDescriptorReader
             return;
         }
 
-        if (resource.Ownership is ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot)
+        if (resource.Ownership is not (ResourceOwnershipKind.OwnedSlot or ResourceOwnershipKind.OwnedGroupSlot) ||
+            !resource.HasSlot ||
+            resource.Slot.Value >= (uint)slots.Length)
         {
-            if (resource.Slot.Value >= (uint)slots.Length)
+            throw Invalid();
+        }
+
+        int slotIndex = (int)resource.Slot.Value;
+
+        if (slots[slotIndex].Ownership != resource.Ownership)
+        {
+            throw Invalid();
+        }
+
+        if (resource.Ownership is ResourceOwnershipKind.OwnedSlot)
+        {
+            if (resource.SlotResourceIndex != 0)
             {
                 throw Invalid();
             }
-
-            int slotIndex = (int)resource.Slot.Value;
-
-            if (slots[slotIndex].Ownership != resource.Ownership)
-            {
-                throw Invalid();
-            }
-
-            if (resource.Ownership is ResourceOwnershipKind.OwnedSlot)
-            {
-                if (resource.SlotResourceIndex != 0)
-                {
-                    throw Invalid();
-                }
-            }
-            else if (resource.SlotResourceIndex >= slotResourceCounts[slotIndex])
-            {
-                throw Invalid();
-            }
+        }
+        else if (resource.SlotResourceIndex >= slotResourceCounts[slotIndex])
+        {
+            throw Invalid();
         }
     }
 
