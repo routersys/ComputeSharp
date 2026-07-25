@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
 
@@ -49,11 +50,11 @@ internal struct ResourceGenerationRecord
     public ulong ReclaimableBytes;
 
     public readonly bool HasReferences =>
-        this.OwnerReferenceCount != 0 ||
-        this.RecordingReferenceCount != 0 ||
-        this.PendingSubmissionReferenceCount != 0 ||
-        this.ExternalReferenceCount != 0 ||
-        this.CpuReferenceCount != 0;
+        Volatile.Read(in this.OwnerReferenceCount) != 0 ||
+        Volatile.Read(in this.RecordingReferenceCount) != 0 ||
+        Volatile.Read(in this.PendingSubmissionReferenceCount) != 0 ||
+        Volatile.Read(in this.ExternalReferenceCount) != 0 ||
+        Volatile.Read(in this.CpuReferenceCount) != 0;
 
     public bool TryAcquireRecordingReference()
     {
@@ -62,27 +63,29 @@ internal struct ResourceGenerationRecord
             return false;
         }
 
-        this.RecordingReferenceCount = checked(this.RecordingReferenceCount + 1);
+        Increment(ref this.RecordingReferenceCount);
 
         return true;
     }
 
     public void ReleaseRecordingReference()
     {
-        this.RecordingReferenceCount = Decrement(this.RecordingReferenceCount);
+        Decrement(ref this.RecordingReferenceCount);
     }
 
     public void ConvertRecordingToPendingSubmission()
     {
-        default(InvalidOperationException).ThrowIf(this.RecordingReferenceCount <= 0, "The resource generation has no recording reference to convert.");
+        default(InvalidOperationException).ThrowIf(
+            Volatile.Read(in this.RecordingReferenceCount) <= 0,
+            "The resource generation has no recording reference to convert.");
 
-        this.PendingSubmissionReferenceCount = checked(this.PendingSubmissionReferenceCount + 1);
-        this.RecordingReferenceCount--;
+        Increment(ref this.PendingSubmissionReferenceCount);
+        Decrement(ref this.RecordingReferenceCount);
     }
 
     public void ReleasePendingSubmissionReference()
     {
-        this.PendingSubmissionReferenceCount = Decrement(this.PendingSubmissionReferenceCount);
+        Decrement(ref this.PendingSubmissionReferenceCount);
     }
 
     public bool TryAcquireExternalReference()
@@ -92,14 +95,14 @@ internal struct ResourceGenerationRecord
             return false;
         }
 
-        this.ExternalReferenceCount = checked(this.ExternalReferenceCount + 1);
+        Increment(ref this.ExternalReferenceCount);
 
         return true;
     }
 
     public void ReleaseExternalReference()
     {
-        this.ExternalReferenceCount = Decrement(this.ExternalReferenceCount);
+        Decrement(ref this.ExternalReferenceCount);
     }
 
     public bool TryAcquireCpuReference()
@@ -109,19 +112,19 @@ internal struct ResourceGenerationRecord
             return false;
         }
 
-        this.CpuReferenceCount = checked(this.CpuReferenceCount + 1);
+        Increment(ref this.CpuReferenceCount);
 
         return true;
     }
 
     public void ReleaseCpuReference()
     {
-        this.CpuReferenceCount = Decrement(this.CpuReferenceCount);
+        Decrement(ref this.CpuReferenceCount);
     }
 
     public void ReleaseOwnerReference()
     {
-        this.OwnerReferenceCount = Decrement(this.OwnerReferenceCount);
+        Decrement(ref this.OwnerReferenceCount);
     }
 
     public bool TryRequestRetire()
@@ -200,10 +203,29 @@ internal struct ResourceGenerationRecord
         return true;
     }
 
-    private static int Decrement(int value)
+    private static void Increment(ref int count)
     {
-        default(InvalidOperationException).ThrowIf(value <= 0, "The resource generation reference count is already zero.");
+        int current;
 
-        return value - 1;
+        do
+        {
+            current = Volatile.Read(ref count);
+
+            _ = checked(current + 1);
+        }
+        while (Interlocked.CompareExchange(ref count, current + 1, current) != current);
+    }
+
+    private static void Decrement(ref int count)
+    {
+        int current;
+
+        do
+        {
+            current = Volatile.Read(ref count);
+
+            default(InvalidOperationException).ThrowIf(current <= 0, "The resource generation reference count is already zero.");
+        }
+        while (Interlocked.CompareExchange(ref count, current - 1, current) != current);
     }
 }
