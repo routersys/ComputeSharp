@@ -114,7 +114,7 @@ public sealed class PipelineDescriptorGenerator : IIncrementalGenerator
     private static void WriteCanonicalDescriptor(PipelineDescriptorInfo item, IndentedTextWriter writer)
     {
         writer.WriteLine("/// <summary>The canonical binary descriptor of the current type.</summary>");
-        writer.WriteGeneratedAttributes(GeneratorName, useFullyQualifiedTypeNames: false);
+        writer.WriteGeneratedAttributes(GeneratorName);
         writer.Write("private static global::System.ReadOnlySpan<byte> CanonicalDescriptor => [");
 
         SyntaxFormattingHelper.WriteByteArrayInitializationExpressions(item.Descriptor.AsImmutableArray().AsSpan(), writer);
