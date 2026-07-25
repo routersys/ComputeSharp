@@ -57,6 +57,7 @@
     <Compile Include="..\ComputeSharp\Attributes\Enums\ExternalResourceAccess.cs" Link="ComputeSharp\Attributes\Enums\ExternalResourceAccess.cs" />
     <Compile Include="..\ComputeSharp\Attributes\Enums\ExternalTextureUsage.cs" Link="ComputeSharp\Attributes\Enums\ExternalTextureUsage.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" Link="ComputeSharp\Graphics\Pipelines\DescriptorKind.cs" />
+    <Compile Include="..\ComputeSharp\Graphics\Pipelines\PipelineFlags.cs" Link="ComputeSharp\Graphics\Pipelines\PipelineFlags.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourceOwnershipKind.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanDimensionKind.cs" />
     <Compile Include="..\ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" Link="ComputeSharp\Graphics\Pipelines\ResourcePlanKind.cs" />
