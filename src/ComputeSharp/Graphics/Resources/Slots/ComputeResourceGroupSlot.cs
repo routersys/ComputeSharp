@@ -11,14 +11,9 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     where TGroup : class
 {
     /// <summary>
-    /// The lock protecting <see cref="control"/>.
+    /// The gate protecting the state of the current slot.
     /// </summary>
-    private readonly object slotGate = new();
-
-    /// <summary>
-    /// The control record for the current slot.
-    /// </summary>
-    private SlotControlRecord control;
+    private readonly SlotGate slotGate = new();
 
     /// <summary>
     /// Creates a new <see cref="ComputeResourceGroupSlot{TGroup}"/> instance that is not bound to a host.
@@ -30,38 +25,17 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     /// <summary>
     /// Gets whether the current slot owns a published resource group generation.
     /// </summary>
-    public bool IsAllocated
-    {
-        get
-        {
-            lock (this.slotGate)
-            {
-                return this.control.IsAllocated;
-            }
-        }
-    }
+    public bool IsAllocated => this.slotGate.IsAllocated;
 
     /// <summary>
     /// Gets whether disposal of the current slot has been requested.
     /// </summary>
-    public bool IsDisposeRequested
-    {
-        get
-        {
-            lock (this.slotGate)
-            {
-                return this.control.IsDisposeRequested;
-            }
-        }
-    }
+    public bool IsDisposeRequested => this.slotGate.IsDisposeRequested;
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.slotGate)
-        {
-            _ = this.control.RequestDispose();
-        }
+        _ = this.slotGate.RequestDispose();
     }
 
     /// <summary>
@@ -69,11 +43,8 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable
     /// </summary>
     public void WaitForDisposal()
     {
-        lock (this.slotGate)
-        {
-            default(InvalidOperationException).ThrowIf(
-                this.control.State is not (SlotControlState.Unbound or SlotControlState.Disposed),
-                "The resource group slot is still bound to a pipeline host.");
-        }
+        default(InvalidOperationException).ThrowIf(
+            !this.slotGate.IsDisposalComplete,
+            "The resource group slot is still bound to a pipeline host.");
     }
 }

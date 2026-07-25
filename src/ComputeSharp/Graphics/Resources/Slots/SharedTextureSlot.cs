@@ -20,14 +20,9 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     private const string NoPublishedGeneration = "The shared texture slot has no published texture generation.";
 
     /// <summary>
-    /// The lock protecting the state of the current slot.
+    /// The gate protecting the state of the current slot.
     /// </summary>
-    private readonly object slotGate = new();
-
-    /// <summary>
-    /// The control record for the current slot.
-    /// </summary>
-    private SlotControlRecord control;
+    private readonly SlotGate slotGate = new();
 
     /// <summary>
     /// Creates a new <see cref="SharedTextureSlot{T, TPixel, TView}"/> instance that is not bound to a resource set.
@@ -49,30 +44,12 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <summary>
     /// Gets whether the current slot owns a published texture generation.
     /// </summary>
-    public bool IsAllocated
-    {
-        get
-        {
-            lock (this.slotGate)
-            {
-                return this.control.IsAllocated;
-            }
-        }
-    }
+    public bool IsAllocated => this.slotGate.IsAllocated;
 
     /// <summary>
     /// Gets whether disposal of the current slot has been requested.
     /// </summary>
-    internal bool IsDisposeRequested
-    {
-        get
-        {
-            lock (this.slotGate)
-            {
-                return this.control.IsDisposeRequested;
-            }
-        }
-    }
+    internal bool IsDisposeRequested => this.slotGate.IsDisposeRequested;
 
     /// <summary>
     /// Ensures the shared texture matches the requested logical dimensions.
@@ -129,10 +106,7 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.slotGate)
-        {
-            _ = this.control.RequestDispose();
-        }
+        _ = this.slotGate.RequestDispose();
     }
 
     /// <summary>
@@ -140,12 +114,9 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// </summary>
     public void WaitForDisposal()
     {
-        lock (this.slotGate)
-        {
-            default(InvalidOperationException).ThrowIf(
-                this.control.State is not (SlotControlState.Unbound or SlotControlState.Disposed),
-                "The shared texture slot is still bound to a resource set.");
-        }
+        default(InvalidOperationException).ThrowIf(
+            !this.slotGate.IsDisposalComplete,
+            "The shared texture slot is still bound to a resource set.");
     }
 
     /// <summary>
@@ -153,11 +124,8 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// </summary>
     private void ThrowIfNotBound()
     {
-        lock (this.slotGate)
-        {
-            default(InvalidOperationException).ThrowIf(
-                this.control.State is SlotControlState.Unbound,
-                "The shared texture slot is not bound to a resource set.");
-        }
+        default(InvalidOperationException).ThrowIf(
+            this.slotGate.IsUnbound,
+            "The shared texture slot is not bound to a resource set.");
     }
 }
