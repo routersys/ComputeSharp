@@ -8,6 +8,7 @@ using ComputeSharp.Tests.SourceGenerators.Helpers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RuntimeAlphaMode = runtime::ComputeSharp.ComputeAlphaMode;
 using RuntimeDescriptorKind = runtime::ComputeSharp.Graphics.Pipelines.DescriptorKind;
 using RuntimeDescriptorReader = runtime::ComputeSharp.Graphics.Pipelines.PipelineDescriptorReader;
 using RuntimeDescriptorSet = runtime::ComputeSharp.Graphics.Pipelines.PipelineDescriptorSet;
@@ -412,5 +413,88 @@ public class PipelineDescriptorWriterTests
         byte[] second = PipelineDescriptorWriter.Write(BuildResourceSet(ResourceSetSource, "WriterResourceSetRepeatSecondTests"));
 
         CollectionAssert.AreEqual(first, second);
+    }
+
+    private static bool TryBuildResourceSet(string source, string assemblyName)
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation(source, assemblyName);
+
+        Assert.IsTrue(PipelineWellKnownSymbols.TryCreate(compilation, out PipelineWellKnownSymbols? symbols));
+
+        INamedTypeSymbol resourceSetSymbol = compilation.GetTypeByMetadataName("Ukiyoe.ResourceSet")!;
+
+        Assert.IsNotNull(resourceSetSymbol);
+
+        return InteropResourceSetContractModelBuilder.TryBuild(resourceSetSymbol, symbols, out _);
+    }
+
+    private static string SharedTextureSource(string accessibility, string alphaMode)
+    {
+        return $$"""
+            using System;
+            using ComputeSharp;
+
+            namespace Ukiyoe;
+
+            public sealed class ExternalView : IDisposable
+            {
+                public void Dispose()
+                {
+                }
+            }
+
+            [ComputeInteropResourceSet]
+            public sealed partial class ResourceSet
+            {
+                [ComputeSharedTexture(
+                    ComputeResourceResizePolicy.Exact,
+                    ComputeResourceAccess.ReadWrite,
+                    ExternalResourceAccess.Write,
+                    ExternalTextureUsage.RenderTarget,
+                    ComputeAlphaMode.{{alphaMode}},
+                    ComputeSharedTextureInitialOwner.External,
+                    ComputeResourceRecovery.RecreateFromHost)]
+                {{accessibility}} readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+            }
+            """;
+    }
+
+    [TestMethod]
+    public void RejectsNonPrivateSharedTextureField()
+    {
+        Assert.IsFalse(TryBuildResourceSet(SharedTextureSource("public", "Premultiplied"), "ResourceSetPublicFieldTests"));
+        Assert.IsFalse(TryBuildResourceSet(SharedTextureSource("internal", "Premultiplied"), "ResourceSetInternalFieldTests"));
+        Assert.IsFalse(TryBuildResourceSet(SharedTextureSource("protected", "Premultiplied"), "ResourceSetProtectedFieldTests"));
+        Assert.IsTrue(TryBuildResourceSet(SharedTextureSource("private", "Premultiplied"), "ResourceSetPrivateFieldTests"));
+    }
+
+    [TestMethod]
+    public void AcceptsEveryKnownAlphaMode()
+    {
+        Assert.IsTrue(TryBuildResourceSet(SharedTextureSource("private", "Ignore"), "ResourceSetIgnoreAlphaTests"));
+        Assert.IsTrue(TryBuildResourceSet(SharedTextureSource("private", "Premultiplied"), "ResourceSetPremultipliedAlphaTests"));
+        Assert.IsTrue(TryBuildResourceSet(SharedTextureSource("private", "Straight"), "ResourceSetStraightAlphaTests"));
+    }
+
+    [TestMethod]
+    public void ReadsWrittenResourceSetWithIgnoreAlphaMode()
+    {
+        InteropResourceSetContractInfo model = BuildResourceSet(SharedTextureSource("private", "Ignore"), "ResourceSetIgnoreAlphaRoundTripTests");
+        byte[] descriptor = PipelineDescriptorWriter.Write(model);
+        RuntimeResourceSetDescriptor resourceSet = RuntimeDescriptorReader.Read(descriptor).ResourceSet;
+
+        Assert.AreEqual(1, resourceSet.SharedTextures.Length);
+        Assert.AreEqual(RuntimeAlphaMode.Ignore, resourceSet.SharedTextures.Span[0].AlphaMode);
+        Assert.AreEqual("source", resourceSet.SharedTextures.Span[0].MemberMetadataName);
+    }
+
+    [TestMethod]
+    public void ReadsWrittenResourceSetWithStraightAlphaMode()
+    {
+        InteropResourceSetContractInfo model = BuildResourceSet(SharedTextureSource("private", "Straight"), "ResourceSetStraightAlphaRoundTripTests");
+        byte[] descriptor = PipelineDescriptorWriter.Write(model);
+        RuntimeResourceSetDescriptor resourceSet = RuntimeDescriptorReader.Read(descriptor).ResourceSet;
+
+        Assert.AreEqual(RuntimeAlphaMode.Straight, resourceSet.SharedTextures.Span[0].AlphaMode);
     }
 }
