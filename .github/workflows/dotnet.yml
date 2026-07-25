@@ -89,6 +89,8 @@ jobs:
       run: dotnet test tests\ComputeSharp.Tests\ComputeSharp.Tests.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
     - name: Run ComputeSharp.Tests.Internals
       run: dotnet test tests\ComputeSharp.Tests.Internals\ComputeSharp.Tests.Internals.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+    - name: Run ComputeSharp.Tests.SourceGenerators
+      run: dotnet test tests\ComputeSharp.Tests.SourceGenerators\ComputeSharp.Tests.SourceGenerators.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
 
   # Run all unit tests using D3D12MA
   run-tests-d3d12ma:
