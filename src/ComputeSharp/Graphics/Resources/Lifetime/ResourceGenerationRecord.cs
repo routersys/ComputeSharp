@@ -42,6 +42,8 @@ internal struct ResourceGenerationRecord
 
     public ComputeResourceRecovery Recovery;
 
+    public ResourceReleaseAuthority ReleaseAuthority;
+
     public ulong LastUseSequence;
 
     public ulong ReclaimableBytes;
@@ -70,9 +72,12 @@ internal struct ResourceGenerationRecord
         this.RecordingReferenceCount = Decrement(this.RecordingReferenceCount);
     }
 
-    public void AddPendingSubmissionReference()
+    public void ConvertRecordingToPendingSubmission()
     {
+        default(InvalidOperationException).ThrowIf(this.RecordingReferenceCount <= 0, "The resource generation has no recording reference to convert.");
+
         this.PendingSubmissionReferenceCount = checked(this.PendingSubmissionReferenceCount + 1);
+        this.RecordingReferenceCount--;
     }
 
     public void ReleasePendingSubmissionReference()
@@ -165,14 +170,15 @@ internal struct ResourceGenerationRecord
             return false;
         }
 
+        this.ReleaseAuthority = authority;
         this.Lifecycle = ResourceGenerationState.Releasing;
 
         return true;
     }
 
-    public bool TryCompleteRelease()
+    public bool TryCompleteRelease(ResourceReleaseAuthority authority)
     {
-        if (this.Lifecycle is not ResourceGenerationState.Releasing)
+        if (this.Lifecycle is not ResourceGenerationState.Releasing || this.ReleaseAuthority != authority)
         {
             return false;
         }
@@ -184,7 +190,7 @@ internal struct ResourceGenerationRecord
 
     public bool TryMarkTerminalRetained()
     {
-        if (this.Lifecycle is ResourceGenerationState.Released)
+        if (this.Lifecycle is ResourceGenerationState.Releasing or ResourceGenerationState.Released)
         {
             return false;
         }
