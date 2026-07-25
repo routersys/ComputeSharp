@@ -17,11 +17,19 @@ internal static class GeneratorHelper
 
     public static ImmutableArray<GeneratedSourceResult> Run(GeneratorDriver driver, CSharpCompilation compilation, out GeneratorDriver resultDriver)
     {
-        resultDriver = driver.RunGeneratorsAndUpdateCompilation(compilation, out _, out ImmutableArray<Diagnostic> diagnostics);
+        resultDriver = driver.RunGeneratorsAndUpdateCompilation(compilation, out Compilation updatedCompilation, out ImmutableArray<Diagnostic> diagnostics);
 
         Assert.IsFalse(
             diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
             string.Join(System.Environment.NewLine, diagnostics));
+
+        ImmutableArray<Diagnostic> compilationDiagnostics = updatedCompilation.GetDiagnostics();
+
+        Assert.IsFalse(
+            compilationDiagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
+            string.Join(
+                System.Environment.NewLine,
+                compilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
 
         GeneratorRunResult result = resultDriver.GetRunResult().Results[0];
 
