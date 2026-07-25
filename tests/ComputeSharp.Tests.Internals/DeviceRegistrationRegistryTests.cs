@@ -79,7 +79,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
         return [.. payload];
     }
 
-    private static byte[] Descriptor(int slotCount)
+    internal static byte[] CreateHostDescriptor(int slotCount)
     {
         byte[] payload = HostPayload(slotCount);
         ReadOnlySpan<byte> header = [0x43, 0x53, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
@@ -120,7 +120,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
         try
         {
             IComputeOwnedSlot[] slots = Slots(2);
-            PipelineHostRuntime runtime = registry.RegisterHost(Descriptor(2), maximumPendingSubmissions: 3, slots);
+            PipelineHostRuntime runtime = registry.RegisterHost(CreateHostDescriptor(2), maximumPendingSubmissions: 3, slots);
 
             Assert.AreEqual(1ul, runtime.Id.Value);
             Assert.AreEqual(RegistrationState.Active, runtime.State);
@@ -162,8 +162,8 @@ public unsafe partial class DeviceRegistrationRegistryTests
 
         try
         {
-            PipelineHostRuntime first = registry.RegisterHost(Descriptor(1), 1, Slots(1));
-            PipelineHostRuntime second = registry.RegisterHost(Descriptor(1), 1, Slots(1));
+            PipelineHostRuntime first = registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1));
+            PipelineHostRuntime second = registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1));
 
             Assert.AreEqual(1ul, first.Id.Value);
             Assert.AreEqual(2ul, second.Id.Value);
@@ -186,13 +186,13 @@ public unsafe partial class DeviceRegistrationRegistryTests
         {
             IComputeOwnedSlot[] bound = Slots(1);
 
-            _ = registry.RegisterHost(Descriptor(1), 1, bound);
+            _ = registry.RegisterHost(CreateHostDescriptor(1), 1, bound);
 
             DeviceStructuralAggregate afterFirst = registry.Aggregate;
 
             IComputeOwnedSlot[] reused = [Slots(1)[0], bound[0]];
 
-            _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(Descriptor(2), 2, reused));
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(CreateHostDescriptor(2), 2, reused));
 
             DeviceStructuralAggregate afterFailure = registry.Aggregate;
 
@@ -219,9 +219,9 @@ public unsafe partial class DeviceRegistrationRegistryTests
 
         try
         {
-            _ = Assert.ThrowsExactly<ArgumentNullException>(() => registry.RegisterHost(Descriptor(1), 1, null!));
-            _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => registry.RegisterHost(Descriptor(1), 0, Slots(1)));
-            _ = Assert.ThrowsExactly<ArgumentException>(() => registry.RegisterHost(Descriptor(1), 1, Slots(2)));
+            _ = Assert.ThrowsExactly<ArgumentNullException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, null!));
+            _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => registry.RegisterHost(CreateHostDescriptor(1), 0, Slots(1)));
+            _ = Assert.ThrowsExactly<ArgumentException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(2)));
 
             Assert.AreEqual(0, registry.HostCount);
             Assert.AreEqual(0, registry.Aggregate.PendingRecordCount);
@@ -241,7 +241,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
         try
         {
             IComputeOwnedSlot[] slots = Slots(1);
-            PipelineHostRuntime runtime = registry.RegisterHost(Descriptor(1), 2, slots);
+            PipelineHostRuntime runtime = registry.RegisterHost(CreateHostDescriptor(1), 2, slots);
 
             Assert.IsFalse(registry.TryUnregisterHost(runtime));
             Assert.AreEqual(1, registry.HostCount);
@@ -275,7 +275,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
 
         try
         {
-            PipelineHostRuntime runtime = registry.RegisterHost(Descriptor(1), 2, Slots(1));
+            PipelineHostRuntime runtime = registry.RegisterHost(CreateHostDescriptor(1), 2, Slots(1));
             PipelineKey pipeline = new(runtime.Id, new PipelineOrdinal(0));
 
             Assert.IsTrue(runtime.TryAcquireInvocation());
@@ -311,7 +311,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     {
         DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
-        PipelineHostRuntime runtime = registry.RegisterHost(Descriptor(1), 1, Slots(1));
+        PipelineHostRuntime runtime = registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1));
 
         registry.Dispose();
         registry.Dispose();
@@ -319,6 +319,6 @@ public unsafe partial class DeviceRegistrationRegistryTests
         Assert.AreEqual(RegistrationState.DisposeRequested, runtime.State);
         Assert.AreEqual(0, registry.HostCount);
 
-        _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(Descriptor(1), 1, Slots(1)));
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1)));
     }
 }
