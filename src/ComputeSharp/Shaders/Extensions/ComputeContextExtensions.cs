@@ -209,9 +209,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(buffer);
 
-        context.RecordResourceWrite(buffer);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = buffer.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice);
+
+        context.RecordResourceWrite(buffer);
 
         context.Clear(buffer.D3D12Resource, handles.Gpu, handles.Cpu, isNormalized: false);
     }
@@ -227,9 +227,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out bool isNormalized);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, isNormalized);
     }
@@ -245,9 +245,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out bool isNormalized);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, isNormalized);
     }
@@ -263,9 +263,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out bool isNormalized);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, isNormalized);
     }
@@ -283,9 +283,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, true);
     }
@@ -303,9 +303,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, true);
     }
@@ -323,9 +323,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(texture.D3D12Resource, handles.Gpu, handles.Cpu, true);
     }
@@ -341,11 +341,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease), handles.Gpu, handles.Cpu, true);
 
@@ -363,11 +363,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease), handles.Gpu, handles.Cpu, true);
 
@@ -385,11 +385,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Clear(((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease), handles.Gpu, handles.Cpu, true);
 
@@ -410,9 +410,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(texture.D3D12Resource, handles.Gpu, handles.Cpu, DXGIFormatHelper.ExtendToNormalizedValue(value.ToPixel()));
     }
@@ -431,9 +431,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(texture.D3D12Resource, handles.Gpu, handles.Cpu, DXGIFormatHelper.ExtendToNormalizedValue(value.ToPixel()));
     }
@@ -452,9 +452,9 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = texture.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(texture.D3D12Resource, handles.Gpu, handles.Cpu, DXGIFormatHelper.ExtendToNormalizedValue(value.ToPixel()));
     }
@@ -471,11 +471,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(
             ((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease),
@@ -498,11 +498,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(
             ((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease),
@@ -525,11 +525,11 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
-        context.RecordResourceWrite(texture);
-
         (D3D12_GPU_DESCRIPTOR_HANDLE Gpu, D3D12_CPU_DESCRIPTOR_HANDLE Cpu) handles = ((ID3D12ReadWriteResource)texture).ValidateAndGetGpuAndCpuDescriptorHandlesForClear(context.GraphicsDevice, out _);
 
         using ReferenceTracker.Lease lease = default;
+
+        context.RecordResourceWrite(texture);
 
         context.Fill(
             ((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(context.GraphicsDevice, out *&lease),
