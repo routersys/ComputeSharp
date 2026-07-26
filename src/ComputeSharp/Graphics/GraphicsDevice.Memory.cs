@@ -402,8 +402,9 @@ unsafe partial class GraphicsDevice
     {
         SegmentObservationInput local = CreateSegmentObservation(configuration, MemoryPlacement.Local);
         SegmentObservationInput nonLocal = CreateSegmentObservation(configuration, MemoryPlacement.NonLocal);
+        DeviceStructuralAggregate structural = GetRegistrationAggregate();
 
-        return this.memoryCoordinator.Observe(configuration, in local, in nonLocal, default);
+        return this.memoryCoordinator.Observe(configuration, in local, in nonLocal, in structural);
     }
 
     /// <summary>

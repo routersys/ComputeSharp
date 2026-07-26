@@ -81,6 +81,26 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Gets the structural aggregate of every host and resource set registered on the current device.
+    /// </summary>
+    /// <returns>The <see cref="DeviceStructuralAggregate"/> value of the current device.</returns>
+    /// <remarks>
+    /// A device that has never registered a host has no registry, and its aggregate is the default value.
+    /// The registry is not created here, so observing the aggregate never reserves anything.
+    /// </remarks>
+    internal DeviceStructuralAggregate GetRegistrationAggregate()
+    {
+        DeviceRegistrationRegistry? registry;
+
+        lock (this.registrationRegistryGate)
+        {
+            registry = this.registrationRegistry;
+        }
+
+        return registry?.Aggregate ?? default;
+    }
+
+    /// <summary>
     /// Releases the registration registry of the current device, if one was created.
     /// </summary>
     private void DisposeRegistrationRegistry()
