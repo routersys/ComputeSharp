@@ -1,3 +1,7 @@
+> This repository is an independently maintained derivative of
+> [Sergio0694/ComputeSharp](https://github.com/Sergio0694/ComputeSharp).
+> It is not affiliated with or endorsed by the original author.
+
 ![](https://user-images.githubusercontent.com/10199417/108635546-3512ea00-7480-11eb-8172-99bc59f4eb6f.png)
 <br/>
 [![.NET](https://github.com/Sergio0694/ComputeSharp/workflows/.NET/badge.svg)](https://github.com/Sergio0694/ComputeSharp/actions) [![NuGet](https://img.shields.io/nuget/dt/ComputeSharp.svg)](https://www.nuget.org/stats/packages/ComputeSharp?groupby=Version) [![NuGet](https://img.shields.io/nuget/vpre/ComputeSharp.svg)](https://www.nuget.org/packages/ComputeSharp/)
