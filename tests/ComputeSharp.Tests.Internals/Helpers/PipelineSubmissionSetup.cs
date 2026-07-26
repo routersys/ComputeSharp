@@ -22,7 +22,7 @@ internal static unsafe class PipelineSubmissionSetup
             [new ComputeResourceSlot<ReadWriteBuffer<int>>()]);
     }
 
-    public static int RecordAndPrepare(PipelineHostRuntime host, ulong submissionSequence, out SubmissionRetention retention)
+    public static int Record(PipelineHostRuntime host, ulong submissionSequence, out SubmissionRetention retention)
     {
         PipelineKey pipeline = new(host.Id, new PipelineOrdinal(0));
 
@@ -39,8 +39,6 @@ internal static unsafe class PipelineSubmissionSetup
         retention = new SubmissionRetention { ResourceUsages = host.GetUsageSetHandle(index) };
 
         Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
-
-        ComputeSubmissionExecutor.Prepare(host, index, ref retention, out _);
 
         return index;
     }

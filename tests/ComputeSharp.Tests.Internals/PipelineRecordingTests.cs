@@ -99,7 +99,8 @@ public unsafe partial class PipelineRecordingTests
 
         Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
 
-        ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
+        ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
+            graphicsDevice, host, completion, index, ref retention);
 
         int segmentCount = retention.CommandLists.Count;
 
@@ -108,9 +109,6 @@ public unsafe partial class PipelineRecordingTests
             Assert.AreNotEqual((nint)d3D12CommandList, CommandListLeaseSet.GetSegment(ref retention.CommandLists, 0).CommandList);
             Assert.AreEqual((nint)d3D12CommandList, CommandListLeaseSet.GetSegment(ref retention.CommandLists, 1).CommandList);
         }
-
-        ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
-            graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
 
         submission.Wait();
 
@@ -159,10 +157,8 @@ public unsafe partial class PipelineRecordingTests
 
             Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
 
-            ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
-
             ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
-                graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
+                graphicsDevice, host, completion, index, ref retention);
 
             submission.Wait();
 
@@ -211,10 +207,8 @@ public unsafe partial class PipelineRecordingTests
 
             Assert.AreEqual(2, retention.CommandLists.Count);
 
-            ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
-
             ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
-                graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
+                graphicsDevice, host, completion, index, ref retention);
 
             submission.Wait();
 

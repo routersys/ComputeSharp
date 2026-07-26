@@ -20,6 +20,11 @@ unsafe partial class GraphicsDevice
     private readonly Lock registrationRegistryGate = new();
 
     /// <summary>
+    /// The gate serializing the resource hazard snapshot and commit of every submission of the current device.
+    /// </summary>
+    private readonly Lock hazardGate = new();
+
+    /// <summary>
     /// The <see cref="DeviceRegistrationRegistry"/> instance owning every pipeline registration of the current device.
     /// </summary>
     private DeviceRegistrationRegistry? registrationRegistry;
@@ -52,6 +57,15 @@ unsafe partial class GraphicsDevice
     /// current device draws them from here, whether it belongs to a generated resource plan or not.
     /// </remarks>
     internal ResourceIdentityAllocator ResourceIdentities => this.resourceIdentities;
+
+    /// <summary>
+    /// Gets the gate owning the D3D12 state and the fence points of every resource generation of the current device.
+    /// </summary>
+    /// <remarks>
+    /// Hazard snapshot, barrier recording and hazard commit of a submission run under this gate, so that the state a
+    /// recorded barrier transitions from is the state the submission commits back.
+    /// </remarks>
+    internal Lock HazardGate => this.hazardGate;
 
     /// <summary>
     /// Gets the registration registry of the current device, creating it if needed.
