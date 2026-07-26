@@ -1,3 +1,4 @@
+using System;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Tests.Attributes;
@@ -63,6 +64,94 @@ public unsafe partial class PipelineRecordingTests
         {
             registry.Dispose();
         }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsAPrologueBeyondTheDeclaredCommandListSegments(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteTexture2D<float> texture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
+
+        try
+        {
+            CompletionRegistry completion = new();
+
+            Assert.AreEqual(1, SubmitTextureFill(graphicsDevice, host, completion, texture, 1, 1));
+
+            PipelineKey pipeline = new(host.Id, new PipelineOrdinal(0));
+
+            Assert.IsTrue(host.TryCheckoutPendingRecord(pipeline, 2, out int index));
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            Assert.IsTrue(record.TryBeginRecording());
+
+            SubmissionRetention retention = new() { ResourceUsages = host.GetUsageSetHandle(index) };
+
+            RecordTextureFill(graphicsDevice, host, index, ref retention, texture, 2);
+            RecordTextureFill(graphicsDevice, host, index, ref retention, texture, 3);
+
+            Assert.AreEqual(2, retention.CommandLists.Count);
+
+            SubmissionRetention rejected = retention;
+
+            _ = Assert.ThrowsExactly<InvalidOperationException>(
+                () => ComputeSubmissionExecutor.Submit(graphicsDevice, host, completion, index, ref rejected));
+
+            Assert.AreEqual(SubmissionState.Recording, record.ReadState());
+
+            ReleaseRecording(host, index, ref record, ref retention);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    private static void RecordTextureFill(
+        GraphicsDevice graphicsDevice,
+        PipelineHostRuntime host,
+        int index,
+        ref SubmissionRetention retention,
+        ReadWriteTexture2D<float> texture,
+        float value)
+    {
+        host.CommandLists.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator);
+
+        ComputeContext context = graphicsDevice.CreatePipelineComputeContext(
+            d3D12CommandList,
+            d3D12CommandAllocator,
+            host.CreateUsageRecorder(index));
+
+        context.For(8, 8, new TextureFillShader(texture, value));
+        context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+        resourceLeases?.Release();
+
+        Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
+    }
+
+    private static void ReleaseRecording(
+        PipelineHostRuntime host,
+        int index,
+        ref PendingSubmissionRecord record,
+        ref SubmissionRetention retention)
+    {
+        for (int i = retention.CommandLists.Count - 1; i >= 0; i--)
+        {
+            host.CommandLists.Return(
+                (ID3D12GraphicsCommandList*)CommandListLeaseSet.GetSegment(ref retention.CommandLists, i).CommandList,
+                isCommandListClosed: true);
+        }
+
+        ResourceUsageTracker.ClearUsages(host.UsageSets.Storage, ref host.UsageSets.GetSet(index));
+
+        Assert.IsTrue(record.TryAbort());
+
+        host.ReturnPendingRecord(index);
     }
 
     private static int SubmitTextureFill(
