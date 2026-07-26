@@ -20,6 +20,8 @@ internal sealed class CompletionRegistry
 
     private bool isArmRequested;
 
+    private CompletionCoordinator? coordinator;
+
     public int CommittedCount
     {
         get
@@ -42,6 +44,18 @@ internal sealed class CompletionRegistry
         }
     }
 
+    public void AttachCoordinator(CompletionCoordinator coordinator)
+    {
+        default(ArgumentNullException).ThrowIfNull(coordinator);
+
+        lock (this.registryGate)
+        {
+            default(InvalidOperationException).ThrowIf(this.coordinator is not null, "The completion registry already has a coordinator.");
+
+            this.coordinator = coordinator;
+        }
+    }
+
     public bool CommitAndPublish(
         PipelineHostRuntime host,
         int recordIndex,
@@ -53,31 +67,45 @@ internal sealed class CompletionRegistry
         default(ArgumentNullException).ThrowIfNull(completedValueReader);
         default(ArgumentException).ThrowIf(completion.IsNone, nameof(completion));
 
-        lock (this.registryGate)
+        bool isWakeRequired = false;
+
+        try
         {
-            bool wasEmpty = this.committedRecords.Count == 0;
-
-            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
-
-            this.committedRecords.Add(new Entry(host, recordIndex, completion.Value));
-
-            if (!record.TryCommitAndPublish(completion, in retention))
+            lock (this.registryGate)
             {
-                this.committedRecords.RemoveAt(this.committedRecords.Count - 1);
+                bool wasEmpty = this.committedRecords.Count == 0;
 
-                return false;
+                ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
+
+                this.committedRecords.Add(new Entry(host, recordIndex, completion.Value));
+
+                if (!record.TryCommitAndPublish(completion, in retention))
+                {
+                    this.committedRecords.RemoveAt(this.committedRecords.Count - 1);
+
+                    return false;
+                }
+
+                if (completedValueReader() >= completion.Value)
+                {
+                    _ = record.TryMarkCompletionReady();
+                }
+                else if (wasEmpty)
+                {
+                    this.isArmRequested = true;
+                }
+
+                isWakeRequired = true;
+
+                return true;
             }
-
-            if (completedValueReader() >= completion.Value)
+        }
+        finally
+        {
+            if (isWakeRequired)
             {
-                _ = record.TryMarkCompletionReady();
+                this.coordinator?.Wake();
             }
-            else if (wasEmpty)
-            {
-                this.isArmRequested = true;
-            }
-
-            return true;
         }
     }
 
