@@ -4,6 +4,7 @@ using System.Threading;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Resources.Plans;
 using ComputeSharp.Win32;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -15,6 +16,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     private readonly PipelineCommandListPool commandListPool;
 
     private readonly ResourceUsageSetPool usageSetPool = new();
+
+    private readonly ResourceIdentityAllocator identities = new();
 
     private readonly List<PipelineHostRuntime> hosts = [];
 
@@ -84,6 +87,12 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         SlotResourcePlanStateRecord[] planStates = new SlotResourcePlanStateRecord[host.Structural.OwnedSlotCount];
         int planScalarCount = SlotResourcePlanStorage.CreateHostPlanStates(host, planStates);
 
+        OwnedSlotResourceLayout[] slotLayouts = new OwnedSlotResourceLayout[host.Structural.OwnedSlotCount];
+        int slotResourceCount = SlotGenerationStorage.CreateHostSlotLayouts(host, slotLayouts);
+        ComputeResourceAccess[] slotResourceAccesses = new ComputeResourceAccess[slotResourceCount];
+
+        SlotGenerationStorage.ResolveResourceAccesses(host, slotLayouts, slotResourceAccesses);
+
         HostStructuralReservation reservation;
         PipelineCommandListPartition? commandLists = null;
         ResourceUsageSetPartition? usageSets = null;
@@ -122,6 +131,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                 host.Structural.OwnedSlotCount);
 
             PipelineHostRuntime runtime = new(
+                this.device,
                 host,
                 registration,
                 reservation,
@@ -130,6 +140,10 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                 pendingRecords,
                 planStorage,
                 planStates,
+                slotLayouts,
+                slotResourceAccesses,
+                new ComputeGenerationDeclaration[slotResourceCount],
+                this.identities,
                 slots);
 
             BindSlots(slots, planStorage, planStates);
@@ -181,7 +195,9 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(!this.hosts.Remove(runtime), "The host runtime is not registered on the device.");
+            default(InvalidOperationException).ThrowIf(
+                !this.hosts.Remove(runtime) && !this.isDisposed,
+                "The host runtime is not registered on the device.");
 
             this.aggregate.ReleaseHost(runtime.Reservation);
         }

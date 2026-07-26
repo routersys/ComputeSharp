@@ -2,6 +2,7 @@ using System.Threading;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Resources.Plans;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
@@ -13,7 +14,10 @@ internal sealed class PipelineHostRuntime
 
     private HostRegistrationRecord registration;
 
+    private ulong nextPreparedToken;
+
     internal PipelineHostRuntime(
+        GraphicsDevice device,
         in PipelineHostDescriptor descriptor,
         in HostRegistrationRecord registration,
         in HostStructuralReservation reservation,
@@ -22,8 +26,13 @@ internal sealed class PipelineHostRuntime
         PendingSubmissionRecordPartition pendingRecords,
         int[] planStorage,
         SlotResourcePlanStateRecord[] planStates,
+        OwnedSlotResourceLayout[] slotLayouts,
+        ComputeResourceAccess[] slotResourceAccesses,
+        ComputeGenerationDeclaration[] slotResourceDeclarations,
+        ResourceIdentityAllocator identities,
         IComputeOwnedSlot[] slots)
     {
+        Device = device;
         Descriptor = descriptor;
         Reservation = reservation;
         CommandLists = commandLists;
@@ -31,12 +40,18 @@ internal sealed class PipelineHostRuntime
         PendingRecords = pendingRecords;
         PlanStorage = planStorage;
         PlanStates = planStates;
+        SlotLayouts = slotLayouts;
+        SlotResourceAccesses = slotResourceAccesses;
+        SlotResourceDeclarations = slotResourceDeclarations;
+        Identities = identities;
 
         this.registration = registration;
         this.slots = slots;
     }
 
     public HostRegistrationId Id => this.registration.Id;
+
+    public GraphicsDevice Device { get; }
 
     public PipelineHostDescriptor Descriptor { get; }
 
@@ -51,6 +66,16 @@ internal sealed class PipelineHostRuntime
     public int[] PlanStorage { get; }
 
     public SlotResourcePlanStateRecord[] PlanStates { get; }
+
+    public OwnedSlotResourceLayout[] SlotLayouts { get; }
+
+    public ComputeResourceAccess[] SlotResourceAccesses { get; }
+
+    public ComputeGenerationDeclaration[] SlotResourceDeclarations { get; }
+
+    public ResourceIdentityAllocator Identities { get; }
+
+    public int SlotCount => this.slots.Length;
 
     public RegistrationState State
     {
@@ -72,6 +97,16 @@ internal sealed class PipelineHostRuntime
                 return this.registration.State is RegistrationState.Released;
             }
         }
+    }
+
+    public IComputeOwnedSlot GetSlot(int slotOrdinal)
+    {
+        return this.slots[slotOrdinal];
+    }
+
+    public ulong CreatePreparedToken()
+    {
+        return Interlocked.Increment(ref this.nextPreparedToken);
     }
 
     public bool TryCommitActive()
