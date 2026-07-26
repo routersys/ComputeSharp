@@ -1,4 +1,5 @@
 using System;
+using ComputeSharp.Memory;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -157,6 +158,37 @@ public class GeneratedPipelineHostTests
 
         Assert.IsFalse(host.GetValuesComputeBinding().IsValid);
         Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ObservesTheRegistrationAggregateOnTheAdmissionSnapshot(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        DeviceStructuralAggregate before = graphicsDevice.RefreshMemoryObservations().Structural;
+
+        GeneratedPipelineHost host = GeneratedPipelineHost.Create(graphicsDevice, 2);
+
+        try
+        {
+            DeviceStructuralAggregate registered = graphicsDevice.RefreshMemoryObservations().Structural;
+
+            Assert.AreEqual(before.RecordingBundleCount + 1, registered.RecordingBundleCount);
+            Assert.AreEqual(before.PendingRecordCount + 2, registered.PendingRecordCount);
+            Assert.AreEqual(before.UsageSetCount + 2, registered.UsageSetCount);
+        }
+        finally
+        {
+            host.Dispose();
+            host.WaitForDisposal();
+        }
+
+        DeviceStructuralAggregate released = graphicsDevice.RefreshMemoryObservations().Structural;
+
+        Assert.AreEqual(before.RecordingBundleCount, released.RecordingBundleCount);
+        Assert.AreEqual(before.PendingRecordCount, released.PendingRecordCount);
+        Assert.AreEqual(before.UsageSetCount, released.UsageSetCount);
     }
 
     private static ulong GetOwnedBytes(GraphicsDevice device)
