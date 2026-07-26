@@ -82,6 +82,7 @@ internal sealed record ResourceContractInfo(
 /// <param name="MemberMetadataName">The metadata name of the owning member.</param>
 /// <param name="ResourceTypeMetadataName">The fully qualified metadata name of the slot type.</param>
 /// <param name="ResourceTypeName">The fully qualified name of the slot type, as written in generated code.</param>
+/// <param name="ResourceTypeAccessibility">The accessibility keyword of the generated members referencing the slot type.</param>
 /// <param name="Ownership">The ownership kind for the slot.</param>
 /// <param name="PlanKind">The plan kind for the slot.</param>
 /// <param name="Recovery">The recovery class for the slot.</param>
@@ -92,6 +93,7 @@ internal sealed record OwnedSlotContractInfo(
     string MemberMetadataName,
     string ResourceTypeMetadataName,
     string ResourceTypeName,
+    string ResourceTypeAccessibility,
     ResourceOwnershipKind Ownership,
     ResourcePlanKind PlanKind,
     ComputeResourceRecovery Recovery,

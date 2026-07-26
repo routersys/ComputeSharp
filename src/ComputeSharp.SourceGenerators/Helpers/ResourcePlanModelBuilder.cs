@@ -10,11 +10,6 @@ namespace ComputeSharp.SourceGenerators.Helpers;
 internal static class ResourcePlanModelBuilder
 {
     /// <summary>
-    /// The name of the plan type nested into a resource group.
-    /// </summary>
-    private const string ResourceGroupPlanTypeName = "Plan";
-
-    /// <summary>
     /// Tries to build the exact resource plan types of the owned slots of a given host.
     /// </summary>
     /// <param name="host">The pipeline host contract model to build the plan types of.</param>
@@ -55,7 +50,7 @@ internal static class ResourcePlanModelBuilder
     /// <returns>Whether the plan type of <paramref name="group"/> could be built.</returns>
     public static bool TryBuildGroupPlan(ResourceGroupContractInfo group, out ResourcePlanInfo plan)
     {
-        return TryBuildPlan(ResourceGroupPlanTypeName, group.PlanFields, out plan);
+        return TryBuildPlan(GeneratedIdentifier.ResourceGroupPlanTypeName, group.PlanFields, out plan);
     }
 
     /// <summary>

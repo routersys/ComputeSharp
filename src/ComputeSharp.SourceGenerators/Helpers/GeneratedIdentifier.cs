@@ -10,6 +10,11 @@ namespace ComputeSharp.SourceGenerators.Helpers;
 internal static class GeneratedIdentifier
 {
     /// <summary>
+    /// The name of the plan type nested into a resource group.
+    /// </summary>
+    public const string ResourceGroupPlanTypeName = "Plan";
+
+    /// <summary>
     /// Tries to create the generated canonical name for a given owned member name.
     /// </summary>
     /// <param name="sourceName">The source name of the owned member.</param>
@@ -82,6 +87,16 @@ internal static class GeneratedIdentifier
     public static string CreatePlanTypeName(string canonicalMemberName)
     {
         return canonicalMemberName + "Plan";
+    }
+
+    /// <summary>
+    /// Creates the generated materializer type name for a given canonical member name.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the owned member.</param>
+    /// <returns>The generated materializer type name.</returns>
+    public static string CreateMaterializerTypeName(string canonicalMemberName)
+    {
+        return canonicalMemberName + "Materializer";
     }
 
     /// <summary>

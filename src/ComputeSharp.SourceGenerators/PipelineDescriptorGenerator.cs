@@ -26,7 +26,7 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<PipelineDescriptorInfo> hostInfo =
+        IncrementalValuesProvider<PipelineHostInfo> hostInfo =
             context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "ComputeSharp.ComputePipelineHostAttribute",
@@ -72,22 +72,26 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     /// <param name="context">The current generator context.</param>
     /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
     /// <returns>The descriptor info for the candidate type, if it declares a valid contract.</returns>
-    private static PipelineDescriptorInfo? GetHostInfo(GeneratorAttributeSyntaxContext context, CancellationToken token)
+    private static PipelineHostInfo? GetHostInfo(GeneratorAttributeSyntaxContext context, CancellationToken token)
     {
         if (context.TargetSymbol is not INamedTypeSymbol { IsGenericType: false } typeSymbol ||
             !PipelineWellKnownSymbols.TryCreate(context.SemanticModel.Compilation, out PipelineWellKnownSymbols? symbols) ||
             !PipelineHostContractModelBuilder.TryBuild(typeSymbol, symbols, out PipelineHostContractInfo host) ||
-            !ResourcePlanModelBuilder.TryBuildHostPlans(host, out EquatableArray<ResourcePlanInfo> plans))
+            !ResourcePlanModelBuilder.TryBuildHostPlans(host, out EquatableArray<ResourcePlanInfo> plans) ||
+            !PipelineHostSyntaxModelBuilder.TryBuild(host, out EquatableArray<OwnedSlotSyntaxInfo> slots))
         {
             return null;
         }
 
         token.ThrowIfCancellationRequested();
 
-        return new PipelineDescriptorInfo(
+        return new PipelineHostInfo(
             HierarchyInfo.From(typeSymbol),
+            typeSymbol.Name,
             ImmutableArray.Create(PipelineDescriptorWriter.Write(host)),
-            plans);
+            host.DeviceFieldName,
+            plans,
+            slots);
     }
 
     /// <summary>
@@ -109,8 +113,7 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
 
         return new PipelineDescriptorInfo(
             HierarchyInfo.From(typeSymbol),
-            ImmutableArray.Create(PipelineDescriptorWriter.Write(resourceSet)),
-            ImmutableArray<ResourcePlanInfo>.Empty);
+            ImmutableArray.Create(PipelineDescriptorWriter.Write(resourceSet)));
     }
 
     /// <summary>
@@ -142,16 +145,36 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     private static void Emit(SourceProductionContext context, PipelineDescriptorInfo item)
     {
         using IndentedTextWriter writer = new();
-        using ImmutableArrayBuilder<IndentedTextWriter.Callback<PipelineDescriptorInfo>> callbacks = new();
 
-        callbacks.Add(WriteCanonicalDescriptor);
+        item.Hierarchy.WriteSyntax(item, writer, [], [WriteCanonicalDescriptor]);
+
+        context.AddSource($"{item.Hierarchy.FullyQualifiedMetadataName}.g.cs", writer.ToString());
+    }
+
+    /// <summary>
+    /// Emits the generated source for a given pipeline host info.
+    /// </summary>
+    /// <param name="context">The current source production context.</param>
+    /// <param name="item">The host info to emit the source for.</param>
+    private static void Emit(SourceProductionContext context, PipelineHostInfo item)
+    {
+        using IndentedTextWriter writer = new();
+        using ImmutableArrayBuilder<IndentedTextWriter.Callback<PipelineHostInfo>> callbacks = new();
+
+        callbacks.Add(static (item, writer) => WriteCanonicalDescriptor(item.Descriptor, writer));
+        callbacks.Add(WriteHostRegistration);
 
         if (!item.Plans.IsEmpty)
         {
-            callbacks.Add(WriteResourcePlans);
+            callbacks.Add(static (item, writer) => WriteResourcePlans(item.Plans, writer));
         }
 
-        item.Hierarchy.WriteSyntax(item, writer, [], callbacks.WrittenSpan);
+        if (!item.Slots.IsEmpty)
+        {
+            callbacks.Add(WriteHostSlots);
+        }
+
+        item.Hierarchy.WriteSyntax(item, writer, ["global::System.IDisposable"], callbacks.WrittenSpan);
 
         context.AddSource($"{item.Hierarchy.FullyQualifiedMetadataName}.g.cs", writer.ToString());
     }
@@ -177,24 +200,34 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
     private static void WriteCanonicalDescriptor(PipelineDescriptorInfo item, IndentedTextWriter writer)
     {
+        WriteCanonicalDescriptor(item.Descriptor, writer);
+    }
+
+    /// <summary>
+    /// Writes the canonical descriptor member of a given canonical binary descriptor.
+    /// </summary>
+    /// <param name="descriptor">The canonical binary descriptor to write the member for.</param>
+    /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
+    private static void WriteCanonicalDescriptor(EquatableArray<byte> descriptor, IndentedTextWriter writer)
+    {
         writer.WriteLine("/// <summary>The canonical binary descriptor of the current type.</summary>");
         writer.WriteGeneratedAttributes(GeneratorName);
         writer.Write("private static global::System.ReadOnlySpan<byte> CanonicalDescriptor => [");
 
-        SyntaxFormattingHelper.WriteByteArrayInitializationExpressions(item.Descriptor.AsImmutableArray().AsSpan(), writer);
+        SyntaxFormattingHelper.WriteByteArrayInitializationExpressions(descriptor.AsImmutableArray().AsSpan(), writer);
 
         writer.WriteLine("];");
     }
 
     /// <summary>
-    /// Writes the exact resource plan types of a given descriptor info.
+    /// Writes a set of exact resource plan types.
     /// </summary>
-    /// <param name="item">The descriptor info to write the plan types for.</param>
+    /// <param name="plans">The resource plans to write the types for.</param>
     /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
-    private static void WriteResourcePlans(PipelineDescriptorInfo item, IndentedTextWriter writer)
+    private static void WriteResourcePlans(EquatableArray<ResourcePlanInfo> plans, IndentedTextWriter writer)
     {
         writer.WriteLineSeparatedMembers(
-            item.Plans.AsImmutableArray().AsSpan(),
+            plans.AsImmutableArray().AsSpan(),
             static (plan, writer) => WriteResourcePlan(plan, writer));
     }
 }

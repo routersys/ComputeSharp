@@ -44,6 +44,7 @@ public class PipelineCanonicalOrderingTests
             memberMetadataName,
             "ComputeSharp.ReadWriteBuffer`1[System.Int32]",
             "global::ComputeSharp.ReadWriteBuffer<int>",
+            "public",
             ResourceOwnershipKind.OwnedSlot,
             ResourcePlanKind.Buffer,
             ComputeResourceRecovery.Discardable,
