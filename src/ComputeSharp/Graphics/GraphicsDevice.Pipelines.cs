@@ -125,17 +125,20 @@ unsafe partial class GraphicsDevice
     /// </summary>
     /// <param name="d3D12CommandList">The <see cref="ID3D12GraphicsCommandList"/> object to record into.</param>
     /// <param name="d3D12CommandAllocator">The <see cref="ID3D12CommandAllocator"/> object backing the command list.</param>
+    /// <param name="usageRecorder">The <see cref="ResourceUsageRecorder"/> instance the observed access of bound resources is recorded into.</param>
     /// <returns>The <see cref="ComputeContext"/> instance to record the pipeline invocation with.</returns>
     internal ComputeContext CreatePipelineComputeContext(
         ID3D12GraphicsCommandList* d3D12CommandList,
-        ID3D12CommandAllocator* d3D12CommandAllocator)
+        ID3D12CommandAllocator* d3D12CommandAllocator,
+        in ResourceUsageRecorder usageRecorder)
     {
         default(ArgumentNullException).ThrowIf(d3D12CommandList is null, nameof(d3D12CommandList));
         default(ArgumentNullException).ThrowIf(d3D12CommandAllocator is null, nameof(d3D12CommandAllocator));
+        default(ArgumentException).ThrowIf(!usageRecorder.IsRecording, nameof(usageRecorder));
 
         ThrowIfDeviceLost();
 
-        return new(this, d3D12CommandList, d3D12CommandAllocator);
+        return new(this, d3D12CommandList, d3D12CommandAllocator, in usageRecorder);
     }
 
     /// <summary>

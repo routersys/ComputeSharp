@@ -8,12 +8,16 @@ namespace ComputeSharp.Tests.Internals.Helpers;
 
 internal static unsafe class PipelineSubmissionSetup
 {
-    public static PipelineHostRuntime Host(Device device, out DeviceRegistrationRegistry registry, int maximumPendingSubmissions = 2)
+    public static PipelineHostRuntime Host(
+        Device device,
+        out DeviceRegistrationRegistry registry,
+        int maximumPendingSubmissions = 2,
+        int parameterCount = 0)
     {
         registry = new DeviceRegistrationRegistry(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         return registry.RegisterHost(
-            DeviceRegistrationRegistryTests.CreateHostDescriptor(1),
+            DeviceRegistrationRegistryTests.CreateHostDescriptor(1, parameterCount),
             maximumPendingSubmissions,
             [new ComputeResourceSlot<ReadWriteBuffer<int>>()]);
     }

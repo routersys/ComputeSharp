@@ -6,6 +6,7 @@ using ComputeSharp.Core.Extensions;
 using ComputeSharp.Descriptors;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Extensions;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Shaders.Dispatching;
@@ -40,6 +41,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
     private GraphicsResourceLeaseSet? resourceLeases;
 
+    private readonly ResourceUsageRecorder usageRecorder;
+
     private ContextState state;
 
     /// <summary>
@@ -56,6 +59,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         this.device = device;
         this.commandList = default;
         this.resourceLeases = null;
+        this.usageRecorder = default;
         this.state = ContextState.Recording;
         this.isCommandListBorrowed = false;
 
@@ -70,6 +74,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// <param name="device">The <see cref="GraphicsDevice"/> instance owning the current context.</param>
     /// <param name="d3D12GraphicsCommandList">The <see cref="ID3D12GraphicsCommandList"/> object to record into.</param>
     /// <param name="d3D12CommandAllocator">The <see cref="ID3D12CommandAllocator"/> object backing the command list.</param>
+    /// <param name="usageRecorder">The <see cref="ResourceUsageRecorder"/> instance the observed access of bound resources is recorded into.</param>
     /// <remarks>
     /// A context created this way never executes what it records. The pipeline host submits the command list and
     /// owns both native objects, so disposing the context only releases what the context itself took.
@@ -77,7 +82,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     internal unsafe ComputeContext(
         GraphicsDevice device,
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
-        ID3D12CommandAllocator* d3D12CommandAllocator)
+        ID3D12CommandAllocator* d3D12CommandAllocator,
+        in ResourceUsageRecorder usageRecorder)
     {
         this.device = device;
         this.commandList = new CommandList(device, d3D12GraphicsCommandList, d3D12CommandAllocator);
@@ -86,6 +92,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         // never runs for this context. The lease set every recorded resource is tracked into has to
         // be rented here instead, or the first recorded dispatch would have nowhere to track them.
         this.resourceLeases = GraphicsResourceLeaseSet.Rent();
+        this.usageRecorder = usageRecorder;
         this.state = ContextState.Recording;
         this.isCommandListBorrowed = true;
 
@@ -215,7 +222,12 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         T.LoadConstantBuffer(in shader, ref dataLoader, x, y, z);
 
-        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device!, rootParameterOffset: 1, this.resourceLeases!);
+        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(
+            commandList.D3D12GraphicsCommandList,
+            this.device!,
+            rootParameterOffset: 1,
+            this.resourceLeases!,
+            in this.usageRecorder);
 
         T.LoadGraphicsResources(in shader, ref graphicsResourceLoader);
 
@@ -253,13 +265,20 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         T.LoadConstantBuffer(in shader, ref constantBufferLoader, x, y, 1);
 
-        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(commandList.D3D12GraphicsCommandList, this.device!, rootParameterOffset: 2, this.resourceLeases!);
+        D3D12GraphicsCommandListGraphicsResourceLoader graphicsResourceLoader = new(
+            commandList.D3D12GraphicsCommandList,
+            this.device!,
+            rootParameterOffset: 2,
+            this.resourceLeases!,
+            in this.usageRecorder);
 
         T.LoadGraphicsResources(in shader, ref graphicsResourceLoader);
 
         _ = ((ID3D12ReadOnlyResource)texture).ValidateAndGetID3D12Resource(this.device!, out ReferenceTracker.Lease textureLease);
 
         this.resourceLeases!.Add(textureLease);
+
+        this.usageRecorder.Record(texture);
 
         // Load the implicit output texture
         commandList.D3D12GraphicsCommandList->SetComputeRootDescriptorTable(

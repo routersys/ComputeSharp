@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using ComputeSharp.Graphics.Commands;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Descriptors;
@@ -43,6 +44,8 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
 
     private readonly GraphicsResourceLeaseSet resourceLeases;
 
+    private readonly ResourceUsageRecorder usageRecorder;
+
     /// <summary>
     /// Creates a new <see cref="D3D12GraphicsCommandListGraphicsResourceLoader"/> instance.
     /// </summary>
@@ -50,17 +53,20 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
     /// <param name="graphicsDevice">The <see cref="GraphicsDevice"/> instance that <paramref name="d3D12GraphicsCommandList"/> is tied to.</param>
     /// <param name="rootParameterOffset">The offset into the compute root descriptor table for loaded resources.</param>
     /// <param name="resourceLeases">The <see cref="GraphicsResourceLeaseSet"/> instance holding the leases for loaded resources.</param>
+    /// <param name="usageRecorder">The <see cref="ResourceUsageRecorder"/> instance the observed access of loaded resources is recorded into.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal D3D12GraphicsCommandListGraphicsResourceLoader(
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
         GraphicsDevice graphicsDevice,
         uint rootParameterOffset,
-        GraphicsResourceLeaseSet resourceLeases)
+        GraphicsResourceLeaseSet resourceLeases,
+        in ResourceUsageRecorder usageRecorder)
     {
         this.d3D12GraphicsCommandList = d3D12GraphicsCommandList;
         this.graphicsDevice = graphicsDevice;
         this.rootParameterOffset = rootParameterOffset;
         this.resourceLeases = resourceLeases;
+        this.usageRecorder = usageRecorder;
     }
 
     /// <inheritdoc/>
@@ -78,6 +84,8 @@ internal readonly unsafe struct D3D12GraphicsCommandListGraphicsResourceLoader :
         _ = readOnlyResource.ValidateAndGetID3D12Resource(this.graphicsDevice, out ReferenceTracker.Lease lease);
 
         this.resourceLeases.Add(lease);
+
+        this.usageRecorder.Record(resource);
 
         this.d3D12GraphicsCommandList->SetComputeRootDescriptorTable(
             RootParameterIndex: this.rootParameterOffset + index,

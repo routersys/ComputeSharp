@@ -31,7 +31,7 @@ public unsafe partial class PipelineRecordingTests
     public void RecordsAndSubmitsThroughACommandListOwnedByTheHost(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
-        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry);
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
 
         using ReadWriteBuffer<int> buffer = graphicsDevice.AllocateReadWriteBuffer<int>(64);
 
@@ -48,7 +48,10 @@ public unsafe partial class PipelineRecordingTests
 
             host.CommandLists.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator);
 
-            ComputeContext context = graphicsDevice.CreatePipelineComputeContext(d3D12CommandList, d3D12CommandAllocator);
+            ComputeContext context = graphicsDevice.CreatePipelineComputeContext(
+                d3D12CommandList,
+                d3D12CommandAllocator,
+                host.CreateUsageRecorder(index));
 
             context.For(64, new FillShader(buffer, 1));
 
@@ -89,7 +92,7 @@ public unsafe partial class PipelineRecordingTests
     public void ExecutesEveryRecordedCommandListSegment(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
-        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry);
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 2);
 
         using ReadWriteBuffer<int> first = graphicsDevice.AllocateReadWriteBuffer<int>(64);
         using ReadWriteBuffer<int> second = graphicsDevice.AllocateReadWriteBuffer<int>(64);
@@ -107,9 +110,9 @@ public unsafe partial class PipelineRecordingTests
 
             SubmissionRetention retention = new() { ResourceUsages = host.GetUsageSetHandle(index) };
 
-            retention.ResourceLeases = Record(graphicsDevice, host, ref retention, first, 1);
+            retention.ResourceLeases = Record(graphicsDevice, host, index, ref retention, first, 1);
 
-            GraphicsResourceLeaseSet? secondLeases = Record(graphicsDevice, host, ref retention, second, 100);
+            GraphicsResourceLeaseSet? secondLeases = Record(graphicsDevice, host, index, ref retention, second, 100);
 
             Assert.AreEqual(2, retention.CommandLists.Count);
             Assert.IsTrue(record.TryCompleteValidation());
@@ -142,13 +145,17 @@ public unsafe partial class PipelineRecordingTests
     private static GraphicsResourceLeaseSet? Record(
         GraphicsDevice graphicsDevice,
         PipelineHostRuntime host,
+        int index,
         ref SubmissionRetention retention,
         ReadWriteBuffer<int> buffer,
         int offset)
     {
         host.CommandLists.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator);
 
-        ComputeContext context = graphicsDevice.CreatePipelineComputeContext(d3D12CommandList, d3D12CommandAllocator);
+        ComputeContext context = graphicsDevice.CreatePipelineComputeContext(
+            d3D12CommandList,
+            d3D12CommandAllocator,
+            host.CreateUsageRecorder(index));
 
         context.For(64, new FillShader(buffer, offset));
         context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);

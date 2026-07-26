@@ -36,14 +36,15 @@ public unsafe partial class DeviceRegistrationRegistryTests
         payload.AddRange(buffer);
     }
 
-    private static byte[] HostPayload(int slotCount)
+    private static byte[] HostPayload(int slotCount, int parameterCount)
     {
+        int commandListSegments = parameterCount > 0 ? 2 : 1;
         List<byte> payload = [(byte)DescriptorKind.PipelineHost];
 
         WriteString(payload, "H");
         WriteInt32(payload, 1);
-        WriteInt32(payload, 0);
-        WriteInt32(payload, 1);
+        WriteInt32(payload, parameterCount);
+        WriteInt32(payload, commandListSegments);
         WriteInt32(payload, slotCount);
         WriteInt32(payload, 1);
 
@@ -51,9 +52,23 @@ public unsafe partial class DeviceRegistrationRegistryTests
         WriteString(payload, "M");
         WriteString(payload, CanonicalSignature);
         WriteInt32(payload, 0);
-        WriteInt32(payload, 0);
-        WriteInt32(payload, 1);
-        WriteInt32(payload, 0);
+        WriteInt32(payload, parameterCount);
+        WriteInt32(payload, commandListSegments);
+        WriteInt32(payload, parameterCount);
+
+        for (int i = 0; i < parameterCount; i++)
+        {
+            WriteInt32(payload, i);
+            WriteString(payload, "ComputeSharp.ReadWriteBuffer`1[System.Int32]");
+            payload.Add((byte)ComputeResourceAccess.ReadWrite);
+            payload.Add((byte)ComputeResourceSharing.Internal);
+            payload.Add((byte)ComputeResourceAliasing.Disallow);
+            payload.Add((byte)ResourceOwnershipKind.Borrowed);
+            payload.Add(0);
+            WriteInt32(payload, 0);
+            WriteInt32(payload, 0);
+        }
+
         WriteInt32(payload, 0);
 
         WriteInt32(payload, slotCount);
@@ -79,9 +94,9 @@ public unsafe partial class DeviceRegistrationRegistryTests
         return [.. payload];
     }
 
-    internal static byte[] CreateHostDescriptor(int slotCount)
+    internal static byte[] CreateHostDescriptor(int slotCount, int parameterCount = 0)
     {
-        byte[] payload = HostPayload(slotCount);
+        byte[] payload = HostPayload(slotCount, parameterCount);
         ReadOnlySpan<byte> header = [0x43, 0x53, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
         byte[] hashInput = new byte[10 + payload.Length];
 

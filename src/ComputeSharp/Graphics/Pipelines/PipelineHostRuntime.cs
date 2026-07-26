@@ -173,6 +173,11 @@ internal sealed class PipelineHostRuntime
         return UsageSets.GetHandle(pendingRecordIndex);
     }
 
+    public ResourceUsageRecorder CreateUsageRecorder(int pendingRecordIndex)
+    {
+        return new ResourceUsageRecorder(UsageSets, GetUsageSetHandle(pendingRecordIndex));
+    }
+
     public void RequestDispose()
     {
         lock (this.registrationGate)
