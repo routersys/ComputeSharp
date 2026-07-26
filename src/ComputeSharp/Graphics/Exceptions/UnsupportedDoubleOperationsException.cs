@@ -32,6 +32,21 @@ public sealed class UnsupportedDoubleOperationException : NotSupportedException
     }
 
     /// <summary>
+    /// Creates a new <see cref="UnsupportedDoubleOperationException"/> instance from the specified parameters.
+    /// </summary>
+    /// <param name="memberMetadataName">The metadata name of the member declaring the resources that couldn't be created.</param>
+    /// <returns>A new <see cref="UnsupportedDoubleOperationException"/> instance with a formatted error message.</returns>
+    private static UnsupportedDoubleOperationException Create(string memberMetadataName)
+    {
+        string message =
+            $"The device in use does not support creating the resources declared by {memberMetadataName}, as it does not support using double precision floating point numbers. " +
+            $"As a possible workaround, consider replacing usage of the double type with single precision floating point numbers. " +
+            $"Note that double precision operations are only partially supported on GPU devices, and are far slower than single precision ones.";
+
+        return new(message);
+    }
+
+    /// <summary>
     /// Throws a new <see cref="UnsupportedDoubleOperationException"/> instance from the specified parameters.
     /// </summary>
     /// <typeparam name="T">The type of values in the resource that couldn't be created.</typeparam>
@@ -39,5 +54,14 @@ public sealed class UnsupportedDoubleOperationException : NotSupportedException
         where T : unmanaged
     {
         throw Create(typeof(T));
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="UnsupportedDoubleOperationException"/> instance from the specified parameters.
+    /// </summary>
+    /// <param name="memberMetadataName">The metadata name of the member declaring the resources that couldn't be created.</param>
+    internal static void Throw(string memberMetadataName)
+    {
+        throw Create(memberMetadataName);
     }
 }

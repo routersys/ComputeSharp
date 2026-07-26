@@ -91,6 +91,7 @@ public sealed class ComputeHostRuntime : IDisposable
     /// <returns>Whether the owned slot matches <paramref name="requestedPlan"/>.</returns>
     /// <exception cref="ArgumentException">Thrown if <paramref name="requestedPlan"/> does not match the slot contract.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the declared resources do not match the slot contract.</exception>
+    /// <exception cref="UnsupportedDoubleOperationException">Thrown if the declared resources need double precision support the device does not have.</exception>
     /// <exception cref="GraphicsMemoryAllocationException">Thrown if a native allocation fails for a reason other than memory pressure.</exception>
     public bool TryEnsureResource<TMaterializer>(
         int slotOrdinal,
@@ -194,6 +195,12 @@ public sealed class ComputeHostRuntime : IDisposable
         changed = false;
 
         GraphicsDevice device = Device;
+
+        if (TMaterializer.RequiresDoublePrecisionSupport && !device.IsDoublePrecisionSupportAvailable())
+        {
+            UnsupportedDoubleOperationException.Throw(descriptor.MemberMetadataName);
+        }
+
         OwnedSlotResourceLayout layout = this.runtime.SlotLayouts[slotOrdinal];
 
         if (!layout.HasAccessContracts)
