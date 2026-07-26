@@ -1124,4 +1124,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A compute pipeline host must declare a 'private readonly GraphicsDevice' field with the configured name and no initializer.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned slot declaring a resource type its access contract cannot produce.
+    /// <para>
+    /// Format: <c>"The owned slot {0} declares the resource type {1}, which cannot hold the {2} instance its access contract produces"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOwnedSlotResourceType = new(
+        id: "CMPS0094",
+        title: "Invalid owned slot declaration",
+        messageFormat: "The owned slot {0} declares the resource type {1}, which cannot hold the {2} instance its access contract produces",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The managed resource type of an owned slot is determined by its access contract, so the declared resource type must be able to hold it.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a resource group member declaring a resource type its access contract cannot produce.
+    /// <para>
+    /// Format: <c>"The resource group member {0} declares the resource type {1}, which cannot hold the {2} instance its access contract produces"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidResourceGroupMemberResourceType = new(
+        id: "CMPS0107",
+        title: "Invalid resource group property contract",
+        messageFormat: "The resource group member {0} declares the resource type {1}, which cannot hold the {2} instance its access contract produces",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The managed resource type of a resource group member is determined by its access contract, so the declared resource type must be able to hold it.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
