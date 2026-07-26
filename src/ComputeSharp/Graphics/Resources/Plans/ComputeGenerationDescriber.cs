@@ -3,6 +3,7 @@ using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
@@ -17,7 +18,8 @@ internal enum ComputeGenerationDeclarationStatus : byte
     AllocationInfoInvalid = 4,
     SegmentUnmapped = 5,
     PlacementMismatch = 6,
-    DeclarationMismatch = 7
+    DeclarationMismatch = 7,
+    NativeCreationFailed = 8
 }
 
 internal static unsafe class ComputeGenerationDescriber
@@ -25,6 +27,16 @@ internal static unsafe class ComputeGenerationDescriber
     public static ResourceType GetResourceType(ComputeResourceAccess access)
     {
         return access is ComputeResourceAccess.Read ? ResourceType.ReadOnly : ResourceType.ReadWrite;
+    }
+
+    public static TrackedResourceState GetTrackedState(D3D12_RESOURCE_STATES d3D12ResourceStates)
+    {
+        return d3D12ResourceStates switch
+        {
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON => TrackedResourceState.Common,
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS => TrackedResourceState.UnorderedAccess,
+            _ => default(ArgumentException).Throw<TrackedResourceState>(nameof(d3D12ResourceStates))
+        };
     }
 
     public static ComputeGenerationDeclarationStatus DescribeBuffer<T>(
