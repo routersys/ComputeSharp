@@ -428,4 +428,109 @@ internal struct SlotGate
             }
         }
     }
+
+    public void GetActiveSnapshot(out ResourceGenerationSetId activeSetId, out ulong bindingEpoch)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            activeSetId = this.control.ActiveSetId;
+            bindingEpoch = this.control.BindingEpoch;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    public void GetMaintenanceHandles(
+        out ResourceGenerationSetHandle active,
+        out ResourceGenerationSetHandle prepared,
+        out ResourceGenerationSetHandle retired,
+        out bool isRetiringActive)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            active = this.control.Active;
+            prepared = this.control.Prepared;
+            retired = this.control.Retired;
+            isRetiringActive = this.control.State is SlotControlState.RetiringActive;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    public bool TryGetBinding<TResource>(int resourceIndex, out ComputeResourceBinding<TResource> binding)
+        where TResource : class, IGraphicsResource
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            default(InvalidOperationException).ThrowIf(
+                this.control.State is SlotControlState.Unbound,
+                "The resource slot is not bound to a pipeline host.");
+
+            if (!this.control.TryGetActiveResource(resourceIndex, out TResource resource, out ResourceGenerationId generationId))
+            {
+                binding = default;
+
+                return false;
+            }
+
+            binding = new ComputeResourceBinding<TResource>(
+                resource,
+                this.control.ActiveSetId,
+                generationId,
+                this.control.BindingEpoch,
+                resourceIndex);
+
+            return true;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    public void ThrowIfUnbound()
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            default(InvalidOperationException).ThrowIf(
+                this.control.State is SlotControlState.Unbound,
+                "The resource slot is not bound to a pipeline host.");
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
 }

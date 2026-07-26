@@ -21,6 +21,8 @@ internal struct SlotControlRecord
 
     public readonly bool IsAllocated => this.State is SlotControlState.Active or SlotControlState.ReplacementPrepared && !this.Active.IsEmpty;
 
+    public readonly ResourceGenerationSetId ActiveSetId => this.Active.IsEmpty ? default : this.Active.SetId;
+
     public bool TryBind()
     {
         if (this.State is not SlotControlState.Unbound)
@@ -116,7 +118,7 @@ internal struct SlotControlRecord
             this.PreparedToken != preparedToken ||
             !this.Retired.IsEmpty ||
             this.BindingEpoch != expectedBindingEpoch ||
-            ActiveSetId() != expectedActiveSetId)
+            ActiveSetId != expectedActiveSetId)
         {
             _ = TryAbortReplacement(preparedToken, out detachedPrepared);
 
@@ -295,6 +297,39 @@ internal struct SlotControlRecord
         return true;
     }
 
+    public readonly bool TryGetActiveResource<TResource>(
+        int resourceIndex,
+        out TResource resource,
+        out ResourceGenerationId generationId)
+        where TResource : class, IGraphicsResource
+    {
+        resource = null!;
+        generationId = default;
+
+        ResourceGenerationSetHandle active = this.Active;
+
+        if (this.IsDisposeRequested ||
+            !this.IsAllocated ||
+            (uint)resourceIndex >= (uint)active.Owner.ResourceCount ||
+            active.Owner is not ResourceGenerationOwner owner)
+        {
+            return false;
+        }
+
+        ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
+
+        if (record.ReadLifecycle() is not ResourceGenerationState.Active ||
+            owner.TryGetResource<TResource>(resourceIndex) is not TResource activeResource)
+        {
+            return false;
+        }
+
+        resource = activeResource;
+        generationId = record.Id;
+
+        return true;
+    }
+
     private static void RetireAndReleaseOwnership(in ResourceGenerationSetHandle handle)
     {
         IResourceGenerationOwner owner = handle.Owner;
@@ -356,10 +391,5 @@ internal struct SlotControlRecord
         {
             _ = owner.GetResourceRecord(i).TryMarkTerminalRetained();
         }
-    }
-
-    private readonly ResourceGenerationSetId ActiveSetId()
-    {
-        return this.Active.IsEmpty ? default : this.Active.SetId;
     }
 }

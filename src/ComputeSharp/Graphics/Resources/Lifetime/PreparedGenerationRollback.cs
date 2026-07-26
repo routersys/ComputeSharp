@@ -11,6 +11,13 @@ internal static class PreparedGenerationRollback
 
         IResourceGenerationOwner owner = prepared.Owner;
 
+        if (owner is ResourceGenerationOwner generationOwner)
+        {
+            generationOwner.ReleaseUnpublished();
+
+            return;
+        }
+
         for (int i = owner.ResourceCount - 1; i >= 0; i--)
         {
             ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
