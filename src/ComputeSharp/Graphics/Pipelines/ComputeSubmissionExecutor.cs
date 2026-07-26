@@ -98,6 +98,12 @@ internal static unsafe class ComputeSubmissionExecutor
 
         default(InvalidOperationException).ThrowIf(!record.TryMarkExecutionIssued(), "The submission could not be marked as issued.");
         default(InvalidOperationException).ThrowIf(!record.TryMarkCompletionSignaled(), "The submission completion could not be signaled.");
+
+        if (!retention.ResourceUsages.IsNone)
+        {
+            ResourceHazardTracker.CommitResourceUsages(GetUsages(host, retention.ResourceUsages), completion);
+        }
+
         default(InvalidOperationException).ThrowIf(!record.TryCommitHazards(), "The submission hazards could not be committed.");
         default(InvalidOperationException).ThrowIf(
             !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.GetComputeFenceCompletedValue),
