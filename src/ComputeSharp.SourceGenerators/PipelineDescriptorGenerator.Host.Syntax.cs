@@ -63,6 +63,11 @@ partial class PipelineDescriptorGenerator
         using (writer.WriteBlock())
         {
             writer.WriteLine($"this.{RuntimeFieldName}.Dispose();");
+
+            foreach (OwnedSlotSyntaxInfo slot in item.Slots)
+            {
+                writer.WriteLine($"this.@{slot.FieldName}.Dispose();");
+            }
         }
 
         writer.WriteLine();
