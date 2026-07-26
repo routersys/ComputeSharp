@@ -35,6 +35,11 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     private ResourceGenerationBinding generationBinding;
 
     /// <summary>
+    /// The <see cref="TrackedResourceState"/> value the current instance permanently resides in.
+    /// </summary>
+    private readonly TrackedResourceState residentState;
+
+    /// <summary>
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
     private ReferenceTracker referenceTracker;
@@ -118,13 +123,14 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
             out this.allocation,
             out this.d3D12Resource);
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetBufferResidentState(resourceType));
+        this.residentState = ComputeGenerationDescriber.GetBufferResidentState(resourceType);
+
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.generationBinding.InitializeSelfOwned(
             this,
             device.ResourceIdentities,
+            this.residentState,
             this.memoryAllocation.Placement,
             this.memoryAllocation.Bytes);
 
@@ -179,9 +185,9 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
 
         this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetBufferResidentState(resourceType));
+        this.residentState = ComputeGenerationDescriber.GetBufferResidentState(resourceType);
+
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView);
@@ -239,7 +245,7 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     /// <inheritdoc/>
     bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
     {
-        return this.generationBinding.TryGetBinding(out binding);
+        return this.generationBinding.TryGetBinding(this.residentState, out binding);
     }
 
     /// <summary>

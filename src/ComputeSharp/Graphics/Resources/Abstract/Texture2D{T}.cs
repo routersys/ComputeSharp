@@ -116,13 +116,12 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
             out this.d3D12Resource,
             out this.d3D12ResourceState);
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState));
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.generationBinding.InitializeSelfOwned(
             this,
             device.ResourceIdentities,
+            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
             this.memoryAllocation.Placement,
             this.memoryAllocation.Bytes);
 
@@ -190,13 +189,12 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
             out this.d3D12Resource,
             out this.d3D12ResourceState);
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState));
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.generationBinding.InitializeSelfOwned(
             this,
             device.ResourceIdentities,
+            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
             this.memoryAllocation.Placement,
             this.memoryAllocation.Bytes);
 
@@ -256,9 +254,7 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
         this.d3D12ResourceState = d3D12ResourceStates;
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState));
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
             ? D3D12_COMMAND_LIST_TYPE_COPY
@@ -335,9 +331,7 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
         this.d3D12ResourceState = D3D12_RESOURCE_STATE_COMMON;
 
-        this.generationBinding.InitializeUsage(
-            ComputeGenerationDescriber.GetObservedAccess(resourceType),
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState));
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COPY;
 
@@ -401,7 +395,9 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
     /// <inheritdoc/>
     bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
     {
-        return this.generationBinding.TryGetBinding(out binding);
+        return this.generationBinding.TryGetBinding(
+            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
+            out binding);
     }
 
     /// <summary>

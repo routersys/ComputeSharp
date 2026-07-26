@@ -63,6 +63,7 @@ internal static unsafe class ComputeGenerationDescriber
         {
             D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON => TrackedResourceState.Common,
             D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS => TrackedResourceState.UnorderedAccess,
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE => TrackedResourceState.NonPixelShaderResource,
             _ => default(ArgumentException).Throw<TrackedResourceState>(nameof(d3D12ResourceStates))
         };
     }

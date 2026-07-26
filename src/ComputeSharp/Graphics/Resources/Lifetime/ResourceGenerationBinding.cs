@@ -28,6 +28,11 @@ internal readonly struct ResourceUsageBinding(
     public ComputeResourceAccess Access { get; } = access;
 
     public TrackedResourceState ResidentState { get; } = residentState;
+
+    public ResourceUsageBinding WithObservedAccess(ComputeResourceAccess access)
+    {
+        return new ResourceUsageBinding(Set, ResourceIndex, Generation, access, ResidentState);
+    }
 }
 
 internal struct ResourceGenerationBinding
@@ -40,8 +45,6 @@ internal struct ResourceGenerationBinding
 
     private ComputeResourceAccess access;
 
-    private TrackedResourceState residentState;
-
     private ResourceGenerationRecord record;
 
     public readonly ResourceGenerationSetId SetId => this.setId;
@@ -49,29 +52,25 @@ internal struct ResourceGenerationBinding
     [UnscopedRef]
     public ref ResourceGenerationRecord Record => ref this.record;
 
-    public void InitializeUsage(ComputeResourceAccess access, TrackedResourceState residentState)
+    public void InitializeObservedAccess(ComputeResourceAccess access)
     {
-        default(ArgumentException).ThrowIf(residentState is TrackedResourceState.Unknown, nameof(residentState));
-
         this.access = access;
-        this.residentState = residentState;
     }
 
     public void InitializeSelfOwned(
         IResourceGenerationOwner self,
         ResourceIdentityAllocator identities,
+        TrackedResourceState d3D12State,
         MemoryPlacement placement,
         ulong reclaimableBytes)
     {
-        default(InvalidOperationException).ThrowIf(
-            this.residentState is TrackedResourceState.Unknown,
-            "The resource has no observed usage to own a generation with.");
+        default(ArgumentException).ThrowIf(d3D12State is TrackedResourceState.Unknown, nameof(d3D12State));
 
         this.setId = identities.CreateGenerationSetId();
         this.record.ResourceId = identities.CreateResourceId();
         this.record.Id = identities.CreateGenerationId();
         this.record.Lifecycle = ResourceGenerationState.Active;
-        this.record.D3D12State = this.residentState;
+        this.record.D3D12State = d3D12State;
         this.record.Placement = placement;
         this.record.ReclaimableBytes = reclaimableBytes;
         this.record.ExternalObjectsReleased = 1;
@@ -85,10 +84,11 @@ internal struct ResourceGenerationBinding
         this.resourceIndex = resourceIndex;
     }
 
-    public readonly bool TryGetBinding(out ResourceUsageBinding binding)
+    public readonly bool TryGetBinding(TrackedResourceState residentState, out ResourceUsageBinding binding)
     {
-        if (this.owner is not IResourceGenerationOwner owner ||
-            this.residentState is TrackedResourceState.Unknown)
+        default(ArgumentException).ThrowIf(residentState is TrackedResourceState.Unknown, nameof(residentState));
+
+        if (this.owner is not IResourceGenerationOwner owner)
         {
             binding = default;
 
@@ -100,7 +100,7 @@ internal struct ResourceGenerationBinding
             (uint)this.resourceIndex,
             owner.GetResourceRecord(this.resourceIndex).Id,
             this.access,
-            this.residentState);
+            residentState);
 
         return true;
     }
