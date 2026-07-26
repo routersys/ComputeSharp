@@ -593,6 +593,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -611,6 +613,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture1D<Float2> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -631,6 +635,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -649,6 +655,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture1D<Float4> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -673,6 +681,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -691,6 +701,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture2D<float> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -711,6 +723,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -730,6 +744,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -748,6 +764,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture2D<Float4> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -772,6 +790,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -790,6 +810,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture3D<float> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -810,6 +832,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -829,6 +853,8 @@ public static class ComputeContextExtensions
     {
         default(ArgumentNullException).ThrowIfNull(texture);
 
+        context.ThrowIfPipelineRecording();
+
         using ReferenceTracker.Lease lease = default;
 
         (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
@@ -847,6 +873,8 @@ public static class ComputeContextExtensions
     public static unsafe void Transition(this ref readonly ComputeContext context, ReadWriteTexture3D<Float4> texture, ResourceState resourceState)
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 
@@ -870,6 +898,8 @@ public static class ComputeContextExtensions
         where TPixel : unmanaged
     {
         default(ArgumentNullException).ThrowIfNull(texture);
+
+        context.ThrowIfPipelineRecording();
 
         using ReferenceTracker.Lease lease = default;
 

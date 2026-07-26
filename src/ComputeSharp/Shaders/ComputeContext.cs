@@ -569,6 +569,13 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         device.GetReferenceTracker().DangerousRelease();
     }
 
+    internal readonly void ThrowIfPipelineRecording()
+    {
+        default(InvalidOperationException).ThrowIf(
+            this.isCommandListBorrowed,
+            "The state of a resource cannot be transitioned while recording a compute pipeline.");
+    }
+
     internal readonly void TrackResourceLease(ref ReferenceTracker.Lease lease)
     {
         ref GraphicsResourceLeaseSet? resourceLeases = ref Unsafe.AsRef(in this.resourceLeases);
