@@ -40,7 +40,6 @@ public unsafe partial class ComputeSubmissionTests
                 host,
                 completion,
                 index,
-                PipelineSubmissionSetup.GetCommandList(in retention),
                 copyFenceWaitValue: 0,
                 in retention);
 
@@ -75,11 +74,11 @@ public unsafe partial class ComputeSubmissionTests
 
             int first = PipelineSubmissionSetup.RecordAndPrepare(host, 1, out SubmissionRetention firstRetention);
             ComputeSubmission firstSubmission = ComputeSubmissionExecutor.Submit(
-                device.Get(), host, completion, first, PipelineSubmissionSetup.GetCommandList(in firstRetention), 0, in firstRetention);
+                device.Get(), host, completion, first, 0, in firstRetention);
 
             int second = PipelineSubmissionSetup.RecordAndPrepare(host, 2, out SubmissionRetention secondRetention);
             ComputeSubmission secondSubmission = ComputeSubmissionExecutor.Submit(
-                device.Get(), host, completion, second, PipelineSubmissionSetup.GetCommandList(in secondRetention), 0, in secondRetention);
+                device.Get(), host, completion, second, 0, in secondRetention);
 
             Assert.IsTrue(secondSubmission.Completion.Value > firstSubmission.Completion.Value);
 

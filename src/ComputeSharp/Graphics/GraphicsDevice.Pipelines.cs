@@ -67,14 +67,24 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
-    /// Executes a recorded generated pipeline command list on the compute queue and signals its completion.
+    /// Executes the recorded segments of a generated pipeline submission on the compute queue and signals its completion.
     /// </summary>
-    /// <param name="d3D12CommandList">The closed command list to execute.</param>
+    /// <param name="d3D12CommandLists">The closed command list segments to execute, in recorded order.</param>
     /// <param name="d3D12CopyFenceWaitValue">The manual copy queue fence value to wait on, or <c>0</c> for none.</param>
     /// <returns>The completion fence point of the submission.</returns>
-    internal FencePoint ExecutePipelineCommandList(ID3D12GraphicsCommandList* d3D12CommandList, ulong d3D12CopyFenceWaitValue)
+    internal FencePoint ExecutePipelineCommandLists(ReadOnlySpan<nint> d3D12CommandLists, ulong d3D12CopyFenceWaitValue)
     {
-        default(ArgumentNullException).ThrowIf(d3D12CommandList is null, nameof(d3D12CommandList));
+        default(ArgumentException).ThrowIf(d3D12CommandLists.IsEmpty, nameof(d3D12CommandLists));
+        default(ArgumentException).ThrowIf(d3D12CommandLists.Length > CommandListLeaseSet.MaximumSegmentCount, nameof(d3D12CommandLists));
+
+        ID3D12CommandList** d3D12CommandListEntries = stackalloc ID3D12CommandList*[CommandListLeaseSet.MaximumSegmentCount];
+
+        for (int i = 0; i < d3D12CommandLists.Length; i++)
+        {
+            default(ArgumentException).ThrowIf(d3D12CommandLists[i] == 0, nameof(d3D12CommandLists));
+
+            d3D12CommandListEntries[i] = (ID3D12CommandList*)d3D12CommandLists[i];
+        }
 
         ulong completionValue;
 
@@ -85,9 +95,7 @@ unsafe partial class GraphicsDevice
                 this.d3D12ComputeCommandQueue.Get()->Wait(this.d3D12CopyFence.Get(), d3D12CopyFenceWaitValue).Assert();
             }
 
-            ID3D12CommandList* d3D12CommandListEntry = (ID3D12CommandList*)d3D12CommandList;
-
-            this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists(1, &d3D12CommandListEntry);
+            this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists((uint)d3D12CommandLists.Length, d3D12CommandListEntries);
 
             completionValue = ++this.nextD3D12ComputeFenceValue;
 

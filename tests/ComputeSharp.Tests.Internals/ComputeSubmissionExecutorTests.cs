@@ -27,7 +27,6 @@ public unsafe partial class ComputeSubmissionExecutorTests
                 host,
                 completion,
                 index,
-                PipelineSubmissionSetup.GetCommandList(in retention),
                 copyFenceWaitValue: 0,
                 in retention);
 
@@ -74,7 +73,6 @@ public unsafe partial class ComputeSubmissionExecutorTests
                     host,
                     completion,
                     index,
-                    PipelineSubmissionSetup.GetCommandList(in retention),
                     copyFenceWaitValue: 0,
                     in retention);
 
@@ -107,11 +105,11 @@ public unsafe partial class ComputeSubmissionExecutorTests
 
             int first = PipelineSubmissionSetup.RecordAndPrepare(host, 1, out SubmissionRetention firstRetention);
             ComputeSubmission firstSubmission = ComputeSubmissionExecutor.Submit(
-                device.Get(), host, completion, first, PipelineSubmissionSetup.GetCommandList(in firstRetention), 0, in firstRetention);
+                device.Get(), host, completion, first, 0, in firstRetention);
 
             int second = PipelineSubmissionSetup.RecordAndPrepare(host, 2, out SubmissionRetention secondRetention);
             ComputeSubmission secondSubmission = ComputeSubmissionExecutor.Submit(
-                device.Get(), host, completion, second, PipelineSubmissionSetup.GetCommandList(in secondRetention), 0, in secondRetention);
+                device.Get(), host, completion, second, 0, in secondRetention);
 
             Assert.IsTrue(secondSubmission.Completion.Value > firstSubmission.Completion.Value);
             Assert.AreEqual(0, host.PendingRecords.AvailableCount);
@@ -149,7 +147,7 @@ public unsafe partial class ComputeSubmissionExecutorTests
             _ = d3D12CommandList->Close();
 
             _ = Assert.ThrowsExactly<InvalidOperationException>(
-                () => ComputeSubmissionExecutor.Submit(device.Get(), host, completion, index, d3D12CommandList, 0, default));
+                () => ComputeSubmissionExecutor.Submit(device.Get(), host, completion, index, 0, default));
 
             Assert.AreEqual(0, completion.CommittedCount);
             Assert.AreEqual(SubmissionState.Reserved, host.PendingRecords.GetRecord(index).ReadState());

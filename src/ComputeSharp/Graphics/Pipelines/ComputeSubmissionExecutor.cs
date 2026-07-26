@@ -10,14 +10,12 @@ internal static unsafe class ComputeSubmissionExecutor
         PipelineHostRuntime host,
         CompletionRegistry completionRegistry,
         int recordIndex,
-        ID3D12GraphicsCommandList* d3D12CommandList,
         ulong copyFenceWaitValue,
         in SubmissionRetention retention)
     {
         default(ArgumentNullException).ThrowIfNull(device);
         default(ArgumentNullException).ThrowIfNull(host);
         default(ArgumentNullException).ThrowIfNull(completionRegistry);
-        default(ArgumentNullException).ThrowIf(d3D12CommandList is null, nameof(d3D12CommandList));
 
         ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
 
@@ -25,7 +23,21 @@ internal static unsafe class ComputeSubmissionExecutor
             record.ReadState() is not SubmissionState.Prepared,
             "The pending submission record is not prepared for execution.");
 
-        FencePoint completion = device.ExecutePipelineCommandList(d3D12CommandList, copyFenceWaitValue);
+        Span<nint> d3D12CommandLists = stackalloc nint[CommandListLeaseSet.MaximumSegmentCount];
+        SubmissionRetention segments = retention;
+        int segmentCount = 0;
+
+        for (int i = 0; i < segments.CommandLists.Count; i++)
+        {
+            ref CommandListSegmentLease lease = ref CommandListLeaseSet.GetSegment(ref segments.CommandLists, i);
+
+            if (lease.IsValid != 0)
+            {
+                d3D12CommandLists[segmentCount++] = lease.CommandList;
+            }
+        }
+
+        FencePoint completion = device.ExecutePipelineCommandLists(d3D12CommandLists[..segmentCount], copyFenceWaitValue);
 
         default(InvalidOperationException).ThrowIf(!record.TryMarkExecutionIssued(), "The submission could not be marked as issued.");
         default(InvalidOperationException).ThrowIf(!record.TryMarkCompletionSignaled(), "The submission completion could not be signaled.");
