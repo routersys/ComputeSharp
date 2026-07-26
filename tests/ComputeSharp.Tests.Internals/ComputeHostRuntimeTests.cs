@@ -95,6 +95,16 @@ public unsafe partial class ComputeHostRuntimeTests
         }
     }
 
+    private readonly struct Float3Texture2DMaterializer(int width, int height) : IComputeGenerationMaterializer
+    {
+        public static bool RequiresDoublePrecisionSupport => false;
+
+        public void Materialize(ref ComputeGenerationContext context)
+        {
+            context.DeclareTexture2D<Float3>(width, height);
+        }
+    }
+
     private static void WriteUInt32(List<byte> payload, uint value)
     {
         byte[] buffer = new byte[4];
@@ -685,6 +695,60 @@ public unsafe partial class ComputeHostRuntimeTests
 
                 Assert.IsFalse(slot.IsAllocated);
             }
+        }
+        finally
+        {
+            host.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsDeclaredDimensionsOutsideTheDeviceLimitsBeforeAllocating(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ComputeResourceSlot<ReadWriteTexture2D<float>> slot = new();
+        ComputeHostRuntime host = ComputeHostRuntime.Create(graphicsDevice, CreateDescriptor(ResourcePlanKind.Texture2D), 1, [slot]);
+
+        ulong before = GetStableOwnedBytes(graphicsDevice);
+
+        try
+        {
+            _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+                () => host.TryEnsureResource(0, [65536, 16], new Texture2DMaterializer(65536, 16), out _));
+
+            Assert.IsFalse(slot.IsAllocated);
+            Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+        }
+        finally
+        {
+            host.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsElementTypesTheDeviceCannotBindBeforeAllocating(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        if (graphicsDevice.IsReadWriteTexture2DSupportedForType<Float3>())
+        {
+            Assert.Inconclusive();
+        }
+
+        ComputeResourceSlot<ReadWriteTexture2D<Float3>> slot = new();
+        ComputeHostRuntime host = ComputeHostRuntime.Create(graphicsDevice, CreateDescriptor(ResourcePlanKind.Texture2D), 1, [slot]);
+
+        ulong before = GetStableOwnedBytes(graphicsDevice);
+
+        try
+        {
+            _ = Assert.ThrowsExactly<UnsupportedTextureTypeException>(
+                () => host.TryEnsureResource(0, [16, 16], new Float3Texture2DMaterializer(16, 16), out _));
+
+            Assert.IsFalse(slot.IsAllocated);
+            Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
         }
         finally
         {
