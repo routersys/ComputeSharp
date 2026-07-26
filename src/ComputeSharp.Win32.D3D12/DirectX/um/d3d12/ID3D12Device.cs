@@ -190,6 +190,20 @@ internal unsafe partial struct ID3D12Device : IComObject
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(25)]
+    public D3D12_RESOURCE_ALLOCATION_INFO GetResourceAllocationInfo(uint visibleMask, uint numResourceDescs, [NativeTypeName("const D3D12_RESOURCE_DESC *")] D3D12_RESOURCE_DESC* pResourceDescs)
+    {
+        return ((delegate* unmanaged[MemberFunction]<ID3D12Device*, uint, uint, D3D12_RESOURCE_DESC*, D3D12_RESOURCE_ALLOCATION_INFO>)(lpVtbl[25]))((ID3D12Device*)Unsafe.AsPointer(ref this), visibleMask, numResourceDescs, pResourceDescs);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(26)]
+    public D3D12_HEAP_PROPERTIES GetCustomHeapProperties(uint nodeMask, D3D12_HEAP_TYPE heapType)
+    {
+        return ((delegate* unmanaged[MemberFunction]<ID3D12Device*, uint, D3D12_HEAP_TYPE, D3D12_HEAP_PROPERTIES>)(lpVtbl[26]))((ID3D12Device*)Unsafe.AsPointer(ref this), nodeMask, heapType);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [VtblIndex(27)]
     public HRESULT CreateCommittedResource([NativeTypeName("const D3D12_HEAP_PROPERTIES *")] D3D12_HEAP_PROPERTIES* pHeapProperties, D3D12_HEAP_FLAGS HeapFlags, [NativeTypeName("const D3D12_RESOURCE_DESC *")] D3D12_RESOURCE_DESC* pDesc, D3D12_RESOURCE_STATES InitialResourceState, [NativeTypeName("const D3D12_CLEAR_VALUE *")] D3D12_CLEAR_VALUE* pOptimizedClearValue, [NativeTypeName("const IID &")] Guid* riidResource, void** ppvResource)
     {
