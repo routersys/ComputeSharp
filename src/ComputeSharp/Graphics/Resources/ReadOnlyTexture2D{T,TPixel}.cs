@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ComputeSharp.Graphics.Resources.Enums;
 using ComputeSharp.Resources;
 using ComputeSharp.Resources.Debug;
+using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FORMAT_SUPPORT1;
 
 #pragma warning disable IDE0022
@@ -28,6 +29,11 @@ public sealed class ReadOnlyTexture2D<T, TPixel> : Texture2D<T>, IReadOnlyNormal
     /// <param name="allocationMode">The allocation mode to use for the new resource.</param>
     internal ReadOnlyTexture2D(GraphicsDevice device, int width, int height, AllocationMode allocationMode)
         : base(device, width, height, ResourceType.ReadOnly, allocationMode, D3D12_FORMAT_SUPPORT1_TEXTURE2D)
+    {
+    }
+
+    internal unsafe ReadOnlyTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource, int width, int height, D3D12_RESOURCE_STATES d3D12ResourceStates)
+        : base(device, d3D12Resource, width, height, ResourceType.ReadOnly, d3D12ResourceStates, D3D12_FORMAT_SUPPORT1_TEXTURE2D)
     {
     }
 

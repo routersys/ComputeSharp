@@ -33,6 +33,11 @@ public abstract class StructuredBuffer<T> : Buffer<T>
     {
     }
 
+    private protected unsafe StructuredBuffer(GraphicsDevice device, ID3D12Resource* d3D12Resource, int length, ResourceType resourceType)
+        : base(device, d3D12Resource, length, (uint)sizeof(T), resourceType)
+    {
+    }
+
     /// <inheritdoc/>
     internal override unsafe void CopyTo(ref T destination, int sourceOffset, int count)
     {

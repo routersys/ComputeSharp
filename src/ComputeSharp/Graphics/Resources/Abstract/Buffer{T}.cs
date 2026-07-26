@@ -135,6 +135,57 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
         this.d3D12Resource.Get()->SetName(this);
     }
 
+    private protected Buffer(GraphicsDevice device, ID3D12Resource* d3D12Resource, int length, uint elementSizeInBytes, ResourceType resourceType)
+    {
+        using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
+
+        if (resourceType == ResourceType.Constant)
+        {
+            default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(length, 1, D3D12.D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT);
+        }
+        else
+        {
+            default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(length, 1, (uint.MaxValue / elementSizeInBytes) & ~255);
+        }
+
+        using ReferenceTracker.Lease _1 = device.GetReferenceTracker().GetLease();
+
+        device.ThrowIfDeviceLost();
+
+        nint usableSizeInBytes = checked((nint)(length * elementSizeInBytes));
+        nint effectiveSizeInBytes = resourceType == ResourceType.Constant ? AlignmentHelper.Pad(usableSizeInBytes, D3D12.D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT) : usableSizeInBytes;
+
+        this.SizeInBytes = usableSizeInBytes;
+        GraphicsDevice = device;
+        Length = length;
+
+        this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
+
+        device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
+        device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView);
+
+        switch (resourceType)
+        {
+            case ResourceType.Constant:
+                device.D3D12Device->CreateConstantBufferView(this.d3D12Resource.Get(), effectiveSizeInBytes, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                break;
+            case ResourceType.ReadOnly:
+                device.D3D12Device->CreateShaderResourceView(this.d3D12Resource.Get(), (uint)length, elementSizeInBytes, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                break;
+            case ResourceType.ReadWrite:
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), (uint)length, elementSizeInBytes, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                device.D3D12Device->CreateUnorderedAccessViewForClear(
+                    this.d3D12Resource.Get(),
+                    DXGI_FORMAT_R32_UINT,
+                    (uint)(usableSizeInBytes / sizeof(uint)),
+                    this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandle,
+                    this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandleNonShaderVisible);
+                break;
+        }
+
+        this.d3D12Resource.Get()->SetName(this);
+    }
+
     /// <inheritdoc/>
     public GraphicsDevice GraphicsDevice { get; }
 

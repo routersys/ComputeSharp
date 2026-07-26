@@ -40,6 +40,11 @@ public sealed partial class ReadWriteTexture2D<T, TPixel> : Texture2D<T>, IReadW
     {
     }
 
+    internal unsafe ReadWriteTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource, int width, int height, D3D12_RESOURCE_STATES d3D12ResourceStates)
+        : base(device, d3D12Resource, width, height, ResourceType.ReadWrite, d3D12ResourceStates, D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW)
+    {
+    }
+
     /// <inheritdoc/>
     public ref TPixel this[int x, int y] => throw new InvalidExecutionContextException($"{typeof(ReadWriteTexture2D<T, TPixel>)}[{typeof(int)}, {typeof(int)}]");
 

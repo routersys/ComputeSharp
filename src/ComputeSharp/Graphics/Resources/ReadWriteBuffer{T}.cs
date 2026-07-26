@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using ComputeSharp.Graphics.Resources.Enums;
 using ComputeSharp.Resources;
 using ComputeSharp.Resources.Debug;
+using ComputeSharp.Win32;
 
 namespace ComputeSharp;
 
@@ -24,6 +25,11 @@ public sealed class ReadWriteBuffer<T> : StructuredBuffer<T>
     [RequiresUnreferencedCode("This method reads type info of all fields of the resource element type (recursively).")]
     internal ReadWriteBuffer(GraphicsDevice device, int length, AllocationMode allocationMode)
         : base(device, length, ResourceType.ReadWrite, allocationMode)
+    {
+    }
+
+    internal unsafe ReadWriteBuffer(GraphicsDevice device, ID3D12Resource* d3D12Resource, int length)
+        : base(device, d3D12Resource, length, ResourceType.ReadWrite)
     {
     }
 

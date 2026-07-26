@@ -49,6 +49,11 @@ public sealed class ReadOnlyTexture2D<T> : Texture2D<T>
     {
     }
 
+    internal unsafe ReadOnlyTexture2D(GraphicsDevice device, ID3D12Resource* d3D12Resource, int width, int height, D3D12_RESOURCE_STATES d3D12ResourceStates)
+        : base(device, d3D12Resource, width, height, ResourceType.ReadOnly, d3D12ResourceStates, D3D12_FORMAT_SUPPORT1_TEXTURE2D)
+    {
+    }
+
     /// <summary>
     /// Gets a single <typeparamref name="T"/> value from the current readonly texture.
     /// </summary>

@@ -200,6 +200,62 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         this.d3D12Resource.Get()->SetName(this);
     }
 
+    private protected Texture2D(
+        GraphicsDevice device,
+        ID3D12Resource* d3D12Resource,
+        int width,
+        int height,
+        ResourceType resourceType,
+        D3D12_RESOURCE_STATES d3D12ResourceStates,
+        D3D12_FORMAT_SUPPORT1 d3D12FormatSupport)
+    {
+        using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
+
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(width, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(height, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+
+        using ReferenceTracker.Lease _1 = device.GetReferenceTracker().GetLease();
+
+        device.ThrowIfDeviceLost();
+
+        if (!device.D3D12Device->IsDxgiFormatSupported(DXGIFormatHelper.GetForType<T>(), d3D12FormatSupport))
+        {
+            UnsupportedTextureTypeException.ThrowForTexture2D<T>();
+        }
+
+        GraphicsDevice = device;
+
+        this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
+        this.d3D12ResourceState = d3D12ResourceStates;
+
+        this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
+            ? D3D12_COMMAND_LIST_TYPE_COPY
+            : D3D12_COMMAND_LIST_TYPE_COMPUTE;
+
+        device.D3D12Device->GetCopyableFootprint(
+            DXGIFormatHelper.GetForType<T>(),
+            (uint)width,
+            (uint)height,
+            out this.d3D12PlacedSubresourceFootprint,
+            out _,
+            out _);
+
+        device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
+
+        switch (resourceType)
+        {
+            case ResourceType.ReadOnly:
+                device.D3D12Device->CreateShaderResourceView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_SRV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                break;
+            case ResourceType.ReadWrite:
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandle);
+                device.D3D12Device->CreateUnorderedAccessView(this.d3D12Resource.Get(), DXGIFormatHelper.GetForType<T>(), D3D12_UAV_DIMENSION_TEXTURE2D, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandleNonShaderVisible);
+                break;
+        }
+
+        this.d3D12Resource.Get()->SetName(this);
+    }
+
     /// <summary>
     /// Creates a new <see cref="Texture2D{T}"/> instance wrapping a shared resource owned by an external API.
     /// </summary>
