@@ -39,6 +39,8 @@ internal sealed class MemoryAllocationCoordinator
 
     private ulong nextReservationValue;
 
+    private int trimRequest;
+
     public MemoryAllocationCoordinator()
     {
         this.policy.NextConfigurationVersion = 2;
@@ -77,6 +79,11 @@ internal sealed class MemoryAllocationCoordinator
                 return this.policy.Retired is not null;
             }
         }
+    }
+
+    public bool TryClaimTrimRequest()
+    {
+        return Interlocked.Exchange(ref this.trimRequest, 0) != 0;
     }
 
     public PolicyConfigurationLease AcquireConfigurationLease()
@@ -123,17 +130,19 @@ internal sealed class MemoryAllocationCoordinator
 
         if (policy.BudgetBroker is IGraphicsMemoryBudgetBroker broker)
         {
+            client = broker.RegisterClient(in descriptor);
+
+            default(InvalidOperationException).ThrowIf(client is null, "The memory budget broker returned no client.");
+
+            ThrowIfClientIsNotDistinct(client);
+
             try
             {
-                client = broker.RegisterClient(in descriptor);
-
-                default(InvalidOperationException).ThrowIf(client is null, "The memory budget broker returned no client.");
-
                 ValidateInitialGrants(client, isUma);
             }
             catch
             {
-                client?.Dispose();
+                client.Dispose();
 
                 throw;
             }
@@ -285,6 +294,16 @@ internal sealed class MemoryAllocationCoordinator
         return NativeAllocationOutcome.Fault;
     }
 
+    private void ThrowIfClientIsNotDistinct(IGraphicsMemoryBudgetClient client)
+    {
+        lock (this.policyGate)
+        {
+            default(InvalidOperationException).ThrowIf(
+                ReferenceEquals(client, this.policy.Active.BrokerClient) || ReferenceEquals(client, this.policy.Retired?.BrokerClient),
+                "The memory budget broker returned a client that is already registered.");
+        }
+    }
+
     private static void ValidateInitialGrants(IGraphicsMemoryBudgetClient client, bool isUma)
     {
         ValidateInitialGrant(client, isUma, MemoryPlacement.Local);
@@ -333,13 +352,14 @@ internal sealed class MemoryAllocationCoordinator
                     this.policy.Retired is not null,
                     "The retired memory policy configuration is still leased.");
 
-                default(InvalidOperationException).ThrowIf(
-                    client is not null && (ReferenceEquals(client, active.BrokerClient) || ReferenceEquals(client, reclaimedClient)),
-                    "The memory budget broker returned a client that is already registered.");
-
                 configuration.ConfigurationVersion = this.policy.NextConfigurationVersion;
 
                 this.policy.NextConfigurationVersion = checked(this.policy.NextConfigurationVersion + 1);
+
+                if (IsStricter(active, configuration))
+                {
+                    _ = Interlocked.Exchange(ref this.trimRequest, 1);
+                }
 
                 active.State = MemoryPolicyConfigurationState.Retired;
 
@@ -365,6 +385,18 @@ internal sealed class MemoryAllocationCoordinator
             reclaimedClient?.Dispose();
             retiredClient?.Dispose();
         }
+    }
+
+    private static bool IsStricter(MemoryPolicyConfiguration previous, MemoryPolicyConfiguration next)
+    {
+        return (previous.BrokerClient is null && next.BrokerClient is not null) ||
+            IsStricterLimit(previous.LocalOwnedHardLimitBytes, next.LocalOwnedHardLimitBytes) ||
+            IsStricterLimit(previous.NonLocalOwnedHardLimitBytes, next.NonLocalOwnedHardLimitBytes);
+    }
+
+    private static bool IsStricterLimit(ulong? previous, ulong? next)
+    {
+        return next is { } nextLimit && (previous is not { } previousLimit || nextLimit < previousLimit);
     }
 
     private IGraphicsMemoryBudgetClient? TryClaimRetiredConfiguration(MemoryPolicyConfiguration? configuration)
