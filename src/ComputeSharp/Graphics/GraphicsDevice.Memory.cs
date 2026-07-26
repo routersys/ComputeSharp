@@ -177,6 +177,80 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Creates a described committed resource without reserving its memory.
+    /// </summary>
+    /// <param name="description">The description of the resource to create.</param>
+    /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object.</param>
+    /// <returns>The <see cref="HRESULT"/> of the native creation.</returns>
+    internal HRESULT TryCreateCommittedResource(
+        in GraphicsCommittedResourceDescription description,
+        out ComPtr<ID3D12Resource> d3D12Resource)
+    {
+        return this.d3D12Device.Get()->CreateCommittedResource(in description, out d3D12Resource);
+    }
+
+    /// <summary>
+    /// Reserves the memory of a native allocation without throwing when it is not admitted.
+    /// </summary>
+    /// <param name="placement">The memory segment to reserve from.</param>
+    /// <param name="sizeInBytes">The number of bytes to reserve.</param>
+    /// <param name="token">The <see cref="MemoryReservationToken"/> value of the admitted reservation.</param>
+    /// <returns>The status of the requested reservation.</returns>
+    internal MemoryAdmissionStatus TryReserveMemory(MemoryPlacement placement, ulong sizeInBytes, out MemoryReservationToken token)
+    {
+        for (int attempt = 0; attempt < MaximumAdmissionAttempts; attempt++)
+        {
+            using PolicyConfigurationLease lease = this.memoryCoordinator.AcquireConfigurationLease();
+
+            MemoryAdmissionSnapshot snapshot = CreateAdmissionSnapshot(lease.Configuration);
+
+            MemoryAdmissionStatus status = this.memoryCoordinator.TryReserve(
+                placement,
+                snapshot.GetSegment(placement),
+                snapshot.Epoch,
+                sizeInBytes,
+                out token);
+
+            if (status is not MemoryAdmissionStatus.StaleSnapshot)
+            {
+                return status;
+            }
+        }
+
+        token = default;
+
+        return MemoryAdmissionStatus.StaleSnapshot;
+    }
+
+    /// <summary>
+    /// Converts an admitted reservation of the current device into owned memory.
+    /// </summary>
+    /// <param name="token">The reservation to commit.</param>
+    internal void CommitMemoryReservation(in MemoryReservationToken token)
+    {
+        this.memoryCoordinator.CommitReservation(in token);
+    }
+
+    /// <summary>
+    /// Discards an admitted reservation of the current device.
+    /// </summary>
+    /// <param name="token">The reservation to discard.</param>
+    internal void AbortMemoryReservation(in MemoryReservationToken token)
+    {
+        this.memoryCoordinator.AbortReservation(in token);
+    }
+
+    /// <summary>
+    /// Releases previously committed owned memory of the current device.
+    /// </summary>
+    /// <param name="placement">The memory segment to release from.</param>
+    /// <param name="bytes">The number of owned bytes to release.</param>
+    internal void ReleaseOwnedMemory(MemoryPlacement placement, ulong bytes)
+    {
+        this.memoryCoordinator.ReleaseOwned(placement, bytes);
+    }
+
+    /// <summary>
     /// Refreshes the video memory budget observations of every active segment of the current device.
     /// </summary>
     internal void RefreshMemoryBudgetObservations()
@@ -280,40 +354,39 @@ unsafe partial class GraphicsDevice
     /// <exception cref="GraphicsMemoryAllocationException">Thrown if the reservation is not admitted.</exception>
     private MemoryReservationToken ReserveMemory(MemoryPlacement placement, ulong sizeInBytes)
     {
-        for (int attempt = 0; attempt < MaximumAdmissionAttempts; attempt++)
+        MemoryAdmissionStatus status = TryReserveMemory(placement, sizeInBytes, out MemoryReservationToken token);
+
+        if (status is MemoryAdmissionStatus.Admitted)
         {
-            using PolicyConfigurationLease lease = this.memoryCoordinator.AcquireConfigurationLease();
-
-            MemoryAdmissionSnapshot snapshot = CreateAdmissionSnapshot(lease.Configuration);
-
-            MemoryAdmissionStatus status = this.memoryCoordinator.TryReserve(
-                placement,
-                snapshot.GetSegment(placement),
-                snapshot.Epoch,
-                sizeInBytes,
-                out MemoryReservationToken token);
-
-            if (status is MemoryAdmissionStatus.Admitted)
-            {
-                return token;
-            }
-
-            if (status is not MemoryAdmissionStatus.StaleSnapshot)
-            {
-                throw new GraphicsMemoryAllocationException(
-                    $"""The allocation of {sizeInBytes} bytes on the device "{this}" was not admitted ({status}).""");
-            }
+            return token;
         }
 
-        throw new GraphicsMemoryAllocationException(
-            $"""The allocation of {sizeInBytes} bytes on the device "{this}" observed no stable memory snapshot.""");
+        throw CreateAdmissionException(status, sizeInBytes);
+    }
+
+    /// <summary>
+    /// Creates the exception matching a reservation that was not admitted.
+    /// </summary>
+    /// <param name="status">The status the reservation was refused with.</param>
+    /// <param name="sizeInBytes">The number of bytes the refused reservation requested.</param>
+    /// <returns>The <see cref="Exception"/> to throw for the refused reservation.</returns>
+    internal Exception CreateAdmissionException(MemoryAdmissionStatus status, ulong sizeInBytes)
+    {
+        if (status is MemoryAdmissionStatus.StaleSnapshot)
+        {
+            return new GraphicsMemoryAllocationException(
+                $"""The allocation of {sizeInBytes} bytes on the device "{this}" observed no stable memory snapshot.""");
+        }
+
+        return new GraphicsMemoryAllocationException(
+            $"""The allocation of {sizeInBytes} bytes on the device "{this}" was not admitted ({status}).""");
     }
 
     /// <summary>
     /// Refreshes the memory observations of the current device outside of every runtime gate.
     /// </summary>
     /// <returns>The resulting <see cref="MemoryAdmissionSnapshot"/> value.</returns>
-    private MemoryAdmissionSnapshot RefreshMemoryObservations()
+    internal MemoryAdmissionSnapshot RefreshMemoryObservations()
     {
         using PolicyConfigurationLease lease = this.memoryCoordinator.AcquireConfigurationLease();
 
@@ -462,7 +535,7 @@ unsafe partial class GraphicsDevice
     /// <param name="hresult">The <see cref="HRESULT"/> the allocation failed with.</param>
     /// <param name="sizeInBytes">The number of bytes the failed allocation requested.</param>
     /// <returns>The <see cref="Exception"/> to throw for the failed allocation.</returns>
-    private Exception CreateNativeAllocationException(NativeAllocationOutcome outcome, HRESULT hresult, ulong sizeInBytes)
+    internal Exception CreateNativeAllocationException(NativeAllocationOutcome outcome, HRESULT hresult, ulong sizeInBytes)
     {
         if (outcome is NativeAllocationOutcome.DeviceRemoved)
         {
