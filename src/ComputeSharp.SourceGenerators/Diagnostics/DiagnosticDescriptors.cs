@@ -1156,4 +1156,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "The managed resource type of a resource group member is determined by its access contract, so the declared resource type must be able to hold it.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned member with a conflicting generated plan signature.
+    /// <para>
+    /// Format: <c>"The owned member {0} of {1} must have a canonical name that is not empty and that does not conflict with another owned member or with a declared member"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidGeneratedPlanSignature = new(
+        id: "CMPS0104",
+        title: "Generated plan signature conflict",
+        messageFormat: "The owned member {0} of {1} must have a canonical name that is not empty and that does not conflict with another owned member or with a declared member",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The canonical name of an owned member must not be empty, and the plan members generated from it must not conflict with another declared or generated member.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
