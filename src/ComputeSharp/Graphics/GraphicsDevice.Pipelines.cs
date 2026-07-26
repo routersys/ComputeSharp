@@ -1,6 +1,8 @@
 using System;
 using ComputeSharp.Core.Extensions;
+using ComputeSharp.Memory;
 using ComputeSharp.Win32;
+using static ComputeSharp.Win32.DXGI_MEMORY_SEGMENT_GROUP;
 
 namespace ComputeSharp;
 
@@ -36,6 +38,52 @@ unsafe partial class GraphicsDevice
         }
 
         return new FencePoint(ComputeQueueKind.Compute, completionValue);
+    }
+
+    /// <summary>
+    /// Queries the current video memory budget of a given memory segment.
+    /// </summary>
+    /// <param name="placement">The memory segment to query the budget of.</param>
+    /// <param name="budget">The resulting video memory budget snapshot.</param>
+    /// <returns>The status of the queried memory budget.</returns>
+    internal MemoryBudgetStatus TryQueryMemoryBudget(MemoryPlacement placement, out VideoMemoryBudgetSnapshot budget)
+    {
+        budget = default;
+
+        if (!GraphicsMemorySegments.IsSegmentActive(IsUma, placement))
+        {
+            return MemoryBudgetStatus.Unsupported;
+        }
+
+        if (this.dxgiAdapter3.Get() is null)
+        {
+            return MemoryBudgetStatus.Unsupported;
+        }
+
+        DXGI_MEMORY_SEGMENT_GROUP memorySegmentGroup = placement is MemoryPlacement.Local
+            ? DXGI_MEMORY_SEGMENT_GROUP_LOCAL
+            : DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL;
+
+        DXGI_QUERY_VIDEO_MEMORY_INFO videoMemoryInfo;
+
+        HRESULT hresult = this.dxgiAdapter3.Get()->QueryVideoMemoryInfo(0, memorySegmentGroup, &videoMemoryInfo);
+
+        if (hresult < 0)
+        {
+            return MemoryAllocationCoordinator.ClassifyNativeResult(hresult) is NativeAllocationOutcome.DeviceRemoved
+                ? MemoryBudgetStatus.DeviceLost
+                : MemoryBudgetStatus.Unknown;
+        }
+
+        budget = new VideoMemoryBudgetSnapshot
+        {
+            BudgetBytes = videoMemoryInfo.Budget,
+            CurrentUsageBytes = videoMemoryInfo.CurrentUsage,
+            AvailableForReservationBytes = videoMemoryInfo.AvailableForReservation,
+            CurrentReservationBytes = videoMemoryInfo.CurrentReservation
+        };
+
+        return MemoryBudgetStatus.Valid;
     }
 
     /// <summary>

@@ -34,6 +34,11 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     private ComPtr<ID3D12Device> d3D12Device;
 
     /// <summary>
+    /// The <see cref="IDXGIAdapter3"/> the current device was created from, if the memory budget can be queried.
+    /// </summary>
+    private ComPtr<IDXGIAdapter3> dxgiAdapter3;
+
+    /// <summary>
     /// The <see cref="ID3D12CommandQueue"/> instance to use for compute operations.
     /// </summary>
     private ComPtr<ID3D12CommandQueue> d3D12ComputeCommandQueue;
@@ -149,6 +154,9 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         using ReferenceTracker.Lease _0 = ReferenceTracker.Create(this, out this.referenceTracker);
 
         this.d3D12Device = new ComPtr<ID3D12Device>(d3D12Device);
+
+        _ = dxgiAdapter->QueryInterface(Win32.Windows.__uuidof<IDXGIAdapter3>(), (void**)this.dxgiAdapter3.GetAddressOf());
+
         this.d3D12ComputeCommandQueue = d3D12Device->CreateCommandQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE);
         this.d3D12CopyCommandQueue = d3D12Device->CreateCommandQueue(D3D12_COMMAND_LIST_TYPE_COPY);
         this.d3D12ComputeFence = d3D12Device->CreateFence();
@@ -448,6 +456,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         this.computeCommandListPool.Dispose();
         this.copyCommandListPool.Dispose();
         this.d3D12Device.Dispose();
+        this.dxgiAdapter3.Dispose();
         this.d3D12ComputeCommandQueue.Dispose();
         this.d3D12CopyCommandQueue.Dispose();
         this.d3D12ComputeFence.Dispose();
