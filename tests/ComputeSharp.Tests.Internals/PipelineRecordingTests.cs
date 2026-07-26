@@ -26,6 +26,100 @@ public unsafe partial class PipelineRecordingTests
         }
     }
 
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TextureFillShader : IComputeShader
+    {
+        public readonly ReadWriteTexture2D<float> texture;
+
+        public readonly float value;
+
+        public void Execute()
+        {
+            this.texture[ThreadIds.XY] = this.value;
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void InsertsAnUnorderedAccessBarrierBetweenDependentSubmissions(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteTexture2D<float> texture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
+
+        try
+        {
+            CompletionRegistry completion = new();
+
+            Assert.AreEqual(1, SubmitTextureFill(graphicsDevice, host, completion, texture, 1, 1));
+            Assert.AreEqual(2, SubmitTextureFill(graphicsDevice, host, completion, texture, 2, 2));
+
+            Assert.AreEqual(2f, texture.ToArray()[0, 0]);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    private static int SubmitTextureFill(
+        GraphicsDevice graphicsDevice,
+        PipelineHostRuntime host,
+        CompletionRegistry completion,
+        ReadWriteTexture2D<float> texture,
+        ulong submissionSequence,
+        float value)
+    {
+        PipelineKey pipeline = new(host.Id, new PipelineOrdinal(0));
+
+        Assert.IsTrue(host.TryCheckoutPendingRecord(pipeline, submissionSequence, out int index));
+
+        ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+        Assert.IsTrue(record.TryBeginRecording());
+
+        host.CommandLists.Rent(null, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator);
+
+        ComputeContext context = graphicsDevice.CreatePipelineComputeContext(
+            d3D12CommandList,
+            d3D12CommandAllocator,
+            host.CreateUsageRecorder(index));
+
+        context.For(8, 8, new TextureFillShader(texture, value));
+        context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+        SubmissionRetention retention = new()
+        {
+            ResourceUsages = host.GetUsageSetHandle(index),
+            ResourceLeases = resourceLeases
+        };
+
+        Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
+
+        ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
+
+        int segmentCount = retention.CommandLists.Count;
+
+        if (segmentCount == 2)
+        {
+            Assert.AreNotEqual((nint)d3D12CommandList, CommandListLeaseSet.GetSegment(ref retention.CommandLists, 0).CommandList);
+            Assert.AreEqual((nint)d3D12CommandList, CommandListLeaseSet.GetSegment(ref retention.CommandLists, 1).CommandList);
+        }
+
+        ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
+            graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
+
+        submission.Wait();
+
+        Assert.AreEqual(ComputeSubmissionStatus.Succeeded, submission.Status);
+        Assert.IsTrue(ComputeSubmissionExecutor.TryReleaseCompleted(graphicsDevice, completion));
+
+        return segmentCount;
+    }
+
     [CombinatorialTestMethod]
     [AllDevices]
     public void RecordsAndSubmitsThroughACommandListOwnedByTheHost(Device device)

@@ -229,4 +229,23 @@ public unsafe class ResourceUsageTrackerTests
         Assert.AreEqual(0, leaseSet.Count);
         Assert.AreEqual(0, leaseSet.Segment0.IsValid);
     }
+
+    [TestMethod]
+    public void InsertsACommandListSegmentBeforeTheRecordedOnes()
+    {
+        CommandListLeaseSet leaseSet = default;
+
+        Assert.IsTrue(leaseSet.TryAdd(1, 2, ComputeQueueKind.Compute));
+        Assert.IsTrue(leaseSet.TryAdd(3, 4, ComputeQueueKind.Compute));
+        Assert.IsTrue(leaseSet.TryInsertFirst(5, 6, ComputeQueueKind.Compute));
+
+        Assert.AreEqual(3, leaseSet.Count);
+        Assert.AreEqual(5, CommandListLeaseSet.GetSegment(ref leaseSet, 0).CommandList);
+        Assert.AreEqual(6, CommandListLeaseSet.GetSegment(ref leaseSet, 0).CommandAllocator);
+        Assert.AreEqual(1, CommandListLeaseSet.GetSegment(ref leaseSet, 1).CommandList);
+        Assert.AreEqual(3, CommandListLeaseSet.GetSegment(ref leaseSet, 2).CommandList);
+
+        Assert.IsFalse(leaseSet.TryInsertFirst(7, 8, ComputeQueueKind.Compute));
+        Assert.AreEqual(3, leaseSet.Count);
+    }
 }
