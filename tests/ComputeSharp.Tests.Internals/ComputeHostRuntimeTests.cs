@@ -22,6 +22,8 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct BufferMaterializer(int length) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareBuffer<int>(length);
@@ -30,6 +32,8 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct GroupMaterializer(int firstLength, int secondLength) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareBuffer<int>(firstLength);
@@ -39,6 +43,8 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct PartialGroupMaterializer(int firstLength) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareBuffer<int>(firstLength);
@@ -47,6 +53,8 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct Texture2DMaterializer(int width, int height) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareTexture2D<float>(width, height);
@@ -55,6 +63,8 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct DriftingMaterializer(int[] lengths) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareBuffer<int>(lengths[0]);
@@ -65,11 +75,23 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private readonly struct ThrowingMaterializer(int length) : IComputeGenerationMaterializer
     {
+        public static bool RequiresDoublePrecisionSupport => false;
+
         public void Materialize(ref ComputeGenerationContext context)
         {
             context.DeclareBuffer<int>(length);
 
             throw new NotSupportedException();
+        }
+    }
+
+    private readonly struct DoublePrecisionMaterializer(int length) : IComputeGenerationMaterializer
+    {
+        public static bool RequiresDoublePrecisionSupport => true;
+
+        public void Materialize(ref ComputeGenerationContext context)
+        {
+            context.DeclareBuffer<double>(length);
         }
     }
 
@@ -636,6 +658,55 @@ public unsafe partial class ComputeHostRuntimeTests
         Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
 
         host.Dispose();
+        host.WaitForDisposal();
+        slot.WaitForDisposal();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ValidatesTheDoublePrecisionSupportOfTheDevice(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ComputeResourceSlot<ReadWriteBuffer<double>> slot = new();
+        ComputeHostRuntime host = ComputeHostRuntime.Create(graphicsDevice, CreateDescriptor(ResourcePlanKind.Buffer), 1, [slot]);
+
+        try
+        {
+            if (graphicsDevice.IsDoublePrecisionSupportAvailable())
+            {
+                Assert.IsTrue(host.TryEnsureResource(0, [1024], new DoublePrecisionMaterializer(1024), out bool changed));
+                Assert.IsTrue(changed);
+                Assert.IsTrue(host.GetBinding<ReadWriteBuffer<double>>(0, 0).IsValid);
+            }
+            else
+            {
+                _ = Assert.ThrowsExactly<UnsupportedDoubleOperationException>(
+                    () => host.TryEnsureResource(0, [1024], new DoublePrecisionMaterializer(1024), out _));
+
+                Assert.IsFalse(slot.IsAllocated);
+            }
+        }
+        finally
+        {
+            host.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsEveryResourceRequestAfterDisposeIsRequested(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ComputeResourceSlot<ReadWriteBuffer<int>> slot = new();
+        ComputeHostRuntime host = ComputeHostRuntime.Create(graphicsDevice, CreateDescriptor(ResourcePlanKind.Buffer), 1, [slot]);
+
+        Assert.IsTrue(host.TryEnsureResource(0, [1024], new BufferMaterializer(1024), out _));
+
+        host.Dispose();
+
+        _ = Assert.ThrowsExactly<ObjectDisposedException>(
+            () => host.TryEnsureResource(0, [2048], new BufferMaterializer(2048), out _));
+
         host.WaitForDisposal();
         slot.WaitForDisposal();
     }
