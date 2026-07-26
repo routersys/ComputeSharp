@@ -48,13 +48,15 @@ public unsafe partial class ResourceUsageRecorderTests
     [GeneratedComputeShaderDescriptor]
     internal readonly partial struct VolumeShader : IComputeShader
     {
+        public readonly ReadOnlyTexture1D<float> line;
+
         public readonly ReadOnlyTexture3D<float> volume;
 
         public readonly ReadWriteBuffer<int> destination;
 
         public void Execute()
         {
-            this.destination[ThreadIds.X] = (int)this.volume[ThreadIds.X, 0, 0];
+            this.destination[ThreadIds.X] = (int)(this.line[ThreadIds.X] + this.volume[ThreadIds.X, 0, 0]);
         }
     }
 
@@ -177,11 +179,12 @@ public unsafe partial class ResourceUsageRecorderTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void RejectsABoundResourceWithoutAGenerationIdentity(Device device)
+    public void RecordsTheObservedAccessOfEveryTextureRank(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
-        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 2);
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 3);
 
+        using ReadOnlyTexture1D<float> line = graphicsDevice.AllocateReadOnlyTexture1D<float>(8);
         using ReadOnlyTexture3D<float> volume = graphicsDevice.AllocateReadOnlyTexture3D<float>(8, 8, 8);
         using ReadWriteBuffer<int> destination = graphicsDevice.AllocateReadWriteBuffer<int>(64);
 
@@ -193,27 +196,74 @@ public unsafe partial class ResourceUsageRecorderTests
 
             ComputeContext context = Borrow(graphicsDevice, host, index, out ID3D12GraphicsCommandList* d3D12CommandList);
 
-            bool isRejected = false;
-
-            try
-            {
-                context.For(64, new VolumeShader(volume, destination));
-            }
-            catch (ArgumentException)
-            {
-                isRejected = true;
-            }
-
-            Assert.IsTrue(isRejected);
-            Assert.AreEqual(0, GetUsages(host, index).Length);
+            context.For(64, new VolumeShader(line, volume, destination));
 
             context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+            GraphicsResourceUsageEntry[] usages = GetUsages(host, index);
+
+            Assert.AreEqual(3, usages.Length);
+
+            AssertUsage(usages, line, ComputeResourceAccess.Read, TrackedResourceState.Common);
+            AssertUsage(usages, volume, ComputeResourceAccess.Read, TrackedResourceState.Common);
+            AssertUsage(usages, destination, ComputeResourceAccess.ReadWrite, TrackedResourceState.Common);
 
             Discard(host, index, ref record, d3D12CommandList, resourceLeases);
         }
         finally
         {
             registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsABoundResourceWithoutAGenerationIdentity(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        try
+        {
+            int index = Checkout(host);
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            ResourceUsageRecorder recorder = host.CreateUsageRecorder(index);
+
+            _ = Assert.ThrowsExactly<ArgumentException>(() => recorder.Record(new UntrackedResource(graphicsDevice)));
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => recorder.Record(new UnboundResource(graphicsDevice)));
+
+            Assert.AreEqual(0, GetUsages(host, index).Length);
+            Assert.IsTrue(record.TryAbort());
+
+            host.ReturnPendingRecord(index);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    private sealed class UntrackedResource(GraphicsDevice device) : IGraphicsResource
+    {
+        public GraphicsDevice GraphicsDevice { get; } = device;
+    }
+
+    private sealed class UnboundResource(GraphicsDevice device) : IGraphicsResource, IGenerationBoundResource
+    {
+        public GraphicsDevice GraphicsDevice { get; } = device;
+
+        void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
+        {
+            throw new NotSupportedException();
+        }
+
+        bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
+        {
+            binding = default;
+
+            return false;
         }
     }
 
