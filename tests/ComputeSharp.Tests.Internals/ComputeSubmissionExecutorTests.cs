@@ -13,7 +13,7 @@ public unsafe partial class ComputeSubmissionExecutorTests
 {
     private static PipelineHostRuntime Host(Device device, out DeviceRegistrationRegistry registry, int maximumPendingSubmissions = 2)
     {
-        registry = new DeviceRegistrationRegistry(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        registry = new DeviceRegistrationRegistry(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         return registry.RegisterHost(
             DeviceRegistrationRegistryTests.CreateHostDescriptor(1),

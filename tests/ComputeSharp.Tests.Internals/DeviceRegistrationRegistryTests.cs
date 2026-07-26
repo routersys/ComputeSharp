@@ -113,9 +113,29 @@ public unsafe partial class DeviceRegistrationRegistryTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void RequiresADeviceWithoutAnOpaqueAllocator(Device device)
+    {
+        Assert.IsFalse(device.Get().HasOpaqueMemoryAllocator);
+
+        _ = Assert.ThrowsExactly<ArgumentNullException>(() => new DeviceRegistrationRegistry(null!, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+        try
+        {
+            Assert.AreSame(device.Get(), registry.Device);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void PublishesHostWithEveryStructuralReservation(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -158,7 +178,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void AssignsIncreasingRegistrationIdentities(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -180,7 +200,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void RollsBackEveryReservationWhenSlotBindingFails(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -215,7 +235,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void RejectsDescriptorAndArgumentMismatch(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -236,7 +256,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void ReleasesAggregateOnlyAfterSlotDisposalCompletes(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -271,7 +291,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void KeepsPendingReservationsWithinTheHostContract(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         try
         {
@@ -309,7 +329,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     [AllDevices]
     public void RejectsRegistrationAfterDeviceDisposal(Device device)
     {
-        DeviceRegistrationRegistry registry = new(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        DeviceRegistrationRegistry registry = new(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         PipelineHostRuntime runtime = registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1));
 

@@ -14,7 +14,7 @@ public unsafe partial class CompletionRegistryTests
 {
     private static PipelineHostRuntime Host(Device device, out DeviceRegistrationRegistry registry, int maximumPendingSubmissions = 4)
     {
-        registry = new DeviceRegistrationRegistry(device.Get().D3D12Device, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        registry = new DeviceRegistrationRegistry(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
 
         return registry.RegisterHost(
             DeviceRegistrationRegistryTests.CreateHostDescriptor(1),
