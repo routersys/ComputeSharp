@@ -1,9 +1,11 @@
+using System;
 using System.Runtime.CompilerServices;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_SRV_DIMENSION;
 
@@ -59,7 +61,7 @@ partial class ReadWriteTexture2D<T>
     /// <summary>
     /// A wrapper for a <see cref="ReadWriteTexture2D{T}"/> resource that has been temporarily transitioned to readonly.
     /// </summary>
-    private sealed unsafe class ReadOnly : ReferenceTrackedObject, IReadOnlyTexture2D<T>, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource
+    private sealed unsafe class ReadOnly : ReferenceTrackedObject, IReadOnlyTexture2D<T>, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource, IGenerationBoundResource
     {
         /// <summary>
         /// The owning <see cref="ReadWriteTexture2D{T}"/> instance being wrapped.
@@ -136,6 +138,25 @@ partial class ReadWriteTexture2D<T>
         void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
         {
             ((ID3D12ComputeFenceTrackedResource)this.owner).MarkComputeFence(d3D12FenceValue);
+        }
+
+        /// <inheritdoc/>
+        void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
+        {
+            default(NotSupportedException).Throw();
+        }
+
+        /// <inheritdoc/>
+        bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
+        {
+            if (!((IGenerationBoundResource)this.owner).TryGetGenerationBinding(out binding))
+            {
+                return false;
+            }
+
+            binding = binding.WithObservedAccess(ComputeResourceAccess.Read);
+
+            return true;
         }
 
         /// <inheritdoc/>
