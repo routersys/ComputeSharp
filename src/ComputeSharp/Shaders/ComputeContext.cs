@@ -569,6 +569,11 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         device.GetReferenceTracker().DangerousRelease();
     }
 
+    internal readonly void RecordResourceWrite(IGraphicsResource resource)
+    {
+        this.usageRecorder.RecordWrite(resource);
+    }
+
     internal readonly void ThrowIfPipelineRecording()
     {
         default(InvalidOperationException).ThrowIf(

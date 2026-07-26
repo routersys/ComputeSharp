@@ -21,6 +21,16 @@ internal readonly struct ResourceUsageRecorder
 
     public void Record(IGraphicsResource resource)
     {
+        Record(resource, null);
+    }
+
+    public void RecordWrite(IGraphicsResource resource)
+    {
+        Record(resource, ComputeResourceAccess.Write);
+    }
+
+    private void Record(IGraphicsResource resource, ComputeResourceAccess? observedAccess)
+    {
         if (this.usageSets is not ResourceUsageSetPartition usageSets)
         {
             return;
@@ -45,7 +55,7 @@ internal readonly struct ResourceUsageRecorder
             binding.Set,
             binding.ResourceIndex,
             binding.Generation,
-            binding.Access,
+            observedAccess ?? binding.Access,
             binding.ResidentState,
             binding.ResidentState,
             out _,
