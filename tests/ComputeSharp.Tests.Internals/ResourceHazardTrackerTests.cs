@@ -65,7 +65,7 @@ public unsafe class ResourceHazardTrackerTests
 
         ResourceBarrierPlanEntry[] prologue = new ResourceBarrierPlanEntry[1];
 
-        int count = ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out ulong wait);
+        int count = ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out ulong wait);
 
         Assert.AreEqual(1, count);
         Assert.AreEqual(0ul, wait);
@@ -89,7 +89,7 @@ public unsafe class ResourceHazardTrackerTests
 
         ResourceBarrierPlanEntry[] prologue = new ResourceBarrierPlanEntry[1];
 
-        int count = ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out _);
+        int count = ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _);
 
         Assert.AreEqual(1, count);
         Assert.AreEqual(ResourceBarrierKind.UnorderedAccess, prologue[0].Kind);
@@ -109,7 +109,7 @@ public unsafe class ResourceHazardTrackerTests
 
         ResourceBarrierPlanEntry[] prologue = new ResourceBarrierPlanEntry[1];
 
-        Assert.AreEqual(0, ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out _));
+        Assert.AreEqual(0, ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _));
     }
 
     [TestMethod]
@@ -127,7 +127,7 @@ public unsafe class ResourceHazardTrackerTests
 
         ResourceBarrierPlanEntry[] prologue = new ResourceBarrierPlanEntry[1];
 
-        int count = ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out ulong wait);
+        int count = ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out ulong wait);
 
         Assert.AreEqual(9ul, wait);
         Assert.AreEqual(1, count);
@@ -147,7 +147,7 @@ public unsafe class ResourceHazardTrackerTests
             Usage(set, 0, ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess)
         ];
 
-        _ = ResourceHazardTracker.PrepareResourceUsages(reading, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out ulong readWait);
+        _ = ResourceHazardTracker.PlanQueueDependencies(reading, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out ulong readWait);
 
         Assert.AreEqual(0ul, readWait);
 
@@ -156,7 +156,7 @@ public unsafe class ResourceHazardTrackerTests
             Usage(set, 0, ComputeResourceAccess.ReadWrite, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess)
         ];
 
-        _ = ResourceHazardTracker.PrepareResourceUsages(writing, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out ulong writeWait);
+        _ = ResourceHazardTracker.PlanQueueDependencies(writing, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out ulong writeWait);
 
         Assert.AreEqual(6ul, writeWait);
     }
@@ -177,7 +177,7 @@ public unsafe class ResourceHazardTrackerTests
             Usage(set, 1, ComputeResourceAccess.Read, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess)
         ];
 
-        _ = ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[2], out ulong wait);
+        _ = ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[2], out ulong wait);
 
         Assert.AreEqual(11ul, wait);
     }
@@ -241,11 +241,11 @@ public unsafe class ResourceHazardTrackerTests
 
         ResourceBarrierPlanEntry[] prologue = new ResourceBarrierPlanEntry[1];
 
-        Assert.AreEqual(1, ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out _));
+        Assert.AreEqual(1, ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _));
 
         ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 1));
 
-        Assert.AreEqual(0, ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, prologue, out _));
+        Assert.AreEqual(0, ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _));
     }
 
     [TestMethod]
@@ -259,10 +259,10 @@ public unsafe class ResourceHazardTrackerTests
         ];
 
         _ = Assert.ThrowsExactly<InvalidOperationException>(
-            () => ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out _));
+            () => ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, new ResourceBarrierPlanEntry[1], out _));
 
         _ = Assert.ThrowsExactly<ArgumentException>(
-            () => ResourceHazardTracker.PrepareResourceUsages(usages, ComputeQueueKind.Compute, [], out _));
+            () => ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, [], out _));
 
         _ = Assert.ThrowsExactly<ArgumentException>(
             () => ResourceHazardTracker.CommitResourceUsages(usages, FencePoint.None));

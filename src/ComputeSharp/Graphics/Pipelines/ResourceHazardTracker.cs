@@ -27,7 +27,7 @@ internal readonly struct ResourceBarrierPlanEntry(
 
 internal static class ResourceHazardTracker
 {
-    public static int PrepareResourceUsages(
+    public static int PlanQueueDependencies(
         Span<GraphicsResourceUsageEntry> usages,
         ComputeQueueKind targetQueue,
         Span<ResourceBarrierPlanEntry> prologue,

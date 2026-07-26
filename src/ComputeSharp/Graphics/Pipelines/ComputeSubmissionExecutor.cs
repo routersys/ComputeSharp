@@ -68,7 +68,7 @@ internal static unsafe class ComputeSubmissionExecutor
     {
         Span<ResourceBarrierPlanEntry> plan = stackalloc ResourceBarrierPlanEntry[usages.Length];
 
-        int barrierCount = ResourceHazardTracker.PrepareResourceUsages(
+        int barrierCount = ResourceHazardTracker.PlanQueueDependencies(
             usages,
             ComputeQueueKind.Compute,
             plan,
