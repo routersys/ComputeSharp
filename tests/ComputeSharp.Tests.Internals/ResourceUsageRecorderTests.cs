@@ -218,6 +218,166 @@ public unsafe partial class ResourceUsageRecorderTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void RecordsClearedAndFilledResourcesAsWritten(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 2);
+
+        using ReadWriteBuffer<int> buffer = graphicsDevice.AllocateReadWriteBuffer<int>(64);
+        using ReadWriteTexture2D<Rgba32, float4> texture = graphicsDevice.AllocateReadWriteTexture2D<Rgba32, float4>(8, 8);
+
+        try
+        {
+            int index = Checkout(host);
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            ComputeContext context = Borrow(graphicsDevice, host, index, out ID3D12GraphicsCommandList* d3D12CommandList);
+
+            context.Clear(buffer);
+            context.Fill(texture, new float4(1, 0, 0, 1));
+
+            context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+            GraphicsResourceUsageEntry[] usages = GetUsages(host, index);
+
+            Assert.AreEqual(2, usages.Length);
+
+            AssertUsage(usages, buffer, ComputeResourceAccess.Write, TrackedResourceState.Common);
+            AssertUsage(usages, texture, ComputeResourceAccess.Write, TrackedResourceState.UnorderedAccess);
+
+            Discard(host, index, ref record, d3D12CommandList, resourceLeases);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void UnionsTheAccessOfAClearedAndDispatchedResource(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteBuffer<int> buffer = graphicsDevice.AllocateReadWriteBuffer<int>(64);
+
+        try
+        {
+            int index = Checkout(host);
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            ComputeContext context = Borrow(graphicsDevice, host, index, out ID3D12GraphicsCommandList* d3D12CommandList);
+
+            context.Clear(buffer);
+            context.For(64, new AliasedShader(buffer, buffer));
+
+            context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+            GraphicsResourceUsageEntry[] usages = GetUsages(host, index);
+
+            Assert.AreEqual(1, usages.Length);
+
+            AssertUsage(usages, buffer, ComputeResourceAccess.ReadWrite, TrackedResourceState.Common);
+
+            Discard(host, index, ref record, d3D12CommandList, resourceLeases);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RecordsAReadOnlyViewUnderTheGenerationOfItsOwner(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteTexture2D<float> texture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
+
+        try
+        {
+            using (ComputeContext transitionContext = graphicsDevice.CreateComputeContext())
+            {
+                transitionContext.Transition(texture, ResourceState.ReadOnly);
+            }
+
+            IReadOnlyTexture2D<float> view = texture.AsReadOnly();
+
+            Assert.IsTrue(((IGenerationBoundResource)texture).TryGetGenerationBinding(out ResourceUsageBinding owner));
+            Assert.IsTrue(((IGenerationBoundResource)view).TryGetGenerationBinding(out ResourceUsageBinding viewBinding));
+
+            Assert.AreSame(owner.Set.Owner, viewBinding.Set.Owner);
+            Assert.AreEqual(owner.Generation, viewBinding.Generation);
+            Assert.AreEqual(ComputeResourceAccess.ReadWrite, owner.Access);
+            Assert.AreEqual(ComputeResourceAccess.Read, viewBinding.Access);
+            Assert.AreEqual(TrackedResourceState.NonPixelShaderResource, viewBinding.ResidentState);
+            Assert.AreEqual(TrackedResourceState.NonPixelShaderResource, owner.Set.Owner.GetResourceRecord(0).D3D12State);
+
+            int index = Checkout(host);
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            host.CreateUsageRecorder(index).Record(view);
+
+            GraphicsResourceUsageEntry[] usages = GetUsages(host, index);
+
+            Assert.AreEqual(1, usages.Length);
+            Assert.AreEqual(owner.Generation, usages[0].Generation);
+            Assert.AreEqual(ComputeResourceAccess.Read, usages[0].Access);
+            Assert.AreEqual(TrackedResourceState.NonPixelShaderResource, usages[0].FirstState);
+
+            ResourceUsageTracker.ClearUsages(host.UsageSets.Storage, ref host.UsageSets.GetSet(index));
+
+            Assert.IsTrue(record.TryAbort());
+
+            host.ReturnPendingRecord(index);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsAStateTransitionWhileRecordingAPipeline(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteTexture2D<float> texture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
+
+        try
+        {
+            int index = Checkout(host);
+
+            ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(index);
+
+            ComputeContext context = Borrow(graphicsDevice, host, index, out ID3D12GraphicsCommandList* d3D12CommandList);
+
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => context.Transition(texture, ResourceState.ReadOnly));
+
+            Assert.AreEqual(
+                TrackedResourceState.UnorderedAccess,
+                ((IResourceGenerationOwner)texture).GetResourceRecord(0).D3D12State);
+
+            context.EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases);
+
+            Discard(host, index, ref record, d3D12CommandList, resourceLeases);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void RejectsABoundResourceWithoutAGenerationIdentity(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
