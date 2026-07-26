@@ -455,6 +455,8 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     {
         DeviceHelper.NotifyDisposedDevice(this);
 
+        DisposeRegistrationRegistry();
+
         this.memoryBudgetObserver?.Dispose();
         this.computeCommandListPool.Dispose();
         this.copyCommandListPool.Dispose();

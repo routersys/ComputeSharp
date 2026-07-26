@@ -1,7 +1,10 @@
 using System;
+using System.Threading;
 using ComputeSharp.Core.Extensions;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
 using ComputeSharp.Win32;
+using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using static ComputeSharp.Win32.DXGI_MEMORY_SEGMENT_GROUP;
 
 namespace ComputeSharp;
@@ -10,9 +13,47 @@ namespace ComputeSharp;
 unsafe partial class GraphicsDevice
 {
     /// <summary>
+    /// The gate protecting the creation of <see cref="registrationRegistry"/>.
+    /// </summary>
+    private readonly Lock registrationRegistryGate = new();
+
+    /// <summary>
+    /// The <see cref="DeviceRegistrationRegistry"/> instance owning every pipeline registration of the current device.
+    /// </summary>
+    private DeviceRegistrationRegistry? registrationRegistry;
+
+    /// <summary>
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
     /// </summary>
     internal bool HasOpaqueMemoryAllocator => this.allocator.Get() is not null;
+
+    /// <summary>
+    /// Gets the registration registry of the current device, creating it if needed.
+    /// </summary>
+    /// <returns>The <see cref="DeviceRegistrationRegistry"/> instance of the current device.</returns>
+    /// <exception cref="NotSupportedException">Thrown if the current device uses an opaque custom allocator.</exception>
+    internal DeviceRegistrationRegistry GetRegistrationRegistry()
+    {
+        lock (this.registrationRegistryGate)
+        {
+            return this.registrationRegistry ??= new DeviceRegistrationRegistry(this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        }
+    }
+
+    /// <summary>
+    /// Releases the registration registry of the current device, if one was created.
+    /// </summary>
+    private void DisposeRegistrationRegistry()
+    {
+        DeviceRegistrationRegistry? registry;
+
+        lock (this.registrationRegistryGate)
+        {
+            registry = this.registrationRegistry;
+        }
+
+        registry?.Dispose();
+    }
 
     /// <summary>
     /// Executes a recorded generated pipeline command list on the compute queue and signals its completion.
