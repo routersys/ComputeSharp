@@ -15,4 +15,7 @@ internal static unsafe partial class Windows
     [DllImport("kernel32", ExactSpelling = true)]
     [return: NativeTypeName("DWORD")]
     public static extern uint WaitForSingleObjectEx(HANDLE hHandle, [NativeTypeName("DWORD")] uint dwMilliseconds, BOOL bAlertable);
+
+    [DllImport("kernel32", ExactSpelling = true)]
+    public static extern BOOL SetEvent(HANDLE hEvent);
 }
