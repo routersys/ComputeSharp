@@ -19,12 +19,12 @@ internal static unsafe class ComputeSubmissionExecutor
 
         ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
 
-        default(InvalidOperationException).ThrowIf(
-            record.ReadState() is not SubmissionState.Recording,
-            "The pending submission record is not being recorded.");
-
         lock (device.HazardGate)
         {
+            default(InvalidOperationException).ThrowIf(
+                record.ReadState() is not SubmissionState.Recording,
+                "The pending submission record is not being recorded.");
+
             Span<GraphicsResourceUsageEntry> usages = GetUsages(host, retention.ResourceUsages);
 
             RecordPrologue(host, usages, ref retention, out ulong copyFenceWaitValue);
