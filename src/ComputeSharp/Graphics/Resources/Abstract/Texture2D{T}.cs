@@ -873,6 +873,7 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         D3D12_RESOURCE_STATES d3D12ResourceStatesAfter = ResourceStateHelper.GetD3D12ResourceStates(resourceState);
 
         this.d3D12ResourceState = d3D12ResourceStatesAfter;
+        this.generationBinding.Record.D3D12State = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceStatesAfter);
 
         d3D12Resource = D3D12Resource;
 
