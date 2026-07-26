@@ -37,6 +37,26 @@ internal static unsafe class ComputeGenerationDescriber
             : D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW;
     }
 
+    public static ComputeResourceAccess GetObservedAccess(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.Constant or ResourceType.ReadOnly => ComputeResourceAccess.Read,
+            ResourceType.ReadWrite => ComputeResourceAccess.ReadWrite,
+            _ => default(ArgumentException).Throw<ComputeResourceAccess>(nameof(resourceType))
+        };
+    }
+
+    public static TrackedResourceState GetBufferResidentState(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.Constant => TrackedResourceState.GenericRead,
+            ResourceType.ReadOnly or ResourceType.ReadWrite => TrackedResourceState.Common,
+            _ => default(ArgumentException).Throw<TrackedResourceState>(nameof(resourceType))
+        };
+    }
+
     public static TrackedResourceState GetTrackedState(D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
         return d3D12ResourceStates switch

@@ -18,32 +18,26 @@ public class ResourceGenerationBindingTests
         using ReadWriteBuffer<int> buffer = graphicsDevice.AllocateReadWriteBuffer<int>(64);
         using ReadWriteTexture2D<float> texture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
 
-        Assert.IsTrue(((IGenerationBoundResource)buffer).TryGetGenerationBinding(
-            out ResourceGenerationSetHandle bufferSet,
-            out uint bufferIndex,
-            out ResourceGenerationId bufferGeneration));
+        Assert.IsTrue(((IGenerationBoundResource)buffer).TryGetGenerationBinding(out ResourceUsageBinding bufferBinding));
 
-        Assert.AreSame(buffer, bufferSet.Owner);
-        Assert.AreEqual(0u, bufferIndex);
-        Assert.AreEqual(1, bufferSet.Owner.ResourceCount);
-        Assert.AreNotEqual(0ul, bufferSet.SetId.Value);
-        Assert.AreNotEqual(0ul, bufferGeneration.Value);
+        Assert.AreSame(buffer, bufferBinding.Set.Owner);
+        Assert.AreEqual(0u, bufferBinding.ResourceIndex);
+        Assert.AreEqual(1, bufferBinding.Set.Owner.ResourceCount);
+        Assert.AreNotEqual(0ul, bufferBinding.Set.SetId.Value);
+        Assert.AreNotEqual(0ul, bufferBinding.Generation.Value);
 
-        Assert.IsTrue(((IGenerationBoundResource)texture).TryGetGenerationBinding(
-            out ResourceGenerationSetHandle textureSet,
-            out _,
-            out ResourceGenerationId textureGeneration));
+        Assert.IsTrue(((IGenerationBoundResource)texture).TryGetGenerationBinding(out ResourceUsageBinding textureBinding));
 
-        Assert.AreSame(texture, textureSet.Owner);
-        Assert.AreNotEqual(bufferSet.SetId.Value, textureSet.SetId.Value);
-        Assert.AreNotEqual(bufferGeneration.Value, textureGeneration.Value);
+        Assert.AreSame(texture, textureBinding.Set.Owner);
+        Assert.AreNotEqual(bufferBinding.Set.SetId.Value, textureBinding.Set.SetId.Value);
+        Assert.AreNotEqual(bufferBinding.Generation.Value, textureBinding.Generation.Value);
 
         Assert.AreEqual(
             ResourceGenerationState.Active,
-            bufferSet.Owner.GetResourceRecord(0).ReadLifecycle());
+            bufferBinding.Set.Owner.GetResourceRecord(0).ReadLifecycle());
         Assert.AreEqual(
             TrackedResourceState.Common,
-            bufferSet.Owner.GetResourceRecord(0).D3D12State);
+            bufferBinding.Set.Owner.GetResourceRecord(0).D3D12State);
     }
 
     [CombinatorialTestMethod]
@@ -66,15 +60,12 @@ public class ResourceGenerationBindingTests
 
             Assert.IsTrue(binding.IsValid);
 
-            Assert.IsTrue(((IGenerationBoundResource)binding.Resource!).TryGetGenerationBinding(
-                out ResourceGenerationSetHandle set,
-                out uint resourceIndex,
-                out ResourceGenerationId generation));
+            Assert.IsTrue(((IGenerationBoundResource)binding.Resource!).TryGetGenerationBinding(out ResourceUsageBinding usageBinding));
 
-            Assert.AreNotSame(binding.Resource, set.Owner);
-            Assert.AreEqual(0u, resourceIndex);
-            Assert.AreEqual(binding.SetId.Value, set.SetId.Value);
-            Assert.AreEqual(binding.GenerationId.Value, generation.Value);
+            Assert.AreNotSame(binding.Resource, usageBinding.Set.Owner);
+            Assert.AreEqual(0u, usageBinding.ResourceIndex);
+            Assert.AreEqual(binding.SetId.Value, usageBinding.Set.SetId.Value);
+            Assert.AreEqual(binding.GenerationId.Value, usageBinding.Generation.Value);
         }
         finally
         {

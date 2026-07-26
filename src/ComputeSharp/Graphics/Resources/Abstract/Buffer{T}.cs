@@ -12,6 +12,7 @@ using ComputeSharp.Interop.Allocation;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Resources.Plans;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FEATURE;
 using static ComputeSharp.Win32.DXGI_FORMAT;
@@ -117,10 +118,13 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
             out this.allocation,
             out this.d3D12Resource);
 
+        this.generationBinding.InitializeUsage(
+            ComputeGenerationDescriber.GetObservedAccess(resourceType),
+            ComputeGenerationDescriber.GetBufferResidentState(resourceType));
+
         this.generationBinding.InitializeSelfOwned(
             this,
             device.ResourceIdentities,
-            TrackedResourceState.Common,
             this.memoryAllocation.Placement,
             this.memoryAllocation.Bytes);
 
@@ -174,6 +178,10 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
         Length = length;
 
         this.d3D12Resource = new ComPtr<ID3D12Resource>(d3D12Resource);
+
+        this.generationBinding.InitializeUsage(
+            ComputeGenerationDescriber.GetObservedAccess(resourceType),
+            ComputeGenerationDescriber.GetBufferResidentState(resourceType));
 
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView);
@@ -229,12 +237,9 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     }
 
     /// <inheritdoc/>
-    bool IGenerationBoundResource.TryGetGenerationBinding(
-        out ResourceGenerationSetHandle set,
-        out uint resourceIndex,
-        out ResourceGenerationId generation)
+    bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
     {
-        return this.generationBinding.TryGetBinding(out set, out resourceIndex, out generation);
+        return this.generationBinding.TryGetBinding(out binding);
     }
 
     /// <summary>
