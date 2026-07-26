@@ -5,6 +5,7 @@ using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
+using static ComputeSharp.Win32.D3D12_FORMAT_SUPPORT1;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
 namespace ComputeSharp.Resources.Plans;
@@ -29,6 +30,13 @@ internal static unsafe class ComputeGenerationDescriber
         return access is ComputeResourceAccess.Read ? ResourceType.ReadOnly : ResourceType.ReadWrite;
     }
 
+    public static D3D12_FORMAT_SUPPORT1 GetFormatSupport(ComputeResourceAccess access)
+    {
+        return access is ComputeResourceAccess.Read
+            ? D3D12_FORMAT_SUPPORT1_TEXTURE2D
+            : D3D12_FORMAT_SUPPORT1_TEXTURE2D | D3D12_FORMAT_SUPPORT1_TYPED_UNORDERED_ACCESS_VIEW;
+    }
+
     public static TrackedResourceState GetTrackedState(D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
         return d3D12ResourceStates switch
@@ -46,12 +54,16 @@ internal static unsafe class ComputeGenerationDescriber
         out ComputeGenerationDeclaration declaration)
         where T : unmanaged
     {
+        uint elementSizeInBytes = (uint)sizeof(T);
+
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(length, 1, (uint.MaxValue / elementSizeInBytes) & ~255);
+
         declaration = default;
         declaration.Shape = ComputeGenerationShape.Buffer;
         declaration.Width = length;
         declaration.Height = 1;
 
-        ulong sizeInBytes = checked((ulong)length * (ulong)sizeof(T));
+        ulong sizeInBytes = checked((ulong)length * elementSizeInBytes);
 
         GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetCommittedResourceDescription(
             GetResourceType(access),
@@ -69,7 +81,17 @@ internal static unsafe class ComputeGenerationDescriber
         out ComputeGenerationDeclaration declaration)
         where T : unmanaged
     {
-        return DescribeTexture2D(device, access, DXGIFormatHelper.GetForType<T>(), width, height, out declaration);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(width, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(height, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+
+        DXGI_FORMAT dxgiFormat = DXGIFormatHelper.GetForType<T>();
+
+        if (!device.D3D12Device->IsDxgiFormatSupported(dxgiFormat, GetFormatSupport(access)))
+        {
+            UnsupportedTextureTypeException.ThrowForTexture2D<T>();
+        }
+
+        return DescribeTexture2D(device, access, dxgiFormat, width, height, out declaration);
     }
 
     public static ComputeGenerationDeclarationStatus DescribeTexture2D(
