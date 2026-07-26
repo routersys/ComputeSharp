@@ -1,22 +1,5 @@
 namespace ComputeSharp.Memory;
 
-internal enum MemoryBudgetStatus : byte
-{
-    Unknown = 0,
-    Valid = 1,
-    Unsupported = 2,
-    DeviceLost = 3
-}
-
-internal readonly struct GraphicsMemoryGrant
-{
-    public bool HasLimit { get; init; }
-
-    public ulong LimitBytes { get; init; }
-
-    public ulong Version { get; init; }
-}
-
 internal struct VideoMemoryBudgetSnapshot
 {
     public ulong BudgetBytes;
