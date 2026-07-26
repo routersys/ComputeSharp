@@ -64,10 +64,11 @@ public unsafe partial class PipelineRecordingTests
             };
 
             Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
-            Assert.IsTrue(record.TryCompleteValidation());
+
+            ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
 
             ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
-                graphicsDevice, host, completion, index, 0, in retention);
+                graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
 
             submission.Wait();
 
@@ -115,10 +116,11 @@ public unsafe partial class PipelineRecordingTests
             GraphicsResourceLeaseSet? secondLeases = Record(graphicsDevice, host, index, ref retention, second, 100);
 
             Assert.AreEqual(2, retention.CommandLists.Count);
-            Assert.IsTrue(record.TryCompleteValidation());
+
+            ComputeSubmissionExecutor.Prepare(host, index, ref retention, out ulong copyFenceWaitValue);
 
             ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
-                graphicsDevice, host, completion, index, 0, in retention);
+                graphicsDevice, host, completion, index, copyFenceWaitValue, in retention);
 
             submission.Wait();
 

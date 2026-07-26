@@ -117,6 +117,28 @@ internal struct CommandListLeaseSet
         return true;
     }
 
+    public bool TryInsertFirst(nint commandList, nint commandAllocator, ComputeQueueKind queue)
+    {
+        if (this.Count >= MaximumSegmentCount)
+        {
+            return false;
+        }
+
+        this.Segment2 = this.Segment1;
+        this.Segment1 = this.Segment0;
+        this.Segment0 = new CommandListSegmentLease
+        {
+            CommandList = commandList,
+            CommandAllocator = commandAllocator,
+            Queue = queue,
+            IsValid = 1
+        };
+
+        this.Count++;
+
+        return true;
+    }
+
     public void Clear()
     {
         this.Segment0 = default;

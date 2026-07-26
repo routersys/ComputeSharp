@@ -57,6 +57,20 @@ internal static unsafe class ComputeGenerationDescriber
         };
     }
 
+    public static D3D12_RESOURCE_STATES GetD3D12ResourceStates(TrackedResourceState trackedState)
+    {
+        return trackedState switch
+        {
+            TrackedResourceState.Common => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON,
+            TrackedResourceState.UnorderedAccess => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+            TrackedResourceState.NonPixelShaderResource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+            TrackedResourceState.CopySource => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_SOURCE,
+            TrackedResourceState.CopyDestination or TrackedResourceState.ReadbackCopyDestination => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COPY_DEST,
+            TrackedResourceState.GenericRead => D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_GENERIC_READ,
+            _ => default(ArgumentException).Throw<D3D12_RESOURCE_STATES>(nameof(trackedState))
+        };
+    }
+
     public static TrackedResourceState GetTrackedState(D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
         return d3D12ResourceStates switch

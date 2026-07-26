@@ -39,7 +39,8 @@ internal static unsafe class PipelineSubmissionSetup
         retention = new SubmissionRetention { ResourceUsages = host.GetUsageSetHandle(index) };
 
         Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
-        Assert.IsTrue(record.TryCompleteValidation());
+
+        ComputeSubmissionExecutor.Prepare(host, index, ref retention, out _);
 
         return index;
     }
