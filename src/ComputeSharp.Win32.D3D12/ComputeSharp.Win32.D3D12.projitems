@@ -26,6 +26,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\other\d3dx12\D3D12_TEXTURE_COPY_LOCATION.Manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\other\d3dx12\D3D12_VERSIONED_ROOT_SIGNATURE_DESC.Manual.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_2\DXGIOutput1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_4\DXGI_MEMORY_SEGMENT_GROUP.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_4\DXGI_QUERY_VIDEO_MEMORY_INFO.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_4\IDXGIAdapter3.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_2\DXGI_ALPHA_MODE.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_2\DXGI_MODE_DESC1.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi1_2\DXGI_SCALING.cs" />
