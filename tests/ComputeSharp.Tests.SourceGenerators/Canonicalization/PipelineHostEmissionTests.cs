@@ -83,6 +83,9 @@ public class PipelineHostEmissionTests
 
         Assert.IsTrue(source.Contains("partial class Host : global::System.IDisposable"), source);
         Assert.IsTrue(source.Contains("this.computeHostRuntime.Dispose();"), source);
+        Assert.IsTrue(source.Contains("this.@grid.Dispose();"), source);
+        Assert.IsTrue(source.Contains("this.@index.Dispose();"), source);
+        Assert.IsTrue(source.Contains("this.@silhouette.Dispose();"), source);
         Assert.IsTrue(source.Contains("this.computeHostRuntime.WaitForDisposal();"), source);
     }
 
