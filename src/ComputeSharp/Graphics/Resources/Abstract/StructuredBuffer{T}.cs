@@ -6,6 +6,7 @@ using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Graphics.Resources.Interop;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Memory;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
@@ -70,7 +71,7 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             using ComPtr<ID3D12Allocation> allocation = default;
             using ComPtr<ID3D12Resource> d3D12Resource = default;
 
-            GraphicsDevice.CreateOrAllocateResource(
+            using GraphicsMemoryAllocation memoryAllocation = GraphicsDevice.CreateOrAllocateResource(
                 ResourceType.ReadBack,
                 AllocationMode.Default,
                 (ulong)byteLength,
@@ -238,7 +239,7 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             using ComPtr<ID3D12Allocation> allocation = default;
             using ComPtr<ID3D12Resource> d3D12Resource = default;
 
-            GraphicsDevice.CreateOrAllocateResource(
+            using GraphicsMemoryAllocation memoryAllocation = GraphicsDevice.CreateOrAllocateResource(
                 ResourceType.Upload,
                 AllocationMode.Default,
                 (ulong)byteLength,

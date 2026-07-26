@@ -8,6 +8,7 @@ using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Memory;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FEATURE;
@@ -29,6 +30,11 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
     private ReferenceTracker referenceTracker;
+
+    /// <summary>
+    /// The memory accounting of <see cref="d3D12Resource"/>, if it is tracked by the memory coordinator.
+    /// </summary>
+    private GraphicsMemoryAllocation memoryAllocation;
 
     /// <summary>
     /// The <see cref="ID3D12Allocation"/> instance used to retrieve <see cref="d3D12Resource"/>, if available.
@@ -97,7 +103,7 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
         GraphicsDevice = device;
         Length = length;
 
-        device.CreateOrAllocateResource(
+        this.memoryAllocation = device.CreateOrAllocateResource(
             resourceType,
             allocationMode,
             (ulong)effectiveSizeInBytes,
@@ -219,6 +225,7 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     {
         this.d3D12Resource.Dispose();
         this.allocation.Dispose();
+        this.memoryAllocation.Dispose();
 
         if (GraphicsDevice is GraphicsDevice device)
         {

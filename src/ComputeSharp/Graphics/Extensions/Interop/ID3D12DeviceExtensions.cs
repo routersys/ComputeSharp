@@ -1,6 +1,7 @@
 using System;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Resources.Enums;
+using ComputeSharp.Memory;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_QUEUE_FLAGS;
 using static ComputeSharp.Win32.D3D12_COMMAND_QUEUE_PRIORITY;
@@ -26,15 +27,13 @@ namespace ComputeSharp.Graphics.Extensions;
 internal static unsafe class ID3D12DeviceExtensions
 {
     /// <summary>
-    /// Creates a committed resource for a given buffer type.
+    /// Gets the committed resource description for a given buffer type.
     /// </summary>
-    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
     /// <param name="resourceType">The resource type currently in use.</param>
     /// <param name="sizeInBytes">The size in bytes of the current buffer.</param>
     /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
-    /// <returns>An <see cref="ID3D12Resource"/> reference for the current buffer.</returns>
-    public static ComPtr<ID3D12Resource> CreateCommittedResource(
-        this ref ID3D12Device d3D12Device,
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current buffer.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
         ResourceType resourceType,
         ulong sizeInBytes,
         bool isCacheCoherentUMA)
@@ -51,8 +50,199 @@ internal static unsafe class ID3D12DeviceExtensions
              _ => default(ArgumentException).Throw<(D3D12_HEAP_TYPE, D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
          };
 
-        using ComPtr<ID3D12Resource> d3D12Resource = default;
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(d3D12HeapType, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Buffer(sizeInBytes, d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
 
+    /// <summary>
+    /// Gets the committed resource description for a given 1D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex1D(dxgiFormat, width, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a given 2D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a given 3D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="depth">The depth of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        ushort depth,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex3D(dxgiFormat, width, height, depth, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a 2D texture that can be shared across APIs.
+    /// </summary>
+    /// <param name="resourceType">The resource type of the resource to create.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the shareable texture.</returns>
+    public static GraphicsCommittedResourceDescription GetSharedCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        bool isRenderTarget)
+    {
+        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = resourceType switch
+        {
+            ResourceType.ReadOnly => D3D12_RESOURCE_FLAG_NONE,
+            ResourceType.ReadWrite => D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS,
+            _ => default(ArgumentException).Throw<D3D12_RESOURCE_FLAGS>(nameof(resourceType))
+        };
+
+        if (isRenderTarget)
+        {
+            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        return new GraphicsCommittedResourceDescription(
+            d3D12HeapProperties,
+            D3D12_HEAP_FLAG_SHARED,
+            D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags),
+            D3D12_RESOURCE_STATE_COMMON);
+    }
+
+    /// <summary>
+    /// Gets the allocation info of a described committed resource.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="description">The description of the resource to get the allocation info of.</param>
+    /// <returns>The <see cref="D3D12_RESOURCE_ALLOCATION_INFO"/> value for the described resource.</returns>
+    public static D3D12_RESOURCE_ALLOCATION_INFO GetResourceAllocationInfo(
+        this ref ID3D12Device d3D12Device,
+        in GraphicsCommittedResourceDescription description)
+    {
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = description.ResourceDescription;
+
+        return d3D12Device.GetResourceAllocationInfo(1, 1, &d3D12ResourceDescription);
+    }
+
+    /// <summary>
+    /// Creates a described committed resource.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="description">The description of the resource to create.</param>
+    /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object.</param>
+    /// <returns>The <see cref="HRESULT"/> of the creation.</returns>
+    public static HRESULT CreateCommittedResource(
+        this ref ID3D12Device d3D12Device,
+        in GraphicsCommittedResourceDescription description,
+        out ComPtr<ID3D12Resource> d3D12Resource)
+    {
+        using ComPtr<ID3D12Resource> d3D12ResourceResult = default;
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties = description.HeapProperties;
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = description.ResourceDescription;
+
+        HRESULT hresult = d3D12Device.CreateCommittedResource(
+            &d3D12HeapProperties,
+            description.HeapFlags,
+            &d3D12ResourceDescription,
+            description.ResourceStates,
+            null,
+            Windows.__uuidof<ID3D12Resource>(),
+            (void**)d3D12ResourceResult.GetAddressOf());
+
+        d3D12Resource = d3D12ResourceResult.Move();
+
+        return hresult;
+    }
+
+    /// <summary>
+    /// Gets the resource flags and default resource states for a given texture resource type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <returns>The resource flags and default resource states for <paramref name="resourceType"/>.</returns>
+    private static (D3D12_RESOURCE_FLAGS Flags, D3D12_RESOURCE_STATES States) GetTextureResourceTypeInfo(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.ReadOnly => (D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
+            ResourceType.ReadWrite => (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+            _ => default(ArgumentException).Throw<(D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
+        };
+    }
+
+    /// <summary>
+    /// Gets the heap properties for a given heap type.
+    /// </summary>
+    /// <param name="d3D12HeapType">The heap type to get the properties for.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="D3D12_HEAP_PROPERTIES"/> value to allocate from.</returns>
+    private static D3D12_HEAP_PROPERTIES GetHeapProperties(D3D12_HEAP_TYPE d3D12HeapType, bool isCacheCoherentUMA)
+    {
         D3D12_HEAP_PROPERTIES d3D12HeapProperties;
         d3D12HeapProperties.CreationNodeMask = 1;
         d3D12HeapProperties.VisibleNodeMask = 1;
@@ -70,261 +260,7 @@ internal static unsafe class ID3D12DeviceExtensions
             d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
         }
 
-        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Buffer(sizeInBytes, d3D12ResourceFlags);
-
-        d3D12Device.CreateCommittedResource(
-            &d3D12HeapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &d3D12ResourceDescription,
-            d3D12ResourceStates,
-            null,
-            Windows.__uuidof<ID3D12Resource>(),
-            (void**)d3D12Resource.GetAddressOf()).Assert();
-
-        return d3D12Resource.Move();
-    }
-
-    /// <summary>
-    /// Creates a committed resource for a given 1D texture type.
-    /// </summary>
-    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
-    /// <param name="resourceType">The resource type currently in use.</param>
-    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
-    /// <param name="width">The width of the texture resource.</param>
-    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
-    /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
-    /// <returns>An <see cref="ID3D12Resource"/> reference for the current texture.</returns>
-    public static ComPtr<ID3D12Resource> CreateCommittedResource(
-        this ref ID3D12Device d3D12Device,
-        ResourceType resourceType,
-        DXGI_FORMAT dxgiFormat,
-        uint width,
-        bool isCacheCoherentUMA,
-        out D3D12_RESOURCE_STATES d3D12ResourceStates)
-    {
-        D3D12_RESOURCE_FLAGS d3D12ResourceFlags;
-
-        (d3D12ResourceFlags, d3D12ResourceStates) = resourceType switch
-        {
-            ResourceType.ReadOnly => (D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
-            ResourceType.ReadWrite => (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-            _ => default(ArgumentException).Throw<(D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
-        };
-
-        using ComPtr<ID3D12Resource> d3D12Resource = default;
-
-        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
-        d3D12HeapProperties.CreationNodeMask = 1;
-        d3D12HeapProperties.VisibleNodeMask = 1;
-
-        if (isCacheCoherentUMA)
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-        }
-        else
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        }
-
-        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex1D(dxgiFormat, width, mipLevels: 1, flags: d3D12ResourceFlags);
-
-        d3D12Device.CreateCommittedResource(
-            &d3D12HeapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &d3D12ResourceDescription,
-            d3D12ResourceStates,
-            null,
-            Windows.__uuidof<ID3D12Resource>(),
-            (void**)d3D12Resource.GetAddressOf()).Assert();
-
-        return d3D12Resource.Move();
-    }
-
-    /// <summary>
-    /// Creates a committed resource for a given 2D texture type.
-    /// </summary>
-    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
-    /// <param name="resourceType">The resource type currently in use.</param>
-    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
-    /// <param name="width">The width of the texture resource.</param>
-    /// <param name="height">The height of the texture resource.</param>
-    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
-    /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
-    /// <returns>An <see cref="ID3D12Resource"/> reference for the current texture.</returns>
-    public static ComPtr<ID3D12Resource> CreateCommittedResource(
-        this ref ID3D12Device d3D12Device,
-        ResourceType resourceType,
-        DXGI_FORMAT dxgiFormat,
-        uint width,
-        uint height,
-        bool isCacheCoherentUMA,
-        out D3D12_RESOURCE_STATES d3D12ResourceStates)
-    {
-        D3D12_RESOURCE_FLAGS d3D12ResourceFlags;
-
-        (d3D12ResourceFlags, d3D12ResourceStates) = resourceType switch
-        {
-            ResourceType.ReadOnly => (D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
-            ResourceType.ReadWrite => (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-            _ => default(ArgumentException).Throw<(D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
-        };
-
-        using ComPtr<ID3D12Resource> d3D12Resource = default;
-
-        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
-        d3D12HeapProperties.CreationNodeMask = 1;
-        d3D12HeapProperties.VisibleNodeMask = 1;
-
-        if (isCacheCoherentUMA)
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-        }
-        else
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        }
-
-        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags);
-
-        d3D12Device.CreateCommittedResource(
-            &d3D12HeapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &d3D12ResourceDescription,
-            d3D12ResourceStates,
-            null,
-            Windows.__uuidof<ID3D12Resource>(),
-            (void**)d3D12Resource.GetAddressOf()).Assert();
-
-        return d3D12Resource.Move();
-    }
-
-    /// <summary>
-    /// Creates a committed resource for a given 3D texture type.
-    /// </summary>
-    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
-    /// <param name="resourceType">The resource type currently in use.</param>
-    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
-    /// <param name="width">The width of the texture resource.</param>
-    /// <param name="height">The height of the texture resource.</param>
-    /// <param name="depth">The depth of the texture resource.</param>
-    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
-    /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
-    /// <returns>An <see cref="ID3D12Resource"/> reference for the current texture.</returns>
-    public static ComPtr<ID3D12Resource> CreateCommittedResource(
-        this ref ID3D12Device d3D12Device,
-        ResourceType resourceType,
-        DXGI_FORMAT dxgiFormat,
-        uint width,
-        uint height,
-        ushort depth,
-        bool isCacheCoherentUMA,
-        out D3D12_RESOURCE_STATES d3D12ResourceStates)
-    {
-        D3D12_RESOURCE_FLAGS d3D12ResourceFlags;
-
-        (d3D12ResourceFlags, d3D12ResourceStates) = resourceType switch
-        {
-            ResourceType.ReadOnly => (D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
-            ResourceType.ReadWrite => (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
-            _ => default(ArgumentException).Throw<(D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
-        };
-
-        using ComPtr<ID3D12Resource> d3D12Resource = default;
-
-        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
-        d3D12HeapProperties.CreationNodeMask = 1;
-        d3D12HeapProperties.VisibleNodeMask = 1;
-
-        if (isCacheCoherentUMA)
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-        }
-        else
-        {
-            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        }
-
-        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex3D(dxgiFormat, width, height, depth, mipLevels: 1, flags: d3D12ResourceFlags);
-
-        d3D12Device.CreateCommittedResource(
-            &d3D12HeapProperties,
-            D3D12_HEAP_FLAG_NONE,
-            &d3D12ResourceDescription,
-            d3D12ResourceStates,
-            null,
-            Windows.__uuidof<ID3D12Resource>(),
-            (void**)d3D12Resource.GetAddressOf()).Assert();
-
-        return d3D12Resource.Move();
-    }
-
-    /// <summary>
-    /// Creates a committed 2D texture resource that can be shared across APIs.
-    /// </summary>
-    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
-    /// <param name="resourceType">The resource type of the resource to create.</param>
-    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
-    /// <param name="width">The width of the texture.</param>
-    /// <param name="height">The height of the texture.</param>
-    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
-    /// <param name="d3D12ResourceStates">The initial <see cref="D3D12_RESOURCE_STATES"/> value for the created resource.</param>
-    /// <returns>A reference to the shareable <see cref="ID3D12Resource"/> created.</returns>
-    public static ComPtr<ID3D12Resource> CreateSharedCommittedResource(
-        this ref ID3D12Device d3D12Device,
-        ResourceType resourceType,
-        DXGI_FORMAT dxgiFormat,
-        uint width,
-        uint height,
-        bool isRenderTarget,
-        out D3D12_RESOURCE_STATES d3D12ResourceStates)
-    {
-        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = resourceType switch
-        {
-            ResourceType.ReadOnly => D3D12_RESOURCE_FLAG_NONE,
-            ResourceType.ReadWrite => D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS,
-            _ => default(ArgumentException).Throw<D3D12_RESOURCE_FLAGS>(nameof(resourceType))
-        };
-
-        if (isRenderTarget)
-        {
-            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-        }
-
-        d3D12ResourceStates = D3D12_RESOURCE_STATE_COMMON;
-
-        using ComPtr<ID3D12Resource> d3D12Resource = default;
-
-        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
-        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-        d3D12HeapProperties.CreationNodeMask = 1;
-        d3D12HeapProperties.VisibleNodeMask = 1;
-
-        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags);
-
-        d3D12Device.CreateCommittedResource(
-            &d3D12HeapProperties,
-            D3D12_HEAP_FLAG_SHARED,
-            &d3D12ResourceDescription,
-            d3D12ResourceStates,
-            null,
-            Windows.__uuidof<ID3D12Resource>(),
-            (void**)d3D12Resource.GetAddressOf()).Assert();
-
-        return d3D12Resource.Move();
+        return d3D12HeapProperties;
     }
 
     /// <summary>

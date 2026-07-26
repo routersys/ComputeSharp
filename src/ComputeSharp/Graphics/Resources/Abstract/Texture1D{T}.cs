@@ -8,6 +8,7 @@ using ComputeSharp.Graphics.Resources.Helpers;
 using ComputeSharp.Graphics.Resources.Interop;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Memory;
 using ComputeSharp.Resources.Interop;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
@@ -31,6 +32,11 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
     private ReferenceTracker referenceTracker;
+
+    /// <summary>
+    /// The memory accounting of <see cref="d3D12Resource"/>, if it is tracked by the memory coordinator.
+    /// </summary>
+    private GraphicsMemoryAllocation memoryAllocation;
 
     /// <summary>
     /// The <see cref="ID3D12Allocation"/> instance used to retrieve <see cref="d3D12Resource"/>, if available.
@@ -89,7 +95,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         GraphicsDevice = device;
 
-        device.CreateOrAllocateResource(
+        this.memoryAllocation = device.CreateOrAllocateResource(
             resourceType,
             allocationMode,
             DXGIFormatHelper.GetForType<T>(),
@@ -180,7 +186,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
         using ComPtr<ID3D12Allocation> allocation = default;
         using ComPtr<ID3D12Resource> d3D12Resource = default;
 
-        GraphicsDevice.CreateOrAllocateResource(
+        using GraphicsMemoryAllocation memoryAllocation = GraphicsDevice.CreateOrAllocateResource(
             ResourceType.ReadBack,
             AllocationMode.Default,
             totalSizeInBytes,
@@ -380,7 +386,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
         using ComPtr<ID3D12Allocation> allocation = default;
         using ComPtr<ID3D12Resource> d3D12Resource = default;
 
-        GraphicsDevice.CreateOrAllocateResource(
+        using GraphicsMemoryAllocation memoryAllocation = GraphicsDevice.CreateOrAllocateResource(
             ResourceType.Upload,
             AllocationMode.Default,
             totalSizeInBytes,
@@ -493,6 +499,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     {
         this.d3D12Resource.Dispose();
         this.allocation.Dispose();
+        this.memoryAllocation.Dispose();
 
         if (GraphicsDevice is GraphicsDevice device)
         {

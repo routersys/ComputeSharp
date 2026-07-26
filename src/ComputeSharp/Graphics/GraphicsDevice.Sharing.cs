@@ -1,5 +1,6 @@
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Extensions;
+using ComputeSharp.Memory;
 using ComputeSharp.Win32;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
@@ -18,7 +19,8 @@ unsafe partial class GraphicsDevice
     /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
     /// <param name="d3D12Resource">The created <see cref="ID3D12Resource"/> object.</param>
     /// <param name="d3D12ResourceStates">The initial <see cref="D3D12_RESOURCE_STATES"/> value for the created resource.</param>
-    internal void CreateSharedResource(
+    /// <returns>The memory accounting of the created resource.</returns>
+    internal GraphicsMemoryAllocation CreateSharedResource(
         ResourceType resourceType,
         DXGI_FORMAT dxgiFormat,
         uint width,
@@ -27,7 +29,16 @@ unsafe partial class GraphicsDevice
         out ComPtr<ID3D12Resource> d3D12Resource,
         out D3D12_RESOURCE_STATES d3D12ResourceStates)
     {
-        d3D12Resource = this.d3D12Device.Get()->CreateSharedCommittedResource(resourceType, dxgiFormat, width, height, isRenderTarget, out d3D12ResourceStates);
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetSharedCommittedResourceDescription(
+            resourceType,
+            dxgiFormat,
+            width,
+            height,
+            isRenderTarget);
+
+        d3D12ResourceStates = description.ResourceStates;
+
+        return AllocateCommittedResource(in description, out d3D12Resource);
     }
 
     /// <summary>

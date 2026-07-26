@@ -154,62 +154,24 @@ internal sealed class MemoryAllocationCoordinator
     {
         lock (this.allocationGate)
         {
-            ref SegmentMemoryAccounting segment = ref GetSegment(placement);
-
-            if (segment.DxgiInitialized && IsSameObservation(in segment.LastDxgiObservation, in budget))
-            {
-                return this.policy.Epoch;
-            }
-
-            segment.DxgiInitialized = true;
-            segment.LastDxgiObservation = budget;
-            this.policy.Epoch = checked(this.policy.Epoch + 1);
+            MergeBudgetObservation(placement, in budget);
 
             return this.policy.Epoch;
         }
     }
 
-    public BrokerGrantStatus ObserveGrant(
+    public MemoryAdmissionSnapshot Observe(
         MemoryPolicyConfiguration configuration,
-        MemoryPlacement placement,
-        bool hasGrant,
-        in GraphicsMemoryGrant grant,
-        out GraphicsMemoryGrant observed)
+        in SegmentObservationInput local,
+        in SegmentObservationInput nonLocal,
+        in DeviceStructuralAggregate structural)
     {
         lock (this.allocationGate)
         {
-            ref BrokerGrantObservation observation = ref configuration.GetGrantObservation(placement);
+            SegmentPolicySnapshot localSnapshot = MergeSegmentObservation(configuration, MemoryPlacement.Local, in local);
+            SegmentPolicySnapshot nonLocalSnapshot = MergeSegmentObservation(configuration, MemoryPlacement.NonLocal, in nonLocal);
 
-            if (!hasGrant)
-            {
-                observed = observation.Grant;
-
-                return BrokerGrantStatus.Unknown;
-            }
-
-            if (!observation.Initialized)
-            {
-                observation.Initialized = true;
-                observation.Grant = grant;
-
-                this.policy.Epoch = checked(this.policy.Epoch + 1);
-            }
-            else if (!MemoryAdmission.IsGrantObservationValid(in observation.Grant, in grant))
-            {
-                observed = observation.Grant;
-
-                return BrokerGrantStatus.Unknown;
-            }
-            else if (grant.Version > observation.Grant.Version)
-            {
-                observation.Grant = grant;
-
-                this.policy.Epoch = checked(this.policy.Epoch + 1);
-            }
-
-            observed = observation.Grant;
-
-            return BrokerGrantStatus.Valid;
+            return new MemoryAdmissionSnapshot(this.policy.Epoch, localSnapshot, nonLocalSnapshot, structural);
         }
     }
 
@@ -336,12 +298,8 @@ internal sealed class MemoryAllocationCoordinator
             return;
         }
 
-        GraphicsMemorySegment segment = placement is MemoryPlacement.Local
-            ? GraphicsMemorySegment.Local
-            : GraphicsMemorySegment.NonLocal;
-
         default(InvalidOperationException).ThrowIf(
-            !client.TryGetGrant(segment, out _),
+            !client.TryGetGrant(GraphicsMemorySegments.GetSegment(placement), out _),
             "The memory budget broker granted no memory for an active segment.");
     }
 
@@ -427,6 +385,83 @@ internal sealed class MemoryAllocationCoordinator
         this.policy.Retired = null;
 
         return client;
+    }
+
+    private void MergeBudgetObservation(MemoryPlacement placement, in VideoMemoryBudgetSnapshot budget)
+    {
+        ref SegmentMemoryAccounting accounting = ref GetSegment(placement);
+
+        if (accounting.DxgiInitialized && IsSameObservation(in accounting.LastDxgiObservation, in budget))
+        {
+            return;
+        }
+
+        accounting.DxgiInitialized = true;
+        accounting.LastDxgiObservation = budget;
+
+        this.policy.Epoch = checked(this.policy.Epoch + 1);
+    }
+
+    private SegmentPolicySnapshot MergeSegmentObservation(
+        MemoryPolicyConfiguration configuration,
+        MemoryPlacement placement,
+        in SegmentObservationInput input)
+    {
+        SegmentPolicySnapshot snapshot = new()
+        {
+            TopologyActive = input.TopologyActive,
+            DxgiStatus = input.DxgiStatus,
+            Dxgi = input.Dxgi,
+            BrokerConfigured = input.BrokerConfigured,
+            GrantStatus = BrokerGrantStatus.NotConfigured,
+            ExplicitHardLimitBytes = configuration.GetExplicitHardLimitBytes(placement)
+        };
+
+        if (input.TopologyActive && input.DxgiStatus is MemoryBudgetStatus.Valid)
+        {
+            MergeBudgetObservation(placement, in input.Dxgi);
+        }
+
+        if (!input.BrokerConfigured)
+        {
+            return snapshot;
+        }
+
+        ref BrokerGrantObservation observation = ref configuration.GetGrantObservation(placement);
+
+        if (!input.HasGrant)
+        {
+            snapshot.GrantStatus = BrokerGrantStatus.Unknown;
+            snapshot.Grant = observation.Grant;
+
+            return snapshot;
+        }
+
+        if (!observation.Initialized)
+        {
+            observation.Initialized = true;
+            observation.Grant = input.Grant;
+
+            this.policy.Epoch = checked(this.policy.Epoch + 1);
+        }
+        else if (!MemoryAdmission.IsGrantObservationValid(in observation.Grant, in input.Grant))
+        {
+            snapshot.GrantStatus = BrokerGrantStatus.Unknown;
+            snapshot.Grant = observation.Grant;
+
+            return snapshot;
+        }
+        else if (input.Grant.Version > observation.Grant.Version)
+        {
+            observation.Grant = input.Grant;
+
+            this.policy.Epoch = checked(this.policy.Epoch + 1);
+        }
+
+        snapshot.GrantStatus = BrokerGrantStatus.Valid;
+        snapshot.Grant = observation.Grant;
+
+        return snapshot;
     }
 
     private ref SegmentMemoryAccounting ClaimReservation(in MemoryReservationToken token)

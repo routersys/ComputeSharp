@@ -184,6 +184,8 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         IsUma = d3D12Architecture1Data.UMA != 0;
         IsCacheCoherentUMA = d3D12Architecture1Data.CacheCoherentUMA != 0;
 
+        InitializeMemoryTopology();
+
         this.deviceRemovedReason = S.S_OK;
         this.cachedPipelineData = [];
 

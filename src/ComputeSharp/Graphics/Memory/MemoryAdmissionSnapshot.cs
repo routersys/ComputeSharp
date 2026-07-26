@@ -31,6 +31,21 @@ internal struct DeviceMemoryObservationState
     public SegmentMemoryAccounting NonLocal;
 }
 
+internal struct SegmentObservationInput
+{
+    public bool TopologyActive;
+
+    public MemoryBudgetStatus DxgiStatus;
+
+    public VideoMemoryBudgetSnapshot Dxgi;
+
+    public bool BrokerConfigured;
+
+    public bool HasGrant;
+
+    public GraphicsMemoryGrant Grant;
+}
+
 internal struct SegmentPolicySnapshot
 {
     public bool TopologyActive;

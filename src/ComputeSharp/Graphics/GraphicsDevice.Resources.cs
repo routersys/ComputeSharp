@@ -1,5 +1,6 @@
 using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Memory;
 using ComputeSharp.Win32;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
@@ -16,7 +17,8 @@ unsafe partial class GraphicsDevice
     /// <param name="sizeInBytes">The size in bytes of the current buffer.</param>
     /// <param name="allocation">The resulting <see cref="ID3D12Allocation"/> object, if one is used.</param>
     /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object for the buffer.</param>
-    internal void CreateOrAllocateResource(
+    /// <returns>The memory accounting of the new resource.</returns>
+    internal GraphicsMemoryAllocation CreateOrAllocateResource(
         ResourceType resourceType,
         AllocationMode allocationMode,
         ulong sizeInBytes,
@@ -27,12 +29,18 @@ unsafe partial class GraphicsDevice
         {
             allocation = this.allocator.Get()->AllocateResource(resourceType, allocationMode, sizeInBytes);
             d3D12Resource = allocation.Get()->GetD3D12Resource();
+
+            return default;
         }
-        else
-        {
-            allocation = default;
-            d3D12Resource = this.d3D12Device.Get()->CreateCommittedResource(resourceType, sizeInBytes, IsCacheCoherentUMA);
-        }
+
+        allocation = default;
+
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetCommittedResourceDescription(
+            resourceType,
+            sizeInBytes,
+            IsCacheCoherentUMA);
+
+        return AllocateCommittedResource(in description, out d3D12Resource);
     }
 
     /// <summary>
@@ -45,7 +53,8 @@ unsafe partial class GraphicsDevice
     /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
     /// <param name="allocation">The resulting <see cref="ID3D12Allocation"/> object, if one is used.</param>
     /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object for the 1D texture.</param>
-    internal void CreateOrAllocateResource(
+    /// <returns>The memory accounting of the new resource.</returns>
+    internal GraphicsMemoryAllocation CreateOrAllocateResource(
         ResourceType resourceType,
         AllocationMode allocationMode,
         DXGI_FORMAT dxgiFormat,
@@ -64,18 +73,21 @@ unsafe partial class GraphicsDevice
                 out d3D12ResourceStates);
 
             d3D12Resource = allocation.Get()->GetD3D12Resource();
-        }
-        else
-        {
-            allocation = default;
 
-            d3D12Resource = this.d3D12Device.Get()->CreateCommittedResource(
-                resourceType,
-                dxgiFormat,
-                width,
-                IsCacheCoherentUMA,
-                out d3D12ResourceStates);
+            return default;
         }
+
+        allocation = default;
+
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetCommittedResourceDescription(
+            resourceType,
+            dxgiFormat,
+            width,
+            IsCacheCoherentUMA);
+
+        d3D12ResourceStates = description.ResourceStates;
+
+        return AllocateCommittedResource(in description, out d3D12Resource);
     }
 
     /// <summary>
@@ -89,7 +101,8 @@ unsafe partial class GraphicsDevice
     /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
     /// <param name="allocation">The resulting <see cref="ID3D12Allocation"/> object, if one is used.</param>
     /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object for the 2D texture.</param>
-    internal void CreateOrAllocateResource(
+    /// <returns>The memory accounting of the new resource.</returns>
+    internal GraphicsMemoryAllocation CreateOrAllocateResource(
         ResourceType resourceType,
         AllocationMode allocationMode,
         DXGI_FORMAT dxgiFormat,
@@ -110,19 +123,22 @@ unsafe partial class GraphicsDevice
                 out d3D12ResourceStates);
 
             d3D12Resource = allocation.Get()->GetD3D12Resource();
-        }
-        else
-        {
-            allocation = default;
 
-            d3D12Resource = this.d3D12Device.Get()->CreateCommittedResource(
-                resourceType,
-                dxgiFormat,
-                width,
-                height,
-                IsCacheCoherentUMA,
-                out d3D12ResourceStates);
+            return default;
         }
+
+        allocation = default;
+
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetCommittedResourceDescription(
+            resourceType,
+            dxgiFormat,
+            width,
+            height,
+            IsCacheCoherentUMA);
+
+        d3D12ResourceStates = description.ResourceStates;
+
+        return AllocateCommittedResource(in description, out d3D12Resource);
     }
 
     /// <summary>
@@ -137,7 +153,8 @@ unsafe partial class GraphicsDevice
     /// <param name="d3D12ResourceStates">The default <see cref="D3D12_RESOURCE_STATES"/> value for the resource.</param>
     /// <param name="allocation">The resulting <see cref="ID3D12Allocation"/> object, if one is used.</param>
     /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object for the 3D texture.</param>
-    internal void CreateOrAllocateResource(
+    /// <returns>The memory accounting of the new resource.</returns>
+    internal GraphicsMemoryAllocation CreateOrAllocateResource(
         ResourceType resourceType,
         AllocationMode allocationMode,
         DXGI_FORMAT dxgiFormat,
@@ -160,19 +177,22 @@ unsafe partial class GraphicsDevice
                 out d3D12ResourceStates);
 
             d3D12Resource = allocation.Get()->GetD3D12Resource();
-        }
-        else
-        {
-            allocation = default;
 
-            d3D12Resource = this.d3D12Device.Get()->CreateCommittedResource(
-                resourceType,
-                dxgiFormat,
-                width,
-                height,
-                depth,
-                IsCacheCoherentUMA,
-                out d3D12ResourceStates);
+            return default;
         }
+
+        allocation = default;
+
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetCommittedResourceDescription(
+            resourceType,
+            dxgiFormat,
+            width,
+            height,
+            depth,
+            IsCacheCoherentUMA);
+
+        d3D12ResourceStates = description.ResourceStates;
+
+        return AllocateCommittedResource(in description, out d3D12Resource);
     }
 }

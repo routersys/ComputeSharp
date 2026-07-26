@@ -54,22 +54,32 @@ public readonly struct Luid : IEquatable<Luid>, ISpanFormattable
         return HashCode.Combine(this.lowPart, this.highPart);
     }
 
+    /// <summary>
+    /// Gets the raw value of the current luid.
+    /// </summary>
+    /// <returns>The raw value of the current luid.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long ToInt64()
+    {
+        return (((long)this.highPart) << 32) | this.lowPart;
+    }
+
     /// <inheritdoc/>
     public override string ToString()
     {
-        return ((((long)this.highPart) << 32) | this.lowPart).ToString();
+        return ToInt64().ToString();
     }
 
     /// <inheritdoc/>
     public string ToString(string? format, IFormatProvider? formatProvider)
     {
-        return ((((long)this.highPart) << 32) | this.lowPart).ToString(format, formatProvider);
+        return ToInt64().ToString(format, formatProvider);
     }
 
     /// <inheritdoc/>
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
     {
-        return ((((long)this.highPart) << 32) | this.lowPart).TryFormat(destination, out charsWritten, format, provider);
+        return ToInt64().TryFormat(destination, out charsWritten, format, provider);
     }
 
     /// <summary>

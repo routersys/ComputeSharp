@@ -45,4 +45,9 @@ internal static class GraphicsMemorySegments
             _ => false
         };
     }
+
+    public static GraphicsMemorySegment GetSegment(MemoryPlacement placement)
+    {
+        return placement is MemoryPlacement.Local ? GraphicsMemorySegment.Local : GraphicsMemorySegment.NonLocal;
+    }
 }
