@@ -42,6 +42,34 @@ public class ResourceGenerationBindingTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void DerivesTheObservedUsageOfEveryDirectlyAllocatedResourceKind(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using ConstantBuffer<int> constantBuffer = graphicsDevice.AllocateConstantBuffer<int>(16);
+        using ReadOnlyBuffer<int> readOnlyBuffer = graphicsDevice.AllocateReadOnlyBuffer<int>(16);
+        using ReadWriteBuffer<int> readWriteBuffer = graphicsDevice.AllocateReadWriteBuffer<int>(16);
+        using ReadOnlyTexture2D<float> readOnlyTexture = graphicsDevice.AllocateReadOnlyTexture2D<float>(8, 8);
+        using ReadWriteTexture2D<float> readWriteTexture = graphicsDevice.AllocateReadWriteTexture2D<float>(8, 8);
+
+        AssertUsage(constantBuffer, ComputeResourceAccess.Read, TrackedResourceState.GenericRead);
+        AssertUsage(readOnlyBuffer, ComputeResourceAccess.Read, TrackedResourceState.Common);
+        AssertUsage(readWriteBuffer, ComputeResourceAccess.ReadWrite, TrackedResourceState.Common);
+        AssertUsage(readOnlyTexture, ComputeResourceAccess.Read, TrackedResourceState.Common);
+        AssertUsage(readWriteTexture, ComputeResourceAccess.ReadWrite, TrackedResourceState.UnorderedAccess);
+    }
+
+    private static void AssertUsage(IGraphicsResource resource, ComputeResourceAccess access, TrackedResourceState residentState)
+    {
+        Assert.IsTrue(((IGenerationBoundResource)resource).TryGetGenerationBinding(out ResourceUsageBinding binding));
+
+        Assert.AreEqual(access, binding.Access);
+        Assert.AreEqual(residentState, binding.ResidentState);
+        Assert.AreEqual(residentState, binding.Set.Owner.GetResourceRecord((int)binding.ResourceIndex).D3D12State);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void BindsTheGenerationOfAPlanProducedResourceToItsOwner(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
