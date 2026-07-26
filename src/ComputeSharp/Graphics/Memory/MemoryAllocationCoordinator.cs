@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using ComputeSharp.Win32;
 
 namespace ComputeSharp.Memory;
@@ -28,13 +29,22 @@ internal sealed class MemoryAllocationCoordinator
 {
     private readonly object allocationGate = new();
 
+    private readonly object policyGate = new();
+
     private readonly HashSet<ulong> liveReservations = [];
 
     private DeviceMemoryObservationState observation;
 
-    private ulong epoch = 1;
+    private MemoryPolicyState policy;
 
     private ulong nextReservationValue;
+
+    public MemoryAllocationCoordinator()
+    {
+        this.policy.NextConfigurationVersion = 2;
+        this.policy.Epoch = 1;
+        this.policy.Active = new MemoryPolicyConfiguration { ConfigurationVersion = 1, State = MemoryPolicyConfigurationState.Active };
+    }
 
     public ulong Epoch
     {
@@ -42,7 +52,7 @@ internal sealed class MemoryAllocationCoordinator
         {
             lock (this.allocationGate)
             {
-                return this.epoch;
+                return this.policy.Epoch;
             }
         }
     }
@@ -56,6 +66,80 @@ internal sealed class MemoryAllocationCoordinator
                 return this.liveReservations.Count;
             }
         }
+    }
+
+    public bool HasRetiredConfiguration
+    {
+        get
+        {
+            lock (this.policyGate)
+            {
+                return this.policy.Retired is not null;
+            }
+        }
+    }
+
+    public PolicyConfigurationLease AcquireConfigurationLease()
+    {
+        lock (this.policyGate)
+        {
+            MemoryPolicyConfiguration configuration = this.policy.Active;
+
+            default(InvalidOperationException).ThrowIf(
+                Interlocked.Increment(ref configuration.LeaseCount) <= 0,
+                "The memory policy configuration lease count overflowed.");
+
+            return new PolicyConfigurationLease(this, configuration);
+        }
+    }
+
+    public void ReleaseConfigurationLease(MemoryPolicyConfiguration configuration)
+    {
+        if (Interlocked.Decrement(ref configuration.LeaseCount) != 0)
+        {
+            return;
+        }
+
+        IGraphicsMemoryBudgetClient? client;
+
+        lock (this.policyGate)
+        {
+            client = TryClaimRetiredConfiguration(configuration);
+        }
+
+        client?.Dispose();
+    }
+
+    public void SetPolicy(in GraphicsMemoryPolicy policy, in GraphicsMemoryClientDescriptor descriptor, bool isUma)
+    {
+        ulong expectedConfigurationVersion;
+
+        lock (this.policyGate)
+        {
+            expectedConfigurationVersion = this.policy.Active.ConfigurationVersion;
+        }
+
+        IGraphicsMemoryBudgetClient? client = null;
+
+        if (policy.BudgetBroker is IGraphicsMemoryBudgetBroker broker)
+        {
+            try
+            {
+                client = broker.RegisterClient(in descriptor);
+
+                default(InvalidOperationException).ThrowIf(client is null, "The memory budget broker returned no client.");
+
+                ValidateInitialGrants(client, isUma);
+            }
+            catch
+            {
+                client?.Dispose();
+
+                throw;
+            }
+        }
+
+        CommitPolicy(in policy, client, expectedConfigurationVersion);
     }
 
     public SegmentMemoryAccounting GetAccounting(MemoryPlacement placement)
@@ -74,14 +158,58 @@ internal sealed class MemoryAllocationCoordinator
 
             if (segment.DxgiInitialized && IsSameObservation(in segment.LastDxgiObservation, in budget))
             {
-                return this.epoch;
+                return this.policy.Epoch;
             }
 
             segment.DxgiInitialized = true;
             segment.LastDxgiObservation = budget;
-            this.epoch = checked(this.epoch + 1);
+            this.policy.Epoch = checked(this.policy.Epoch + 1);
 
-            return this.epoch;
+            return this.policy.Epoch;
+        }
+    }
+
+    public BrokerGrantStatus ObserveGrant(
+        MemoryPolicyConfiguration configuration,
+        MemoryPlacement placement,
+        bool hasGrant,
+        in GraphicsMemoryGrant grant,
+        out GraphicsMemoryGrant observed)
+    {
+        lock (this.allocationGate)
+        {
+            ref BrokerGrantObservation observation = ref configuration.GetGrantObservation(placement);
+
+            if (!hasGrant)
+            {
+                observed = observation.Grant;
+
+                return BrokerGrantStatus.Unknown;
+            }
+
+            if (!observation.Initialized)
+            {
+                observation.Initialized = true;
+                observation.Grant = grant;
+
+                this.policy.Epoch = checked(this.policy.Epoch + 1);
+            }
+            else if (!MemoryAdmission.IsGrantObservationValid(in observation.Grant, in grant))
+            {
+                observed = observation.Grant;
+
+                return BrokerGrantStatus.Unknown;
+            }
+            else if (grant.Version > observation.Grant.Version)
+            {
+                observation.Grant = grant;
+
+                this.policy.Epoch = checked(this.policy.Epoch + 1);
+            }
+
+            observed = observation.Grant;
+
+            return BrokerGrantStatus.Valid;
         }
     }
 
@@ -96,7 +224,7 @@ internal sealed class MemoryAllocationCoordinator
 
         lock (this.allocationGate)
         {
-            if (snapshotEpoch != this.epoch)
+            if (snapshotEpoch != this.policy.Epoch)
             {
                 return MemoryAdmissionStatus.StaleSnapshot;
             }
@@ -193,6 +321,112 @@ internal sealed class MemoryAllocationCoordinator
         }
 
         return NativeAllocationOutcome.Fault;
+    }
+
+    private static void ValidateInitialGrants(IGraphicsMemoryBudgetClient client, bool isUma)
+    {
+        ValidateInitialGrant(client, isUma, MemoryPlacement.Local);
+        ValidateInitialGrant(client, isUma, MemoryPlacement.NonLocal);
+    }
+
+    private static void ValidateInitialGrant(IGraphicsMemoryBudgetClient client, bool isUma, MemoryPlacement placement)
+    {
+        if (!GraphicsMemorySegments.IsSegmentActive(isUma, placement))
+        {
+            return;
+        }
+
+        GraphicsMemorySegment segment = placement is MemoryPlacement.Local
+            ? GraphicsMemorySegment.Local
+            : GraphicsMemorySegment.NonLocal;
+
+        default(InvalidOperationException).ThrowIf(
+            !client.TryGetGrant(segment, out _),
+            "The memory budget broker granted no memory for an active segment.");
+    }
+
+    private void CommitPolicy(in GraphicsMemoryPolicy policy, IGraphicsMemoryBudgetClient? client, ulong expectedConfigurationVersion)
+    {
+        MemoryPolicyConfiguration configuration = new()
+        {
+            State = MemoryPolicyConfigurationState.Active,
+            BrokerClient = client,
+            LocalOwnedHardLimitBytes = policy.LocalOwnedHardLimitBytes,
+            NonLocalOwnedHardLimitBytes = policy.NonLocalOwnedHardLimitBytes
+        };
+
+        IGraphicsMemoryBudgetClient? reclaimedClient = null;
+        IGraphicsMemoryBudgetClient? retiredClient = null;
+        bool isPublished = false;
+
+        try
+        {
+            lock (this.policyGate)
+            {
+                reclaimedClient = TryClaimRetiredConfiguration(this.policy.Retired);
+
+                MemoryPolicyConfiguration active = this.policy.Active;
+
+                default(InvalidOperationException).ThrowIf(
+                    active.ConfigurationVersion != expectedConfigurationVersion,
+                    "The memory policy was replaced concurrently.");
+
+                default(InvalidOperationException).ThrowIf(
+                    this.policy.Retired is not null,
+                    "The retired memory policy configuration is still leased.");
+
+                default(InvalidOperationException).ThrowIf(
+                    client is not null && (ReferenceEquals(client, active.BrokerClient) || ReferenceEquals(client, reclaimedClient)),
+                    "The memory budget broker returned a client that is already registered.");
+
+                configuration.ConfigurationVersion = this.policy.NextConfigurationVersion;
+
+                this.policy.NextConfigurationVersion = checked(this.policy.NextConfigurationVersion + 1);
+
+                active.State = MemoryPolicyConfigurationState.Retired;
+
+                this.policy.Retired = active;
+                this.policy.Active = configuration;
+                isPublished = true;
+
+                lock (this.allocationGate)
+                {
+                    this.policy.Epoch = checked(this.policy.Epoch + 1);
+                }
+
+                retiredClient = TryClaimRetiredConfiguration(active);
+            }
+        }
+        finally
+        {
+            if (!isPublished)
+            {
+                client?.Dispose();
+            }
+
+            reclaimedClient?.Dispose();
+            retiredClient?.Dispose();
+        }
+    }
+
+    private IGraphicsMemoryBudgetClient? TryClaimRetiredConfiguration(MemoryPolicyConfiguration? configuration)
+    {
+        if (configuration is null ||
+            !ReferenceEquals(this.policy.Retired, configuration) ||
+            configuration.State is not MemoryPolicyConfigurationState.Retired ||
+            configuration.LeaseCount != 0)
+        {
+            return null;
+        }
+
+        IGraphicsMemoryBudgetClient? client = configuration.BrokerClient;
+
+        configuration.State = MemoryPolicyConfigurationState.Disposed;
+        configuration.BrokerClient = null;
+
+        this.policy.Retired = null;
+
+        return client;
     }
 
     private ref SegmentMemoryAccounting ClaimReservation(in MemoryReservationToken token)
