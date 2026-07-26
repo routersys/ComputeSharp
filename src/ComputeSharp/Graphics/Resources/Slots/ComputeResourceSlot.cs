@@ -7,7 +7,7 @@ namespace ComputeSharp;
 /// A slot owning the successive generations of a single graphics resource declared by a compute pipeline host.
 /// </summary>
 /// <typeparam name="TResource">The type of the owned graphics resource.</typeparam>
-public sealed class ComputeResourceSlot<TResource> : IDisposable, IComputeOwnedSlot
+public sealed class ComputeResourceSlot<TResource> : IComputeOwnedResourceSlot, IDisposable, IComputeOwnedSlot
     where TResource : class, IGraphicsResource
 {
     /// <summary>

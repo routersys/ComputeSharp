@@ -7,7 +7,7 @@ namespace ComputeSharp;
 /// A slot owning the successive generations of a compute resource group declared by a compute pipeline host.
 /// </summary>
 /// <typeparam name="TGroup">The type of the owned compute resource group.</typeparam>
-public sealed class ComputeResourceGroupSlot<TGroup> : IDisposable, IComputeOwnedSlot
+public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot, IDisposable, IComputeOwnedSlot
     where TGroup : class
 {
     /// <summary>
