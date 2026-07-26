@@ -5,7 +5,7 @@ namespace ComputeSharp.Graphics.Pipelines;
 
 internal static unsafe class ComputeSubmissionExecutor
 {
-    public static FencePoint Submit(
+    public static ComputeSubmission Submit(
         GraphicsDevice device,
         PipelineHostRuntime host,
         CompletionRegistry completionRegistry,
@@ -34,7 +34,7 @@ internal static unsafe class ComputeSubmissionExecutor
             !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.GetComputeFenceCompletedValue),
             "The submission could not be published.");
 
-        return completion;
+        return new ComputeSubmission(device, completion);
     }
 
     public static bool TryReleaseCompleted(GraphicsDevice device, CompletionRegistry completionRegistry)

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Pipelines;
+using ComputeSharp.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
@@ -21,6 +22,16 @@ unsafe partial class GraphicsDevice
     /// The <see cref="DeviceRegistrationRegistry"/> instance owning every pipeline registration of the current device.
     /// </summary>
     private DeviceRegistrationRegistry? registrationRegistry;
+
+    /// <summary>
+    /// The completed value of the compute queue fence observed right before its release.
+    /// </summary>
+    private ulong finalComputeFenceCompletedValue;
+
+    /// <summary>
+    /// The completed value of the copy queue fence observed right before its release.
+    /// </summary>
+    private ulong finalCopyFenceCompletedValue;
 
     /// <summary>
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
@@ -176,5 +187,89 @@ unsafe partial class GraphicsDevice
         {
             this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, default).Assert();
         }
+    }
+
+    /// <summary>
+    /// Saves the completed value of every queue fence of the current device before releasing them.
+    /// </summary>
+    /// <remarks>
+    /// The saved values let the status of an already issued submission be evaluated after the native
+    /// objects of the current device have been released.
+    /// </remarks>
+    private void SaveFinalFenceCompletedValues()
+    {
+        if (this.d3D12ComputeFence.Get() is not null)
+        {
+            this.finalComputeFenceCompletedValue = this.d3D12ComputeFence.Get()->GetCompletedValue();
+        }
+
+        if (this.d3D12CopyFence.Get() is not null)
+        {
+            this.finalCopyFenceCompletedValue = this.d3D12CopyFence.Get()->GetCompletedValue();
+        }
+    }
+
+    /// <summary>
+    /// Gets the outcome of a submission completing at a given fence point.
+    /// </summary>
+    /// <param name="completion">The fence point the submission completes at.</param>
+    /// <returns>The outcome of the submission.</returns>
+    internal ComputeSubmissionStatus GetSubmissionStatus(FencePoint completion)
+    {
+        using ReferenceTracker.Lease _0 = GetReferenceTracker().TryGetLease(out bool isLeaseTaken);
+
+        bool isCompleted = isLeaseTaken
+            ? IsFenceCompleted(in completion)
+            : IsFenceCompletedAfterRelease(in completion);
+
+        if (isCompleted)
+        {
+            return ComputeSubmissionStatus.Succeeded;
+        }
+
+        return IsDeviceLost ? ComputeSubmissionStatus.Faulted : ComputeSubmissionStatus.Pending;
+    }
+
+    /// <summary>
+    /// Waits for a submission completing at a given fence point to reach its outcome.
+    /// </summary>
+    /// <param name="completion">The fence point the submission completes at.</param>
+    internal void WaitForSubmission(FencePoint completion)
+    {
+        using ReferenceTracker.Lease _0 = GetReferenceTracker().TryGetLease(out bool isLeaseTaken);
+
+        if (!isLeaseTaken || IsDeviceLost)
+        {
+            return;
+        }
+
+        switch (completion.Queue)
+        {
+            case ComputeQueueKind.Compute:
+                WaitForComputeFenceValue(completion.Value);
+                break;
+            case ComputeQueueKind.Copy:
+                if (completion.Value > this.d3D12CopyFence.Get()->GetCompletedValue())
+                {
+                    this.d3D12CopyFence.Get()->SetEventOnCompletion(completion.Value, default).Assert();
+                }
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Gets whether a given fence point had been reached when the queue fences of the current device were released.
+    /// </summary>
+    /// <param name="fence">The fence point to observe.</param>
+    /// <returns>Whether <paramref name="fence"/> had been reached.</returns>
+    private bool IsFenceCompletedAfterRelease(in FencePoint fence)
+    {
+        return fence.Queue switch
+        {
+            ComputeQueueKind.Compute => this.finalComputeFenceCompletedValue >= fence.Value,
+            ComputeQueueKind.Copy => this.finalCopyFenceCompletedValue >= fence.Value,
+            _ => fence.IsNone
+        };
     }
 }

@@ -24,7 +24,7 @@ public unsafe partial class CompletionCoordinatorTests
             [new ComputeResourceSlot<ReadWriteBuffer<int>>()]);
     }
 
-    private static FencePoint SubmitOne(Device device, PipelineHostRuntime host, CompletionRegistry completion, ulong submissionSequence)
+    private static ComputeSubmission SubmitOne(Device device, PipelineHostRuntime host, CompletionRegistry completion, ulong submissionSequence)
     {
         PipelineKey pipeline = new(host.Id, new PipelineOrdinal(0));
 
@@ -71,9 +71,9 @@ public unsafe partial class CompletionCoordinatorTests
 
         try
         {
-            FencePoint fence = SubmitOne(device, host, completion, 1);
+            ComputeSubmission submission = SubmitOne(device, host, completion, 1);
 
-            Assert.AreNotEqual(0ul, fence.Value);
+            Assert.AreNotEqual(0ul, submission.Completion.Value);
 
             WaitUntilDrained(host, completion, coordinator);
 
