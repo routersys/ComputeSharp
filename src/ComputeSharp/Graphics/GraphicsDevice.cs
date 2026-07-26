@@ -173,6 +173,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
 
         D3D12_FEATURE_DATA_ARCHITECTURE1 d3D12Architecture1Data = d3D12Device->CheckFeatureSupport<D3D12_FEATURE_DATA_ARCHITECTURE1>(D3D12_FEATURE_ARCHITECTURE1);
 
+        IsUma = d3D12Architecture1Data.UMA != 0;
         IsCacheCoherentUMA = d3D12Architecture1Data.CacheCoherentUMA != 0;
 
         this.deviceRemovedReason = S.S_OK;
@@ -221,6 +222,11 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     /// Gets the underlying <see cref="ID3D12Device"/> wrapped by the current instance.
     /// </summary>
     internal ID3D12Device* D3D12Device => this.d3D12Device.Get();
+
+    /// <summary>
+    /// Gets whether or not the current device has a UMA architecture.
+    /// </summary>
+    internal bool IsUma { get; }
 
     /// <summary>
     /// Gets whether or not the current device has a cache coherent UMA architecture.
