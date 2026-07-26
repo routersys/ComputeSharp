@@ -24,14 +24,14 @@ unsafe partial class GraphicsDevice
     private DeviceRegistrationRegistry? registrationRegistry;
 
     /// <summary>
-    /// The completed value of the compute queue fence observed right before its release.
+    /// The highest completed value observed on the compute queue fence.
     /// </summary>
-    private ulong finalComputeFenceCompletedValue;
+    private ulong observedComputeFenceCompletedValue;
 
     /// <summary>
-    /// The completed value of the copy queue fence observed right before its release.
+    /// The highest completed value observed on the copy queue fence.
     /// </summary>
-    private ulong finalCopyFenceCompletedValue;
+    private ulong observedCopyFenceCompletedValue;
 
     /// <summary>
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
@@ -200,12 +200,51 @@ unsafe partial class GraphicsDevice
     {
         if (this.d3D12ComputeFence.Get() is not null)
         {
-            this.finalComputeFenceCompletedValue = this.d3D12ComputeFence.Get()->GetCompletedValue();
+            PublishObservedValue(ref this.observedComputeFenceCompletedValue, this.d3D12ComputeFence.Get()->GetCompletedValue());
         }
 
         if (this.d3D12CopyFence.Get() is not null)
         {
-            this.finalCopyFenceCompletedValue = this.d3D12CopyFence.Get()->GetCompletedValue();
+            PublishObservedValue(ref this.observedCopyFenceCompletedValue, this.d3D12CopyFence.Get()->GetCompletedValue());
+        }
+    }
+
+    /// <summary>
+    /// Observes the completed value of the fence of a given queue and publishes it for later evaluation.
+    /// </summary>
+    /// <param name="queue">The queue to observe the fence of.</param>
+    private void ObserveFenceCompletedValue(ComputeQueueKind queue)
+    {
+        switch (queue)
+        {
+            case ComputeQueueKind.Compute:
+                PublishObservedValue(ref this.observedComputeFenceCompletedValue, this.d3D12ComputeFence.Get()->GetCompletedValue());
+                break;
+            case ComputeQueueKind.Copy:
+                PublishObservedValue(ref this.observedCopyFenceCompletedValue, this.d3D12CopyFence.Get()->GetCompletedValue());
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Publishes an observed fence value, keeping the highest one that has been observed so far.
+    /// </summary>
+    /// <param name="target">The field holding the highest observed value.</param>
+    /// <param name="value">The newly observed value.</param>
+    private static void PublishObservedValue(ref ulong target, ulong value)
+    {
+        ulong current = Volatile.Read(ref target);
+
+        while (value > current)
+        {
+            ulong previous = Interlocked.CompareExchange(ref target, value, current);
+
+            if (previous == current)
+            {
+                return;
+            }
+
+            current = previous;
         }
     }
 
@@ -218,11 +257,12 @@ unsafe partial class GraphicsDevice
     {
         using ReferenceTracker.Lease _0 = GetReferenceTracker().TryGetLease(out bool isLeaseTaken);
 
-        bool isCompleted = isLeaseTaken
-            ? IsFenceCompleted(in completion)
-            : IsFenceCompletedAfterRelease(in completion);
+        if (isLeaseTaken)
+        {
+            ObserveFenceCompletedValue(completion.Queue);
+        }
 
-        if (isCompleted)
+        if (IsFenceCompletedFromObservation(in completion))
         {
             return ComputeSubmissionStatus.Succeeded;
         }
@@ -255,20 +295,28 @@ unsafe partial class GraphicsDevice
                 }
 
                 break;
+            default:
+                return;
         }
+
+        ObserveFenceCompletedValue(completion.Queue);
     }
 
     /// <summary>
-    /// Gets whether a given fence point had been reached when the queue fences of the current device were released.
+    /// Gets whether a given fence point has been reached according to the published observations.
     /// </summary>
-    /// <param name="fence">The fence point to observe.</param>
-    /// <returns>Whether <paramref name="fence"/> had been reached.</returns>
-    private bool IsFenceCompletedAfterRelease(in FencePoint fence)
+    /// <param name="fence">The fence point to evaluate.</param>
+    /// <returns>Whether <paramref name="fence"/> has been reached.</returns>
+    /// <remarks>
+    /// The published observations only ever move forward, so a fence point that has been evaluated as
+    /// reached once keeps evaluating as reached, including after the queue fences have been released.
+    /// </remarks>
+    private bool IsFenceCompletedFromObservation(in FencePoint fence)
     {
         return fence.Queue switch
         {
-            ComputeQueueKind.Compute => this.finalComputeFenceCompletedValue >= fence.Value,
-            ComputeQueueKind.Copy => this.finalCopyFenceCompletedValue >= fence.Value,
+            ComputeQueueKind.Compute => Volatile.Read(ref this.observedComputeFenceCompletedValue) >= fence.Value,
+            ComputeQueueKind.Copy => Volatile.Read(ref this.observedCopyFenceCompletedValue) >= fence.Value,
             _ => fence.IsNone
         };
     }
