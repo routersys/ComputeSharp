@@ -112,6 +112,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             usageSets = this.usageSetPool.ReservePartition(maximumPendingSubmissions, host.Structural.MaximumTrackedResourceCount);
 
             PendingSubmissionRecordPartition pendingRecords = new(maximumPendingSubmissions);
+            RecordingBundlePartition recordingBundles = new(reservation.RecordingBundles, host.Structural.MaximumTrackedResourceCount);
             int[] planStorage = new int[planScalarCount];
 
             HostRegistrationId id;
@@ -139,6 +140,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                 commandLists,
                 usageSets,
                 pendingRecords,
+                recordingBundles,
                 planStorage,
                 planStates,
                 slotLayouts,

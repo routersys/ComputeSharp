@@ -24,6 +24,7 @@ internal sealed class PipelineHostRuntime
         PipelineCommandListPartition commandLists,
         ResourceUsageSetPartition usageSets,
         PendingSubmissionRecordPartition pendingRecords,
+        RecordingBundlePartition recordingBundles,
         int[] planStorage,
         SlotResourcePlanStateRecord[] planStates,
         OwnedSlotResourceLayout[] slotLayouts,
@@ -38,6 +39,7 @@ internal sealed class PipelineHostRuntime
         CommandLists = commandLists;
         UsageSets = usageSets;
         PendingRecords = pendingRecords;
+        RecordingBundles = recordingBundles;
         PlanStorage = planStorage;
         PlanStates = planStates;
         SlotLayouts = slotLayouts;
@@ -62,6 +64,8 @@ internal sealed class PipelineHostRuntime
     public ResourceUsageSetPartition UsageSets { get; }
 
     public PendingSubmissionRecordPartition PendingRecords { get; }
+
+    public RecordingBundlePartition RecordingBundles { get; }
 
     public int[] PlanStorage { get; }
 
