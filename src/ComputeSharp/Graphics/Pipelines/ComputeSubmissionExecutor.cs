@@ -74,6 +74,8 @@ internal static unsafe class ComputeSubmissionExecutor
             host.CommandLists.Return((ID3D12GraphicsCommandList*)lease.CommandList, isCommandListClosed: true);
         }
 
+        retention.ResourceLeases?.Release();
+
         if (!retention.ResourceUsages.IsNone)
         {
             ResourceUsageTracker.ClearUsages(host.UsageSets.Storage, ref host.UsageSets.GetSet(host.UsageSets.GetSetIndex(retention.ResourceUsages)));

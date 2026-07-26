@@ -85,6 +85,27 @@ internal unsafe struct CommandList : IDisposable
     }
 
     /// <summary>
+    /// Creates a new <see cref="CommandList"/> instance recording into a command list pair owned by someone else.
+    /// </summary>
+    /// <param name="device">The target <see cref="GraphicsDevice"/> instance to use.</param>
+    /// <param name="d3D12GraphicsCommandList">The <see cref="ID3D12GraphicsCommandList"/> object to record into.</param>
+    /// <param name="d3D12CommandAllocator">The <see cref="ID3D12CommandAllocator"/> object backing the command list.</param>
+    /// <remarks>
+    /// The caller keeps the ownership of both objects and is responsible for returning them to the pool they were
+    /// rented from. Disposing the resulting instance only releases the references it took on them.
+    /// </remarks>
+    public CommandList(GraphicsDevice device, ID3D12GraphicsCommandList* d3D12GraphicsCommandList, ID3D12CommandAllocator* d3D12CommandAllocator)
+    {
+        this.device = device;
+        this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+        this.d3D12ComputeFenceWaitValue = 0;
+        this.d3D12GraphicsCommandList = new ComPtr<ID3D12GraphicsCommandList>(d3D12GraphicsCommandList);
+        this.d3D12CommandAllocator = new ComPtr<ID3D12CommandAllocator>(d3D12CommandAllocator);
+
+        device.SetDescriptorHeapForCommandList(d3D12GraphicsCommandList);
+    }
+
+    /// <summary>
     /// Gets whether or not the current <see cref="CommandList"/> instance is allocated.
     /// </summary>
     public readonly bool IsAllocated => this.device is not null;

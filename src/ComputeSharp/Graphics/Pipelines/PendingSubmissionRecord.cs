@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -137,6 +138,8 @@ internal struct SubmissionRetention
     public UsageSetHandle ResourceUsages;
 
     public CommandListLeaseSet CommandLists;
+
+    public GraphicsResourceLeaseSet? ResourceLeases;
 
     public InteropRetention Interop;
 }

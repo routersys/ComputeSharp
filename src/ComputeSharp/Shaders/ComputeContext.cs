@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using ComputeSharp.Core.Extensions;
 using ComputeSharp.Descriptors;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Extensions;
@@ -42,6 +43,11 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     private ContextState state;
 
     /// <summary>
+    /// Whether the command list of the current context is owned by a compute pipeline host.
+    /// </summary>
+    private readonly bool isCommandListBorrowed;
+
+    /// <summary>
     /// Creates a new <see cref="ComputeContext"/> instance with the specified parameters.
     /// </summary>
     /// <param name="device">The <see cref="GraphicsDevice"/> instance owning the current context.</param>
@@ -51,9 +57,38 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         this.commandList = default;
         this.resourceLeases = null;
         this.state = ContextState.Recording;
+        this.isCommandListBorrowed = false;
 
         // Increment the reference count for the device. This has to be released when disposing the context.
         // Not disposing the context is undefined behavior, so we can rely on that to release the reference.
+        device.GetReferenceTracker().DangerousAddRef();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ComputeContext"/> instance recording into a command list owned by a compute pipeline host.
+    /// </summary>
+    /// <param name="device">The <see cref="GraphicsDevice"/> instance owning the current context.</param>
+    /// <param name="d3D12GraphicsCommandList">The <see cref="ID3D12GraphicsCommandList"/> object to record into.</param>
+    /// <param name="d3D12CommandAllocator">The <see cref="ID3D12CommandAllocator"/> object backing the command list.</param>
+    /// <remarks>
+    /// A context created this way never executes what it records. The pipeline host submits the command list and
+    /// owns both native objects, so disposing the context only releases what the context itself took.
+    /// </remarks>
+    internal unsafe ComputeContext(
+        GraphicsDevice device,
+        ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
+        ID3D12CommandAllocator* d3D12CommandAllocator)
+    {
+        this.device = device;
+        this.commandList = new CommandList(device, d3D12GraphicsCommandList, d3D12CommandAllocator);
+
+        // The command list is allocated upfront, so the lazy initialization done when allocating one
+        // never runs for this context. The lease set every recorded resource is tracked into has to
+        // be rented here instead, or the first recorded dispatch would have nowhere to track them.
+        this.resourceLeases = GraphicsResourceLeaseSet.Rent();
+        this.state = ContextState.Recording;
+        this.isCommandListBorrowed = true;
+
         device.GetReferenceTracker().DangerousAddRef();
     }
 
@@ -271,6 +306,13 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         this.resourceLeases = null;
 
+        if (this.isCommandListBorrowed)
+        {
+            ReleaseBorrowedRecording(device, resourceLeases);
+
+            return;
+        }
+
         if (!this.commandList.IsAllocated)
         {
             resourceLeases?.Release();
@@ -310,6 +352,13 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         GraphicsResourceLeaseSet? resourceLeases = this.resourceLeases;
 
         this.resourceLeases = null;
+
+        if (this.isCommandListBorrowed)
+        {
+            ReleaseBorrowedRecording(device, resourceLeases);
+
+            return ValueTask.CompletedTask;
+        }
 
         if (!this.commandList.IsAllocated)
         {
@@ -458,6 +507,47 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         }
 
         return ref commandList;
+    }
+
+    /// <summary>
+    /// Ends the recording of a context bound to a compute pipeline host, closing the recorded command list.
+    /// </summary>
+    /// <param name="resourceLeases">The resource leases taken while recording, if any.</param>
+    /// <remarks>
+    /// The caller takes the ownership of <paramref name="resourceLeases"/> and must release them once the
+    /// submission of the recorded command list has completed. Disposing the context afterwards does nothing.
+    /// </remarks>
+    internal unsafe void EndPipelineRecording(out GraphicsResourceLeaseSet? resourceLeases)
+    {
+        default(InvalidOperationException).ThrowIf(!this.isCommandListBorrowed);
+        default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
+
+        GraphicsDevice device = this.device!;
+
+        this.state = ContextState.Submitted;
+
+        resourceLeases = this.resourceLeases;
+
+        this.resourceLeases = null;
+
+        this.commandList.D3D12GraphicsCommandList->Close().Assert();
+        this.commandList.Dispose();
+
+        device.GetReferenceTracker().DangerousRelease();
+    }
+
+    /// <summary>
+    /// Releases everything a context bound to a compute pipeline host owns, without executing what it recorded.
+    /// </summary>
+    /// <param name="device">The device owning the current context.</param>
+    /// <param name="resourceLeases">The resource leases taken while recording, if any.</param>
+    private void ReleaseBorrowedRecording(GraphicsDevice device, GraphicsResourceLeaseSet? resourceLeases)
+    {
+        this.commandList.Dispose();
+
+        resourceLeases?.Release();
+
+        device.GetReferenceTracker().DangerousRelease();
     }
 
     internal readonly void TrackResourceLease(ref ReferenceTracker.Lease lease)

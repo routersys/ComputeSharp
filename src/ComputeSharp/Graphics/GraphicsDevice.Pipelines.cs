@@ -98,6 +98,24 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Creates a <see cref="ComputeContext"/> instance recording into a command list owned by a compute pipeline host.
+    /// </summary>
+    /// <param name="d3D12CommandList">The <see cref="ID3D12GraphicsCommandList"/> object to record into.</param>
+    /// <param name="d3D12CommandAllocator">The <see cref="ID3D12CommandAllocator"/> object backing the command list.</param>
+    /// <returns>The <see cref="ComputeContext"/> instance to record the pipeline invocation with.</returns>
+    internal ComputeContext CreatePipelineComputeContext(
+        ID3D12GraphicsCommandList* d3D12CommandList,
+        ID3D12CommandAllocator* d3D12CommandAllocator)
+    {
+        default(ArgumentNullException).ThrowIf(d3D12CommandList is null, nameof(d3D12CommandList));
+        default(ArgumentNullException).ThrowIf(d3D12CommandAllocator is null, nameof(d3D12CommandAllocator));
+
+        ThrowIfDeviceLost();
+
+        return new(this, d3D12CommandList, d3D12CommandAllocator);
+    }
+
+    /// <summary>
     /// Queries the current video memory budget of a given memory segment.
     /// </summary>
     /// <param name="placement">The memory segment to query the budget of.</param>
