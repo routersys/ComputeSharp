@@ -89,6 +89,7 @@ public sealed class ComputeHostRuntime : IDisposable
     /// <param name="materializer">The materializer declaring the resources of the slot.</param>
     /// <param name="changed">Whether a new generation was published.</param>
     /// <returns>Whether the owned slot matches <paramref name="requestedPlan"/>.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if disposal of the current host has been requested.</exception>
     /// <exception cref="ArgumentException">Thrown if <paramref name="requestedPlan"/> does not match the slot contract.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the declared resources do not match the slot contract.</exception>
     /// <exception cref="UnsupportedDoubleOperationException">Thrown if the declared resources need double precision support the device does not have.</exception>
@@ -105,6 +106,8 @@ public sealed class ComputeHostRuntime : IDisposable
         using ReferenceTracker.Lease _0 = Device.GetReferenceTracker().GetLease();
 
         Device.ThrowIfDeviceLost();
+
+        default(ObjectDisposedException).ThrowIf(IsDisposeRequested, this);
 
         default(ArgumentOutOfRangeException).ThrowIfNotInRange(slotOrdinal, 0, this.runtime.SlotCount);
 
