@@ -17,7 +17,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly ResourceUsageSetPool usageSetPool = new();
 
-    private readonly ResourceIdentityAllocator identities = new();
+    private readonly ResourceIdentityAllocator identities;
 
     private readonly List<PipelineHostRuntime> hosts = [];
 
@@ -35,6 +35,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         default(NotSupportedException).ThrowIf(device.HasOpaqueMemoryAllocator);
 
         this.device = device;
+        this.identities = device.ResourceIdentities;
         this.commandListPool = new PipelineCommandListPool(device.D3D12Device, d3D12CommandListType);
     }
 

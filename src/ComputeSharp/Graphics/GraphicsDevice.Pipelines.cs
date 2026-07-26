@@ -4,6 +4,7 @@ using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Memory;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using static ComputeSharp.Win32.DXGI_MEMORY_SEGMENT_GROUP;
@@ -24,6 +25,11 @@ unsafe partial class GraphicsDevice
     private DeviceRegistrationRegistry? registrationRegistry;
 
     /// <summary>
+    /// The <see cref="ResourceIdentityAllocator"/> instance every resource identity of the current device comes from.
+    /// </summary>
+    private readonly ResourceIdentityAllocator resourceIdentities = new();
+
+    /// <summary>
     /// The highest completed value observed on the compute queue fence.
     /// </summary>
     private ulong observedComputeFenceCompletedValue;
@@ -37,6 +43,15 @@ unsafe partial class GraphicsDevice
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
     /// </summary>
     internal bool HasOpaqueMemoryAllocator => this.allocator.Get() is not null;
+
+    /// <summary>
+    /// Gets the <see cref="ResourceIdentityAllocator"/> instance every resource identity of the current device comes from.
+    /// </summary>
+    /// <remarks>
+    /// Resource, generation and generation set identifiers are monotonic per device, so every resource of the
+    /// current device draws them from here, whether it belongs to a generated resource plan or not.
+    /// </remarks>
+    internal ResourceIdentityAllocator ResourceIdentities => this.resourceIdentities;
 
     /// <summary>
     /// Gets the registration registry of the current device, creating it if needed.
