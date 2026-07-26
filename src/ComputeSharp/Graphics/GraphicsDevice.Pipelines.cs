@@ -96,6 +96,16 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Arms a given event to be signaled when the compute queue fence reaches a target value.
+    /// </summary>
+    /// <param name="fenceValue">The compute queue fence value to signal the event at.</param>
+    /// <param name="eventHandle">The event to signal.</param>
+    internal void ArmComputeFenceEvent(ulong fenceValue, HANDLE eventHandle)
+    {
+        this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, eventHandle).Assert();
+    }
+
+    /// <summary>
     /// Waits for a given compute queue fence value to be reached.
     /// </summary>
     /// <param name="fenceValue">The compute queue fence value to wait for.</param>
