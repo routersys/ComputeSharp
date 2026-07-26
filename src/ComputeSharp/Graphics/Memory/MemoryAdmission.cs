@@ -9,7 +9,8 @@ internal enum MemoryAdmissionStatus : byte
     GrantUnavailable = 4,
     GrantExceeded = 5,
     ExplicitLimitExceeded = 6,
-    ArithmeticOverflow = 7
+    ArithmeticOverflow = 7,
+    StaleSnapshot = 8
 }
 
 internal static class MemoryAdmission
