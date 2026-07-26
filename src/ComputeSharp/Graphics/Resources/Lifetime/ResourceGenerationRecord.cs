@@ -128,6 +128,30 @@ internal struct ResourceGenerationRecord
         Decrement(ref this.OwnerReferenceCount);
     }
 
+    public bool TryCompleteConstruction()
+    {
+        if (ReadLifecycle() is not ResourceGenerationState.Constructing)
+        {
+            return false;
+        }
+
+        Increment(ref this.OwnerReferenceCount);
+
+        if (TryTransitionLifecycle(ResourceGenerationState.Constructing, ResourceGenerationState.Active))
+        {
+            return true;
+        }
+
+        Decrement(ref this.OwnerReferenceCount);
+
+        return false;
+    }
+
+    public bool TryFailConstruction()
+    {
+        return TryTransitionLifecycle(ResourceGenerationState.Constructing, ResourceGenerationState.Released);
+    }
+
     public bool TryRequestRetire()
     {
         return TryTransitionLifecycle(ResourceGenerationState.Active, ResourceGenerationState.RetireRequested);

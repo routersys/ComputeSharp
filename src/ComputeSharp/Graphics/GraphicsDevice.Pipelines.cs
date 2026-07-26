@@ -101,6 +101,21 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Gets whether a given fence point has been reached by the queue it belongs to.
+    /// </summary>
+    /// <param name="fence">The fence point to observe.</param>
+    /// <returns>Whether <paramref name="fence"/> has been reached.</returns>
+    internal bool IsFenceCompleted(in FencePoint fence)
+    {
+        return fence.Queue switch
+        {
+            ComputeQueueKind.Compute => this.d3D12ComputeFence.Get()->GetCompletedValue() >= fence.Value,
+            ComputeQueueKind.Copy => this.d3D12CopyFence.Get()->GetCompletedValue() >= fence.Value,
+            _ => fence.IsNone
+        };
+    }
+
+    /// <summary>
     /// Arms a given event to be signaled when the compute queue fence reaches a target value.
     /// </summary>
     /// <param name="fenceValue">The compute queue fence value to signal the event at.</param>
