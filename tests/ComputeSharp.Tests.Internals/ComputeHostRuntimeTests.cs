@@ -20,7 +20,7 @@ public unsafe partial class ComputeHostRuntimeTests
 
     private const string BufferTypeMetadataName = "ComputeSharp.ReadWriteBuffer`1[System.Int32]";
 
-    private readonly struct BufferMaterializer(int length) : IComputeGenerationMaterializer
+    internal readonly struct BufferMaterializer(int length) : IComputeGenerationMaterializer
     {
         public static bool RequiresDoublePrecisionSupport => false;
 
@@ -146,7 +146,7 @@ public unsafe partial class ComputeHostRuntimeTests
         payload.Add((byte)dimensionKind);
     }
 
-    private static byte[] CreateDescriptor(
+    internal static byte[] CreateDescriptor(
         ResourcePlanKind planKind,
         ComputeResourceAccess access = ComputeResourceAccess.ReadWrite,
         int resourceCount = 1,
