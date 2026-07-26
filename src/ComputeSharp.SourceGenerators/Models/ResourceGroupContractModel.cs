@@ -20,8 +20,10 @@ internal sealed record ResourceGroupContractInfo(
 /// <param name="MemberMetadataName">The metadata name of the member.</param>
 /// <param name="ResourceTypeMetadataName">The fully qualified metadata name of the member resource type.</param>
 /// <param name="Access">The compute access declared by the member.</param>
+/// <param name="Generation">The materialization model of the member resource.</param>
 internal sealed record ResourceGroupMemberContractInfo(
     uint SlotResourceIndex,
     string MemberMetadataName,
     string ResourceTypeMetadataName,
-    ComputeResourceAccess Access);
+    ComputeResourceAccess Access,
+    SlotResourceGenerationInfo Generation);

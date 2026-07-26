@@ -26,7 +26,8 @@ internal static class PipelineHostContractModelBuilder
         host = null!;
 
         if (!hostSymbol.TryGetAttributeWithType(symbols.PipelineHostAttribute, out AttributeData? hostAttribute) ||
-            hostAttribute.ConstructorArguments is not [{ Value: string }, { Value: int maximumConcurrentInvocations }] ||
+            hostAttribute.ConstructorArguments is not [{ Value: string deviceFieldName }, { Value: int maximumConcurrentInvocations }] ||
+            deviceFieldName.Length == 0 ||
             maximumConcurrentInvocations < 1 ||
             !HostResourceCollector.TryCollect(hostSymbol, symbols, out EquatableArray<OwnedSlotContractInfo> slots, out EquatableArray<UnorderedInternalResourceContract> resources) ||
             !PipelineCollector.TryCollect(hostSymbol, symbols, out EquatableArray<PipelineContractInfo> pipelines) ||
@@ -59,6 +60,7 @@ internal static class PipelineHostContractModelBuilder
 
         host = new PipelineHostContractInfo(
             CanonicalTypeNameBuilder.GetCanonicalTypeName(hostSymbol),
+            deviceFieldName,
             maximumConcurrentInvocations,
             PipelineStructuralRequirements.Derive(orderedPipelines, slots.Length),
             orderedPipelines,

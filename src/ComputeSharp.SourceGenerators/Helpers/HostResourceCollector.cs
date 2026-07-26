@@ -137,7 +137,8 @@ internal static class HostResourceCollector
         using ImmutableArrayBuilder<ResourcePlanFieldContractInfo> planFieldBuilder = new();
 
         if (!ResourcePlanGrammar.TryGetPlanKind(resourceTypeSymbol, out ResourcePlanKind planKind) ||
-            !ResourcePlanGrammar.TryAppendPlanFields(resourceTypeSymbol, fieldSymbol.MetadataName, 0, in planFieldBuilder))
+            !ResourcePlanGrammar.TryAppendPlanFields(resourceTypeSymbol, fieldSymbol.MetadataName, 0, in planFieldBuilder) ||
+            !SlotResourceGenerationBuilder.TryBuild(resourceTypeSymbol, 0, out SlotResourceGenerationInfo resource))
         {
             return false;
         }
@@ -148,10 +149,12 @@ internal static class HostResourceCollector
             uint.MaxValue,
             fieldSymbol.MetadataName,
             resourceTypeMetadataName,
+            resourceTypeSymbol.GetFullyQualifiedName(includeGlobal: true),
             ResourceOwnershipKind.OwnedSlot,
             planKind,
             recovery,
-            PipelineCanonicalOrdering.OrderPlanFields(planFieldBuilder.ToImmutable())));
+            PipelineCanonicalOrdering.OrderPlanFields(planFieldBuilder.ToImmutable()),
+            ImmutableArray.Create(resource)));
 
         resourceBuilder.Add(new UnorderedInternalResourceContract(
             fieldSymbol.MetadataName,
@@ -194,6 +197,7 @@ internal static class HostResourceCollector
         }
 
         using ImmutableArrayBuilder<UnorderedInternalResourceContract> memberBuilder = new();
+        using ImmutableArrayBuilder<SlotResourceGenerationInfo> generationBuilder = new();
 
         foreach (ResourceGroupMemberContractInfo member in group.Members)
         {
@@ -201,6 +205,8 @@ internal static class HostResourceCollector
             {
                 return false;
             }
+
+            generationBuilder.Add(member.Generation);
 
             memberBuilder.Add(new UnorderedInternalResourceContract(
                 fieldSymbol.MetadataName,
@@ -218,10 +224,12 @@ internal static class HostResourceCollector
             uint.MaxValue,
             fieldSymbol.MetadataName,
             group.GroupTypeMetadataName,
+            groupSymbol.GetFullyQualifiedName(includeGlobal: true),
             ResourceOwnershipKind.OwnedGroupSlot,
             ResourcePlanKind.ResourceGroup,
             recovery,
-            group.PlanFields));
+            group.PlanFields,
+            generationBuilder.ToImmutable()));
 
         resourceBuilder.AddRange(memberBuilder.WrittenSpan);
 

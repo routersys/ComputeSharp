@@ -47,7 +47,8 @@ internal static class ResourceGroupContractModelBuilder
                 memberHasRecovery ||
                 !GeneratedIdentifier.TryCreateCanonicalName(memberSymbol.MetadataName, out string canonicalName) ||
                 !canonicalNames.Add(canonicalName) ||
-                !ResourcePlanGrammar.TryAppendPlanFields(memberSymbol.Type, memberSymbol.MetadataName, (uint)i, in planFieldBuilder))
+                !ResourcePlanGrammar.TryAppendPlanFields(memberSymbol.Type, memberSymbol.MetadataName, (uint)i, in planFieldBuilder) ||
+                !SlotResourceGenerationBuilder.TryBuild(memberSymbol.Type, (uint)i, out SlotResourceGenerationInfo generation))
             {
                 return false;
             }
@@ -56,7 +57,8 @@ internal static class ResourceGroupContractModelBuilder
                 (uint)i,
                 memberSymbol.MetadataName,
                 CanonicalTypeNameBuilder.GetCanonicalTypeName(memberSymbol.Type),
-                memberAccess));
+                memberAccess,
+                generation));
         }
 
         group = new ResourceGroupContractInfo(

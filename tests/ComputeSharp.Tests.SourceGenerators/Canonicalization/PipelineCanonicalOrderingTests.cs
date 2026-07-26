@@ -43,10 +43,12 @@ public class PipelineCanonicalOrderingTests
             uint.MaxValue,
             memberMetadataName,
             "ComputeSharp.ReadWriteBuffer`1[System.Int32]",
+            "global::ComputeSharp.ReadWriteBuffer<int>",
             ResourceOwnershipKind.OwnedSlot,
             ResourcePlanKind.Buffer,
             ComputeResourceRecovery.Discardable,
-            ImmutableArray<ResourcePlanFieldContractInfo>.Empty);
+            ImmutableArray<ResourcePlanFieldContractInfo>.Empty,
+            ImmutableArray<SlotResourceGenerationInfo>.Empty);
     }
 
     private static SharedTextureContractInfo SharedTexture(string memberMetadataName)

@@ -7,12 +7,14 @@ namespace ComputeSharp.SourceGenerators.Models;
 /// A canonical contract model for a pipeline host type.
 /// </summary>
 /// <param name="HostTypeMetadataName">The fully qualified metadata name of the host type.</param>
+/// <param name="DeviceFieldName">The name of the device field owned by the host.</param>
 /// <param name="MaximumConcurrentInvocations">The maximum number of concurrent invocations for the host.</param>
 /// <param name="Structural">The static structural requirements for the host.</param>
 /// <param name="Pipelines">The pipeline contracts, in canonical ordinal order.</param>
 /// <param name="Slots">The owned slot contracts, in canonical ordinal order.</param>
 internal sealed record PipelineHostContractInfo(
     string HostTypeMetadataName,
+    string DeviceFieldName,
     int MaximumConcurrentInvocations,
     StructuralRequirementsInfo Structural,
     EquatableArray<PipelineContractInfo> Pipelines,
@@ -79,18 +81,37 @@ internal sealed record ResourceContractInfo(
 /// <param name="Ordinal">The 0-based ordinal of the slot within its host.</param>
 /// <param name="MemberMetadataName">The metadata name of the owning member.</param>
 /// <param name="ResourceTypeMetadataName">The fully qualified metadata name of the slot type.</param>
+/// <param name="ResourceTypeName">The fully qualified name of the slot type, as written in generated code.</param>
 /// <param name="Ownership">The ownership kind for the slot.</param>
 /// <param name="PlanKind">The plan kind for the slot.</param>
 /// <param name="Recovery">The recovery class for the slot.</param>
 /// <param name="PlanFields">The plan fields, in canonical field ordinal order.</param>
+/// <param name="Resources">The owned resources, in slot resource index order.</param>
 internal sealed record OwnedSlotContractInfo(
     uint Ordinal,
     string MemberMetadataName,
     string ResourceTypeMetadataName,
+    string ResourceTypeName,
     ResourceOwnershipKind Ownership,
     ResourcePlanKind PlanKind,
     ComputeResourceRecovery Recovery,
-    EquatableArray<ResourcePlanFieldContractInfo> PlanFields);
+    EquatableArray<ResourcePlanFieldContractInfo> PlanFields,
+    EquatableArray<SlotResourceGenerationInfo> Resources);
+
+/// <summary>
+/// A canonical contract model for the materialization of a single resource owned by a slot.
+/// </summary>
+/// <param name="SlotResourceIndex">The index of the resource within its slot.</param>
+/// <param name="Shape">The declaration shape of the resource.</param>
+/// <param name="ElementTypeName">The fully qualified name of the element type, as written in generated code.</param>
+/// <param name="PixelTypeName">The fully qualified name of the pixel type, for normalized textures only.</param>
+/// <param name="RequiresDoublePrecisionSupport">Whether the element type stores double precision floating point numbers.</param>
+internal sealed record SlotResourceGenerationInfo(
+    uint SlotResourceIndex,
+    ResourcePlanKind Shape,
+    string ElementTypeName,
+    string? PixelTypeName,
+    bool RequiresDoublePrecisionSupport);
 
 /// <summary>
 /// A canonical contract model for a single scalar dimension of a resource plan.
