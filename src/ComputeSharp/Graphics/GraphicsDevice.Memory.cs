@@ -9,6 +9,8 @@ using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_HEAP_TYPE;
 using static ComputeSharp.Win32.D3D12_MEMORY_POOL;
 
+#pragma warning disable CA2213
+
 namespace ComputeSharp;
 
 /// <inheritdoc/>
@@ -40,6 +42,11 @@ unsafe partial class GraphicsDevice
     private D3D12_MEMORY_POOL readBackHeapMemoryPool;
 
     /// <summary>
+    /// The <see cref="MemoryBudgetObserver"/> instance tracking the budget notifications of the current device.
+    /// </summary>
+    private MemoryBudgetObserver? memoryBudgetObserver;
+
+    /// <summary>
     /// Sets the memory policy every subsequent native allocation of the current device is admitted against.
     /// </summary>
     /// <param name="policy">The memory policy to apply.</param>
@@ -53,6 +60,8 @@ unsafe partial class GraphicsDevice
         GraphicsMemoryClientDescriptor descriptor = new() { AdapterLuid = Luid.ToInt64(), NodeIndex = 0 };
 
         this.memoryCoordinator.SetPolicy(in policy, in descriptor, IsUma);
+
+        this.memoryBudgetObserver?.Wake();
     }
 
     /// <summary>
@@ -65,22 +74,21 @@ unsafe partial class GraphicsDevice
 
         if (!isLeaseTaken)
         {
-            return CreateMemoryStatistics(this.memoryCoordinator.Epoch, MemoryBudgetStatus.Unknown);
+            return CreateMemoryStatistics(MemoryBudgetStatus.Unknown);
         }
 
         if (IsDeviceLost)
         {
-            return CreateMemoryStatistics(this.memoryCoordinator.Epoch, MemoryBudgetStatus.DeviceLost);
+            return CreateMemoryStatistics(MemoryBudgetStatus.DeviceLost);
         }
 
-        MemoryAdmissionSnapshot snapshot = RefreshMemoryObservations();
-        SegmentPolicySnapshot local = snapshot.Local;
-        SegmentPolicySnapshot nonLocal = snapshot.NonLocal;
+        GraphicsMemorySegmentStatistics local = QuerySegmentStatistics(MemoryPlacement.Local);
+        GraphicsMemorySegmentStatistics nonLocal = QuerySegmentStatistics(MemoryPlacement.NonLocal);
 
         return new GraphicsMemoryStatistics(
-            snapshot.Epoch,
-            CreateSegmentStatistics(MemoryPlacement.Local, local.DxgiStatus, in local.Dxgi),
-            CreateSegmentStatistics(MemoryPlacement.NonLocal, nonLocal.DxgiStatus, in nonLocal.Dxgi),
+            this.memoryCoordinator.Epoch,
+            local,
+            nonLocal,
             activeGenerationCount: 0,
             retiredGenerationCount: 0,
             managedPoolSurplusCount: 0);
@@ -169,6 +177,53 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Refreshes the video memory budget observations of every active segment of the current device.
+    /// </summary>
+    internal void RefreshMemoryBudgetObservations()
+    {
+        RefreshMemoryBudgetObservation(MemoryPlacement.Local);
+        RefreshMemoryBudgetObservation(MemoryPlacement.NonLocal);
+
+        if (this.memoryCoordinator.TryClaimTrimRequest())
+        {
+            _ = RefreshMemoryObservations();
+        }
+    }
+
+    /// <summary>
+    /// Registers an event to be signaled whenever the video memory budget of the current device changes.
+    /// </summary>
+    /// <param name="eventHandle">The event to signal.</param>
+    /// <param name="cookie">The resulting registration cookie.</param>
+    /// <returns>Whether the notification could be registered.</returns>
+    internal bool TryRegisterMemoryBudgetNotification(HANDLE eventHandle, out uint cookie)
+    {
+        cookie = 0;
+
+        if (this.dxgiAdapter3.Get() is null)
+        {
+            return false;
+        }
+
+        fixed (uint* pCookie = &cookie)
+        {
+            return this.dxgiAdapter3.Get()->RegisterVideoMemoryBudgetChangeNotificationEvent(eventHandle, pCookie) >= 0;
+        }
+    }
+
+    /// <summary>
+    /// Unregisters a previously registered video memory budget notification.
+    /// </summary>
+    /// <param name="cookie">The registration cookie to unregister.</param>
+    internal void UnregisterMemoryBudgetNotification(uint cookie)
+    {
+        if (this.dxgiAdapter3.Get() is not null)
+        {
+            this.dxgiAdapter3.Get()->UnregisterVideoMemoryBudgetChangeNotification(cookie);
+        }
+    }
+
+    /// <summary>
     /// Initializes the memory topology of the current device.
     /// </summary>
     private void InitializeMemoryTopology()
@@ -176,6 +231,24 @@ unsafe partial class GraphicsDevice
         this.defaultHeapMemoryPool = this.d3D12Device.Get()->GetCustomHeapProperties(1, D3D12_HEAP_TYPE_DEFAULT).MemoryPoolPreference;
         this.uploadHeapMemoryPool = this.d3D12Device.Get()->GetCustomHeapProperties(1, D3D12_HEAP_TYPE_UPLOAD).MemoryPoolPreference;
         this.readBackHeapMemoryPool = this.d3D12Device.Get()->GetCustomHeapProperties(1, D3D12_HEAP_TYPE_READBACK).MemoryPoolPreference;
+        this.memoryBudgetObserver = MemoryBudgetObserver.TryCreate(this);
+    }
+
+    /// <summary>
+    /// Refreshes the video memory budget observation of a single memory segment of the current device.
+    /// </summary>
+    /// <param name="placement">The memory segment to refresh.</param>
+    private void RefreshMemoryBudgetObservation(MemoryPlacement placement)
+    {
+        if (!GraphicsMemorySegments.IsSegmentActive(IsUma, placement))
+        {
+            return;
+        }
+
+        if (TryQueryMemoryBudget(placement, out VideoMemoryBudgetSnapshot budget) is MemoryBudgetStatus.Valid)
+        {
+            _ = this.memoryCoordinator.ObserveBudget(placement, in budget);
+        }
     }
 
     /// <summary>
@@ -311,18 +384,39 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Queries the memory statistics of a single memory segment of the current device.
+    /// </summary>
+    /// <param name="placement">The memory segment to query.</param>
+    /// <returns>The resulting <see cref="GraphicsMemorySegmentStatistics"/> value.</returns>
+    private GraphicsMemorySegmentStatistics QuerySegmentStatistics(MemoryPlacement placement)
+    {
+        if (!GraphicsMemorySegments.IsSegmentActive(IsUma, placement))
+        {
+            return CreateSegmentStatistics(placement, MemoryBudgetStatus.Unsupported, default);
+        }
+
+        MemoryBudgetStatus status = TryQueryMemoryBudget(placement, out VideoMemoryBudgetSnapshot budget);
+
+        if (status is MemoryBudgetStatus.Valid)
+        {
+            _ = this.memoryCoordinator.ObserveBudget(placement, in budget);
+        }
+
+        return CreateSegmentStatistics(placement, status, in budget);
+    }
+
+    /// <summary>
     /// Creates the memory statistics of the current device without performing any native query.
     /// </summary>
-    /// <param name="epoch">The observation epoch to report.</param>
     /// <param name="status">The budget status to report for every active segment.</param>
     /// <returns>The resulting <see cref="GraphicsMemoryStatistics"/> value.</returns>
-    private GraphicsMemoryStatistics CreateMemoryStatistics(ulong epoch, MemoryBudgetStatus status)
+    private GraphicsMemoryStatistics CreateMemoryStatistics(MemoryBudgetStatus status)
     {
         SegmentMemoryAccounting local = this.memoryCoordinator.GetAccounting(MemoryPlacement.Local);
         SegmentMemoryAccounting nonLocal = this.memoryCoordinator.GetAccounting(MemoryPlacement.NonLocal);
 
         return new GraphicsMemoryStatistics(
-            epoch,
+            this.memoryCoordinator.Epoch,
             CreateSegmentStatistics(MemoryPlacement.Local, status, in local.LastDxgiObservation),
             CreateSegmentStatistics(MemoryPlacement.NonLocal, status, in nonLocal.LastDxgiObservation),
             activeGenerationCount: 0,
