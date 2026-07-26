@@ -7,13 +7,15 @@ using ComputeSharp.Win32;
 
 namespace ComputeSharp.Resources.Lifetime;
 
-internal interface IResourceGenerationOwner
+internal unsafe interface IResourceGenerationOwner
 {
     ResourceGenerationSetId SetId { get; }
 
     int ResourceCount { get; }
 
     ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal);
+
+    ID3D12Resource* GetResourceNativePointer(int resourceOrdinal);
 }
 
 internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
@@ -83,6 +85,11 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
     public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
     {
         return ref this.records[resourceOrdinal];
+    }
+
+    public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
+    {
+        return this.nativeResources[resourceOrdinal].Get();
     }
 
     public TResource? TryGetResource<TResource>(int resourceOrdinal)

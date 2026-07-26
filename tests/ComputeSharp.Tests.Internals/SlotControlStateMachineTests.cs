@@ -1,12 +1,13 @@
 using System;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeSharp.Tests.Internals;
 
 [TestClass]
-public class SlotControlStateMachineTests
+public unsafe class SlotControlStateMachineTests
 {
     private sealed class GenerationOwner : IResourceGenerationOwner
     {
@@ -36,6 +37,11 @@ public class SlotControlStateMachineTests
         public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
         {
             return ref this.records[resourceOrdinal];
+        }
+
+        public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
+        {
+            return null;
         }
     }
 

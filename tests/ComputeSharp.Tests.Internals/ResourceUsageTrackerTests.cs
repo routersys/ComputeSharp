@@ -1,12 +1,13 @@
 using System;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeSharp.Tests.Internals;
 
 [TestClass]
-public class ResourceUsageTrackerTests
+public unsafe class ResourceUsageTrackerTests
 {
     private sealed class GenerationOwner(ulong setId, int resourceCount) : IResourceGenerationOwner
     {
@@ -19,6 +20,11 @@ public class ResourceUsageTrackerTests
         public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
         {
             return ref this.records[resourceOrdinal];
+        }
+
+        public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
+        {
+            return null;
         }
     }
 

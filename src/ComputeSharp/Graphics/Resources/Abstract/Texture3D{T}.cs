@@ -189,6 +189,14 @@ public abstract unsafe partial class Texture3D<T> : IReferenceTrackedObject, IGr
     }
 
     /// <inheritdoc/>
+    ID3D12Resource* IResourceGenerationOwner.GetResourceNativePointer(int resourceOrdinal)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
+        return D3D12Resource;
+    }
+
+    /// <inheritdoc/>
     void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
     {
         this.generationBinding.BindToOwner(owner, resourceIndex);
