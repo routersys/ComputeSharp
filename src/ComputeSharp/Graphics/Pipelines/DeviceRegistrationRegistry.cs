@@ -7,9 +7,11 @@ using ComputeSharp.Win32;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
-internal sealed unsafe class DeviceRegistrationRegistry(ID3D12Device* d3D12Device, D3D12_COMMAND_LIST_TYPE d3D12CommandListType) : IDisposable
+internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 {
-    private readonly PipelineCommandListPool commandListPool = new(d3D12Device, d3D12CommandListType);
+    private readonly GraphicsDevice device;
+
+    private readonly PipelineCommandListPool commandListPool;
 
     private readonly ResourceUsageSetPool usageSetPool = new();
 
@@ -22,6 +24,17 @@ internal sealed unsafe class DeviceRegistrationRegistry(ID3D12Device* d3D12Devic
     private ulong nextHostRegistrationId;
 
     private bool isDisposed;
+
+    public DeviceRegistrationRegistry(GraphicsDevice device, D3D12_COMMAND_LIST_TYPE d3D12CommandListType)
+    {
+        default(ArgumentNullException).ThrowIfNull(device);
+        default(NotSupportedException).ThrowIf(device.HasOpaqueMemoryAllocator);
+
+        this.device = device;
+        this.commandListPool = new PipelineCommandListPool(device.D3D12Device, d3D12CommandListType);
+    }
+
+    public GraphicsDevice Device => this.device;
 
     public int HostCount
     {

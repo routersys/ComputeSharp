@@ -10,6 +10,11 @@ namespace ComputeSharp;
 unsafe partial class GraphicsDevice
 {
     /// <summary>
+    /// Gets whether or not the current device allocates resources through an opaque custom allocator.
+    /// </summary>
+    internal bool HasOpaqueMemoryAllocator => this.allocator.Get() is not null;
+
+    /// <summary>
     /// Executes a recorded generated pipeline command list on the compute queue and signals its completion.
     /// </summary>
     /// <param name="d3D12CommandList">The closed command list to execute.</param>
