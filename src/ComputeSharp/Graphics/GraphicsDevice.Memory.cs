@@ -257,7 +257,7 @@ unsafe partial class GraphicsDevice
     /// <param name="d3D12HeapProperties">The heap properties to map.</param>
     /// <param name="placement">The resulting memory segment.</param>
     /// <returns>Whether <paramref name="d3D12HeapProperties"/> maps to an active memory segment.</returns>
-    private bool TryGetMemoryPlacement(in D3D12_HEAP_PROPERTIES d3D12HeapProperties, out MemoryPlacement placement)
+    internal bool TryGetMemoryPlacement(in D3D12_HEAP_PROPERTIES d3D12HeapProperties, out MemoryPlacement placement)
     {
         D3D12_MEMORY_POOL d3D12MemoryPool = d3D12HeapProperties.Type switch
         {
