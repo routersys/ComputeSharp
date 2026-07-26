@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
@@ -16,7 +17,7 @@ internal sealed class CompletionRegistry
 
     private readonly List<Entry> committedRecords = [];
 
-    private readonly object registryGate = new();
+    private readonly Lock registryGate = new();
 
     private bool isArmRequested;
 

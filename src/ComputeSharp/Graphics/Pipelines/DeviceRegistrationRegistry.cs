@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
@@ -17,7 +18,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly List<PipelineHostRuntime> hosts = [];
 
-    private readonly object registrationGate = new();
+    private readonly Lock registrationGate = new();
 
     private DeviceStructuralAggregate aggregate;
 

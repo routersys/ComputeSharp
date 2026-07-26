@@ -1,3 +1,4 @@
+using System.Threading;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
@@ -6,7 +7,7 @@ namespace ComputeSharp.Graphics.Pipelines;
 
 internal sealed class PipelineHostRuntime
 {
-    private readonly object registrationGate = new();
+    private readonly Lock registrationGate = new();
 
     private readonly IComputeOwnedSlot[] slots;
 

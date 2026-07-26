@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
@@ -105,7 +106,7 @@ internal sealed class ResourceUsageSetPool
 
     private readonly List<ReleasedRange> releasedRanges = [];
 
-    private readonly object gate = new();
+    private readonly Lock gate = new();
 
     private int nextGlobalSetBase;
 

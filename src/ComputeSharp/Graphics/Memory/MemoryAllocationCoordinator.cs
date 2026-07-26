@@ -27,9 +27,9 @@ internal readonly struct MemoryReservationToken(ulong value, MemoryPlacement pla
 
 internal sealed class MemoryAllocationCoordinator
 {
-    private readonly object allocationGate = new();
+    private readonly Lock allocationGate = new();
 
-    private readonly object policyGate = new();
+    private readonly Lock policyGate = new();
 
     private readonly HashSet<ulong> liveReservations = [];
 
