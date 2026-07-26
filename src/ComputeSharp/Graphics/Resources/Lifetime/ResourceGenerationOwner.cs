@@ -106,6 +106,10 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
             resourceOrdinal >= this.records.Length,
             "The resource generation owner has no member left to attach.");
 
+        default(ArgumentException).ThrowIf(resource is not IGenerationBoundResource, nameof(resource));
+
+        ((IGenerationBoundResource)resource).BindGeneration(this, resourceOrdinal);
+
         this.resources[resourceOrdinal] = resource;
         this.nativeResources[resourceOrdinal] = new ComPtr<ID3D12Resource>(d3D12Resource);
         this.records[resourceOrdinal].D3D12State = d3D12State;

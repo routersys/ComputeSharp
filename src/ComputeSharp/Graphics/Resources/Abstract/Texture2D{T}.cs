@@ -8,8 +8,11 @@ using ComputeSharp.Graphics.Resources.Helpers;
 using ComputeSharp.Graphics.Resources.Interop;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Interop;
+using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Resources.Plans;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using static ComputeSharp.Win32.D3D12_RESOURCE_DIMENSION;
@@ -26,9 +29,14 @@ namespace ComputeSharp.Resources;
 /// A <see langword="class"/> representing a typed 2D texture stored on GPU memory.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
-public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource, ID3D12ComputeFenceTrackedResource
+public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource, ID3D12ComputeFenceTrackedResource, IResourceGenerationOwner, IGenerationBoundResource
     where T : unmanaged
 {
+    /// <summary>
+    /// The generation binding of the current instance.
+    /// </summary>
+    private ResourceGenerationBinding generationBinding;
+
     /// <summary>
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
@@ -108,6 +116,13 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
             out this.d3D12Resource,
             out this.d3D12ResourceState);
 
+        this.generationBinding.InitializeSelfOwned(
+            this,
+            device.ResourceIdentities,
+            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
+            this.memoryAllocation.Placement,
+            this.memoryAllocation.Bytes);
+
         this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
             ? D3D12_COMMAND_LIST_TYPE_COPY
             : D3D12_COMMAND_LIST_TYPE_COMPUTE;
@@ -171,6 +186,13 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
             isRenderTarget,
             out this.d3D12Resource,
             out this.d3D12ResourceState);
+
+        this.generationBinding.InitializeSelfOwned(
+            this,
+            device.ResourceIdentities,
+            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
+            this.memoryAllocation.Placement,
+            this.memoryAllocation.Bytes);
 
         this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
             ? D3D12_COMMAND_LIST_TYPE_COPY
@@ -341,6 +363,35 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
     /// Gets the height of the current texture.
     /// </summary>
     public int Height => (int)this.d3D12PlacedSubresourceFootprint.Footprint.Height;
+
+    /// <inheritdoc/>
+    ResourceGenerationSetId IResourceGenerationOwner.SetId => this.generationBinding.SetId;
+
+    /// <inheritdoc/>
+    int IResourceGenerationOwner.ResourceCount => 1;
+
+    /// <inheritdoc/>
+    ref ResourceGenerationRecord IResourceGenerationOwner.GetResourceRecord(int resourceOrdinal)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
+        return ref this.generationBinding.Record;
+    }
+
+    /// <inheritdoc/>
+    void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
+    {
+        this.generationBinding.BindToOwner(owner, resourceIndex);
+    }
+
+    /// <inheritdoc/>
+    bool IGenerationBoundResource.TryGetGenerationBinding(
+        out ResourceGenerationSetHandle set,
+        out uint resourceIndex,
+        out ResourceGenerationId generation)
+    {
+        return this.generationBinding.TryGetBinding(out set, out resourceIndex, out generation);
+    }
 
     /// <summary>
     /// Gets the <see cref="ID3D12Resource"/> instance currently mapped.

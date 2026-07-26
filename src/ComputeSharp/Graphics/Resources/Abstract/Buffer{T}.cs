@@ -6,10 +6,12 @@ using System.Runtime.InteropServices;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Helpers;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Interop;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_FEATURE;
 using static ComputeSharp.Win32.DXGI_FORMAT;
@@ -23,9 +25,14 @@ namespace ComputeSharp.Resources;
 /// A <see langword="class"/> representing a typed buffer stored on GPU memory.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the buffer.</typeparam>
-public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource
+public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadOnlyResource, ID3D12ComputeFenceTrackedResource, IResourceGenerationOwner, IGenerationBoundResource
     where T : unmanaged
 {
+    /// <summary>
+    /// The generation binding of the current instance.
+    /// </summary>
+    private ResourceGenerationBinding generationBinding;
+
     /// <summary>
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
@@ -110,6 +117,13 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
             out this.allocation,
             out this.d3D12Resource);
 
+        this.generationBinding.InitializeSelfOwned(
+            this,
+            device.ResourceIdentities,
+            TrackedResourceState.Common,
+            this.memoryAllocation.Placement,
+            this.memoryAllocation.Bytes);
+
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandles);
         device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView);
 
@@ -193,6 +207,35 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     /// Gets the length of the current buffer.
     /// </summary>
     public int Length { get; }
+
+    /// <inheritdoc/>
+    ResourceGenerationSetId IResourceGenerationOwner.SetId => this.generationBinding.SetId;
+
+    /// <inheritdoc/>
+    int IResourceGenerationOwner.ResourceCount => 1;
+
+    /// <inheritdoc/>
+    ref ResourceGenerationRecord IResourceGenerationOwner.GetResourceRecord(int resourceOrdinal)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
+        return ref this.generationBinding.Record;
+    }
+
+    /// <inheritdoc/>
+    void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
+    {
+        this.generationBinding.BindToOwner(owner, resourceIndex);
+    }
+
+    /// <inheritdoc/>
+    bool IGenerationBoundResource.TryGetGenerationBinding(
+        out ResourceGenerationSetHandle set,
+        out uint resourceIndex,
+        out ResourceGenerationId generation)
+    {
+        return this.generationBinding.TryGetBinding(out set, out resourceIndex, out generation);
+    }
 
     /// <summary>
     /// Gets whether or not there is some padding between elements in the current buffer.
