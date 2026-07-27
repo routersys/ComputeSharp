@@ -117,6 +117,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         HostStructuralReservation reservation;
         PipelineCommandListPartition? commandLists = null;
         ResourceUsageSetPartition? usageSets = null;
+        int boundSlotCount = 0;
 
         lock (this.registrationGate)
         {
@@ -185,6 +186,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             BindSlots(this, slots, planStorage, planStates);
 
+            boundSlotCount = slots.Length;
+
             default(InvalidOperationException).ThrowIf(!runtime.TryCommitActive(), "The host registration could not be committed.");
 
             lock (this.registrationGate)
@@ -198,7 +201,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
         catch
         {
-            UnbindSlots(slots);
+            UnbindSlots(slots, boundSlotCount);
 
             if (usageSets is not null)
             {
@@ -652,9 +655,9 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
     }
 
-    private static void UnbindSlots(IComputeOwnedSlot[] slots)
+    private static void UnbindSlots(IComputeOwnedSlot[] slots, int boundSlotCount)
     {
-        for (int i = slots.Length - 1; i >= 0; i--)
+        for (int i = boundSlotCount - 1; i >= 0; i--)
         {
             slots[i]?.RequestDispose();
         }
