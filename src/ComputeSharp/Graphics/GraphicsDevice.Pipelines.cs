@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Pipelines;
@@ -23,6 +24,16 @@ unsafe partial class GraphicsDevice
     /// The gate serializing the resource hazard snapshot and commit of every submission of the current device.
     /// </summary>
     private readonly Lock hazardGate = new();
+
+    /// <summary>
+    /// The gate protecting <see cref="completionCoordinatorEvents"/>.
+    /// </summary>
+    private readonly Lock completionCoordinatorEventGate = new();
+
+    /// <summary>
+    /// The events the completion coordinators of the compute queue of the current device wait on.
+    /// </summary>
+    private readonly List<HANDLE> completionCoordinatorEvents = [];
 
     /// <summary>
     /// The <see cref="DeviceRegistrationRegistry"/> instance owning every pipeline registration of the current device.
@@ -113,6 +124,51 @@ unsafe partial class GraphicsDevice
         }
 
         registry?.Dispose();
+    }
+
+    /// <summary>
+    /// Creates a completion coordinator event owned by the current device.
+    /// </summary>
+    /// <returns>The event the requesting completion coordinator waits on.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the event could not be created.</exception>
+    /// <remarks>
+    /// Arming a completion registers the event on the compute queue fence, and no D3D12 API revokes that
+    /// registration, so the current device owns every coordinator event rather than the coordinator itself.
+    /// Each coordinator gets its own event, as coordinators sharing one auto reset event would consume one
+    /// another's wake ups.
+    /// </remarks>
+    internal HANDLE CreateCompletionCoordinatorEvent()
+    {
+        HANDLE eventHandle = Windows.CreateEventW(null, Windows.FALSE, Windows.FALSE, null);
+
+        default(InvalidOperationException).ThrowIf(eventHandle == HANDLE.NULL, "The completion coordinator event could not be created.");
+
+        lock (this.completionCoordinatorEventGate)
+        {
+            this.completionCoordinatorEvents.Add(eventHandle);
+        }
+
+        return eventHandle;
+    }
+
+    /// <summary>
+    /// Closes every completion coordinator event of the current device.
+    /// </summary>
+    /// <remarks>
+    /// This runs after the queue fences have been released, as closing an event the compute queue fence can
+    /// still signal would let that signal reach a handle whose value the operating system may have reused.
+    /// </remarks>
+    private void DisposeCompletionCoordinatorEvents()
+    {
+        lock (this.completionCoordinatorEventGate)
+        {
+            foreach (HANDLE eventHandle in this.completionCoordinatorEvents)
+            {
+                _ = Windows.CloseHandle(eventHandle);
+            }
+
+            this.completionCoordinatorEvents.Clear();
+        }
     }
 
     /// <summary>

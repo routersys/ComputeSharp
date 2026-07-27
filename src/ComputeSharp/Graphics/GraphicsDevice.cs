@@ -467,6 +467,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         this.d3D12CopyCommandQueue.Dispose();
         this.d3D12ComputeFence.Dispose();
         this.d3D12CopyFence.Dispose();
+        DisposeCompletionCoordinatorEvents();
         this.shaderResourceViewDescriptorAllocator.Dispose();
         this.allocator.Dispose();
 

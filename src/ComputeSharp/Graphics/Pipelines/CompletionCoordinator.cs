@@ -25,9 +25,7 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
 
         this.device = device;
         this.registry = registry;
-        this.eventHandle = Windows.CreateEventW(null, Windows.FALSE, Windows.FALSE, null);
-
-        default(InvalidOperationException).ThrowIf(this.eventHandle == HANDLE.NULL, "The completion coordinator event could not be created.");
+        this.eventHandle = device.CreateCompletionCoordinatorEvent();
 
         this.thread = new Thread(Run)
         {
@@ -39,6 +37,8 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
     }
 
     public Exception? Failure => this.failure;
+
+    public HANDLE EventHandle => this.eventHandle;
 
     public void Wake()
     {
@@ -62,8 +62,6 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
         _ = Windows.SetEvent(this.eventHandle);
 
         this.thread.Join();
-
-        _ = Windows.CloseHandle(this.eventHandle);
     }
 
     private void Run()
