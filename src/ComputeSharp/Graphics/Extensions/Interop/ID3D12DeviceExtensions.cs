@@ -175,6 +175,53 @@ internal static unsafe class ID3D12DeviceExtensions
     }
 
     /// <summary>
+    /// Gets the description of the committed resource backing a shared texture generation of an interop resource set.
+    /// </summary>
+    /// <param name="externalUsage">The usage of the shared texture on the external queue.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <returns>The description of the committed resource to create.</returns>
+    /// <remarks>
+    /// Every value here is fixed by the specification of the shared texture native descriptor. Simultaneous
+    /// access and cross adapter sharing are forbidden, as queue ownership is handed over through the shared
+    /// timeline while the resource stays in the common state at every external boundary.
+    /// </remarks>
+    public static GraphicsCommittedResourceDescription GetInteropSharedTextureDescription(
+        ExternalTextureUsage externalUsage,
+        uint width,
+        uint height)
+    {
+        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+        if (externalUsage is ExternalTextureUsage.RenderTarget)
+        {
+            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        return new GraphicsCommittedResourceDescription(
+            d3D12HeapProperties,
+            D3D12_HEAP_FLAG_SHARED,
+            D3D12_RESOURCE_DESC.Tex2D(
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+                width,
+                height,
+                arraySize: 1,
+                mipLevels: 1,
+                sampleCount: 1,
+                sampleQuality: 0,
+                flags: d3D12ResourceFlags,
+                layout: D3D12_TEXTURE_LAYOUT.D3D12_TEXTURE_LAYOUT_UNKNOWN),
+            D3D12_RESOURCE_STATE_COMMON);
+    }
+
+    /// <summary>
     /// Gets the allocation info of a described committed resource.
     /// </summary>
     /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>

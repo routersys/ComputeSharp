@@ -152,6 +152,36 @@ internal static unsafe class ComputeGenerationDescriber
         return Complete(device, description, ref declaration);
     }
 
+    public static ComputeGenerationDeclarationStatus DescribeInteropSharedTexture(
+        GraphicsDevice device,
+        ExternalTextureUsage externalUsage,
+        int width,
+        int height,
+        out ComputeGenerationDeclaration declaration)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(width, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+        default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(height, 1, D3D12.D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION);
+
+        if (!device.D3D12Device->IsDxgiFormatSupported(
+            DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            GetFormatSupport(ComputeResourceAccess.ReadWrite)))
+        {
+            UnsupportedTextureTypeException.ThrowForTexture2D<Bgra32>();
+        }
+
+        declaration = default;
+        declaration.Shape = ComputeGenerationShape.Texture2D;
+        declaration.Width = width;
+        declaration.Height = height;
+
+        GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetInteropSharedTextureDescription(
+            externalUsage,
+            (uint)width,
+            (uint)height);
+
+        return Complete(device, description, ref declaration);
+    }
+
     public static ComputeGenerationDeclarationStatus ValidateAgainstPlan(
         in OwnedSlotDescriptor slot,
         ReadOnlySpan<int> requestedPlan,
