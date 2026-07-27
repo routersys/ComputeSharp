@@ -8,6 +8,7 @@ using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Shaders.Loading;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
@@ -188,6 +189,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
 
         this.deviceRemovedReason = S.S_OK;
         this.cachedPipelineData = [];
+        this.resourceIdentities = new ResourceIdentityAllocator(this);
 
         RegisterDeviceLostCallback(this, out this.deviceHandle, out this.deviceRemovedEvent, out this.deviceRemovedWaitHandle);
     }

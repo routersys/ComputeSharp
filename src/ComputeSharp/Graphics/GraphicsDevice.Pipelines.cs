@@ -45,7 +45,7 @@ unsafe partial class GraphicsDevice
     /// <summary>
     /// The <see cref="ResourceIdentityAllocator"/> instance every resource identity of the current device comes from.
     /// </summary>
-    private readonly ResourceIdentityAllocator resourceIdentities = new();
+    private readonly ResourceIdentityAllocator resourceIdentities;
 
     /// <summary>
     /// The highest completed value observed on the compute queue fence.

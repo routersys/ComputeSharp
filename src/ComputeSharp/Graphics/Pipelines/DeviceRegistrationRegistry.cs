@@ -132,7 +132,12 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             {
                 default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
 
-                id = new HostRegistrationId(checked(this.nextHostRegistrationId + 1));
+                if (this.nextHostRegistrationId == ulong.MaxValue)
+                {
+                    this.device.ThrowTerminalSequenceExhaustion("host registration identity");
+                }
+
+                id = new HostRegistrationId(this.nextHostRegistrationId + 1);
             }
 
             HostRegistrationRecord registration = new(

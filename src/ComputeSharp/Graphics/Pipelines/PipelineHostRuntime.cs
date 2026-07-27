@@ -116,12 +116,12 @@ internal sealed class PipelineHostRuntime
 
     public ulong CreatePreparedToken()
     {
-        return Interlocked.Increment(ref this.nextPreparedToken);
+        return CreateSequenceValue(ref this.nextPreparedToken, "prepared replacement token");
     }
 
     public ulong CreateSubmissionSequence()
     {
-        return Interlocked.Increment(ref this.nextSubmissionSequence);
+        return CreateSequenceValue(ref this.nextSubmissionSequence, "submission sequence");
     }
 
     public bool TryCommitActive()
@@ -278,5 +278,17 @@ internal sealed class PipelineHostRuntime
         {
             return this.registration.TryCompleteRelease();
         }
+    }
+
+    private ulong CreateSequenceValue(ref ulong sequence, string name)
+    {
+        ulong value = Interlocked.Increment(ref sequence);
+
+        if (value == 0)
+        {
+            Device.ThrowTerminalSequenceExhaustion(name);
+        }
+
+        return value;
     }
 }
