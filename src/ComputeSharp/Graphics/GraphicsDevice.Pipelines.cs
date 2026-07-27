@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using ComputeSharp.Core.Extensions;
@@ -246,23 +247,75 @@ unsafe partial class GraphicsDevice
             d3D12CommandListEntries[i] = (ID3D12CommandList*)d3D12CommandLists[i];
         }
 
-        ulong completionValue;
+        ulong completionValue = 0;
+        HRESULT hresult = S.S_OK;
+        bool isSequenceExhausted = false;
+        string operation = "Wait";
 
         lock (this.d3D12ComputeCommandQueueLock)
         {
             if (d3D12CopyFenceWaitValue > 0 && d3D12CopyFenceWaitValue > this.d3D12CopyFence.Get()->GetCompletedValue())
             {
-                this.d3D12ComputeCommandQueue.Get()->Wait(this.d3D12CopyFence.Get(), d3D12CopyFenceWaitValue).Assert();
+                hresult = this.d3D12ComputeCommandQueue.Get()->Wait(this.d3D12CopyFence.Get(), d3D12CopyFenceWaitValue);
             }
 
-            this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists((uint)d3D12CommandLists.Length, d3D12CommandListEntries);
+            isSequenceExhausted = this.nextD3D12ComputeFenceValue == ulong.MaxValue;
 
-            completionValue = ++this.nextD3D12ComputeFenceValue;
+            if (hresult >= 0 && !isSequenceExhausted)
+            {
+                this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists((uint)d3D12CommandLists.Length, d3D12CommandListEntries);
 
-            this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue).Assert();
+                completionValue = ++this.nextD3D12ComputeFenceValue;
+                operation = "Signal";
+
+                hresult = this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue);
+            }
+        }
+
+        if (isSequenceExhausted)
+        {
+            ThrowTerminalSequenceExhaustion("compute completion fence");
+        }
+
+        if (hresult < 0)
+        {
+            ThrowTerminalQueueFailure(hresult, operation);
         }
 
         return new FencePoint(ComputeQueueKind.Compute, completionValue);
+    }
+
+    /// <summary>
+    /// Moves the current device to its terminal state for a failed compute queue call, and throws the reason.
+    /// </summary>
+    /// <param name="hresult">The <see cref="HRESULT"/> the call failed with.</param>
+    /// <param name="operation">The name of the failed call.</param>
+    /// <exception cref="InvalidOperationException">Always thrown.</exception>
+    [DoesNotReturn]
+    private void ThrowTerminalQueueFailure(HRESULT hresult, string operation)
+    {
+        InvalidOperationException reason = new(
+            $"""The "{operation}" call on the compute queue of the device "{this}" failed with code 0x{(uint)hresult:X8}.""");
+
+        MarkDeviceTerminal(reason);
+
+        throw reason;
+    }
+
+    /// <summary>
+    /// Moves the current device to its terminal state for an exhausted identity sequence, and throws the reason.
+    /// </summary>
+    /// <param name="sequence">The name of the exhausted sequence.</param>
+    /// <exception cref="InvalidOperationException">Always thrown.</exception>
+    [DoesNotReturn]
+    internal void ThrowTerminalSequenceExhaustion(string sequence)
+    {
+        InvalidOperationException reason = new(
+            $"""The {sequence} sequence of the device "{this}" is exhausted.""");
+
+        MarkDeviceTerminal(reason);
+
+        throw reason;
     }
 
     /// <summary>
@@ -363,7 +416,12 @@ unsafe partial class GraphicsDevice
     /// <param name="eventHandle">The event to signal.</param>
     internal void ArmComputeFenceEvent(ulong fenceValue, HANDLE eventHandle)
     {
-        this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, eventHandle).Assert();
+        HRESULT hresult = this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, eventHandle);
+
+        if (hresult < 0)
+        {
+            ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+        }
     }
 
     /// <summary>
@@ -374,7 +432,12 @@ unsafe partial class GraphicsDevice
     {
         if (fenceValue > this.d3D12ComputeFence.Get()->GetCompletedValue())
         {
-            this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, default).Assert();
+            HRESULT hresult = this.d3D12ComputeFence.Get()->SetEventOnCompletion(fenceValue, default);
+
+            if (hresult < 0)
+            {
+                ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+            }
         }
     }
 

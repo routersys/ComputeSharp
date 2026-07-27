@@ -141,7 +141,7 @@ internal static unsafe class ComputePipelineInvoker
         }
         catch
         {
-            if (record.ReadState() is SubmissionState.Recording or SubmissionState.Prepared)
+            if (!host.Device.IsDeviceTerminal && record.ReadState() is SubmissionState.Recording or SubmissionState.Prepared)
             {
                 ResourceGenerationPinTracker.Rollback(
                     host.Device,
