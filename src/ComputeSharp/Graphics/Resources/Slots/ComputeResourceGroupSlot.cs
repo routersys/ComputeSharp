@@ -69,6 +69,18 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot
     }
 
     /// <inheritdoc/>
+    void IComputeOwnedSlot.MarkTerminalRetained()
+    {
+        _ = this.slotGate.TryMarkDeviceTerminal();
+    }
+
+    /// <inheritdoc/>
+    void IComputeOwnedSlot.ReleaseTerminalGenerations()
+    {
+        SlotTerminalRelease.Run(ref this.slotGate);
+    }
+
+    /// <inheritdoc/>
     void IComputeOwnedSlot.RunMaintenance()
     {
         SlotGenerationMaintenance.Run(ref this.slotGate);

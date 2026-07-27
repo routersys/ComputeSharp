@@ -226,6 +226,22 @@ internal sealed class PipelineHostRuntime
         }
     }
 
+    public void MarkOwnedSlotsTerminalRetained()
+    {
+        foreach (IComputeOwnedSlot slot in this.slots)
+        {
+            slot.MarkTerminalRetained();
+        }
+    }
+
+    public void ReleaseOwnedSlotTerminalGenerations()
+    {
+        foreach (IComputeOwnedSlot slot in this.slots)
+        {
+            slot.ReleaseTerminalGenerations();
+        }
+    }
+
     public bool TryCompleteDeferredRelease()
     {
         if (State is RegistrationState.DisposeRequested)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Pipelines;
@@ -56,6 +57,11 @@ unsafe partial class GraphicsDevice
     private ulong observedCopyFenceCompletedValue;
 
     /// <summary>
+    /// The reason the current device reached its terminal state, or <see langword="null"/> if it has not.
+    /// </summary>
+    private Exception? terminalException;
+
+    /// <summary>
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
     /// </summary>
     internal bool HasOpaqueMemoryAllocator => this.allocator.Get() is not null;
@@ -77,6 +83,55 @@ unsafe partial class GraphicsDevice
     /// recorded barrier transitions from is the state the submission commits back.
     /// </remarks>
     internal Lock HazardGate => this.hazardGate;
+
+    /// <summary>
+    /// Gets whether the current device reached its terminal state.
+    /// </summary>
+    /// <remarks>
+    /// A removed device is terminal, and so is a device whose queue, fence or identity sequence failed.
+    /// </remarks>
+    internal bool IsDeviceTerminal => Volatile.Read(ref this.terminalException) is not null || IsDeviceLost;
+
+    /// <summary>
+    /// Moves the current device to its terminal state.
+    /// </summary>
+    /// <param name="reason">The reason the current device is terminal.</param>
+    /// <remarks>
+    /// The first reason is the one that is kept, and every generation the device still owns is moved to
+    /// <see cref="ResourceGenerationState.TerminalRetained"/>, so that only a device teardown releases it.
+    /// </remarks>
+    internal void MarkDeviceTerminal(Exception reason)
+    {
+        default(ArgumentNullException).ThrowIfNull(reason);
+
+        if (Interlocked.CompareExchange(ref this.terminalException, reason, null) is not null)
+        {
+            return;
+        }
+
+        DeviceRegistrationRegistry? registry;
+
+        lock (this.registrationRegistryGate)
+        {
+            registry = this.registrationRegistry;
+        }
+
+        registry?.MarkGenerationsTerminalRetained();
+    }
+
+    /// <summary>
+    /// Throws if the current device reached its terminal state.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if the current device has been lost.</exception>
+    internal void ThrowIfDeviceTerminal()
+    {
+        if (Volatile.Read(ref this.terminalException) is Exception reason)
+        {
+            ExceptionDispatchInfo.Throw(reason);
+        }
+
+        ThrowIfDeviceLost();
+    }
 
     /// <summary>
     /// Gets the registration registry of the current device, creating it if needed.
@@ -401,7 +456,7 @@ unsafe partial class GraphicsDevice
             return ComputeSubmissionStatus.Succeeded;
         }
 
-        return IsDeviceLost ? ComputeSubmissionStatus.Faulted : ComputeSubmissionStatus.Pending;
+        return IsDeviceTerminal ? ComputeSubmissionStatus.Faulted : ComputeSubmissionStatus.Pending;
     }
 
     /// <summary>
@@ -412,7 +467,7 @@ unsafe partial class GraphicsDevice
     {
         using ReferenceTracker.Lease _0 = GetReferenceTracker().TryGetLease(out bool isLeaseTaken);
 
-        if (!isLeaseTaken || IsDeviceLost)
+        if (!isLeaseTaken || IsDeviceTerminal)
         {
             return;
         }

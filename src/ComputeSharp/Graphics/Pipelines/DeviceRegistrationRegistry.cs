@@ -230,6 +230,21 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         return true;
     }
 
+    public void MarkGenerationsTerminalRetained()
+    {
+        PipelineHostRuntime[] registeredHosts;
+
+        lock (this.registrationGate)
+        {
+            registeredHosts = [.. this.hosts];
+        }
+
+        foreach (PipelineHostRuntime runtime in registeredHosts)
+        {
+            runtime.MarkOwnedSlotsTerminalRetained();
+        }
+    }
+
     public void Dispose()
     {
         PipelineHostRuntime[] pendingHosts;
@@ -264,20 +279,30 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             runtime.RequestDispose();
         }
 
-        while (!this.device.IsDeviceLost && this.completions.TryGetMaximumCommittedFence(out ulong fenceValue))
+        if (this.device.IsDeviceTerminal)
         {
-            this.device.WaitForComputeFenceValue(fenceValue);
-
-            while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.completions))
+            foreach (PipelineHostRuntime runtime in pendingHosts)
             {
+                runtime.ReleaseOwnedSlotTerminalGenerations();
             }
         }
-
-        foreach (PipelineHostRuntime runtime in pendingHosts)
+        else
         {
-            runtime.RunOwnedSlotMaintenance();
+            while (this.completions.TryGetMaximumCommittedFence(out ulong fenceValue))
+            {
+                this.device.WaitForComputeFenceValue(fenceValue);
 
-            _ = TryUnregisterHost(runtime);
+                while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.completions))
+                {
+                }
+            }
+
+            foreach (PipelineHostRuntime runtime in pendingHosts)
+            {
+                runtime.RunOwnedSlotMaintenance();
+
+                _ = TryUnregisterHost(runtime);
+            }
         }
 
         lock (this.registrationGate)

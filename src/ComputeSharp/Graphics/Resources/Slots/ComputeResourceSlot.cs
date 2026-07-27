@@ -75,6 +75,18 @@ public sealed class ComputeResourceSlot<TResource> : IComputeOwnedResourceSlot, 
     }
 
     /// <inheritdoc/>
+    void IComputeOwnedSlot.MarkTerminalRetained()
+    {
+        _ = this.slotGate.TryMarkDeviceTerminal();
+    }
+
+    /// <inheritdoc/>
+    void IComputeOwnedSlot.ReleaseTerminalGenerations()
+    {
+        SlotTerminalRelease.Run(ref this.slotGate);
+    }
+
+    /// <inheritdoc/>
     ResourcePlanDecision IComputeOwnedSlot.Evaluate(in OwnedSlotDescriptor descriptor, ReadOnlySpan<int> requestedPlan)
     {
         return this.slotGate.Evaluate(in descriptor, requestedPlan);

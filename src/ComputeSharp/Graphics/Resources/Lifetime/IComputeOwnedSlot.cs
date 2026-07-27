@@ -15,6 +15,10 @@ internal interface IComputeOwnedSlot
 
     void RunMaintenance();
 
+    void MarkTerminalRetained();
+
+    void ReleaseTerminalGenerations();
+
     ResourcePlanDecision Evaluate(in OwnedSlotDescriptor descriptor, ReadOnlySpan<int> requestedPlan);
 
     void GetActiveSnapshot(out ResourceGenerationSetId activeSetId, out ulong bindingEpoch);

@@ -55,7 +55,7 @@ unsafe partial class GraphicsDevice
     {
         using ReferenceTracker.Lease _0 = GetReferenceTracker().GetLease();
 
-        ThrowIfDeviceLost();
+        ThrowIfDeviceTerminal();
 
         GraphicsMemoryClientDescriptor descriptor = new() { AdapterLuid = Luid.ToInt64(), NodeIndex = 0 };
 
@@ -82,6 +82,11 @@ unsafe partial class GraphicsDevice
             return CreateMemoryStatistics(MemoryBudgetStatus.DeviceLost);
         }
 
+        if (IsDeviceTerminal)
+        {
+            return CreateMemoryStatistics(MemoryBudgetStatus.Unknown);
+        }
+
         GraphicsMemorySegmentStatistics local = QuerySegmentStatistics(MemoryPlacement.Local);
         GraphicsMemorySegmentStatistics nonLocal = QuerySegmentStatistics(MemoryPlacement.NonLocal);
 
@@ -101,7 +106,7 @@ unsafe partial class GraphicsDevice
     {
         using ReferenceTracker.Lease _0 = GetReferenceTracker().GetLease();
 
-        ThrowIfDeviceLost();
+        ThrowIfDeviceTerminal();
 
         _ = RefreshMemoryObservations();
     }

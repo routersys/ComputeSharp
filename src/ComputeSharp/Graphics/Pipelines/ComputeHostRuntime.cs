@@ -64,7 +64,7 @@ public sealed class ComputeHostRuntime : IDisposable
 
         using ReferenceTracker.Lease _0 = device.GetReferenceTracker().GetLease();
 
-        device.ThrowIfDeviceLost();
+        device.ThrowIfDeviceTerminal();
 
         IComputeOwnedSlot[] slots = new IComputeOwnedSlot[ownedSlots.Length];
 
@@ -105,7 +105,7 @@ public sealed class ComputeHostRuntime : IDisposable
 
         using ReferenceTracker.Lease _0 = Device.GetReferenceTracker().GetLease();
 
-        Device.ThrowIfDeviceLost();
+        Device.ThrowIfDeviceTerminal();
 
         default(ObjectDisposedException).ThrowIf(IsDisposeRequested, this);
 
@@ -174,7 +174,7 @@ public sealed class ComputeHostRuntime : IDisposable
     {
         using ReferenceTracker.Lease _0 = Device.GetReferenceTracker().GetLease();
 
-        Device.ThrowIfDeviceLost();
+        Device.ThrowIfDeviceTerminal();
 
         default(ObjectDisposedException).ThrowIf(IsDisposeRequested, this);
 
