@@ -1,4 +1,5 @@
 using System;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp;
@@ -9,7 +10,7 @@ namespace ComputeSharp;
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
 /// <typeparam name="TPixel">The type of pixels used on the GPU side.</typeparam>
 /// <typeparam name="TView">The type of the external view of the texture.</typeparam>
-public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
+public sealed class SharedTextureSlot<T, TPixel, TView> : IComputeSharedResourceSlot, IDisposable, IComputeSharedSlot
     where T : unmanaged, IPixel<T, TPixel>
     where TPixel : unmanaged
     where TView : class, IDisposable
@@ -25,6 +26,11 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     private SlotGate slotGate;
 
     /// <summary>
+    /// The resource set the current slot is bound to, or <see langword="null"/> if it is not bound.
+    /// </summary>
+    private InteropResourceSetRuntime? runtime;
+
+    /// <summary>
     /// Creates a new <see cref="SharedTextureSlot{T, TPixel, TView}"/> instance that is not bound to a resource set.
     /// </summary>
     public SharedTextureSlot()
@@ -34,12 +40,28 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// <summary>
     /// Gets the current logical width of the shared texture.
     /// </summary>
-    public int Width => 0;
+    public int Width
+    {
+        get
+        {
+            this.slotGate.GetActiveLogicalExtent(out int width, out _);
+
+            return width;
+        }
+    }
 
     /// <summary>
     /// Gets the current logical height of the shared texture.
     /// </summary>
-    public int Height => 0;
+    public int Height
+    {
+        get
+        {
+            this.slotGate.GetActiveLogicalExtent(out _, out int height);
+
+            return height;
+        }
+    }
 
     /// <summary>
     /// Gets whether the current slot owns a published texture generation.
@@ -50,6 +72,51 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     /// Gets whether disposal of the current slot has been requested.
     /// </summary>
     internal bool IsDisposeRequested => this.slotGate.IsDisposeRequested;
+
+    /// <inheritdoc/>
+    bool IComputeSharedSlot.IsDisposalComplete => this.slotGate.IsDisposalComplete;
+
+    /// <inheritdoc/>
+    bool IComputeSharedSlot.TryBind(
+        InteropResourceSetRuntime runtime,
+        int[] planStorage,
+        in SlotResourcePlanStateRecord planState)
+    {
+        this.runtime = runtime;
+
+        if (this.slotGate.TryBind(planStorage, in planState))
+        {
+            return true;
+        }
+
+        this.runtime = null;
+
+        return false;
+    }
+
+    /// <inheritdoc/>
+    void IComputeSharedSlot.RequestDispose()
+    {
+        Dispose();
+    }
+
+    /// <inheritdoc/>
+    void IComputeSharedSlot.RunMaintenance()
+    {
+        SlotGenerationMaintenance.Run(ref this.slotGate);
+    }
+
+    /// <inheritdoc/>
+    void IComputeSharedSlot.MarkTerminalRetained()
+    {
+        _ = this.slotGate.TryMarkDeviceTerminal();
+    }
+
+    /// <inheritdoc/>
+    void IComputeSharedSlot.ReleaseTerminalGenerations()
+    {
+        SlotTerminalRelease.Run(ref this.slotGate);
+    }
 
     /// <summary>
     /// Ensures the shared texture matches the requested logical dimensions.
@@ -78,7 +145,9 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     {
         ThrowIfNotBound();
 
-        throw new InvalidOperationException(NoPublishedGeneration);
+        return this.slotGate.TryGetBinding(0, out ComputeResourceBinding<ReadWriteTexture2D<T, TPixel>> binding)
+            ? binding
+            : default;
     }
 
     /// <summary>
@@ -107,16 +176,25 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IDisposable
     public void Dispose()
     {
         PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
+
+        SlotGenerationMaintenance.Run(ref this.slotGate);
     }
 
     /// <summary>
     /// Waits for the disposal of the current slot to complete.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if disposal of the current slot has not been requested.</exception>
+    /// <remarks>
+    /// A slot that is not bound to a resource set has nothing to wait for and returns immediately.
+    /// </remarks>
     public void WaitForDisposal()
     {
-        default(InvalidOperationException).ThrowIf(
-            !this.slotGate.IsDisposalComplete,
-            "The shared texture slot is still bound to a resource set.");
+        if (this.runtime is not InteropResourceSetRuntime boundRuntime)
+        {
+            return;
+        }
+
+        SlotDisposalWait.Run(ref this.slotGate, boundRuntime.Registry, "The shared texture slot has not been disposed.");
     }
 
     /// <summary>

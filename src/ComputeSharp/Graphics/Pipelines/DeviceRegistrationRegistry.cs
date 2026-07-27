@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using ComputeSharp.Graphics.Commands.Interop;
+using ComputeSharp.Interop;
 using ComputeSharp.Memory;
 using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Resources.Plans;
@@ -23,6 +24,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly List<ComputeInteropDomain> domains = [];
 
+    private readonly List<InteropResourceSetRuntime> resourceSets = [];
+
     private readonly CompletionRegistry completions = new();
 
     private readonly CompletionCoordinator coordinator;
@@ -34,6 +37,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     private ulong nextHostRegistrationId;
 
     private ulong nextDomainRegistrationId;
+
+    private ulong nextResourceSetRegistrationId;
 
     private bool isDisposed;
 
@@ -214,6 +219,121 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
     }
 
+    public InteropResourceSetRuntime RegisterResourceSet(
+        ComputeInteropDomain domain,
+        ReadOnlySpan<byte> descriptor,
+        IComputeSharedSlot[] slots)
+    {
+        default(ArgumentNullException).ThrowIfNull(domain);
+        default(ArgumentNullException).ThrowIfNull(slots);
+        default(ArgumentException).ThrowIf(!ReferenceEquals(domain.Device, this.device), nameof(domain));
+
+        PipelineDescriptorSet descriptorSet = PipelineDescriptorReader.Read(descriptor);
+
+        default(ArgumentException).ThrowIf(descriptorSet.Kind is not DescriptorKind.InteropResourceSet, nameof(descriptor));
+
+        InteropResourceSetDescriptor resourceSet = descriptorSet.ResourceSet;
+
+        default(ArgumentException).ThrowIf(resourceSet.Structural.SharedTextureSlotCount != slots.Length, nameof(slots));
+
+        SlotResourcePlanStateRecord[] planStates = new SlotResourcePlanStateRecord[slots.Length];
+        int planScalarCount = SlotResourcePlanStorage.CreateResourceSetPlanStates(resourceSet, planStates);
+
+        default(InvalidOperationException).ThrowIf(
+            !domain.TryAcquireReference(ExternalDomainReference.ResourceSet),
+            "The interop domain no longer accepts resource set registrations.");
+
+        ResourceSetStructuralReservation reservation = default;
+        bool isBaselineReserved = false;
+
+        try
+        {
+            lock (this.registrationGate)
+            {
+                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+                default(InvalidOperationException).ThrowIf(
+                    !this.aggregate.TryReserveResourceSet(resourceSet, planScalarCount, out reservation),
+                    "The device structural capacity is exhausted.");
+            }
+
+            isBaselineReserved = true;
+
+            int[] planStorage = new int[planScalarCount];
+
+            ResourceSetRegistrationRecord registration = new(AllocateResourceSetId(), slots.Length);
+
+            InteropResourceSetRuntime runtime = new(
+                this,
+                this.device,
+                domain,
+                in resourceSet,
+                in registration,
+                in reservation,
+                planStorage,
+                planStates,
+                slots);
+
+            BindSharedSlots(runtime, slots, planStorage, planStates);
+
+            default(InvalidOperationException).ThrowIf(!runtime.TryCommitActive(), "The resource set registration could not be committed.");
+
+            lock (this.registrationGate)
+            {
+                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+
+                this.resourceSets.Add(runtime);
+            }
+
+            return runtime;
+        }
+        catch
+        {
+            UnbindSharedSlots(slots);
+
+            if (isBaselineReserved)
+            {
+                lock (this.registrationGate)
+                {
+                    this.aggregate.ReleaseResourceSet(in reservation);
+                }
+            }
+
+            domain.ReleaseReference(ExternalDomainReference.ResourceSet);
+
+            throw;
+        }
+    }
+
+    public bool TryUnregisterResourceSet(InteropResourceSetRuntime runtime)
+    {
+        default(ArgumentNullException).ThrowIfNull(runtime);
+
+        if (!runtime.TryBeginRelease())
+        {
+            return false;
+        }
+
+        lock (this.registrationGate)
+        {
+            default(InvalidOperationException).ThrowIf(
+                !this.resourceSets.Remove(runtime) && !this.isDisposed,
+                "The interop resource set is not registered on the device.");
+
+            this.aggregate.ReleaseResourceSet(runtime.Reservation);
+        }
+
+        if (!runtime.TryCompleteRelease())
+        {
+            return false;
+        }
+
+        runtime.Domain.ReleaseReference(ExternalDomainReference.ResourceSet);
+
+        this.coordinator.Wake();
+
+        return true;
+    }
+
     public ExternalDomainId AllocateDomainId()
     {
         ulong idValue = 0;
@@ -312,21 +432,29 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     public void MarkGenerationsTerminalRetained()
     {
         PipelineHostRuntime[] registeredHosts;
+        InteropResourceSetRuntime[] registeredResourceSets;
 
         lock (this.registrationGate)
         {
             registeredHosts = [.. this.hosts];
+            registeredResourceSets = [.. this.resourceSets];
         }
 
         foreach (PipelineHostRuntime runtime in registeredHosts)
         {
             runtime.MarkOwnedSlotsTerminalRetained();
         }
+
+        foreach (InteropResourceSetRuntime runtime in registeredResourceSets)
+        {
+            runtime.MarkSharedSlotsTerminalRetained();
+        }
     }
 
     public void Dispose()
     {
         PipelineHostRuntime[] pendingHosts;
+        InteropResourceSetRuntime[] pendingResourceSets;
         ComputeInteropDomain[] pendingDomains;
 
         lock (this.registrationGate)
@@ -338,6 +466,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             this.isDisposed = true;
             pendingHosts = [.. this.hosts];
+            pendingResourceSets = [.. this.resourceSets];
             pendingDomains = [.. this.domains];
         }
 
@@ -351,12 +480,43 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         {
             try
             {
-                ReleaseRegisteredDomains(pendingDomains);
+                ReleaseRegisteredResourceSets(pendingResourceSets);
             }
             finally
             {
-                this.commandListPool.Dispose();
+                try
+                {
+                    ReleaseRegisteredDomains(pendingDomains);
+                }
+                finally
+                {
+                    this.commandListPool.Dispose();
+                }
             }
+        }
+    }
+
+    private void ReleaseRegisteredResourceSets(InteropResourceSetRuntime[] pendingResourceSets)
+    {
+        foreach (InteropResourceSetRuntime runtime in pendingResourceSets)
+        {
+            runtime.RequestDispose();
+
+            if (this.device.IsDeviceTerminal)
+            {
+                runtime.ReleaseSharedSlotTerminalGenerations();
+            }
+            else
+            {
+                runtime.RunSharedSlotMaintenance();
+            }
+
+            _ = TryUnregisterResourceSet(runtime);
+        }
+
+        lock (this.registrationGate)
+        {
+            this.resourceSets.Clear();
         }
     }
 
@@ -409,6 +569,61 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         lock (this.registrationGate)
         {
             this.hosts.Clear();
+        }
+    }
+
+    private ResourceSetRegistrationId AllocateResourceSetId()
+    {
+        ulong idValue = 0;
+        bool isSequenceExhausted;
+
+        lock (this.registrationGate)
+        {
+            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+
+            isSequenceExhausted = this.nextResourceSetRegistrationId == ulong.MaxValue;
+
+            if (!isSequenceExhausted)
+            {
+                idValue = ++this.nextResourceSetRegistrationId;
+            }
+        }
+
+        if (isSequenceExhausted)
+        {
+            this.device.ThrowTerminalSequenceExhaustion("resource set registration identity");
+        }
+
+        return new ResourceSetRegistrationId(idValue);
+    }
+
+    private static void BindSharedSlots(
+        InteropResourceSetRuntime runtime,
+        IComputeSharedSlot[] slots,
+        int[] planStorage,
+        SlotResourcePlanStateRecord[] planStates)
+    {
+        for (int i = 0; i < slots.Length; i++)
+        {
+            default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
+
+            if (!slots[i].TryBind(runtime, planStorage, in planStates[i]))
+            {
+                for (int j = i - 1; j >= 0; j--)
+                {
+                    slots[j].RequestDispose();
+                }
+
+                default(InvalidOperationException).ThrowIf(true, "The shared texture slot is already bound to a resource set.");
+            }
+        }
+    }
+
+    private static void UnbindSharedSlots(IComputeSharedSlot[] slots)
+    {
+        for (int i = slots.Length - 1; i >= 0; i--)
+        {
+            slots[i]?.RequestDispose();
         }
     }
 

@@ -234,6 +234,42 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     }
 
     /// <summary>
+    /// Acquires a reference keeping the current domain alive.
+    /// </summary>
+    /// <param name="reference">The kind of reference to acquire.</param>
+    /// <returns>Whether the reference was acquired.</returns>
+    internal bool TryAcquireReference(ExternalDomainReference reference)
+    {
+        lock (this.gate)
+        {
+            return this.record.TryAcquire(reference);
+        }
+    }
+
+    /// <summary>
+    /// Releases a reference keeping the current domain alive.
+    /// </summary>
+    /// <param name="reference">The kind of reference to release.</param>
+    internal void ReleaseReference(ExternalDomainReference reference)
+    {
+        bool isReleased;
+
+        lock (this.gate)
+        {
+            isReleased = this.record.TryRelease(reference);
+        }
+
+        if (!isReleased)
+        {
+            return;
+        }
+
+        TryReleaseNative();
+
+        this.registry.Coordinator.Wake();
+    }
+
+    /// <summary>
     /// Acquires the single external operation of the current domain, with its scheduler reservation.
     /// </summary>
     /// <param name="reference">The kind of domain reference the operation holds.</param>

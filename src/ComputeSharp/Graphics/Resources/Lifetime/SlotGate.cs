@@ -410,6 +410,36 @@ internal struct SlotGate
         }
     }
 
+    public void GetActiveLogicalExtent(out int width, out int height)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            if (!this.control.IsAllocated || this.planState.FieldCount < 2)
+            {
+                width = 0;
+                height = 0;
+
+                return;
+            }
+
+            Span<int> activeLogicalPlan = SlotResourcePlanStorage.GetActiveLogicalPlan(this.PlanStorage, in this.planState);
+
+            width = activeLogicalPlan[0];
+            height = activeLogicalPlan[1];
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
     public ulong GetBindingEpoch()
     {
         bool taken = false;
