@@ -4,8 +4,6 @@ using ComputeSharp.Tests.Extensions;
 using ComputeSharp.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-#pragma warning disable CA2213
-
 namespace ComputeSharp.Tests.Internals;
 
 [TestClass]
@@ -16,105 +14,15 @@ public unsafe partial class InteropDomainRegistrationTests
         ExternalInteropCapabilities.SharedTexture2D |
         ExternalInteropCapabilities.SingleImmediateContextOrdering;
 
-    private sealed class FakeExternalView : IDisposable
-    {
-        public void Dispose()
-        {
-        }
-    }
-
-    private sealed class FakeScheduler : ComputeExternalQueueScheduler
-    {
-        public int DisposeCount;
-
-        protected override void EnterCore()
-        {
-        }
-
-        protected override void ExitCore()
-        {
-        }
-
-        protected override void DisposeCore()
-        {
-            this.DisposeCount++;
-        }
-    }
-
-    private sealed class FakeProvider(GraphicsDevice device, FakeScheduler scheduler)
-        : IComputeExternalInteropProvider<FakeExternalView>
-    {
-        private readonly GraphicsDevice device = device;
-
-        private readonly FakeScheduler scheduler = scheduler;
-
-        public ExternalAdapterIdentity AdapterIdentity { get; set; } = new ExternalAdapterIdentity(device.Luid.ToInt64());
-
-        public ExternalInteropCapabilities Capabilities { get; set; } = RequiredCapabilities;
-
-        public ComputeExternalQueueScheduler Scheduler => this.scheduler;
-
-        public bool ThrowOnInitialize { get; set; }
-
-        public int InitializeCount { get; private set; }
-
-        public int DisposeCount { get; private set; }
-
-        public nint ObservedFenceHandle { get; private set; }
-
-        public bool OpenedSharedFence { get; private set; }
-
-        public void Initialize(in ExternalTimelineInitialization initialization)
-        {
-            this.InitializeCount++;
-            this.ObservedFenceHandle = initialization.SharedFenceHandle.DangerousGetHandle();
-
-            using ComPtr<ID3D12Fence> d3D12Fence = this.device.OpenSharedFence(new HANDLE((void*)this.ObservedFenceHandle));
-
-            this.OpenedSharedFence = d3D12Fence.Get() is not null;
-
-            if (this.ThrowOnInitialize)
-            {
-                throw new InvalidOperationException("The provider could not open the shared timeline.");
-            }
-        }
-
-        public void EnqueueSignal(ulong value)
-        {
-        }
-
-        public void FlushAfterSignal()
-        {
-        }
-
-        public void EnqueueWait(ulong value)
-        {
-        }
-
-        public FakeExternalView OpenSharedTexture(BorrowedSharedHandle resourceHandle, in ExternalTextureDescriptor descriptor)
-        {
-            return new FakeExternalView();
-        }
-
-        public void OnDeviceTerminal(Exception reason)
-        {
-        }
-
-        public void Dispose()
-        {
-            this.DisposeCount++;
-        }
-    }
-
     [CombinatorialTestMethod]
     [AllDevices]
     public void RegistersADomainAndInitializesItsProvider(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler);
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
         using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 
@@ -135,9 +43,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler);
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
         using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 
@@ -151,10 +59,10 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        using ComputeInteropDomain first = graphicsDevice.RegisterExternalDomain(new FakeProvider(graphicsDevice, scheduler));
-        using ComputeInteropDomain second = graphicsDevice.RegisterExternalDomain(new FakeProvider(graphicsDevice, scheduler));
+        using ComputeInteropDomain first = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
+        using ComputeInteropDomain second = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
 
         Assert.AreNotEqual(first.Id.Value, second.Id.Value);
     }
@@ -165,9 +73,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler)
+        FakeInteropProvider provider = new(graphicsDevice, scheduler)
         {
             AdapterIdentity = new ExternalAdapterIdentity(graphicsDevice.Luid.ToInt64() ^ 1)
         };
@@ -188,9 +96,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler)
+        FakeInteropProvider provider = new(graphicsDevice, scheduler)
         {
             Capabilities = RequiredCapabilities & ~ExternalInteropCapabilities.SingleImmediateContextOrdering
         };
@@ -211,9 +119,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler) { ThrowOnInitialize = true };
+        FakeInteropProvider provider = new(graphicsDevice, scheduler) { ThrowOnInitialize = true };
 
         _ = Assert.ThrowsException<InvalidOperationException>(() => graphicsDevice.RegisterExternalDomain(provider));
 
@@ -232,8 +140,8 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        FakeScheduler scheduler = new();
-        FakeProvider provider = new(graphicsDevice, scheduler);
+        FakeInteropScheduler scheduler = new();
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
         ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 
@@ -258,9 +166,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        FakeProvider provider = new(graphicsDevice, scheduler);
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
         ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 
@@ -277,9 +185,9 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        using FakeScheduler scheduler = new();
+        using FakeInteropScheduler scheduler = new();
 
-        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeProvider(graphicsDevice, scheduler));
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
 
         _ = Assert.ThrowsException<InvalidOperationException>(domain.WaitForDisposal);
     }
@@ -290,13 +198,13 @@ public unsafe partial class InteropDomainRegistrationTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        FakeScheduler scheduler = new();
+        FakeInteropScheduler scheduler = new();
 
         scheduler.Dispose();
 
         Assert.AreEqual(1, scheduler.DisposeCount);
 
-        FakeProvider provider = new(graphicsDevice, scheduler);
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
         _ = Assert.ThrowsException<InvalidOperationException>(() => graphicsDevice.RegisterExternalDomain(provider));
 
