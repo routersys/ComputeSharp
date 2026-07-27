@@ -51,6 +51,26 @@ public class PipelineHostEmissionTests
         }
         """;
 
+    private const string ParameterHostSource = """
+        using ComputeSharp;
+
+        namespace Ukiyoe;
+
+        [ComputePipelineHost("device", 1)]
+        public sealed partial class Host
+        {
+            private readonly GraphicsDevice device;
+
+            [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+            private readonly ComputeResourceGroupSlot<GridResources> grid = new();
+
+            [ComputePipeline]
+            private void Run(in ComputeContext context, [ComputeResource(ComputeResourceAccess.ReadWrite)] ReadWriteBuffer<int> source)
+            {
+            }
+        }
+        """;
+
     private static string RunAndGetSource(string[] sources, string assemblyName, string hintNameFragment)
     {
         CSharpCompilation compilation = CompilationHelper.CreateCompilation(sources, assemblyName);
@@ -87,6 +107,27 @@ public class PipelineHostEmissionTests
         Assert.IsTrue(source.Contains("this.@index.Dispose();"), source);
         Assert.IsTrue(source.Contains("this.@silhouette.Dispose();"), source);
         Assert.IsTrue(source.Contains("this.computeHostRuntime.WaitForDisposal();"), source);
+    }
+
+    [TestMethod]
+    public void EmitsTheInvocationWrapperInContractOrdinalOrder()
+    {
+        string source = RunAndGetSource([GroupSource, ParameterHostSource], "HostInvocationTests", "Ukiyoe.Host");
+
+        Assert.IsTrue(
+            source.Contains("public global::ComputeSharp.ComputeSubmission Run(global::ComputeSharp.ReadWriteBuffer<int> @source)"),
+            source);
+        Assert.IsTrue(source.Contains("return this.computeHostRuntime.Submit(new RunInvocation(this, @source));"), source);
+        Assert.IsTrue(source.Contains("private readonly struct RunInvocation : global::ComputeSharp.IComputePipelineInvocation"), source);
+        Assert.IsTrue(source.Contains("public static int PipelineOrdinal => 0;"), source);
+        Assert.IsTrue(source.Contains("if (!binder.TryPin(this.@source))"), source);
+        Assert.IsTrue(
+            source.Contains(
+                "global::ComputeSharp.ComputeResourceBinding<global::ComputeSharp.ReadWriteBuffer<double>> binding1 = " +
+                "this.host.computeHostRuntime.GetBinding<global::ComputeSharp.ReadWriteBuffer<double>>(0, 0);"),
+            source);
+        Assert.IsTrue(source.Contains("if (!binder.TryPin(0, in binding1))"), source);
+        Assert.IsTrue(source.Contains("this.host.Run(in context, this.@source);"), source);
     }
 
     [TestMethod]

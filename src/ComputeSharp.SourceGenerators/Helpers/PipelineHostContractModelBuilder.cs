@@ -17,13 +17,16 @@ internal static class PipelineHostContractModelBuilder
     /// <param name="hostSymbol">The host type to build the contract model of.</param>
     /// <param name="symbols">The well known symbols to resolve the declarations with.</param>
     /// <param name="host">The resulting contract model, if every declaration is valid.</param>
+    /// <param name="orderedResources">The internal resource contracts of the host, in canonical member order.</param>
     /// <returns>Whether the contract model of <paramref name="hostSymbol"/> could be built.</returns>
     public static bool TryBuild(
         INamedTypeSymbol hostSymbol,
         PipelineWellKnownSymbols symbols,
-        out PipelineHostContractInfo host)
+        out PipelineHostContractInfo host,
+        out EquatableArray<UnorderedInternalResourceContract> orderedResources)
     {
         host = null!;
+        orderedResources = default;
 
         if (!hostSymbol.TryGetAttributeWithType(symbols.PipelineHostAttribute, out AttributeData? hostAttribute) ||
             hostAttribute.ConstructorArguments is not [{ Value: string deviceFieldName }, { Value: int maximumConcurrentInvocations }] ||
@@ -57,6 +60,8 @@ internal static class PipelineHostContractModelBuilder
         {
             return false;
         }
+
+        orderedResources = resources;
 
         host = new PipelineHostContractInfo(
             CanonicalTypeNameBuilder.GetCanonicalTypeName(hostSymbol),

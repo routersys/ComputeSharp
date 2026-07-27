@@ -36,7 +36,7 @@ public class PipelineHostContractModelBuilderTests
         INamedTypeSymbol hostSymbol = compilation.GetTypeByMetadataName("Ukiyoe.Host")!;
 
         Assert.IsNotNull(hostSymbol);
-        Assert.IsTrue(PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out PipelineHostContractInfo host));
+        Assert.IsTrue(PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out PipelineHostContractInfo host, out _));
 
         return host;
     }
@@ -51,7 +51,7 @@ public class PipelineHostContractModelBuilderTests
 
         Assert.IsNotNull(hostSymbol);
 
-        return PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out _);
+        return PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out _, out _);
     }
 
     private static string HostSource(string pipelines, int maximumConcurrentInvocations = 1)

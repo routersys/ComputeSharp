@@ -76,9 +76,10 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     {
         if (context.TargetSymbol is not INamedTypeSymbol { IsGenericType: false } typeSymbol ||
             !PipelineWellKnownSymbols.TryCreate(context.SemanticModel.Compilation, out PipelineWellKnownSymbols? symbols) ||
-            !PipelineHostContractModelBuilder.TryBuild(typeSymbol, symbols, out PipelineHostContractInfo host) ||
+            !PipelineHostContractModelBuilder.TryBuild(typeSymbol, symbols, out PipelineHostContractInfo host, out EquatableArray<UnorderedInternalResourceContract> resources) ||
             !ResourcePlanModelBuilder.TryBuildHostPlans(host, out EquatableArray<ResourcePlanInfo> plans) ||
-            !PipelineHostSyntaxModelBuilder.TryBuild(host, out EquatableArray<OwnedSlotSyntaxInfo> slots))
+            !PipelineHostSyntaxModelBuilder.TryBuild(host, out EquatableArray<OwnedSlotSyntaxInfo> slots) ||
+            !PipelineInvocationSyntaxModelBuilder.TryBuild(typeSymbol, symbols, host, resources, out EquatableArray<PipelineInvocationSyntaxInfo> invocations))
         {
             return null;
         }
@@ -91,7 +92,8 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
             ImmutableArray.Create(PipelineDescriptorWriter.Write(host)),
             host.DeviceFieldName,
             plans,
-            slots);
+            slots,
+            invocations);
     }
 
     /// <summary>
@@ -172,6 +174,11 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
         if (!item.Slots.IsEmpty)
         {
             callbacks.Add(WriteHostSlots);
+        }
+
+        if (!item.Invocations.IsEmpty)
+        {
+            callbacks.Add(WriteHostInvocations);
         }
 
         item.Hierarchy.WriteSyntax(item, writer, ["global::System.IDisposable"], callbacks.WrittenSpan);

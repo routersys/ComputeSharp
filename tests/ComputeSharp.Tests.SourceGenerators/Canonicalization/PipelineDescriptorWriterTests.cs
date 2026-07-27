@@ -138,7 +138,7 @@ public class PipelineDescriptorWriterTests
         INamedTypeSymbol hostSymbol = compilation.GetTypeByMetadataName(hostTypeMetadataName)!;
 
         Assert.IsNotNull(hostSymbol);
-        Assert.IsTrue(PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out PipelineHostContractInfo host));
+        Assert.IsTrue(PipelineHostContractModelBuilder.TryBuild(hostSymbol, symbols, out PipelineHostContractInfo host, out _));
 
         return host;
     }

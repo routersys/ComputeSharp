@@ -100,6 +100,16 @@ internal static class GeneratedIdentifier
     }
 
     /// <summary>
+    /// Creates the generated invocation type name for a given canonical pipeline name.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the pipeline method.</param>
+    /// <returns>The generated invocation type name.</returns>
+    public static string CreateInvocationTypeName(string canonicalMemberName)
+    {
+        return canonicalMemberName + "Invocation";
+    }
+
+    /// <summary>
     /// Gets the generated name for a given dimension.
     /// </summary>
     /// <param name="dimensionKind">The dimension to get the name for.</param>

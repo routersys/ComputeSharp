@@ -22,13 +22,15 @@ internal sealed record PipelineDescriptorInfo(
 /// <param name="DeviceFieldName">The name of the device field owned by the annotated type.</param>
 /// <param name="Plans">The exact resource plans of the annotated type, in canonical slot ordinal order.</param>
 /// <param name="Slots">The owned slots of the annotated type, in canonical slot ordinal order.</param>
+/// <param name="Invocations">The pipeline invocations of the annotated type, in canonical pipeline ordinal order.</param>
 internal sealed record PipelineHostInfo(
     HierarchyInfo Hierarchy,
     string TypeName,
     EquatableArray<byte> Descriptor,
     string DeviceFieldName,
     EquatableArray<ResourcePlanInfo> Plans,
-    EquatableArray<OwnedSlotSyntaxInfo> Slots);
+    EquatableArray<OwnedSlotSyntaxInfo> Slots,
+    EquatableArray<PipelineInvocationSyntaxInfo> Invocations);
 
 /// <summary>
 /// A model representing the members generated for a single owned slot of a compute pipeline host.

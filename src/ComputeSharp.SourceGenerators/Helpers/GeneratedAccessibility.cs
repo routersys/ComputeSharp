@@ -14,7 +14,17 @@ internal static class GeneratedAccessibility
     /// <returns>The accessibility keyword for the generated member.</returns>
     public static string GetKeyword(ITypeSymbol typeSymbol)
     {
-        return GetEffectiveAccessibility(typeSymbol) switch
+        return GetKeyword(GetEffectiveAccessibility(typeSymbol));
+    }
+
+    /// <summary>
+    /// Gets the accessibility keyword for a given effective accessibility.
+    /// </summary>
+    /// <param name="accessibility">The effective accessibility of the generated member.</param>
+    /// <returns>The accessibility keyword for the generated member.</returns>
+    public static string GetKeyword(Accessibility accessibility)
+    {
+        return accessibility switch
         {
             Accessibility.Public => "public",
             Accessibility.ProtectedOrInternal => "protected internal",
@@ -30,7 +40,7 @@ internal static class GeneratedAccessibility
     /// </summary>
     /// <param name="typeSymbol">The type to get the effective accessibility of.</param>
     /// <returns>The effective accessibility of <paramref name="typeSymbol"/>.</returns>
-    private static Accessibility GetEffectiveAccessibility(ITypeSymbol typeSymbol)
+    public static Accessibility GetEffectiveAccessibility(ITypeSymbol typeSymbol)
     {
         Accessibility accessibility = Accessibility.Public;
 
