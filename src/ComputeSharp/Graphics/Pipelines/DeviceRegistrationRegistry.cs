@@ -130,19 +130,27 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             RecordingBundlePartition recordingBundles = new(reservation.RecordingBundles, host.Structural.MaximumTrackedResourceCount);
             int[] planStorage = new int[planScalarCount];
 
-            HostRegistrationId id;
+            ulong idValue = 0;
+            bool isSequenceExhausted;
 
             lock (this.registrationGate)
             {
                 default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
 
-                if (this.nextHostRegistrationId == ulong.MaxValue)
-                {
-                    this.device.ThrowTerminalSequenceExhaustion("host registration identity");
-                }
+                isSequenceExhausted = this.nextHostRegistrationId == ulong.MaxValue;
 
-                id = new HostRegistrationId(++this.nextHostRegistrationId);
+                if (!isSequenceExhausted)
+                {
+                    idValue = ++this.nextHostRegistrationId;
+                }
             }
+
+            if (isSequenceExhausted)
+            {
+                this.device.ThrowTerminalSequenceExhaustion("host registration identity");
+            }
+
+            HostRegistrationId id = new(idValue);
 
             HostRegistrationRecord registration = new(
                 id,
@@ -208,17 +216,27 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     public ExternalDomainId AllocateDomainId()
     {
+        ulong idValue = 0;
+        bool isSequenceExhausted;
+
         lock (this.registrationGate)
         {
             default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
 
-            if (this.nextDomainRegistrationId == ulong.MaxValue)
-            {
-                this.device.ThrowTerminalSequenceExhaustion("interop domain identity");
-            }
+            isSequenceExhausted = this.nextDomainRegistrationId == ulong.MaxValue;
 
-            return new ExternalDomainId(++this.nextDomainRegistrationId);
+            if (!isSequenceExhausted)
+            {
+                idValue = ++this.nextDomainRegistrationId;
+            }
         }
+
+        if (isSequenceExhausted)
+        {
+            this.device.ThrowTerminalSequenceExhaustion("interop domain identity");
+        }
+
+        return new ExternalDomainId(idValue);
     }
 
     public void PublishDomain(ComputeInteropDomain domain)
