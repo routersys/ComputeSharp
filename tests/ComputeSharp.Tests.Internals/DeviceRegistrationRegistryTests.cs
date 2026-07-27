@@ -351,7 +351,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
         registry.Dispose();
         registry.Dispose();
 
-        Assert.AreEqual(RegistrationState.DisposeRequested, runtime.State);
+        Assert.AreEqual(RegistrationState.Released, runtime.State);
         Assert.AreEqual(0, registry.HostCount);
 
         _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1)));

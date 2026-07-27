@@ -236,17 +236,47 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             this.isDisposed = true;
             pendingHosts = [.. this.hosts];
-
-            this.hosts.Clear();
         }
 
+        this.coordinator.Dispose();
+
+        try
+        {
+            ReleaseRegisteredHosts(pendingHosts);
+        }
+        finally
+        {
+            this.commandListPool.Dispose();
+        }
+    }
+
+    private void ReleaseRegisteredHosts(PipelineHostRuntime[] pendingHosts)
+    {
         foreach (PipelineHostRuntime runtime in pendingHosts)
         {
             runtime.RequestDispose();
         }
 
-        this.coordinator.Dispose();
-        this.commandListPool.Dispose();
+        while (!this.device.IsDeviceLost && this.completions.TryGetMaximumCommittedFence(out ulong fenceValue))
+        {
+            this.device.WaitForComputeFenceValue(fenceValue);
+
+            while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.completions))
+            {
+            }
+        }
+
+        foreach (PipelineHostRuntime runtime in pendingHosts)
+        {
+            runtime.RunOwnedSlotMaintenance();
+
+            _ = TryUnregisterHost(runtime);
+        }
+
+        lock (this.registrationGate)
+        {
+            this.hosts.Clear();
+        }
     }
 
     private static void BindSlots(

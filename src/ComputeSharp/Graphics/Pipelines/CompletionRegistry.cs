@@ -140,6 +140,26 @@ internal sealed class CompletionRegistry
         }
     }
 
+    public bool TryGetMaximumCommittedFence(out ulong fenceValue)
+    {
+        lock (this.registryGate)
+        {
+            ulong maximum = 0;
+
+            foreach (Entry entry in this.committedRecords)
+            {
+                if (entry.FenceValue > maximum)
+                {
+                    maximum = entry.FenceValue;
+                }
+            }
+
+            fenceValue = maximum;
+
+            return this.committedRecords.Count != 0;
+        }
+    }
+
     public int PromoteCompleted(ulong completedValue)
     {
         lock (this.registryGate)
