@@ -43,6 +43,15 @@ internal static unsafe class PipelineSubmissionSetup
         return index;
     }
 
+    public static void Pin(PipelineHostRuntime host, int bundleIndex, IGraphicsResource resource)
+    {
+        Assert.IsTrue(ResourceGenerationPinTracker.TryPin(
+            host.Device,
+            host.RecordingBundles.Storage,
+            ref host.RecordingBundles.GetBundle(bundleIndex),
+            resource));
+    }
+
     public static ID3D12GraphicsCommandList* GetCommandList(in SubmissionRetention retention)
     {
         SubmissionRetention copy = retention;

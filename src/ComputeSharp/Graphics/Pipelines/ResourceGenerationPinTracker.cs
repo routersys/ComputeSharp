@@ -105,7 +105,7 @@ internal static unsafe class ResourceGenerationPinTracker
             ref readonly ResourceGenerationPin pin = ref pins[i];
             ref ResourceGenerationRecord record = ref GetPinnedRecord(in pin);
 
-            if (IsObserved(usages, pin.GenerationId))
+            if (IsObserved(usages, pin.GenerationId) && !IsPinned(pins[..i], pin.GenerationId))
             {
                 record.ConvertRecordingToPendingSubmission();
             }
@@ -129,6 +129,19 @@ internal static unsafe class ResourceGenerationPinTracker
         default(ArgumentOutOfRangeException).ThrowIfGreaterThan(bundle.Count, bundle.Capacity);
 
         return storage.Slice(bundle.StorageOffset, bundle.Count);
+    }
+
+    private static bool IsPinned(ReadOnlySpan<ResourceGenerationPin> pins, ResourceGenerationId generation)
+    {
+        for (int i = 0; i < pins.Length; i++)
+        {
+            if (pins[i].GenerationId == generation)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsObserved(ReadOnlySpan<GraphicsResourceUsageEntry> usages, ResourceGenerationId generation)

@@ -134,9 +134,8 @@ internal static unsafe class ComputePipelineInvoker
                 host,
                 registry.Completions,
                 recordIndex,
+                bundleIndex,
                 ref retention);
-
-            ConvertPins(host, bundleIndex, in retention);
 
             return submission;
         }

@@ -44,7 +44,7 @@ public unsafe partial class CompletionCoordinatorTests
 
         Assert.IsTrue(retention.CommandLists.TryAdd((nint)d3D12CommandList, (nint)d3D12CommandAllocator, ComputeQueueKind.Compute));
 
-        return ComputeSubmissionExecutor.Submit(device.Get(), host, completion, index, ref retention);
+        return ComputeSubmissionExecutor.Submit(device.Get(), host, completion, index, bundleIndex: 0, ref retention);
     }
 
     private static void WaitUntilDrained(PipelineHostRuntime host, CompletionRegistry completion, CompletionCoordinator coordinator)

@@ -1,5 +1,6 @@
 using System;
 using ComputeSharp.Core.Extensions;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -11,6 +12,7 @@ internal static unsafe class ComputeSubmissionExecutor
         PipelineHostRuntime host,
         CompletionRegistry completionRegistry,
         int recordIndex,
+        int bundleIndex,
         ref SubmissionRetention retention)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -52,6 +54,13 @@ internal static unsafe class ComputeSubmissionExecutor
             ResourceHazardTracker.CommitResourceUsages(usages, completion);
 
             default(InvalidOperationException).ThrowIf(!record.TryCommitHazards(), "The submission hazards could not be committed.");
+
+            ResourceGenerationPinTracker.ConvertToPendingSubmission(
+                device,
+                host.RecordingBundles.Storage,
+                ref host.RecordingBundles.GetBundle(bundleIndex),
+                usages);
+
             default(InvalidOperationException).ThrowIf(
                 !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.GetComputeFenceCompletedValue),
                 "The submission could not be published.");
@@ -160,9 +169,30 @@ internal static unsafe class ComputeSubmissionExecutor
 
         retention.ResourceLeases?.Release();
 
+        ReleasePendingSubmissionReferences(host, retention.ResourceUsages);
+
         if (!retention.ResourceUsages.IsNone)
         {
             ResourceUsageTracker.ClearUsages(host.UsageSets.Storage, ref host.UsageSets.GetSet(host.UsageSets.GetSetIndex(retention.ResourceUsages)));
+        }
+    }
+
+    private static void ReleasePendingSubmissionReferences(PipelineHostRuntime host, UsageSetHandle usages)
+    {
+        Span<GraphicsResourceUsageEntry> entries = GetUsages(host, usages);
+
+        for (int i = 0; i < entries.Length; i++)
+        {
+            ref readonly GraphicsResourceUsageEntry entry = ref entries[i];
+            ref ResourceGenerationRecord record = ref entry.Set.Owner.GetResourceRecord(checked((int)entry.ResourceIndex));
+
+            default(InvalidOperationException).ThrowIf(
+                record.Id != entry.Generation,
+                "The generation of a submitted resource no longer matches the tracked usage.");
+
+            record.ReleasePendingSubmissionReference();
+
+            _ = record.TryPromoteRetiredReady(host.Device.IsFenceCompleted(in record.RetirementFence));
         }
     }
 }
