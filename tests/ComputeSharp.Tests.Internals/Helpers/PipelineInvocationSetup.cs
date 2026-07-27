@@ -30,6 +30,26 @@ internal static class PipelineInvocationSetup
         }
 
         host.Dispose();
-        host.WaitForDisposal();
+
+        while (!TryCompleteDisposal(host))
+        {
+            Assert.IsTrue(stopwatch.Elapsed < TimeSpan.FromSeconds(10), "The host of the submissions was not released.");
+
+            Thread.Sleep(1);
+        }
+    }
+
+    private static bool TryCompleteDisposal(ComputeHostRuntime host)
+    {
+        try
+        {
+            host.WaitForDisposal();
+
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 }
