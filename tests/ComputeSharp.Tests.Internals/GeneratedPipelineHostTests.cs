@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ComputeSharp.Memory;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
@@ -36,6 +37,8 @@ internal sealed partial class GeneratedPipelineHost
     private void Run(in ComputeContext context)
     {
         _ = this.device;
+
+        context.Clear(GetValuesComputeBinding().Resource!);
     }
 }
 
@@ -158,6 +161,41 @@ public class GeneratedPipelineHostTests
 
         Assert.IsFalse(host.GetValuesComputeBinding().IsValid);
         Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RecordsAndSubmitsThroughTheGeneratedInvocationWrapper(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        GeneratedPipelineHost host = GeneratedPipelineHost.Create(graphicsDevice, 1);
+
+        try
+        {
+            Assert.IsTrue(host.TryEnsureValues(new GeneratedPipelineHost.ValuesPlan(64), out _));
+            Assert.IsTrue(host.TryEnsureMask(new GeneratedPipelineHost.MaskPlan(8, 8), out _));
+            Assert.IsTrue(host.TryEnsureGrid(new GeneratedGridResources.Plan(64, 8, 8), out _));
+
+            ReadWriteBuffer<int> values = host.GetValuesComputeBinding().Resource!;
+
+            values.CopyFrom(Enumerable.Range(1, 64).ToArray());
+
+            ComputeSubmission submission = host.Run();
+
+            submission.Wait();
+
+            Assert.AreEqual(ComputeSubmissionStatus.Succeeded, submission.Status);
+
+            foreach (int value in values.ToArray())
+            {
+                Assert.AreEqual(0, value);
+            }
+        }
+        finally
+        {
+            host.Dispose();
+            host.WaitForDisposal();
+        }
     }
 
     [CombinatorialTestMethod]
