@@ -609,19 +609,25 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         int[] planStorage,
         SlotResourcePlanStateRecord[] planStates)
     {
-        for (int i = 0; i < slots.Length; i++)
+        int boundSlotCount = 0;
+
+        try
         {
-            default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
-
-            if (!slots[i].TryBind(runtime, planStorage, in planStates[i]))
+            for (int i = 0; i < slots.Length; i++)
             {
-                for (int j = i - 1; j >= 0; j--)
-                {
-                    slots[j].RequestDispose();
-                }
+                default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
+                default(InvalidOperationException).ThrowIf(
+                    !slots[i].TryBind(runtime, planStorage, in planStates[i]),
+                    "The shared texture slot is already bound to a resource set.");
 
-                default(InvalidOperationException).ThrowIf(true, "The shared texture slot is already bound to a resource set.");
+                boundSlotCount = i + 1;
             }
+        }
+        catch
+        {
+            UnbindSharedSlots(slots, boundSlotCount);
+
+            throw;
         }
     }
 
@@ -639,19 +645,25 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         int[] planStorage,
         SlotResourcePlanStateRecord[] planStates)
     {
-        for (int i = 0; i < slots.Length; i++)
+        int boundSlotCount = 0;
+
+        try
         {
-            default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
-
-            if (!slots[i].TryBind(registry, planStorage, in planStates[i]))
+            for (int i = 0; i < slots.Length; i++)
             {
-                for (int j = i - 1; j >= 0; j--)
-                {
-                    slots[j].RequestDispose();
-                }
+                default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
+                default(InvalidOperationException).ThrowIf(
+                    !slots[i].TryBind(registry, planStorage, in planStates[i]),
+                    "The owned slot is already bound to a pipeline host.");
 
-                default(InvalidOperationException).ThrowIf(true, "The owned slot is already bound to a pipeline host.");
+                boundSlotCount = i + 1;
             }
+        }
+        catch
+        {
+            UnbindSlots(slots, boundSlotCount);
+
+            throw;
         }
     }
 

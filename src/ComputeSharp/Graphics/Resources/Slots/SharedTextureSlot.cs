@@ -1,6 +1,8 @@
 using System;
+using ComputeSharp.Graphics.Helpers;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Win32;
 
 namespace ComputeSharp;
 
@@ -82,6 +84,10 @@ public sealed class SharedTextureSlot<T, TPixel, TView> : IComputeSharedResource
         int[] planStorage,
         in SlotResourcePlanStateRecord planState)
     {
+        default(InvalidOperationException).ThrowIf(
+            DXGIFormatHelper.GetForType<T>() != DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            "A shared texture slot only stores the pixel type the shared texture native descriptor is fixed to.");
+
         this.runtime = runtime;
 
         if (this.slotGate.TryBind(planStorage, in planState))
