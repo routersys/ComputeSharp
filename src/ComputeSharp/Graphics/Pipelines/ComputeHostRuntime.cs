@@ -172,6 +172,10 @@ public sealed class ComputeHostRuntime : IDisposable
     public ComputeSubmission Submit<TInvocation>(in TInvocation invocation)
         where TInvocation : struct, IComputePipelineInvocation
     {
+        using ReferenceTracker.Lease _0 = Device.GetReferenceTracker().GetLease();
+
+        Device.ThrowIfDeviceLost();
+
         default(ObjectDisposedException).ThrowIf(IsDisposeRequested, this);
 
         return ComputePipelineInvoker.Submit(this.registry, this.runtime, TInvocation.PipelineOrdinal, in invocation);
