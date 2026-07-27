@@ -19,6 +19,8 @@ internal static class SlotDisposalWait
 
             if (gate.IsDisposalComplete)
             {
+                registry.Coordinator.Wake();
+
                 return;
             }
 

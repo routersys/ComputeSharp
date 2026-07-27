@@ -220,7 +220,14 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         this.usageSetPool.ReleasePartition(runtime.UsageSets);
         this.commandListPool.DestroyPartition(runtime.CommandLists);
 
-        return runtime.TryCompleteRelease();
+        if (!runtime.TryCompleteRelease())
+        {
+            return false;
+        }
+
+        this.coordinator.Wake();
+
+        return true;
     }
 
     public void Dispose()
