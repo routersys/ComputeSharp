@@ -7,8 +7,11 @@ namespace ComputeSharp.Tests.Internals;
 
 internal sealed class FakeExternalView : IDisposable
 {
+    public int DisposeCount { get; private set; }
+
     public void Dispose()
     {
+        DisposeCount++;
     }
 }
 
@@ -21,6 +24,8 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
     public int DisposeCount { get; private set; }
 
     public bool ThrowOnEnter { get; set; }
+
+    public bool IsReserved => EnterCount != ExitCount;
 
     protected override void EnterCore()
     {
@@ -96,9 +101,33 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     {
     }
 
+    public int OpenSharedTextureCount { get; private set; }
+
+    public bool WasReservedWhileOpeningTexture { get; private set; }
+
+    public nint ObservedTextureHandle { get; private set; }
+
+    public ExternalTextureDescriptor ObservedTextureDescriptor { get; private set; }
+
+    public FakeExternalView? LastOpenedView { get; private set; }
+
     public FakeExternalView OpenSharedTexture(BorrowedSharedHandle resourceHandle, in ExternalTextureDescriptor descriptor)
     {
-        return new FakeExternalView();
+        OpenSharedTextureCount++;
+        WasReservedWhileOpeningTexture = this.scheduler.IsReserved;
+        ObservedTextureHandle = resourceHandle.DangerousGetHandle();
+        ObservedTextureDescriptor = descriptor;
+
+        using ComPtr<ID3D12Resource> d3D12Resource = this.device.OpenSharedResource(new HANDLE((void*)ObservedTextureHandle));
+
+        if (d3D12Resource.Get() is null)
+        {
+            throw new InvalidOperationException("The shared texture could not be opened.");
+        }
+
+        LastOpenedView = new FakeExternalView();
+
+        return LastOpenedView;
     }
 
     public void OnDeviceTerminal(Exception reason)

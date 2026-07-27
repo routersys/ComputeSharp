@@ -31,7 +31,7 @@ public class InteropResourceSetRegistrationTests
         payload.AddRange(utf8);
     }
 
-    private static byte[] ResourceSetDescriptor(int sharedTextureSlotCount)
+    internal static byte[] ResourceSetDescriptor(int sharedTextureSlotCount)
     {
         List<byte> payload = [1];
 
