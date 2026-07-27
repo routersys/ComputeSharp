@@ -137,7 +137,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                     this.device.ThrowTerminalSequenceExhaustion("host registration identity");
                 }
 
-                id = new HostRegistrationId(this.nextHostRegistrationId + 1);
+                id = new HostRegistrationId(++this.nextHostRegistrationId);
             }
 
             HostRegistrationRecord registration = new(
@@ -173,8 +173,6 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             lock (this.registrationGate)
             {
                 default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
-
-                this.nextHostRegistrationId = id.Value;
 
                 this.hosts.Add(runtime);
             }
