@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Tests.Attributes;
@@ -12,6 +14,10 @@ namespace ComputeSharp.Tests.Internals;
 [TestClass]
 public unsafe partial class PipelineDisposalWaitTests
 {
+    private const int TimeoutMilliseconds = 10_000;
+
+    private const int BufferLength = 1 << 21;
+
     private readonly struct SlotFillInvocation(ComputeResourceBinding<ReadWriteBuffer<int>> binding) : IComputePipelineInvocation
     {
         private readonly ComputeResourceBinding<ReadWriteBuffer<int>> binding = binding;
@@ -25,7 +31,9 @@ public unsafe partial class PipelineDisposalWaitTests
 
         public void Record(in ComputeContext context)
         {
-            context.For(64, new ComputePipelineInvokerTests.AddShader(this.binding.Resource!, 1));
+            ReadWriteBuffer<int> buffer = this.binding.Resource!;
+
+            context.For(buffer.Length, new ComputePipelineInvokerTests.AddShader(buffer, 1));
         }
     }
 
@@ -87,13 +95,7 @@ public unsafe partial class PipelineDisposalWaitTests
         ComputeResourceSlot<ReadWriteBuffer<int>> slot = new();
         ComputeHostRuntime host = CreateHost(graphicsDevice, slot);
 
-        Assert.IsTrue(host.TryEnsureResource(0, [64], new ComputeHostRuntimeTests.BufferMaterializer(64), out _));
-
-        ComputeResourceBinding<ReadWriteBuffer<int>> binding = host.GetBinding<ReadWriteBuffer<int>>(0, 0);
-
-        Assert.IsTrue(binding.IsValid);
-
-        _ = host.Submit(new SlotFillInvocation(binding));
+        SubmitOverTheOwnedGeneration(host);
 
         host.Dispose();
         host.WaitForDisposal();
@@ -102,6 +104,30 @@ public unsafe partial class PipelineDisposalWaitTests
         Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
 
         slot.WaitForDisposal();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ReleasesTheOwnedSlotWithoutAnyFurtherCallAfterTheSubmissionIsDrained(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ComputeResourceSlot<ReadWriteBuffer<int>> slot = new();
+        ComputeHostRuntime host = CreateHost(graphicsDevice, slot);
+
+        SubmitOverTheOwnedGeneration(host);
+
+        host.Dispose();
+
+        Assert.IsFalse(((IComputeOwnedSlot)slot).IsDisposalComplete, "The submission completed before the host was disposed, so the deferred release was not exercised.");
+
+        Stopwatch stopwatch = Stopwatch.StartNew();
+
+        while (!((IComputeOwnedSlot)slot).IsDisposalComplete)
+        {
+            Assert.IsTrue(stopwatch.ElapsedMilliseconds < TimeoutMilliseconds, "The owned slot of the host was not released.");
+
+            Thread.Sleep(1);
+        }
     }
 
     [CombinatorialTestMethod]
@@ -127,6 +153,21 @@ public unsafe partial class PipelineDisposalWaitTests
     private static ComputeHostRuntime CreateHost(GraphicsDevice device, ComputeResourceSlot<ReadWriteBuffer<int>> slot)
     {
         return ComputeHostRuntime.Create(device, ComputeHostRuntimeTests.CreateDescriptor(ResourcePlanKind.Buffer), 1, [slot]);
+    }
+
+    private static void SubmitOverTheOwnedGeneration(ComputeHostRuntime host)
+    {
+        Assert.IsTrue(host.TryEnsureResource(
+            0,
+            [BufferLength],
+            new ComputeHostRuntimeTests.BufferMaterializer(BufferLength),
+            out _));
+
+        ComputeResourceBinding<ReadWriteBuffer<int>> binding = host.GetBinding<ReadWriteBuffer<int>>(0, 0);
+
+        Assert.IsTrue(binding.IsValid);
+
+        _ = host.Submit(new SlotFillInvocation(binding));
     }
 
     private static PipelineHostRuntime RegisterHost(DeviceRegistrationRegistry registry)
