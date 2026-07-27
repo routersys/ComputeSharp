@@ -188,13 +188,34 @@ public sealed class ComputeHostRuntime : IDisposable
     /// <summary>
     /// Waits for the disposal of the current host to complete.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if disposal of the current host has not been requested.</exception>
+    /// <remarks>
+    /// The structural capacity of a host is returned once its committed submissions have completed and every
+    /// owned slot has released its generations, so this blocks until the completion coordinator gets there.
+    /// </remarks>
     public void WaitForDisposal()
     {
-        _ = this.registry.TryUnregisterHost(this.runtime);
-
         default(InvalidOperationException).ThrowIf(
-            !this.runtime.IsDisposalComplete,
-            "The compute pipeline host is still registered on the device.");
+            !IsDisposeRequested,
+            "The compute pipeline host has not been disposed.");
+
+        CompletionCoordinator coordinator = this.registry.Coordinator;
+
+        while (true)
+        {
+            ulong progress = coordinator.ProgressVersion;
+
+            this.runtime.RunOwnedSlotMaintenance();
+
+            if (this.runtime.TryCompleteDeferredRelease())
+            {
+                return;
+            }
+
+            default(InvalidOperationException).ThrowIf(
+                !coordinator.TryWaitForProgress(progress),
+                "The completion coordinator of the device stopped before the host was released.");
+        }
     }
 
     /// <summary>

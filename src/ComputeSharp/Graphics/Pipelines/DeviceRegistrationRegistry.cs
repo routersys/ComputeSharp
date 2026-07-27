@@ -161,7 +161,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                 this.identities,
                 slots);
 
-            BindSlots(slots, planStorage, planStates);
+            BindSlots(this, slots, planStorage, planStates);
 
             default(InvalidOperationException).ThrowIf(!runtime.TryCommitActive(), "The host registration could not be committed.");
 
@@ -249,13 +249,17 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         this.commandListPool.Dispose();
     }
 
-    private static void BindSlots(IComputeOwnedSlot[] slots, int[] planStorage, SlotResourcePlanStateRecord[] planStates)
+    private static void BindSlots(
+        DeviceRegistrationRegistry registry,
+        IComputeOwnedSlot[] slots,
+        int[] planStorage,
+        SlotResourcePlanStateRecord[] planStates)
     {
         for (int i = 0; i < slots.Length; i++)
         {
             default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
 
-            if (!slots[i].TryBind(planStorage, in planStates[i]))
+            if (!slots[i].TryBind(registry, planStorage, in planStates[i]))
             {
                 for (int j = i - 1; j >= 0; j--)
                 {

@@ -17,6 +17,11 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot
     private SlotGate slotGate;
 
     /// <summary>
+    /// The registry of the device the current slot is bound through, or <see langword="null"/> if it is not bound.
+    /// </summary>
+    private DeviceRegistrationRegistry? registry;
+
+    /// <summary>
     /// Creates a new <see cref="ComputeResourceGroupSlot{TGroup}"/> instance that is not bound to a host.
     /// </summary>
     public ComputeResourceGroupSlot()
@@ -37,9 +42,18 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot
     bool IComputeOwnedSlot.IsDisposalComplete => this.slotGate.IsDisposalComplete;
 
     /// <inheritdoc/>
-    bool IComputeOwnedSlot.TryBind(int[] planStorage, in SlotResourcePlanStateRecord planState)
+    bool IComputeOwnedSlot.TryBind(DeviceRegistrationRegistry registry, int[] planStorage, in SlotResourcePlanStateRecord planState)
     {
-        return this.slotGate.TryBind(planStorage, in planState);
+        this.registry = registry;
+
+        if (this.slotGate.TryBind(planStorage, in planState))
+        {
+            return true;
+        }
+
+        this.registry = null;
+
+        return false;
     }
 
     /// <inheritdoc/>
@@ -132,10 +146,17 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot
     /// <summary>
     /// Waits for the disposal of the current slot to complete.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if disposal of the current slot has not been requested.</exception>
+    /// <remarks>
+    /// A slot that is not bound to a host has nothing to wait for and returns immediately.
+    /// </remarks>
     public void WaitForDisposal()
     {
-        default(InvalidOperationException).ThrowIf(
-            !this.slotGate.IsDisposalComplete,
-            "The resource group slot is still bound to a pipeline host.");
+        if (this.registry is not DeviceRegistrationRegistry registry)
+        {
+            return;
+        }
+
+        SlotDisposalWait.Run(ref this.slotGate, registry, "The resource group slot has not been disposed.");
     }
 }

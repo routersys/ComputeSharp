@@ -142,9 +142,18 @@ internal sealed class PipelineHostRuntime
 
     public void ReleaseInvocation()
     {
+        bool isDisposeRequested;
+
         lock (this.registrationGate)
         {
             this.registration.ReleaseInvocation();
+
+            isDisposeRequested = this.registration.State is RegistrationState.DisposeRequested;
+        }
+
+        if (isDisposeRequested)
+        {
+            this.registry.Coordinator.Wake();
         }
     }
 

@@ -7,7 +7,7 @@ internal interface IComputeOwnedSlot
 {
     bool IsDisposalComplete { get; }
 
-    bool TryBind(int[] planStorage, in SlotResourcePlanStateRecord planState);
+    bool TryBind(DeviceRegistrationRegistry registry, int[] planStorage, in SlotResourcePlanStateRecord planState);
 
     void RequestDispose();
 
