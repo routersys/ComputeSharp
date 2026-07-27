@@ -57,6 +57,7 @@ internal static class ResourceGroupContractModelBuilder
                 (uint)i,
                 memberSymbol.MetadataName,
                 CanonicalTypeNameBuilder.GetCanonicalTypeName(memberSymbol.Type),
+                memberSymbol.Type.GetFullyQualifiedName(includeGlobal: true),
                 memberAccess,
                 generation));
         }

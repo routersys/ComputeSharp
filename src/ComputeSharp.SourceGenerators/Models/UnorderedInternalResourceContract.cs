@@ -14,6 +14,7 @@ internal readonly record struct SlotContractKey(string HostMemberMetadataName);
 /// <param name="HostMemberMetadataName">The metadata name of the host member declaring the resource.</param>
 /// <param name="GroupMemberMetadataName">The metadata name of the resource group member, if the resource comes from a group.</param>
 /// <param name="ResourceTypeMetadataName">The canonical metadata name of the graphics resource type.</param>
+/// <param name="ResourceTypeName">The fully qualified name of the graphics resource type, as written in generated code.</param>
 /// <param name="Access">The compute access for the resource.</param>
 /// <param name="Sharing">The sharing mode for the resource.</param>
 /// <param name="Aliasing">The aliasing mode for the resource.</param>
@@ -24,6 +25,7 @@ internal sealed record UnorderedInternalResourceContract(
     string HostMemberMetadataName,
     string? GroupMemberMetadataName,
     string ResourceTypeMetadataName,
+    string ResourceTypeName,
     ComputeResourceAccess Access,
     ComputeResourceSharing Sharing,
     ComputeResourceAliasing Aliasing,
