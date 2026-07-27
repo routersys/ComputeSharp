@@ -28,6 +28,8 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     private readonly ComPtr<ID3D12Resource>[] nativeResources;
 
+    private readonly IDisposable?[] externalObjects;
+
     private readonly Lock accountingGate = new();
 
     private readonly MemoryReservationToken reservation;
@@ -40,12 +42,15 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     private int releasedCount;
 
+    private int isExternalObjectsReleased;
+
     public ResourceGenerationOwner(
         GraphicsDevice device,
         ResourceIdentityAllocator identities,
         ComputeResourceRecovery recovery,
         in MemoryReservationToken reservation,
-        int resourceCount)
+        int resourceCount,
+        bool hasExternalObjects)
     {
         default(ArgumentNullException).ThrowIfNull(device);
         default(ArgumentNullException).ThrowIfNull(identities);
@@ -57,6 +62,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         this.records = new ResourceGenerationRecord[resourceCount];
         this.resources = new IReferenceTrackedObject?[resourceCount];
         this.nativeResources = new ComPtr<ID3D12Resource>[resourceCount];
+        this.externalObjects = new IDisposable?[resourceCount];
 
         SetId = identities.CreateGenerationSetId();
 
@@ -68,7 +74,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
             record.Id = identities.CreateGenerationId();
             record.Placement = reservation.Placement;
             record.Recovery = recovery;
-            record.ExternalObjectsReleased = 1;
+            record.ExternalObjectsReleased = hasExternalObjects ? 0 : 1;
         }
     }
 
@@ -122,6 +128,40 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         this.records[resourceOrdinal].D3D12State = d3D12State;
         this.records[resourceOrdinal].ReclaimableBytes = allocationByteLength;
         this.attachedCount = resourceOrdinal + 1;
+    }
+
+    public void AttachExternalObject(int resourceOrdinal, IDisposable externalObject)
+    {
+        default(ArgumentNullException).ThrowIfNull(externalObject);
+        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, this.externalObjects.Length);
+        default(InvalidOperationException).ThrowIf(
+            this.records[resourceOrdinal].ExternalObjectsReleased != 0,
+            "The resource generation declares no external object to attach.");
+        default(InvalidOperationException).ThrowIf(
+            this.externalObjects[resourceOrdinal] is not null,
+            "The resource generation already owns an external object for that resource.");
+
+        this.externalObjects[resourceOrdinal] = externalObject;
+    }
+
+    public bool TryReleaseExternalObjects()
+    {
+        if (Interlocked.Exchange(ref this.isExternalObjectsReleased, 1) != 0)
+        {
+            return false;
+        }
+
+        for (int i = this.externalObjects.Length - 1; i >= 0; i--)
+        {
+            ReleaseExternalObject(i);
+        }
+
+        for (int i = 0; i < this.records.Length; i++)
+        {
+            Volatile.Write(ref this.records[i].ExternalObjectsReleased, 1);
+        }
+
+        return true;
     }
 
     public void CompleteConstruction()
@@ -215,6 +255,8 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     private void ReleaseResource(int resourceOrdinal)
     {
+        ReleaseExternalObject(resourceOrdinal);
+
         IReferenceTrackedObject? resource = this.resources[resourceOrdinal];
 
         this.resources[resourceOrdinal] = null;
@@ -227,6 +269,11 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         {
             SettleAccounting();
         }
+    }
+
+    private void ReleaseExternalObject(int resourceOrdinal)
+    {
+        Interlocked.Exchange(ref this.externalObjects[resourceOrdinal], null)?.Dispose();
     }
 
     private void SettleAccounting()
