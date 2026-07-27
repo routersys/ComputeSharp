@@ -342,6 +342,31 @@ public class InteropResourceSetRegistrationTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void RejectsASharedSlotWhosePixelTypeIsNotTheFixedOne(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        IComputeSharedResourceSlot[] slots = [new SharedTextureSlot<Rgba32, Float4, FakeExternalView>()];
+
+        _ = Assert.ThrowsException<InvalidOperationException>(() => ComputeInteropResourceSetRuntime.Create(
+            graphicsDevice,
+            domain,
+            ResourceSetDescriptor(1),
+            slots));
+
+        domain.Dispose();
+
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void WaitingForTheDisposalOfALiveResourceSetIsRejected(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
