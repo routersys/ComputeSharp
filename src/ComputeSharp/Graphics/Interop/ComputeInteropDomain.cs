@@ -234,6 +234,17 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     }
 
     /// <summary>
+    /// Gets the endpoint of the provider of the current domain, if it creates external views of a given type.
+    /// </summary>
+    /// <typeparam name="TView">The type of the external view.</typeparam>
+    /// <returns>The typed endpoint of the provider, or <see langword="null"/> if it creates another view type.</returns>
+    internal ExternalProviderEndpoint<TView>? TryGetEndpoint<TView>()
+        where TView : class, IDisposable
+    {
+        return this.endpoint as ExternalProviderEndpoint<TView>;
+    }
+
+    /// <summary>
     /// Acquires a reference keeping the current domain alive.
     /// </summary>
     /// <param name="reference">The kind of reference to acquire.</param>

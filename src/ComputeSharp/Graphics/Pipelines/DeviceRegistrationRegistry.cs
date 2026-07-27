@@ -617,7 +617,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             {
                 default(ArgumentException).ThrowIf(slots[i] is null, nameof(slots));
                 default(InvalidOperationException).ThrowIf(
-                    !slots[i].TryBind(runtime, planStorage, in planStates[i]),
+                    !slots[i].TryBind(runtime, new SlotOrdinal((uint)i), planStorage, in planStates[i]),
                     "The shared texture slot is already bound to a resource set.");
 
                 boundSlotCount = i + 1;

@@ -18,6 +18,16 @@ internal struct ComputeInteropDomainRecord
 
     public bool TryAcquire(ExternalDomainReference reference)
     {
+        if (reference is ExternalDomainReference.Maintenance)
+        {
+            if (this.State is ComputeInteropDomainState.ReleasingNative or ComputeInteropDomainState.Disposed)
+            {
+                return false;
+            }
+
+            return this.References.TryAcquire(reference);
+        }
+
         if (this.State is not ComputeInteropDomainState.Active)
         {
             return false;

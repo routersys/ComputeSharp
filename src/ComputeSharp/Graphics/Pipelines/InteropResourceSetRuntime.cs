@@ -14,6 +14,8 @@ internal sealed class InteropResourceSetRuntime
 
     private ResourceSetRegistrationRecord registration;
 
+    private ulong nextPreparedToken;
+
     internal InteropResourceSetRuntime(
         DeviceRegistrationRegistry registry,
         GraphicsDevice device,
@@ -80,6 +82,18 @@ internal sealed class InteropResourceSetRuntime
     public IComputeSharedSlot GetSlot(int slotOrdinal)
     {
         return this.slots[slotOrdinal];
+    }
+
+    public ulong CreatePreparedToken()
+    {
+        ulong value = Interlocked.Increment(ref this.nextPreparedToken);
+
+        if (value == 0)
+        {
+            Device.ThrowTerminalSequenceExhaustion("prepared replacement token");
+        }
+
+        return value;
     }
 
     public bool TryCommitActive()

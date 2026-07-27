@@ -8,6 +8,7 @@ internal interface IComputeSharedSlot
 
     bool TryBind(
         InteropResourceSetRuntime runtime,
+        SlotOrdinal ordinal,
         int[] planStorage,
         in SlotResourcePlanStateRecord planState);
 
