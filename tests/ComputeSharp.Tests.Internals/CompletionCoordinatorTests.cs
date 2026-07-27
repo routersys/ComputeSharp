@@ -149,6 +149,51 @@ public unsafe partial class CompletionCoordinatorTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void AdvancesTheProgressVersionWhenASubmissionIsDrained(Device device)
+    {
+        PipelineHostRuntime host = Host(device, out DeviceRegistrationRegistry registry);
+        CompletionRegistry completion = new();
+        CompletionCoordinator coordinator = new(device.Get(), completion);
+
+        completion.AttachCoordinator(coordinator);
+
+        try
+        {
+            ulong progress = coordinator.ProgressVersion;
+
+            _ = SubmitOne(device, host, completion, 1);
+
+            Assert.IsTrue(coordinator.TryWaitForProgress(progress));
+
+            WaitUntilDrained(host, completion, coordinator);
+
+            Assert.AreNotEqual(progress, coordinator.ProgressVersion);
+            Assert.IsNull(coordinator.Failure);
+        }
+        finally
+        {
+            coordinator.Dispose();
+            registry.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void StopsWaitingForProgressAfterDisposal(Device device)
+    {
+        CompletionRegistry completion = new();
+        CompletionCoordinator coordinator = new(device.Get(), completion);
+
+        completion.AttachCoordinator(coordinator);
+
+        coordinator.Dispose();
+
+        Assert.IsFalse(coordinator.TryWaitForProgress(coordinator.ProgressVersion));
+        Assert.IsNull(coordinator.Failure);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void StopsCleanlyWithoutAnySubmission(Device device)
     {
         CompletionRegistry completion = new();
