@@ -21,6 +21,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly List<PipelineHostRuntime> hosts = [];
 
+    private readonly List<ComputeInteropDomain> domains = [];
+
     private readonly CompletionRegistry completions = new();
 
     private readonly CompletionCoordinator coordinator;
@@ -30,6 +32,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     private DeviceStructuralAggregate aggregate;
 
     private ulong nextHostRegistrationId;
+
+    private ulong nextDomainRegistrationId;
 
     private bool isDisposed;
 
@@ -202,6 +206,60 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
     }
 
+    public ExternalDomainId AllocateDomainId()
+    {
+        lock (this.registrationGate)
+        {
+            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+
+            if (this.nextDomainRegistrationId == ulong.MaxValue)
+            {
+                this.device.ThrowTerminalSequenceExhaustion("interop domain identity");
+            }
+
+            return new ExternalDomainId(++this.nextDomainRegistrationId);
+        }
+    }
+
+    public void PublishDomain(ComputeInteropDomain domain)
+    {
+        default(ArgumentNullException).ThrowIfNull(domain);
+
+        lock (this.registrationGate)
+        {
+            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+
+            this.domains.Add(domain);
+        }
+    }
+
+    public void UnregisterDomain(ComputeInteropDomain domain)
+    {
+        default(ArgumentNullException).ThrowIfNull(domain);
+
+        lock (this.registrationGate)
+        {
+            _ = this.domains.Remove(domain);
+        }
+
+        this.coordinator.Wake();
+    }
+
+    public void MarkDomainsDeviceTerminal(Exception reason)
+    {
+        ComputeInteropDomain[] registeredDomains;
+
+        lock (this.registrationGate)
+        {
+            registeredDomains = [.. this.domains];
+        }
+
+        foreach (ComputeInteropDomain domain in registeredDomains)
+        {
+            domain.MarkDeviceTerminal(reason);
+        }
+    }
+
     public bool TryUnregisterHost(PipelineHostRuntime runtime)
     {
         default(ArgumentNullException).ThrowIfNull(runtime);
@@ -251,6 +309,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     public void Dispose()
     {
         PipelineHostRuntime[] pendingHosts;
+        ComputeInteropDomain[] pendingDomains;
 
         lock (this.registrationGate)
         {
@@ -261,6 +320,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             this.isDisposed = true;
             pendingHosts = [.. this.hosts];
+            pendingDomains = [.. this.domains];
         }
 
         this.coordinator.Dispose();
@@ -271,7 +331,27 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
         finally
         {
-            this.commandListPool.Dispose();
+            try
+            {
+                ReleaseRegisteredDomains(pendingDomains);
+            }
+            finally
+            {
+                this.commandListPool.Dispose();
+            }
+        }
+    }
+
+    private void ReleaseRegisteredDomains(ComputeInteropDomain[] pendingDomains)
+    {
+        foreach (ComputeInteropDomain domain in pendingDomains)
+        {
+            domain.ReleaseForDeviceTeardown();
+        }
+
+        lock (this.registrationGate)
+        {
+            this.domains.Clear();
         }
     }
 

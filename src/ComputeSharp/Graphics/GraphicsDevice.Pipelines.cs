@@ -118,6 +118,7 @@ unsafe partial class GraphicsDevice
         }
 
         registry?.MarkGenerationsTerminalRetained();
+        registry?.MarkDomainsDeviceTerminal(reason);
     }
 
     /// <summary>

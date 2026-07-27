@@ -84,7 +84,9 @@ internal struct ComputeInteropDomainRecord
 
     public bool TryMarkTerminal()
     {
-        if (this.State is ComputeInteropDomainState.Terminal or ComputeInteropDomainState.Disposed)
+        if (this.State is ComputeInteropDomainState.Terminal
+            or ComputeInteropDomainState.ReleasingNative
+            or ComputeInteropDomainState.Disposed)
         {
             return false;
         }
