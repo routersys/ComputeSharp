@@ -245,6 +245,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         ResourceSetStructuralReservation reservation = default;
         bool isBaselineReserved = false;
+        int boundSlotCount = 0;
 
         try
         {
@@ -275,6 +276,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             BindSharedSlots(runtime, slots, planStorage, planStates);
 
+            boundSlotCount = slots.Length;
+
             default(InvalidOperationException).ThrowIf(!runtime.TryCommitActive(), "The resource set registration could not be committed.");
 
             lock (this.registrationGate)
@@ -288,7 +291,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
         catch
         {
-            UnbindSharedSlots(slots);
+            UnbindSharedSlots(slots, boundSlotCount);
 
             if (isBaselineReserved)
             {
@@ -619,9 +622,9 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
     }
 
-    private static void UnbindSharedSlots(IComputeSharedSlot[] slots)
+    private static void UnbindSharedSlots(IComputeSharedSlot[] slots, int boundSlotCount)
     {
-        for (int i = slots.Length - 1; i >= 0; i--)
+        for (int i = boundSlotCount - 1; i >= 0; i--)
         {
             slots[i]?.RequestDispose();
         }
