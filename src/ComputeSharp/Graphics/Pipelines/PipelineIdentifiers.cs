@@ -17,5 +17,3 @@ internal readonly record struct ResourceId(ulong Value);
 internal readonly record struct ResourceGenerationId(ulong Value);
 
 internal readonly record struct ResourceGenerationSetId(ulong Value);
-
-internal readonly record struct ExternalDomainId(ulong Value);
