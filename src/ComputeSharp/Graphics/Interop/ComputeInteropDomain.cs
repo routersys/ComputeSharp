@@ -59,9 +59,19 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     private ComputeInteropDomainRecord record;
 
     /// <summary>
+    /// The single external operation the current domain admits at a time.
+    /// </summary>
+    private DomainOperationRecord operation;
+
+    /// <summary>
     /// The first exception a provider call of the current domain failed with, if any.
     /// </summary>
     private Exception? providerDiagnostic;
+
+    /// <summary>
+    /// The reason the current domain was poisoned, if it was.
+    /// </summary>
+    private Exception? poisonReason;
 
     /// <summary>
     /// Creates a new <see cref="ComputeInteropDomain"/> instance with the specified parameters.
@@ -97,6 +107,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         this.schedulerRegistration = schedulerRegistration;
         this.d3D12SharedFence = d3D12SharedFence;
         this.record = new ComputeInteropDomainRecord();
+        this.operation = new DomainOperationRecord(id);
     }
 
     /// <summary>
@@ -191,6 +202,152 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             default(InvalidOperationException).ThrowIf(
                 !this.registry.Coordinator.TryWaitForProgress(progress),
                 "The completion coordinator of the device stopped before the interop domain was released.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the reason the current domain was poisoned, if it was.
+    /// </summary>
+    internal Exception? PoisonReason => Volatile.Read(ref this.poisonReason);
+
+    /// <summary>
+    /// Poisons the current domain, so that it starts its teardown without waiting for its references.
+    /// </summary>
+    /// <param name="reason">The reason the current domain can no longer be trusted.</param>
+    internal void MarkPoisoned(Exception reason)
+    {
+        default(ArgumentNullException).ThrowIfNull(reason);
+
+        _ = Interlocked.CompareExchange(ref this.poisonReason, reason, null);
+
+        bool isPoisoned;
+
+        lock (this.gate)
+        {
+            isPoisoned = this.record.TryMarkPoisoned() && this.record.TryBeginTeardown();
+        }
+
+        if (isPoisoned)
+        {
+            TryReleaseNative();
+        }
+    }
+
+    /// <summary>
+    /// Acquires the single external operation of the current domain, with its scheduler reservation.
+    /// </summary>
+    /// <param name="reference">The kind of domain reference the operation holds.</param>
+    /// <param name="boundGeneration">The resource generation the operation is bound to.</param>
+    /// <param name="releaseExternalReferenceOnDispose">Whether releasing the operation also releases an external reference.</param>
+    /// <param name="lease">The acquired operation lease, if the acquisition succeeded.</param>
+    /// <param name="schedulerFailure">The exception the scheduler reservation failed with, if it did.</param>
+    /// <returns>The outcome of the acquisition.</returns>
+    /// <remarks>
+    /// The acquisition order is domain reference, domain permit, then scheduler reservation. Every failure
+    /// releases what it already took, in reverse order, and leaves no native side effect behind.
+    /// </remarks>
+    internal DomainOperationStatus TryAcquireOperation(
+        ExternalDomainReference reference,
+        ResourceGenerationId boundGeneration,
+        bool releaseExternalReferenceOnDispose,
+        out DomainOperationLease lease,
+        out Exception? schedulerFailure)
+    {
+        lease = default;
+        schedulerFailure = null;
+
+        DomainOperationStatus status;
+        ulong token = 0;
+
+        lock (this.gate)
+        {
+            if (!this.record.TryAcquire(reference))
+            {
+                status = DomainOperationStatus.DomainUnavailable;
+            }
+            else
+            {
+                status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
+
+                if (status is not DomainOperationStatus.Acquired)
+                {
+                    _ = this.record.TryRelease(reference);
+                }
+            }
+        }
+
+        if (status is DomainOperationStatus.TokenExhausted)
+        {
+            MarkPoisoned(new InvalidOperationException(
+                $"""The operation token sequence of the interop domain "{this.id.Value}" is exhausted."""));
+        }
+
+        if (status is not DomainOperationStatus.Acquired)
+        {
+            return status;
+        }
+
+        try
+        {
+            this.schedulerRegistration.EnterReservation();
+        }
+        catch (Exception e)
+        {
+            schedulerFailure = e;
+
+            lock (this.gate)
+            {
+                _ = this.operation.TryRelease(token);
+                _ = this.record.TryRelease(reference);
+            }
+
+            return DomainOperationStatus.SchedulerBusy;
+        }
+
+        lease = new DomainOperationLease(this, reference, token);
+
+        return DomainOperationStatus.Acquired;
+    }
+
+    /// <summary>
+    /// Releases the external operation a lease of the current domain holds.
+    /// </summary>
+    /// <param name="reference">The kind of domain reference the operation holds.</param>
+    /// <param name="token">The token the operation was acquired with.</param>
+    /// <remarks>
+    /// Only the token the operation was acquired with releases it, so a copy of an already released lease
+    /// does nothing. The release order is the reverse of the acquisition order.
+    /// </remarks>
+    internal void ReleaseOperation(ExternalDomainReference reference, ulong token)
+    {
+        bool isReleasing;
+
+        lock (this.gate)
+        {
+            isReleasing = this.operation.TryBeginRelease(token);
+        }
+
+        if (!isReleasing)
+        {
+            return;
+        }
+
+        try
+        {
+            this.schedulerRegistration.ExitReservation();
+        }
+        finally
+        {
+            lock (this.gate)
+            {
+                this.operation.CompleteRelease();
+
+                _ = this.record.TryRelease(reference);
+            }
+
+            TryReleaseNative();
+
+            this.registry.Coordinator.Wake();
         }
     }
 

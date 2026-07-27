@@ -13,6 +13,10 @@ internal enum DomainOperationStatus : byte
 
 internal struct DomainOperationRecord(ExternalDomainId domain)
 {
+    private const int ActiveState = 1;
+
+    private const int ReleasingState = 2;
+
     public ulong NextToken;
 
     public ulong ActiveToken;
@@ -24,8 +28,6 @@ internal struct DomainOperationRecord(ExternalDomainId domain)
     public ResourceGenerationId BoundGeneration;
 
     public int ReleaseExternalReferenceOnDispose;
-
-    public readonly bool IsActive => this.Active != 0;
 
     public DomainOperationStatus TryAcquire(
         ResourceGenerationId boundGeneration,
@@ -46,7 +48,7 @@ internal struct DomainOperationRecord(ExternalDomainId domain)
 
         this.NextToken++;
         this.ActiveToken = this.NextToken;
-        this.Active = 1;
+        this.Active = ActiveState;
         this.BoundGeneration = boundGeneration;
         this.ReleaseExternalReferenceOnDispose = releaseExternalReferenceOnDispose ? 1 : 0;
 
@@ -57,15 +59,32 @@ internal struct DomainOperationRecord(ExternalDomainId domain)
 
     public bool TryRelease(ulong token)
     {
-        if (this.Active == 0 || token == 0 || this.ActiveToken != token)
+        if (!TryBeginRelease(token))
         {
             return false;
         }
 
+        CompleteRelease();
+
+        return true;
+    }
+
+    public bool TryBeginRelease(ulong token)
+    {
+        if (this.Active != ActiveState || token == 0 || this.ActiveToken != token)
+        {
+            return false;
+        }
+
+        this.Active = ReleasingState;
+
+        return true;
+    }
+
+    public void CompleteRelease()
+    {
         this.Active = 0;
         this.BoundGeneration = default;
         this.ReleaseExternalReferenceOnDispose = 0;
-
-        return true;
     }
 }
