@@ -14,6 +14,10 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
 
     private readonly HANDLE eventHandle;
 
+    private readonly object progressGate = new();
+
+    private ulong progressVersion;
+
     private volatile bool isDisposed;
 
     private volatile Exception? failure;
@@ -39,6 +43,30 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
     public Exception? Failure => this.failure;
 
     public HANDLE EventHandle => this.eventHandle;
+
+    public ulong ProgressVersion
+    {
+        get
+        {
+            lock (this.progressGate)
+            {
+                return this.progressVersion;
+            }
+        }
+    }
+
+    public bool TryWaitForProgress(ulong observedVersion)
+    {
+        lock (this.progressGate)
+        {
+            while (this.progressVersion == observedVersion && !this.isDisposed && this.failure is null)
+            {
+                _ = Monitor.Wait(this.progressGate);
+            }
+
+            return this.progressVersion != observedVersion;
+        }
+    }
 
     public void Wake()
     {
@@ -66,41 +94,68 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
 
     private void Run()
     {
-        while (!this.isDisposed)
+        try
         {
-            try
+            while (!this.isDisposed)
             {
-                if (this.registry.TryGetMinimumCommittedFence(out ulong fenceValue))
+                try
                 {
-                    this.device.ArmComputeFenceEvent(fenceValue, this.eventHandle);
+                    if (this.registry.TryGetMinimumCommittedFence(out ulong fenceValue))
+                    {
+                        this.device.ArmComputeFenceEvent(fenceValue, this.eventHandle);
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                this.failure = e;
-
-                return;
-            }
-
-            _ = Windows.WaitForSingleObjectEx(this.eventHandle, Windows.INFINITE, Windows.FALSE);
-
-            if (this.isDisposed)
-            {
-                return;
-            }
-
-            try
-            {
-                while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.registry))
+                catch (Exception e)
                 {
-                }
-            }
-            catch (Exception e)
-            {
-                this.failure = e;
+                    this.failure = e;
 
-                return;
+                    return;
+                }
+
+                _ = Windows.WaitForSingleObjectEx(this.eventHandle, Windows.INFINITE, Windows.FALSE);
+
+                if (this.isDisposed)
+                {
+                    return;
+                }
+
+                try
+                {
+                    while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.registry))
+                    {
+                    }
+                }
+                catch (Exception e)
+                {
+                    this.failure = e;
+
+                    return;
+                }
+
+                PublishProgress();
             }
+        }
+        finally
+        {
+            WakeWaiters();
+        }
+    }
+
+    private void PublishProgress()
+    {
+        lock (this.progressGate)
+        {
+            this.progressVersion++;
+
+            Monitor.PulseAll(this.progressGate);
+        }
+    }
+
+    private void WakeWaiters()
+    {
+        lock (this.progressGate)
+        {
+            Monitor.PulseAll(this.progressGate);
         }
     }
 }
