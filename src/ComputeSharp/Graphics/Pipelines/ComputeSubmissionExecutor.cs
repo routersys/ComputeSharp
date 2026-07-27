@@ -132,11 +132,18 @@ internal static unsafe class ComputeSubmissionExecutor
 
         ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
 
-        ReleaseRetention(host, retention);
+        bool hasRetiredGeneration = ReleaseRetention(host, retention);
 
         default(InvalidOperationException).ThrowIf(!record.TryCompleteReturn(), "The submission record could not complete its return.");
 
         host.ReturnPendingRecord(recordIndex);
+
+        if (hasRetiredGeneration)
+        {
+            host.RunOwnedSlotMaintenance();
+        }
+
+        _ = host.TryCompleteDeferredRelease();
 
         return true;
     }
@@ -153,7 +160,7 @@ internal static unsafe class ComputeSubmissionExecutor
             in host.UsageSets.GetSet(host.UsageSets.GetSetIndex(usages)));
     }
 
-    private static void ReleaseRetention(PipelineHostRuntime host, SubmissionRetention retention)
+    private static bool ReleaseRetention(PipelineHostRuntime host, SubmissionRetention retention)
     {
         for (int i = retention.CommandLists.Count - 1; i >= 0; i--)
         {
@@ -169,17 +176,21 @@ internal static unsafe class ComputeSubmissionExecutor
 
         retention.ResourceLeases?.Release();
 
-        ReleasePendingSubmissionReferences(host, retention.ResourceUsages);
+        bool hasRetiredGeneration = ReleasePendingSubmissionReferences(host, retention.ResourceUsages);
 
         if (!retention.ResourceUsages.IsNone)
         {
             ResourceUsageTracker.ClearUsages(host.UsageSets.Storage, ref host.UsageSets.GetSet(host.UsageSets.GetSetIndex(retention.ResourceUsages)));
         }
+
+        return hasRetiredGeneration;
     }
 
-    private static void ReleasePendingSubmissionReferences(PipelineHostRuntime host, UsageSetHandle usages)
+    private static bool ReleasePendingSubmissionReferences(PipelineHostRuntime host, UsageSetHandle usages)
     {
         Span<GraphicsResourceUsageEntry> entries = GetUsages(host, usages);
+
+        bool hasRetiredGeneration = false;
 
         for (int i = 0; i < entries.Length; i++)
         {
@@ -192,7 +203,19 @@ internal static unsafe class ComputeSubmissionExecutor
 
             record.ReleasePendingSubmissionReference();
 
-            _ = record.TryPromoteRetiredReady(host.Device.IsFenceCompleted(in record.RetirementFence));
+            if (!record.TryPromoteRetiredReady(host.Device.IsFenceCompleted(in record.RetirementFence)))
+            {
+                continue;
+            }
+
+            hasRetiredGeneration = true;
+
+            if (entry.Set.Owner is ResourceGenerationOwner owner)
+            {
+                _ = owner.TryReleaseRetired(ResourceReleaseAuthority.NormalCompletion);
+            }
         }
+
+        return hasRetiredGeneration;
     }
 }

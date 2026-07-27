@@ -144,6 +144,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
                 host.Structural.OwnedSlotCount);
 
             PipelineHostRuntime runtime = new(
+                this,
                 this.device,
                 host,
                 registration,

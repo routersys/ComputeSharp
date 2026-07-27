@@ -10,6 +10,8 @@ internal sealed class PipelineHostRuntime
 {
     private readonly Lock registrationGate = new();
 
+    private readonly DeviceRegistrationRegistry registry;
+
     private readonly IComputeOwnedSlot[] slots;
 
     private HostRegistrationRecord registration;
@@ -19,6 +21,7 @@ internal sealed class PipelineHostRuntime
     private ulong nextSubmissionSequence;
 
     internal PipelineHostRuntime(
+        DeviceRegistrationRegistry registry,
         GraphicsDevice device,
         in PipelineHostDescriptor descriptor,
         in HostRegistrationRecord registration,
@@ -49,6 +52,7 @@ internal sealed class PipelineHostRuntime
         SlotResourceDeclarations = slotResourceDeclarations;
         Identities = identities;
 
+        this.registry = registry;
         this.registration = registration;
         this.slots = slots;
     }
@@ -203,6 +207,24 @@ internal sealed class PipelineHostRuntime
         {
             slot.RequestDispose();
         }
+    }
+
+    public void RunOwnedSlotMaintenance()
+    {
+        foreach (IComputeOwnedSlot slot in this.slots)
+        {
+            slot.RunMaintenance();
+        }
+    }
+
+    public bool TryCompleteDeferredRelease()
+    {
+        if (State is RegistrationState.DisposeRequested)
+        {
+            _ = this.registry.TryUnregisterHost(this);
+        }
+
+        return IsDisposalComplete;
     }
 
     public bool TryBeginRelease()
