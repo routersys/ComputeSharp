@@ -84,7 +84,7 @@ internal static unsafe class ComputePipelineInvoker
         default(InvalidOperationException).ThrowIf(!record.TryBeginRecording(), "The submission record could not begin recording.");
 
         ComputePipelineBinder binder = new(
-            host.Device,
+            host,
             host.RecordingBundles.Storage,
             ref host.RecordingBundles.GetBundle(bundleIndex));
 

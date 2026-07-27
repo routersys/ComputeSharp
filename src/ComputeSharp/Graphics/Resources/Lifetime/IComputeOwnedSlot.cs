@@ -33,4 +33,11 @@ internal interface IComputeOwnedSlot
 
     bool TryGetBinding<TResource>(int resourceIndex, out ComputeResourceBinding<TResource> binding)
         where TResource : class, IGraphicsResource;
+
+    bool TryPinGeneration(
+        ResourceGenerationSetId setId,
+        ResourceGenerationId generationId,
+        ulong bindingEpoch,
+        int resourceIndex,
+        out ResourceGenerationPin pin);
 }

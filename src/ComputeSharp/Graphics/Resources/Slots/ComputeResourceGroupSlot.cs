@@ -111,6 +111,17 @@ public sealed class ComputeResourceGroupSlot<TGroup> : IComputeOwnedResourceSlot
     }
 
     /// <inheritdoc/>
+    bool IComputeOwnedSlot.TryPinGeneration(
+        ResourceGenerationSetId setId,
+        ResourceGenerationId generationId,
+        ulong bindingEpoch,
+        int resourceIndex,
+        out ResourceGenerationPin pin)
+    {
+        return this.slotGate.TryPin(setId, generationId, bindingEpoch, resourceIndex, out pin);
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
