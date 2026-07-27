@@ -16,6 +16,8 @@ internal sealed class PipelineHostRuntime
 
     private ulong nextPreparedToken;
 
+    private ulong nextSubmissionSequence;
+
     internal PipelineHostRuntime(
         GraphicsDevice device,
         in PipelineHostDescriptor descriptor,
@@ -111,6 +113,11 @@ internal sealed class PipelineHostRuntime
     public ulong CreatePreparedToken()
     {
         return Interlocked.Increment(ref this.nextPreparedToken);
+    }
+
+    public ulong CreateSubmissionSequence()
+    {
+        return Interlocked.Increment(ref this.nextSubmissionSequence);
     }
 
     public bool TryCommitActive()

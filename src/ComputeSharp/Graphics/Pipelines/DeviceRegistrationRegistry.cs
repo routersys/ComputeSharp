@@ -21,6 +21,10 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly List<PipelineHostRuntime> hosts = [];
 
+    private readonly CompletionRegistry completions = new();
+
+    private readonly CompletionCoordinator coordinator;
+
     private readonly Lock registrationGate = new();
 
     private DeviceStructuralAggregate aggregate;
@@ -37,9 +41,16 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         this.device = device;
         this.identities = device.ResourceIdentities;
         this.commandListPool = new PipelineCommandListPool(device.D3D12Device, d3D12CommandListType);
+        this.coordinator = new CompletionCoordinator(device, this.completions);
+
+        this.completions.AttachCoordinator(this.coordinator);
     }
 
     public GraphicsDevice Device => this.device;
+
+    public CompletionRegistry Completions => this.completions;
+
+    public CompletionCoordinator Coordinator => this.coordinator;
 
     public int HostCount
     {
@@ -233,6 +244,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             runtime.RequestDispose();
         }
 
+        this.coordinator.Dispose();
         this.commandListPool.Dispose();
     }
 

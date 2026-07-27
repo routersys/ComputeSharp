@@ -155,6 +155,28 @@ public sealed class ComputeHostRuntime : IDisposable
         return slot.TryGetBinding(resourceIndex, out ComputeResourceBinding<TResource> binding) ? binding : default;
     }
 
+    /// <summary>
+    /// Records and submits a single invocation of a generated pipeline method.
+    /// </summary>
+    /// <typeparam name="TInvocation">The type of the invocation to record and submit.</typeparam>
+    /// <param name="invocation">The invocation to record and submit.</param>
+    /// <returns>The <see cref="ComputeSubmission"/> value tracking the completion of the submitted work.</returns>
+    /// <exception cref="ObjectDisposedException">Thrown if disposal of the current host has been requested.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the host has no capacity left, or if the recorded work does not match the declared contracts.</exception>
+    /// <exception cref="ArgumentException">Thrown if the invocation binds a resource that carries no generation identity.</exception>
+    /// <exception cref="GraphicsDeviceMismatchException">Thrown if the invocation binds a resource of another device.</exception>
+    /// <remarks>
+    /// Every stage of the invocation is owned by this method. A failure before the submission is issued releases
+    /// everything that was acquired, in reverse order, and leaves no native side effect behind.
+    /// </remarks>
+    public ComputeSubmission Submit<TInvocation>(in TInvocation invocation)
+        where TInvocation : struct, IComputePipelineInvocation
+    {
+        default(ObjectDisposedException).ThrowIf(IsDisposeRequested, this);
+
+        return ComputePipelineInvoker.Submit(this.registry, this.runtime, TInvocation.PipelineOrdinal, in invocation);
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

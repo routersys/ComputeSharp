@@ -132,7 +132,7 @@ internal static unsafe class ComputeSubmissionExecutor
         return true;
     }
 
-    private static Span<GraphicsResourceUsageEntry> GetUsages(PipelineHostRuntime host, UsageSetHandle usages)
+    public static Span<GraphicsResourceUsageEntry> GetUsages(PipelineHostRuntime host, UsageSetHandle usages)
     {
         if (usages.IsNone)
         {
