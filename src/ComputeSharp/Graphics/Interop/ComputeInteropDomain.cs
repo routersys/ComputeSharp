@@ -74,6 +74,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     private Exception? poisonReason;
 
     /// <summary>
+    /// The last timeline value the current domain handed out.
+    /// </summary>
+    private ulong lastTimelineValue;
+
+    /// <summary>
     /// Creates a new <see cref="ComputeInteropDomain"/> instance with the specified parameters.
     /// </summary>
     /// <param name="device">The device the domain is registered on.</param>
@@ -231,6 +236,50 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         {
             TryReleaseNative();
         }
+    }
+
+    /// <summary>
+    /// Reserves the next value of the timeline of the current domain.
+    /// </summary>
+    /// <param name="value">The reserved timeline value.</param>
+    /// <returns>Whether a value was reserved.</returns>
+    /// <remarks>
+    /// The runtime is the only producer of timeline values. An exhausted timeline poisons the domain, as
+    /// values are never wrapped nor reused.
+    /// </remarks>
+    internal bool TryReserveTimelineValue(out ulong value)
+    {
+        value = Interlocked.Increment(ref this.lastTimelineValue);
+
+        if (value != 0)
+        {
+            return true;
+        }
+
+        MarkPoisoned(new InvalidOperationException(
+            $"""The timeline of the interop domain "{this.id.Value}" is exhausted."""));
+
+        return false;
+    }
+
+    /// <summary>
+    /// Enqueues a wait of the compute queue for a value of the timeline of the current domain.
+    /// </summary>
+    /// <param name="value">The timeline value to wait for.</param>
+    internal void EnqueueComputeWait(ulong value)
+    {
+        this.device.WaitForSharedFence(this.d3D12SharedFence.Get(), value);
+    }
+
+    /// <summary>
+    /// Gets the endpoint of the provider of the current domain, if it creates external views of a given type.
+    /// </summary>
+    /// <typeparam name="TView">The type of the external view.</typeparam>
+    /// <returns>The typed endpoint of the provider, or <see langword="null"/> if it creates another view type.</returns>
+    internal ExternalProviderEndpoint<TView>? TryGetEndpoint<TView>()
+        where TView : class, IDisposable
+    {
+        return this.endpoint as ExternalProviderEndpoint<TView>;
     }
 
     /// <summary>

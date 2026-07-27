@@ -287,6 +287,45 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Signals the completion fence of the compute queue without executing any command list.
+    /// </summary>
+    /// <returns>The completion fence point of the signal.</returns>
+    /// <remarks>
+    /// The final external drain of a shared texture generation waits on the external timeline from the compute
+    /// queue and then needs a completion point of its own to retire the generation against.
+    /// </remarks>
+    internal FencePoint SignalComputeCompletion()
+    {
+        ulong completionValue = 0;
+        HRESULT hresult = S.S_OK;
+        bool isSequenceExhausted;
+
+        lock (this.d3D12ComputeCommandQueueLock)
+        {
+            isSequenceExhausted = this.nextD3D12ComputeFenceValue == ulong.MaxValue;
+
+            if (!isSequenceExhausted)
+            {
+                completionValue = ++this.nextD3D12ComputeFenceValue;
+
+                hresult = this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue);
+            }
+        }
+
+        if (isSequenceExhausted)
+        {
+            ThrowTerminalSequenceExhaustion("compute completion fence");
+        }
+
+        if (hresult < 0)
+        {
+            ThrowTerminalQueueFailure(hresult, "Signal");
+        }
+
+        return new FencePoint(ComputeQueueKind.Compute, completionValue);
+    }
+
+    /// <summary>
     /// Moves the current device to its terminal state for a failed compute queue call, and throws the reason.
     /// </summary>
     /// <param name="hresult">The <see cref="HRESULT"/> the call failed with.</param>
