@@ -132,6 +132,42 @@ public unsafe partial class PipelineDisposalWaitTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void KeepsTerminalRetainedGenerationsUntilTheDeviceTeardownReleasesThem(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+
+        ulong before = GetOwnedBytes(graphicsDevice);
+
+        ComputeResourceSlot<ReadWriteBuffer<int>> slot = new();
+        ComputeHostRuntime host = CreateHost(graphicsDevice, slot);
+        IComputeOwnedSlot ownedSlot = slot;
+
+        Assert.IsTrue(host.TryEnsureResource(0, [64], new ComputeHostRuntimeTests.BufferMaterializer(64), out _));
+
+        Assert.IsTrue(slot.IsAllocated);
+
+        ownedSlot.MarkTerminalRetained();
+        ownedSlot.RunMaintenance();
+
+        Assert.IsTrue(slot.IsDisposeRequested);
+        Assert.IsFalse(slot.IsAllocated);
+        Assert.IsFalse(ownedSlot.IsDisposalComplete);
+        Assert.AreNotEqual(before, GetOwnedBytes(graphicsDevice));
+
+        ownedSlot.ReleaseTerminalGenerations();
+
+        Assert.IsTrue(ownedSlot.IsDisposalComplete);
+        Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+
+        host.Dispose();
+        host.WaitForDisposal();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void RejectsWaitingForDisposalBeforeDisposalIsRequested(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
