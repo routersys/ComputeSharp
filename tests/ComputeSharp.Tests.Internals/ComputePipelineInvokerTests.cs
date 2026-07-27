@@ -1,4 +1,5 @@
 using System;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
 using ComputeSharp.Tests.Internals.Helpers;
@@ -59,6 +60,23 @@ public partial class ComputePipelineInvokerTests
         }
     }
 
+    private readonly struct SlotFillInvocation(ComputeResourceBinding<ReadWriteBuffer<int>> binding) : IComputePipelineInvocation
+    {
+        private readonly ComputeResourceBinding<ReadWriteBuffer<int>> binding = binding;
+
+        public static int PipelineOrdinal => 0;
+
+        public void Bind(ref ComputePipelineBinder binder)
+        {
+            Assert.IsTrue(binder.TryPin(0, in this.binding));
+        }
+
+        public void Record(in ComputeContext context)
+        {
+            context.For(64, new AddShader(this.binding.Resource!, 1));
+        }
+    }
+
     private readonly struct FailingInvocation(ReadWriteBuffer<int> buffer) : IComputePipelineInvocation
     {
         private readonly ReadWriteBuffer<int> buffer = buffer;
@@ -73,6 +91,40 @@ public partial class ComputePipelineInvokerTests
         public void Record(in ComputeContext context)
         {
             throw new NotSupportedException();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ReleasesTheSlotOwnedGenerationAfterTheSubmissionCompletes(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ComputeResourceSlot<ReadWriteBuffer<int>> slot = new();
+        ComputeHostRuntime host = ComputeHostRuntime.Create(
+            graphicsDevice,
+            ComputeHostRuntimeTests.CreateDescriptor(ResourcePlanKind.Buffer),
+            1,
+            [slot]);
+
+        try
+        {
+            Assert.IsTrue(host.TryEnsureResource(0, [64], new ComputeHostRuntimeTests.BufferMaterializer(64), out _));
+
+            ComputeResourceBinding<ReadWriteBuffer<int>> binding = host.GetBinding<ReadWriteBuffer<int>>(0, 0);
+
+            Assert.IsTrue(binding.IsValid);
+
+            ComputeSubmission submission = host.Submit(new SlotFillInvocation(binding));
+
+            submission.Wait();
+
+            Assert.AreEqual(ComputeSubmissionStatus.Succeeded, submission.Status);
+        }
+        finally
+        {
+            slot.Dispose();
+
+            PipelineInvocationSetup.Release(host);
         }
     }
 
