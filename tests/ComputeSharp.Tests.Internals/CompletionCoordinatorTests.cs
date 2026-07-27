@@ -14,6 +14,8 @@ public unsafe partial class CompletionCoordinatorTests
 {
     private const int TimeoutMilliseconds = 10_000;
 
+    private const uint WaitFailed = 0xFFFFFFFF;
+
     private static PipelineHostRuntime Host(Device device, out DeviceRegistrationRegistry registry, int maximumPendingSubmissions = 2)
     {
         registry = new DeviceRegistrationRegistry(device.Get(), D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -158,5 +160,32 @@ public unsafe partial class CompletionCoordinatorTests
         coordinator.Wake();
 
         Assert.IsNull(coordinator.Failure);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void LeavesTheEventOpenAfterDisposal(Device device)
+    {
+        PipelineHostRuntime host = Host(device, out DeviceRegistrationRegistry registry);
+        CompletionRegistry completion = new();
+        CompletionCoordinator coordinator = new(device.Get(), completion);
+
+        completion.AttachCoordinator(coordinator);
+
+        try
+        {
+            _ = SubmitOne(device, host, completion, 1);
+
+            WaitUntilDrained(host, completion, coordinator);
+
+            coordinator.Dispose();
+
+            Assert.AreNotEqual(WaitFailed, Windows.WaitForSingleObjectEx(coordinator.EventHandle, 0, Windows.FALSE));
+        }
+        finally
+        {
+            coordinator.Dispose();
+            registry.Dispose();
+        }
     }
 }
