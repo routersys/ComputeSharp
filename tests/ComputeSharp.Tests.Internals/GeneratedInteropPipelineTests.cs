@@ -56,15 +56,7 @@ public class GeneratedInteropPipelineTests
 
         public ReadWriteTexture2D<Bgra32, Float4> Target => Resources.GetSourceComputeBinding().Resource!;
 
-        public ExternalOwnershipState Ownership
-        {
-            get
-            {
-                Assert.IsTrue(((IGenerationBoundResource)Target).TryGetGenerationBinding(out ResourceUsageBinding binding));
-
-                return binding.Set.Owner.GetResourceRecord(0).ReadOwnership();
-            }
-        }
+        public ExternalOwnershipState Ownership => GetOwner(Target).GetResourceRecord(0).ReadOwnership();
 
         public void Dispose()
         {
@@ -80,6 +72,13 @@ public class GeneratedInteropPipelineTests
     private static Fixture Create(Device device)
     {
         return new Fixture(device.Get()).Register();
+    }
+
+    private static ResourceGenerationOwner GetOwner(ReadWriteTexture2D<Bgra32, Float4> texture)
+    {
+        Assert.IsTrue(((IGenerationBoundResource)texture).TryGetGenerationBinding(out ResourceUsageBinding binding));
+
+        return (ResourceGenerationOwner)binding.Set.Owner;
     }
 
     [CombinatorialTestMethod]
@@ -141,6 +140,44 @@ public class GeneratedInteropPipelineTests
         foreach (Bgra32 pixel in target.ToArray())
         {
             Assert.AreEqual(0, pixel.R + pixel.G + pixel.B + pixel.A);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void TearsDownTheDomainWhenTheProviderCannotSignal(Device device)
+    {
+        Fixture fixture = Create(device);
+
+        try
+        {
+            FakeExternalView view = fixture.Provider.LastOpenedView!;
+            ReadWriteTexture2D<Bgra32, Float4> target = fixture.Target;
+            ResourceGenerationOwner owner = GetOwner(target);
+
+            fixture.Provider.ThrowOnSignal = true;
+
+            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(target));
+
+            Assert.IsNotNull(fixture.Domain.PoisonReason);
+            Assert.IsTrue(fixture.Domain.IsDisposeRequested);
+            Assert.AreEqual(ExternalOwnershipState.Faulted, owner.GetResourceRecord(0).ReadOwnership());
+            Assert.IsFalse(fixture.Scheduler.IsReserved);
+
+            fixture.Resources.WaitForDisposal();
+
+            Assert.AreEqual(1, view.DisposeCount);
+            Assert.AreEqual(0, fixture.Provider.WaitCount);
+            Assert.AreEqual(ResourceGenerationState.Released, owner.GetResourceRecord(0).ReadLifecycle());
+            Assert.IsTrue(fixture.Domain.IsDisposed);
+            Assert.AreEqual(1, fixture.Provider.DisposeCount);
+        }
+        finally
+        {
+            fixture.Host.Dispose();
+            fixture.Host.WaitForDisposal();
+            fixture.Resources.Dispose();
+            fixture.Scheduler.Dispose();
         }
     }
 
