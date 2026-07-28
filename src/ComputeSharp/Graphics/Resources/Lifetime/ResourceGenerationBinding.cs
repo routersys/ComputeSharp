@@ -76,6 +76,13 @@ internal struct ResourceGenerationBinding
         this.access = access;
     }
 
+    public void InitializeD3D12State(TrackedResourceState d3D12State)
+    {
+        default(ArgumentException).ThrowIf(d3D12State is TrackedResourceState.Unknown, nameof(d3D12State));
+
+        this.record.D3D12State = d3D12State;
+    }
+
     public void InitializeSelfOwned(
         IResourceGenerationOwner self,
         ResourceIdentityAllocator identities,
