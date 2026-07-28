@@ -57,6 +57,11 @@ internal struct DomainOperationRecord(ExternalDomainId domain)
         return DomainOperationStatus.Acquired;
     }
 
+    public readonly bool IsActive(ulong token)
+    {
+        return this.Active == ActiveState && token != 0 && this.ActiveToken == token;
+    }
+
     public bool TryRelease(ulong token)
     {
         if (!TryBeginRelease(token))

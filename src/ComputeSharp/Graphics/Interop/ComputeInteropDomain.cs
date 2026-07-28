@@ -1,7 +1,9 @@
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 
 #pragma warning disable CA1063
@@ -396,13 +398,14 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     /// </summary>
     /// <param name="reference">The kind of domain reference the operation holds.</param>
     /// <param name="boundGeneration">The resource generation the operation is bound to.</param>
-    /// <param name="releaseExternalReferenceOnDispose">Whether releasing the operation also releases an external reference.</param>
+    /// <param name="releaseExternalReferenceOnDispose">Whether releasing the operation also releases the external reference of its generation.</param>
     /// <param name="lease">The acquired operation lease, if the acquisition succeeded.</param>
     /// <param name="schedulerFailure">The exception the scheduler reservation failed with, if it did.</param>
     /// <returns>The outcome of the acquisition.</returns>
     /// <remarks>
     /// The acquisition order is domain reference, domain permit, then scheduler reservation. Every failure
-    /// releases what it already took, in reverse order, and leaves no native side effect behind.
+    /// releases what it already took, in reverse order, and leaves no native side effect behind. An operation
+    /// taking the external reference of its generation is released by naming that generation.
     /// </remarks>
     internal DomainOperationStatus TryAcquireOperation(
         ExternalDomainReference reference,
@@ -468,21 +471,42 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     }
 
     /// <summary>
+    /// Gets whether the external operation of the current domain is still held by a given token.
+    /// </summary>
+    /// <param name="token">The token the operation was acquired with.</param>
+    /// <returns>Whether the operation is still held by <paramref name="token"/>.</returns>
+    /// <remarks>
+    /// Tokens are monotonic and never reused, so a copy of a released scope observes its own token as stale
+    /// rather than as the token of whichever operation is active now.
+    /// </remarks>
+    internal bool IsOperationActive(ulong token)
+    {
+        lock (this.gate)
+        {
+            return this.operation.IsActive(token);
+        }
+    }
+
+    /// <summary>
     /// Releases the external operation a lease of the current domain holds.
     /// </summary>
     /// <param name="reference">The kind of domain reference the operation holds.</param>
     /// <param name="token">The token the operation was acquired with.</param>
+    /// <param name="pin">The generation a transient borrow took an external reference of, if it took one.</param>
     /// <remarks>
     /// Only the token the operation was acquired with releases it, so a copy of an already released lease
-    /// does nothing. The release order is the reverse of the acquisition order.
+    /// does nothing. The release order is the reverse of the acquisition order, and the external reference
+    /// a transient borrow took is the last thing it gives back.
     /// </remarks>
-    internal void ReleaseOperation(ExternalDomainReference reference, ulong token)
+    internal void ReleaseOperation(ExternalDomainReference reference, ulong token, in ResourceGenerationPin pin = default)
     {
         bool isReleasing;
+        bool isExternalReferenceHeld;
 
         lock (this.gate)
         {
             isReleasing = this.operation.TryBeginRelease(token);
+            isExternalReferenceHeld = isReleasing && this.operation.ReleaseExternalReferenceOnDispose != 0;
         }
 
         if (!isReleasing)
@@ -503,9 +527,54 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 _ = this.record.TryRelease(reference);
             }
 
+            if (isExternalReferenceHeld)
+            {
+                SlotControlRecord.ReleaseExternalPin(this.device, in pin);
+            }
+
             TryReleaseNative();
 
             this.registry.Coordinator.Wake();
+        }
+    }
+
+    /// <summary>
+    /// Releases an external reference taken over a generation of the current domain.
+    /// </summary>
+    /// <param name="pin">The generation the external reference was taken over.</param>
+    internal void ReleaseGenerationExternalReference(in ResourceGenerationPin pin)
+    {
+        SlotControlRecord.ReleaseExternalPin(this.device, in pin);
+
+        this.registry.Coordinator.Wake();
+    }
+
+    /// <summary>
+    /// Releases the external reference and the persistent lease a lease of the current domain holds over a generation.
+    /// </summary>
+    /// <param name="pin">The generation the persistent lease was taken over.</param>
+    internal void ReleaseGenerationPersistentLease(in ResourceGenerationPin pin)
+    {
+        SlotControlRecord.ReleasePersistentLeasePin(this.device, in pin);
+
+        this.registry.Coordinator.Wake();
+    }
+
+    /// <summary>
+    /// Throws the saved failure of the current domain, if it was poisoned or if its device is terminal.
+    /// </summary>
+    /// <exception cref="Exception">Rethrown from the failure the domain or its device was left with.</exception>
+    /// <remarks>
+    /// An external view of a poisoned domain or of a terminal device is never reused, so the holders of one
+    /// observe the failure that got there first rather than the view.
+    /// </remarks>
+    internal void ThrowIfPoisonedOrDeviceTerminal()
+    {
+        this.device.ThrowIfDeviceTerminal();
+
+        if (PoisonReason is Exception reason)
+        {
+            ExceptionDispatchInfo.Throw(reason);
         }
     }
 
