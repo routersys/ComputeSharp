@@ -142,7 +142,7 @@ partial class ReadWriteTexture1D<T, TPixel>
                 return false;
             }
 
-            binding = binding.WithObservedAccess(ComputeResourceAccess.Read);
+            binding = binding.AsReadOnlyView();
 
             return true;
         }

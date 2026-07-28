@@ -154,7 +154,7 @@ partial class ReadWriteTexture2D<T, TPixel>
                 return false;
             }
 
-            binding = binding.WithObservedAccess(ComputeResourceAccess.Read);
+            binding = binding.AsReadOnlyView();
 
             return true;
         }

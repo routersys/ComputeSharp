@@ -29,9 +29,14 @@ internal readonly struct ResourceUsageBinding(
 
     public TrackedResourceState ResidentState { get; } = residentState;
 
-    public ResourceUsageBinding WithObservedAccess(ComputeResourceAccess access)
+    public ResourceUsageBinding AsReadOnlyView()
     {
-        return new ResourceUsageBinding(Set, ResourceIndex, Generation, access, ResidentState);
+        return new ResourceUsageBinding(
+            Set,
+            ResourceIndex,
+            Generation,
+            ComputeResourceAccess.Read,
+            TrackedResourceState.NonPixelShaderResource);
     }
 }
 
