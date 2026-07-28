@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.SourceGeneration.Extensions;
 using ComputeSharp.SourceGeneration.Helpers;
 using ComputeSharp.SourceGenerators.Models;
@@ -52,11 +51,6 @@ internal static class PipelineInvocationSyntaxModelBuilder
 
         foreach (PipelineContractInfo pipeline in host.Pipelines)
         {
-            if (pipeline.Flags is PipelineFlags.InteropRoundTrip)
-            {
-                continue;
-            }
-
             if (!methodSymbols.TryGetValue(pipeline.MethodMetadataName, out IMethodSymbol? methodSymbol) ||
                 !TryBuildInvocation(methodSymbol, symbols, pipeline, internalBuilder.WrittenSpan, out PipelineInvocationSyntaxInfo invocation))
             {
