@@ -299,6 +299,41 @@ public class PipelineHostEmissionTests
     }
 
     [TestMethod]
+    public void EmitsTheInvocationWrapperOfAnInteropPipeline()
+    {
+        const string InteropHostSource = """
+            using ComputeSharp;
+
+            namespace Ukiyoe;
+
+            [ComputePipelineHost("device", 1)]
+            public sealed partial class InteropHost
+            {
+                private readonly GraphicsDevice device;
+
+                [ComputePipeline]
+                [ComputeInterop]
+                private void Blit(
+                    in ComputeContext context,
+                    [ComputeResource(ComputeResourceAccess.ReadWrite, Sharing = ComputeResourceSharing.External)] ReadWriteTexture2D<Bgra32, Float4> target)
+                {
+                }
+            }
+            """;
+
+        string source = RunAndGetSource([InteropHostSource], "HostInteropInvocationTests", "Ukiyoe.InteropHost");
+
+        Assert.IsTrue(
+            source.Contains(
+                "public global::ComputeSharp.ComputeSubmission Blit(" +
+                "global::ComputeSharp.ReadWriteTexture2D<global::ComputeSharp.Bgra32, global::ComputeSharp.Float4> @target)"),
+            source);
+        Assert.IsTrue(source.Contains("return this.computeHostRuntime.Submit(new BlitInvocation(this, @target));"), source);
+        Assert.IsTrue(source.Contains("if (!binder.TryPin(this.@target))"), source);
+        Assert.IsTrue(source.Contains("this.host.Blit(in context, this.@target);"), source);
+    }
+
+    [TestMethod]
     public void EmitsTheRegistrationFactoryForAHostWithoutOwnedSlots()
     {
         const string EmptyHostSource = """
