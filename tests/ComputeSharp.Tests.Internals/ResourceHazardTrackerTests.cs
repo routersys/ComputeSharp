@@ -194,7 +194,7 @@ public unsafe class ResourceHazardTrackerTests
             Usage(set, 0, ComputeResourceAccess.Read, TrackedResourceState.Common, TrackedResourceState.NonPixelShaderResource)
         ];
 
-        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 7));
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 7), 11);
 
         ref ResourceGenerationRecord record = ref set.Owner.GetResourceRecord(0);
 
@@ -217,7 +217,7 @@ public unsafe class ResourceHazardTrackerTests
             Usage(set, 0, ComputeResourceAccess.ReadWrite, TrackedResourceState.UnorderedAccess, TrackedResourceState.UnorderedAccess)
         ];
 
-        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 8));
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 8), 12);
 
         ref ResourceGenerationRecord record = ref set.Owner.GetResourceRecord(0);
 
@@ -243,9 +243,32 @@ public unsafe class ResourceHazardTrackerTests
 
         Assert.AreEqual(1, ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _));
 
-        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 1));
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 1), 13);
 
         Assert.AreEqual(0, ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, prologue, out _));
+    }
+
+    [TestMethod]
+    public void CommitsTheLogicalSubmissionSequenceOfEveryUsedGeneration()
+    {
+        ResourceGenerationSetHandle set = Handle();
+
+        GraphicsResourceUsageEntry[] usages =
+        [
+            Usage(set, 0, ComputeResourceAccess.Read, TrackedResourceState.Common, TrackedResourceState.Common)
+        ];
+
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 4), 9);
+
+        Assert.AreEqual(9ul, set.Owner.GetResourceRecord(0).LastUseSequence);
+
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 5), 12);
+
+        Assert.AreEqual(12ul, set.Owner.GetResourceRecord(0).LastUseSequence);
+
+        ResourceHazardTracker.CommitResourceUsages(usages, new FencePoint(ComputeQueueKind.Compute, 6), 3);
+
+        Assert.AreEqual(12ul, set.Owner.GetResourceRecord(0).LastUseSequence);
     }
 
     [TestMethod]
@@ -265,6 +288,6 @@ public unsafe class ResourceHazardTrackerTests
             () => ResourceHazardTracker.PlanQueueDependencies(usages, ComputeQueueKind.Compute, [], out _));
 
         _ = Assert.ThrowsExactly<ArgumentException>(
-            () => ResourceHazardTracker.CommitResourceUsages(usages, FencePoint.None));
+            () => ResourceHazardTracker.CommitResourceUsages(usages, FencePoint.None, 0));
     }
 }

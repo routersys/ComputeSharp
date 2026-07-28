@@ -73,7 +73,7 @@ internal static class ResourceHazardTracker
         return barrierCount;
     }
 
-    public static void CommitResourceUsages(Span<GraphicsResourceUsageEntry> usages, FencePoint completion)
+    public static void CommitResourceUsages(Span<GraphicsResourceUsageEntry> usages, FencePoint completion, ulong submissionSequence)
     {
         default(ArgumentException).ThrowIf(completion.IsNone, nameof(completion));
 
@@ -101,6 +101,11 @@ internal static class ResourceHazardTracker
             }
 
             record.D3D12State = usage.FinalState;
+
+            if (record.LastUseSequence < submissionSequence)
+            {
+                record.LastUseSequence = submissionSequence;
+            }
         }
     }
 

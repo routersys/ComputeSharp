@@ -165,7 +165,7 @@ internal static unsafe partial class ComputeSubmissionExecutor
 
             default(InvalidOperationException).ThrowIf(!record.TryMarkCompletionSignaled(), "The submission completion could not be signaled.");
 
-            ResourceHazardTracker.CommitResourceUsages(usages, execution.Completion);
+            ResourceHazardTracker.CommitResourceUsages(usages, execution.Completion, record.SubmissionSequence);
 
             MarkReleaseSignalEnqueued(usages, externalUsages);
 

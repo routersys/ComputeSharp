@@ -42,7 +42,7 @@ internal static unsafe partial class ComputeSubmissionExecutor
             default(InvalidOperationException).ThrowIf(!record.TryMarkExecutionIssued(), "The submission could not be marked as issued.");
             default(InvalidOperationException).ThrowIf(!record.TryMarkCompletionSignaled(), "The submission completion could not be signaled.");
 
-            ResourceHazardTracker.CommitResourceUsages(usages, completion);
+            ResourceHazardTracker.CommitResourceUsages(usages, completion, record.SubmissionSequence);
 
             default(InvalidOperationException).ThrowIf(!record.TryCommitHazards(), "The submission hazards could not be committed.");
 
