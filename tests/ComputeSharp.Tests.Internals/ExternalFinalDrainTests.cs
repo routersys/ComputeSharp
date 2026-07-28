@@ -1,7 +1,9 @@
 using System;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 
 namespace ComputeSharp.Tests.Internals;
 
@@ -111,6 +113,36 @@ public class ExternalFinalDrainTests
         Assert.AreEqual(2, fixture.Provider.SignalCount);
         Assert.AreEqual(1, first.DisposeCount);
         Assert.AreEqual(1, second.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ReleasesEveryPendingDrainWhenTheRegistryIsDisposed(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        SharedTextureSlot<Bgra32, Float4, FakeExternalView> slot = new();
+        DeviceRegistrationRegistry registry = new(graphicsDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+        _ = registry.RegisterResourceSet(
+            domain,
+            InteropResourceSetRegistrationTests.ResourceSetDescriptor(1),
+            [slot]);
+
+        Assert.IsTrue(slot.TryEnsure(16, 16, out _));
+
+        FakeExternalView view = provider.LastOpenedView!;
+
+        registry.Dispose();
+
+        Assert.AreEqual(1, provider.SignalCount);
+        Assert.AreEqual(1, view.DisposeCount);
     }
 
     [CombinatorialTestMethod]
