@@ -235,12 +235,12 @@ public class InteropDomainOperationTests
 
         Assert.AreSame(reason, domain.PoisonReason);
         Assert.AreEqual(DomainOperationStatus.DomainUnavailable, Acquire(domain, out _));
-        Assert.IsFalse(domain.IsDisposed);
-        Assert.AreEqual(0, provider.DisposeCount);
+        Assert.IsTrue(domain.IsDisposeRequested);
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
 
         domain.Dispose();
 
-        Assert.IsTrue(domain.IsDisposed);
         Assert.AreEqual(1, provider.DisposeCount);
     }
 

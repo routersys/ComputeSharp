@@ -50,6 +50,10 @@ internal struct ResourceGenerationRecord
 
     public ulong ReclaimableBytes;
 
+    public readonly bool HasQueueReferences =>
+        Volatile.Read(in this.RecordingReferenceCount) != 0 ||
+        Volatile.Read(in this.PendingSubmissionReferenceCount) != 0;
+
     public readonly bool HasReferences =>
         Volatile.Read(in this.OwnerReferenceCount) != 0 ||
         Volatile.Read(in this.RecordingReferenceCount) != 0 ||
@@ -191,7 +195,10 @@ internal struct ResourceGenerationRecord
             bool isAuthorized = current switch
             {
                 ResourceGenerationState.RetiredReady => authority is ResourceReleaseAuthority.NormalCompletion,
-                ResourceGenerationState.Faulted => authority is ResourceReleaseAuthority.DomainTeardown,
+                ResourceGenerationState.Faulted =>
+                    authority is ResourceReleaseAuthority.DomainTeardown &&
+                    !HasQueueReferences &&
+                    Volatile.Read(in this.ExternalObjectsReleased) != 0,
                 ResourceGenerationState.TerminalRetained => authority is ResourceReleaseAuthority.DeviceTeardown,
                 _ => false
             };

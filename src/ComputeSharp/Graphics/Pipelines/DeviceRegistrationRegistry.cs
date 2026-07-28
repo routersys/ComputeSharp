@@ -441,6 +441,21 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         RunExternalMaintenance(GetOrderedResourceSets());
     }
 
+    public void RequestResourceSetDispose(ComputeInteropDomain domain)
+    {
+        default(ArgumentNullException).ThrowIfNull(domain);
+
+        foreach (InteropResourceSetRuntime runtime in GetOrderedResourceSets())
+        {
+            if (ReferenceEquals(runtime.Domain, domain))
+            {
+                runtime.RequestDispose();
+
+                _ = runtime.TryCompleteDeferredRelease();
+            }
+        }
+    }
+
     public bool TryGetMinimumDrainFence(out ulong fenceValue)
     {
         InteropResourceSetRuntime[] registeredResourceSets;

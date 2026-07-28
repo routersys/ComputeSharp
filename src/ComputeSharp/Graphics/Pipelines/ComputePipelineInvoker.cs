@@ -171,6 +171,8 @@ internal static unsafe class ComputePipelineInvoker
                 _ = record.TryMarkTerminalRetained();
             }
 
+            registry.Coordinator.Wake();
+
             throw;
         }
     }

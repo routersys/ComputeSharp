@@ -178,6 +178,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             _ = this.record.TryReleaseOwner();
         }
 
+        this.registry.RequestResourceSetDispose(this);
+
         TryReleaseNative();
     }
 
@@ -230,11 +232,38 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         lock (this.gate)
         {
             isPoisoned = this.record.TryMarkPoisoned() && this.record.TryBeginTeardown();
+
+            if (isPoisoned)
+            {
+                _ = this.record.TryReleaseOwner();
+            }
         }
 
-        if (isPoisoned)
+        if (!isPoisoned)
         {
-            TryReleaseNative();
+            return;
+        }
+
+        this.registry.RequestResourceSetDispose(this);
+
+        TryReleaseNative();
+    }
+
+    /// <summary>
+    /// Gets whether the current domain still issues external queue work.
+    /// </summary>
+    /// <remarks>
+    /// A poisoned domain cannot be trusted to make progress on its external queue, so its teardown releases the
+    /// external objects it holds without asking the provider for one more drain.
+    /// </remarks>
+    internal bool IsExternalQueueUsable
+    {
+        get
+        {
+            lock (this.gate)
+            {
+                return this.record.State is ComputeInteropDomainState.Active or ComputeInteropDomainState.DisposeRequested;
+            }
         }
     }
 

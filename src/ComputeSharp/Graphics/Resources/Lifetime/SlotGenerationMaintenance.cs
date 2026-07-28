@@ -42,7 +42,12 @@ internal static class SlotGenerationMaintenance
             return true;
         }
 
-        return handle.Owner is ResourceGenerationOwner owner &&
-            owner.TryReleaseRetired(ResourceReleaseAuthority.NormalCompletion);
+        if (handle.Owner is not ResourceGenerationOwner owner)
+        {
+            return false;
+        }
+
+        return owner.TryReleaseRetired(ResourceReleaseAuthority.NormalCompletion) ||
+            owner.TryReleaseRetired(ResourceReleaseAuthority.DomainTeardown);
     }
 }

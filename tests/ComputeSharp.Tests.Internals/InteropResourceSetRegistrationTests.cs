@@ -206,19 +206,43 @@ public class InteropResourceSetRegistrationTests
             ResourceSetDescriptor(1),
             CreateSlots(1));
 
-        domain.Dispose();
+        resources.Dispose();
+        resources.WaitForDisposal();
 
-        Assert.IsTrue(domain.IsDisposeRequested);
+        Assert.IsFalse(domain.IsDisposeRequested);
         Assert.IsFalse(domain.IsDisposed);
         Assert.AreEqual(0, provider.DisposeCount);
 
-        resources.Dispose();
+        domain.Dispose();
+
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void DisposingADomainRequestsTheDisposalOfItsResourceSets(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        ComputeInteropResourceSetRuntime resources = ComputeInteropResourceSetRuntime.Create(
+            graphicsDevice,
+            domain,
+            ResourceSetDescriptor(1),
+            CreateSlots(1));
+
+        domain.Dispose();
 
         Assert.IsTrue(resources.IsDisposeRequested);
         Assert.IsTrue(domain.IsDisposed);
         Assert.AreEqual(1, provider.DisposeCount);
 
-        resources.WaitForDisposal();
+        resources.Dispose();
     }
 
     [CombinatorialTestMethod]

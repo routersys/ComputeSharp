@@ -323,7 +323,9 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             return false;
         }
 
-        bool isDrainRequired = owner.GetResourceRecord(0).ReadOwnership() is not ExternalOwnershipState.ComputeAvailable;
+        bool isDrainRequired =
+            owner.GetResourceRecord(0).ReadOwnership() is not ExternalOwnershipState.ComputeAvailable &&
+            runtime.Domain.IsExternalQueueUsable;
 
         if (!TryEnterExternalMaintenance(owner.GetResourceRecord(0).Id, isDrainRequired, out ExternalDrainPhase phase))
         {
@@ -398,9 +400,14 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
                     return this.maintenance.TrySkipFinalDrain();
                 }
             }
-            else if (this.maintenance.Generation.Value != generation.Value || this.maintenance.IsFaulted)
+            else if (this.maintenance.Generation.Value != generation.Value)
             {
                 return false;
+            }
+
+            if (this.maintenance.IsFaulted)
+            {
+                return true;
             }
 
             phase = this.maintenance.State switch
