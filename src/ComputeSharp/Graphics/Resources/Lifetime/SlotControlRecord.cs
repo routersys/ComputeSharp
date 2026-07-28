@@ -1,5 +1,6 @@
 using System;
 using ComputeSharp.Graphics.Pipelines;
+using ComputeSharp.Interop;
 
 namespace ComputeSharp.Resources.Lifetime;
 
@@ -70,11 +71,113 @@ internal struct SlotControlRecord
 
     public static void ReleasePin(in ResourceGenerationPin pin)
     {
-        ref ResourceGenerationRecord record = ref pin.Handle.Owner.GetResourceRecord(pin.ResourceIndex);
+        GetPinnedRecord(in pin).ReleaseRecordingReference();
+    }
 
-        default(InvalidOperationException).ThrowIf(record.Id != pin.GenerationId, "The pinned generation no longer matches.");
+    public readonly bool TryPinActiveExternal<TView>(int resourceIndex, out ResourceGenerationPin pin, out TView view)
+        where TView : class
+    {
+        pin = default;
+        view = null!;
 
-        record.ReleaseRecordingReference();
+        if (TryGetActiveExternalOwner(resourceIndex) is not ResourceGenerationOwner owner ||
+            owner.TryGetExternalObject<TView>(resourceIndex) is not TView externalView)
+        {
+            return false;
+        }
+
+        ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
+
+        if (!record.TryAcquireExternalReference())
+        {
+            return false;
+        }
+
+        pin = new ResourceGenerationPin(this.Active, record.Id, resourceIndex);
+        view = externalView;
+
+        return true;
+    }
+
+    public readonly bool TryAcquirePersistentLease<TView>(
+        InteropResourceSetRuntime runtime,
+        int resourceIndex,
+        out ResourceGenerationPin pin,
+        out TView view)
+        where TView : class
+    {
+        pin = default;
+        view = null!;
+
+        if (TryGetActiveExternalOwner(resourceIndex) is not ResourceGenerationOwner owner ||
+            owner.TryGetExternalObject<TView>(resourceIndex) is not TView externalView)
+        {
+            return false;
+        }
+
+        ComputeInteropDomain domain = runtime.Domain;
+
+        ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
+
+        if (record.ReadLifecycle() is not ResourceGenerationState.Active)
+        {
+            return false;
+        }
+
+        default(InvalidOperationException).ThrowIf(
+            record.ReadOwnership() is ExternalOwnershipState.ComputeAvailable,
+            "The published texture generation is owned by the compute queue.");
+        default(InvalidOperationException).ThrowIf(
+            !record.TryAcquirePersistentLease(),
+            "The published texture generation is already leased to the external queue.");
+
+        if (!record.TryAcquireExternalReference())
+        {
+            record.ReleasePersistentLease();
+
+            return false;
+        }
+
+        if (!domain.TryAcquireReference(ExternalDomainReference.PersistentLease))
+        {
+            record.ReleaseExternalReference();
+            record.ReleasePersistentLease();
+
+            return false;
+        }
+
+        if (!runtime.TryAcquirePersistentLease())
+        {
+            domain.ReleaseReference(ExternalDomainReference.PersistentLease);
+            record.ReleaseExternalReference();
+            record.ReleasePersistentLease();
+
+            return false;
+        }
+
+        pin = new ResourceGenerationPin(this.Active, record.Id, resourceIndex);
+        view = externalView;
+
+        return true;
+    }
+
+    public static void ReleaseExternalPin(GraphicsDevice device, in ResourceGenerationPin pin)
+    {
+        ref ResourceGenerationRecord record = ref GetPinnedRecord(in pin);
+
+        record.ReleaseExternalReference();
+
+        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
+    }
+
+    public static void ReleasePersistentLeasePin(GraphicsDevice device, in ResourceGenerationPin pin)
+    {
+        ref ResourceGenerationRecord record = ref GetPinnedRecord(in pin);
+
+        record.ReleaseExternalReference();
+        record.ReleasePersistentLease();
+
+        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
     }
 
     public readonly bool CanApplyLogicalUpdate(ResourceGenerationSetId expectedActiveSetId, ulong expectedBindingEpoch)
@@ -328,6 +431,29 @@ internal struct SlotControlRecord
         generationId = record.Id;
 
         return true;
+    }
+
+    private readonly ResourceGenerationOwner? TryGetActiveExternalOwner(int resourceIndex)
+    {
+        ResourceGenerationSetHandle active = this.Active;
+
+        if (this.IsDisposeRequested ||
+            !this.IsAllocated ||
+            (uint)resourceIndex >= (uint)active.Owner.ResourceCount)
+        {
+            return null;
+        }
+
+        return active.Owner as ResourceGenerationOwner;
+    }
+
+    private static ref ResourceGenerationRecord GetPinnedRecord(in ResourceGenerationPin pin)
+    {
+        ref ResourceGenerationRecord record = ref pin.Handle.Owner.GetResourceRecord(pin.ResourceIndex);
+
+        default(InvalidOperationException).ThrowIf(record.Id != pin.GenerationId, "The pinned generation no longer matches.");
+
+        return ref record;
     }
 
     private static void RetireAndReleaseOwnership(in ResourceGenerationSetHandle handle)

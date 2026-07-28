@@ -164,6 +164,50 @@ internal struct SlotGate
         }
     }
 
+    public bool TryPinActiveExternal<TView>(int resourceIndex, out ResourceGenerationPin pin, out TView view)
+        where TView : class
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            return this.control.TryPinActiveExternal(resourceIndex, out pin, out view);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    public bool TryAcquirePersistentLease<TView>(
+        InteropResourceSetRuntime runtime,
+        int resourceIndex,
+        out ResourceGenerationPin pin,
+        out TView view)
+        where TView : class
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            return this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view);
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
     public ResourcePlanDecision Evaluate(in OwnedSlotDescriptor descriptor, ReadOnlySpan<int> requestedPlan)
     {
         bool taken = false;
