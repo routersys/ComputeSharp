@@ -162,10 +162,10 @@ public class GeneratedInteropPipelineTests
             Assert.IsNotNull(fixture.Domain.PoisonReason);
             Assert.IsTrue(fixture.Domain.IsDisposeRequested);
             Assert.AreEqual(ExternalOwnershipState.Faulted, owner.GetResourceRecord(0).ReadOwnership());
-            Assert.IsFalse(fixture.Scheduler.IsReserved);
 
             fixture.Resources.WaitForDisposal();
 
+            Assert.IsFalse(fixture.Scheduler.IsReserved);
             Assert.AreEqual(1, view.DisposeCount);
             Assert.AreEqual(0, fixture.Provider.WaitCount);
             Assert.AreEqual(ResourceGenerationState.Released, owner.GetResourceRecord(0).ReadLifecycle());

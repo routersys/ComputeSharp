@@ -68,13 +68,13 @@ public class ExternalFinalDrainTests
         Assert.AreEqual(1, fixture.Provider.SignalCount);
         Assert.AreEqual(1, fixture.Provider.FlushCount);
         Assert.IsTrue(fixture.Provider.WasReservedWhileSignaling);
-        Assert.IsFalse(fixture.Scheduler.IsReserved);
         Assert.AreEqual(0, view.DisposeCount);
 
         fixture.Slot.WaitForDisposal();
 
         Assert.AreEqual(1, view.DisposeCount);
         Assert.AreEqual(1, view.CompletedSignalsAtDispose);
+        Assert.IsFalse(fixture.Scheduler.IsReserved);
     }
 
     [CombinatorialTestMethod]
