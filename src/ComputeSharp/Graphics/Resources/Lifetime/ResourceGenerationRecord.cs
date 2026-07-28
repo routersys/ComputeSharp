@@ -110,6 +110,18 @@ internal struct ResourceGenerationRecord
         Decrement(ref this.ExternalReferenceCount);
     }
 
+    public bool TryAcquirePersistentLease()
+    {
+        return Interlocked.CompareExchange(ref this.PersistentLeaseActive, 1, 0) == 0;
+    }
+
+    public void ReleasePersistentLease()
+    {
+        default(InvalidOperationException).ThrowIf(
+            Interlocked.CompareExchange(ref this.PersistentLeaseActive, 0, 1) != 1,
+            "The resource generation holds no persistent lease.");
+    }
+
     public bool TryAcquireCpuReference()
     {
         if (ReadLifecycle() is not ResourceGenerationState.Active)
