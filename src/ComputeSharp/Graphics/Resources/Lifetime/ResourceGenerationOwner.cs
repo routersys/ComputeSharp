@@ -107,6 +107,14 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         return (uint)resourceOrdinal < (uint)this.records.Length ? this.resources[resourceOrdinal] as TResource : null;
     }
 
+    public TView? TryGetExternalObject<TView>(int resourceOrdinal)
+        where TView : class
+    {
+        return (uint)resourceOrdinal < (uint)this.records.Length
+            ? Volatile.Read(ref this.externalObjects[resourceOrdinal]) as TView
+            : null;
+    }
+
     public void AttachResource(
         IReferenceTrackedObject resource,
         ID3D12Resource* d3D12Resource,
