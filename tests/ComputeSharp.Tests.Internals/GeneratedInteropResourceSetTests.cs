@@ -112,14 +112,27 @@ public class GeneratedInteropResourceSetTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void RejectsTheExternalViewMembersUntilInteropLifetimeExists(Device device)
+    public void LendsTheExternalViewOfEverySharedTextureTheExternalQueueOwns(Device device)
     {
         using Fixture fixture = Create(device);
 
         Assert.IsTrue(fixture.Resources.TryEnsureSource(8, 8, out _));
 
-        _ = Assert.ThrowsException<InvalidOperationException>(() => { _ = fixture.Resources.BeginSourceExternalOperation().IsValid; });
-        _ = Assert.ThrowsException<InvalidOperationException>(() => _ = fixture.Resources.AcquireSourceExternalViewLease());
+        FakeExternalView source = fixture.Provider.LastOpenedView!;
+
+        using (BorrowedExternalTextureView<FakeExternalView> borrow = fixture.Resources.BeginSourceExternalOperation())
+        {
+            Assert.IsTrue(borrow.IsValid);
+            Assert.AreSame(source, borrow.DangerousGetView());
+        }
+
+        using ExternalTextureLease<FakeExternalView> lease = fixture.Resources.AcquireSourceExternalViewLease();
+
+        Assert.AreSame(source, lease.DangerousGetView());
+
+        Assert.IsTrue(fixture.Resources.TryEnsureOutput(8, 8, out _));
+
+        _ = Assert.ThrowsException<InvalidOperationException>(fixture.Resources.AcquireOutputExternalViewLease);
     }
 
     [CombinatorialTestMethod]

@@ -220,22 +220,81 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// Begins a transient external operation over the currently published texture generation.
     /// </summary>
     /// <returns>A transient borrow of the external view.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the slot, its resource set or its domain cannot lend the external view.</exception>
+    /// <remarks>
+    /// The borrow holds the external queue ownership of the domain for its whole lifetime, so it is disposed
+    /// as soon as the external queue work it was taken for has been enqueued.
+    /// </remarks>
     public BorrowedExternalTextureView<TView> BeginExternalOperation()
     {
         ThrowIfNotBound();
 
-        throw new InvalidOperationException("The shared texture slot does not borrow external views yet.");
+        InteropResourceSetRuntime runtime = this.runtime!;
+
+        using ReferenceTracker.Lease _0 = runtime.Device.GetReferenceTracker().GetLease();
+
+        runtime.Device.ThrowIfDeviceTerminal();
+
+        default(InvalidOperationException).ThrowIf(
+            runtime.State is not RegistrationState.Active,
+            "The compute interop resource set no longer accepts work.");
+        default(InvalidOperationException).ThrowIf(
+            !this.slotGate.TryPinActiveExternal(0, out ResourceGenerationPin pin, out TView view),
+            "The shared texture slot has no published texture generation to borrow.");
+
+        ComputeInteropDomain domain = runtime.Domain;
+
+        DomainOperationStatus status = domain.TryAcquireOperation(
+            ExternalDomainReference.TransientOperation,
+            pin.GenerationId,
+            releaseExternalReferenceOnDispose: true,
+            out DomainOperationLease lease,
+            out Exception? schedulerFailure);
+
+        if (status is not DomainOperationStatus.Acquired)
+        {
+            domain.ReleaseGenerationExternalReference(in pin);
+
+            throw new InvalidOperationException(
+                $"The shared texture slot could not acquire an operation of its domain ({status}).",
+                schedulerFailure);
+        }
+
+        BorrowedExternalTextureView<TView> borrow = new(new ExternalQueueOperation(domain, lease.Token, pin.GenerationId), in pin, view);
+
+        if (borrow.IsBoundGenerationAvailable())
+        {
+            return borrow;
+        }
+
+        borrow.Dispose();
+
+        throw new InvalidOperationException("The published texture generation is not available to the external queue.");
     }
 
     /// <summary>
     /// Acquires a persistent lease over the external view of the currently published texture generation.
     /// </summary>
     /// <returns>A persistent lease over the external view.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the slot, its resource set or its domain cannot lease the external view.</exception>
     public ExternalTextureLease<TView> AcquireExternalViewLease()
     {
         ThrowIfNotBound();
 
-        throw new InvalidOperationException("The shared texture slot does not lease external views yet.");
+        InteropResourceSetRuntime runtime = this.runtime!;
+
+        using ReferenceTracker.Lease _0 = runtime.Device.GetReferenceTracker().GetLease();
+
+        runtime.Device.ThrowIfDeviceTerminal();
+
+        default(InvalidOperationException).ThrowIf(
+            runtime.State is not RegistrationState.Active,
+            "The compute interop resource set no longer accepts work.");
+        default(InvalidOperationException).ThrowIf(
+            !this.slotGate.TryAcquirePersistentLease(runtime, 0, out ResourceGenerationPin pin, out TView view),
+            "The shared texture slot cannot lease the external view of its published texture generation.");
+
+        return new ExternalTextureLease<TView>(runtime, in pin, view);
     }
 
     /// <inheritdoc/>
@@ -311,11 +370,14 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             out ResourceGenerationSetHandle retired,
             out bool isRetiringActive);
 
-        ResourceGenerationOwner? owner = TryGetPendingExternalRelease(in retired);
+        bool isDomainPoisoned = runtime.Domain.PoisonReason is not null;
+
+        ResourceGenerationOwner? owner = TryGetPendingExternalRelease(in retired, isDomainPoisoned);
 
         if (owner is null && isRetiringActive)
         {
-            owner = TryGetPendingExternalRelease(in active) ?? TryGetPendingExternalRelease(in prepared);
+            owner = TryGetPendingExternalRelease(in active, isDomainPoisoned) ??
+                TryGetPendingExternalRelease(in prepared, isDomainPoisoned);
         }
 
         if (owner is null)
@@ -500,15 +562,28 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// Gets the generation of a handle whose external objects are still held, if there is one.
     /// </summary>
     /// <param name="handle">The handle of the generation to inspect.</param>
+    /// <param name="isDomainPoisoned">Whether the domain of the current slot was poisoned.</param>
     /// <returns>The generation still holding external objects, or <see langword="null"/>.</returns>
-    private static ResourceGenerationOwner? TryGetPendingExternalRelease(in ResourceGenerationSetHandle handle)
+    /// <remarks>
+    /// A generation an external view is borrowed or leased from keeps its external objects, as releasing them
+    /// would leave the holder of the view with a dangling one. A poisoned domain converges without waiting for
+    /// its references instead, and the holders of its views observe its failure rather than the view.
+    /// </remarks>
+    private static ResourceGenerationOwner? TryGetPendingExternalRelease(in ResourceGenerationSetHandle handle, bool isDomainPoisoned)
     {
         if (handle.IsEmpty || handle.Owner is not ResourceGenerationOwner owner)
         {
             return null;
         }
 
-        return Volatile.Read(ref owner.GetResourceRecord(0).ExternalObjectsReleased) == 0 ? owner : null;
+        ref ResourceGenerationRecord record = ref owner.GetResourceRecord(0);
+
+        if (Volatile.Read(ref record.ExternalObjectsReleased) != 0)
+        {
+            return null;
+        }
+
+        return isDomainPoisoned || Volatile.Read(ref record.ExternalReferenceCount) == 0 ? owner : null;
     }
 
     /// <summary>
