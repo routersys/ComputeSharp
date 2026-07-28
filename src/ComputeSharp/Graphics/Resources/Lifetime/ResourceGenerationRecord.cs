@@ -220,6 +220,11 @@ internal struct ResourceGenerationRecord
         return TryTransitionLifecycle(ResourceGenerationState.Releasing, ResourceGenerationState.Released);
     }
 
+    public bool TryMarkFaulted()
+    {
+        return TryTransitionLifecycle(ResourceGenerationState.Active, ResourceGenerationState.Faulted);
+    }
+
     public bool TryMarkTerminalRetained()
     {
         while (true)

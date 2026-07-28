@@ -129,15 +129,24 @@ internal static unsafe class ComputePipelineInvoker
 
             ValidateContracts(host, in pipeline, recordIndex, bundleIndex);
 
-            ComputeSubmission submission = ComputeSubmissionExecutor.Submit(
+            if (pipeline.Flags.HasFlag(PipelineFlags.InteropRoundTrip))
+            {
+                return ComputeSubmissionExecutor.SubmitInterop(
+                    host.Device,
+                    host,
+                    registry.Completions,
+                    recordIndex,
+                    bundleIndex,
+                    ref retention);
+            }
+
+            return ComputeSubmissionExecutor.Submit(
                 host.Device,
                 host,
                 registry.Completions,
                 recordIndex,
                 bundleIndex,
                 ref retention);
-
-            return submission;
         }
         catch
         {

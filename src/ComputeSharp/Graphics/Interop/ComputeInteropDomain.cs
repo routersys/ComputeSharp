@@ -74,6 +74,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     private Exception? poisonReason;
 
     /// <summary>
+    /// The last value of the timeline of the current domain that was handed out.
+    /// </summary>
+    private ulong lastTimelineValue;
+
+    /// <summary>
     /// Creates a new <see cref="ComputeInteropDomain"/> instance with the specified parameters.
     /// </summary>
     /// <param name="device">The device the domain is registered on.</param>
@@ -242,6 +247,85 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         where TView : class, IDisposable
     {
         return this.endpoint as ExternalProviderEndpoint<TView>;
+    }
+
+    /// <summary>
+    /// Gets the shared fence backing the timeline of the current domain.
+    /// </summary>
+    /// <remarks>
+    /// The fence is released with the native objects of the domain, so it is only valid to the holder of a
+    /// domain operation lease or of another reference keeping the domain alive.
+    /// </remarks>
+    internal ID3D12Fence* SharedFence => this.d3D12SharedFence.Get();
+
+    /// <summary>
+    /// Reserves the next value of the timeline of the current domain.
+    /// </summary>
+    /// <returns>The reserved timeline value.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the timeline of the domain is exhausted.</exception>
+    /// <remarks>
+    /// The runtime is the only producer of timeline values, and values are neither wrapped nor reused, so an
+    /// exhausted timeline poisons the domain rather than restarting it.
+    /// </remarks>
+    internal ulong ReserveTimelineValue()
+    {
+        ulong value = Interlocked.Increment(ref this.lastTimelineValue);
+
+        if (value != 0)
+        {
+            return value;
+        }
+
+        InvalidOperationException reason = new($"""The timeline of the interop domain "{this.id.Value}" is exhausted.""");
+
+        MarkPoisoned(reason);
+
+        throw reason;
+    }
+
+    /// <summary>
+    /// Signals a timeline value on the external queue of the current domain and flushes it.
+    /// </summary>
+    /// <param name="value">The timeline value to signal.</param>
+    /// <exception cref="Exception">Rethrown from the provider if the call failed.</exception>
+    /// <remarks>
+    /// A provider that fails here leaves the external queue in an unknown state, so the domain is poisoned
+    /// before the failure is propagated to the caller.
+    /// </remarks>
+    internal void EnqueueExternalSignal(ulong value)
+    {
+        try
+        {
+            this.endpoint.EnqueueSignal(value);
+            this.endpoint.FlushAfterSignal();
+        }
+        catch (Exception e)
+        {
+            SaveProviderDiagnostic(e);
+            MarkPoisoned(e);
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Enqueues a wait for a timeline value on the external queue of the current domain.
+    /// </summary>
+    /// <param name="value">The timeline value to wait for.</param>
+    /// <exception cref="Exception">Rethrown from the provider if the call failed.</exception>
+    internal void EnqueueExternalWait(ulong value)
+    {
+        try
+        {
+            this.endpoint.EnqueueWait(value);
+        }
+        catch (Exception e)
+        {
+            SaveProviderDiagnostic(e);
+            MarkPoisoned(e);
+
+            throw;
+        }
     }
 
     /// <summary>

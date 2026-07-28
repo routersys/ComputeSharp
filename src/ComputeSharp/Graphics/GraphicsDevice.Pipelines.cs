@@ -287,13 +287,97 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Executes the recorded segments of an interop pipeline submission between the two halves of a round-trip.
+    /// </summary>
+    /// <param name="d3D12CommandLists">The closed command list segments to execute, in recorded order.</param>
+    /// <param name="d3D12CopyFenceWaitValue">The manual copy queue fence value to wait on, or <c>0</c> for none.</param>
+    /// <param name="d3D12SharedFence">The shared fence backing the timeline of the interop domain.</param>
+    /// <param name="acquireValue">The timeline value the external queue signals, or <c>0</c> for none.</param>
+    /// <param name="releaseValue">The timeline value the compute queue signals for the external queue.</param>
+    /// <returns>The outcome of the queue sequence.</returns>
+    /// <remarks>
+    /// The compute queue gate is held across the whole sequence, so no other submission can signal the
+    /// completion fence between the execution and the release of the shared texture. Failures are reported
+    /// rather than thrown, as the caller has to record that the execution was issued before it propagates
+    /// them, and marking the device terminal inside the queue gate would cross the gate order.
+    /// </remarks>
+    internal InteropQueueExecution ExecuteInteropPipelineCommandLists(
+        ReadOnlySpan<nint> d3D12CommandLists,
+        ulong d3D12CopyFenceWaitValue,
+        ID3D12Fence* d3D12SharedFence,
+        ulong acquireValue,
+        ulong releaseValue)
+    {
+        default(ArgumentException).ThrowIf(d3D12CommandLists.IsEmpty, nameof(d3D12CommandLists));
+        default(ArgumentException).ThrowIf(d3D12CommandLists.Length > CommandListLeaseSet.MaximumSegmentCount, nameof(d3D12CommandLists));
+        default(ArgumentNullException).ThrowIf(d3D12SharedFence is null, nameof(d3D12SharedFence));
+        default(ArgumentException).ThrowIf(releaseValue == 0, nameof(releaseValue));
+
+        ID3D12CommandList** d3D12CommandListEntries = stackalloc ID3D12CommandList*[CommandListLeaseSet.MaximumSegmentCount];
+
+        for (int i = 0; i < d3D12CommandLists.Length; i++)
+        {
+            default(ArgumentException).ThrowIf(d3D12CommandLists[i] == 0, nameof(d3D12CommandLists));
+
+            d3D12CommandListEntries[i] = (ID3D12CommandList*)d3D12CommandLists[i];
+        }
+
+        ulong completionValue = 0;
+        HRESULT hresult = S.S_OK;
+        bool isSequenceExhausted;
+        bool isExecutionIssued = false;
+        string operation = "Wait";
+
+        lock (this.d3D12ComputeCommandQueueLock)
+        {
+            if (d3D12CopyFenceWaitValue > 0 && d3D12CopyFenceWaitValue > this.d3D12CopyFence.Get()->GetCompletedValue())
+            {
+                hresult = this.d3D12ComputeCommandQueue.Get()->Wait(this.d3D12CopyFence.Get(), d3D12CopyFenceWaitValue);
+            }
+
+            if (hresult >= 0 && acquireValue > 0)
+            {
+                hresult = this.d3D12ComputeCommandQueue.Get()->Wait(d3D12SharedFence, acquireValue);
+            }
+
+            isSequenceExhausted = this.nextD3D12ComputeFenceValue == ulong.MaxValue;
+
+            if (hresult >= 0 && !isSequenceExhausted)
+            {
+                this.d3D12ComputeCommandQueue.Get()->ExecuteCommandLists((uint)d3D12CommandLists.Length, d3D12CommandListEntries);
+
+                isExecutionIssued = true;
+                operation = "Signal";
+
+                hresult = this.d3D12ComputeCommandQueue.Get()->Signal(d3D12SharedFence, releaseValue);
+
+                if (hresult >= 0)
+                {
+                    completionValue = ++this.nextD3D12ComputeFenceValue;
+
+                    hresult = this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue);
+                }
+            }
+        }
+
+        return new InteropQueueExecution
+        {
+            IsExecutionIssued = isExecutionIssued,
+            Completion = hresult >= 0 ? new FencePoint(ComputeQueueKind.Compute, completionValue) : FencePoint.None,
+            Result = hresult,
+            FailedOperation = operation,
+            IsSequenceExhausted = isSequenceExhausted
+        };
+    }
+
+    /// <summary>
     /// Moves the current device to its terminal state for a failed compute queue call, and throws the reason.
     /// </summary>
     /// <param name="hresult">The <see cref="HRESULT"/> the call failed with.</param>
     /// <param name="operation">The name of the failed call.</param>
     /// <exception cref="InvalidOperationException">Always thrown.</exception>
     [DoesNotReturn]
-    private void ThrowTerminalQueueFailure(HRESULT hresult, string operation)
+    internal void ThrowTerminalQueueFailure(HRESULT hresult, string operation)
     {
         InvalidOperationException reason = new(
             $"""The "{operation}" call on the compute queue of the device "{this}" failed with code 0x{(uint)hresult:X8}.""");

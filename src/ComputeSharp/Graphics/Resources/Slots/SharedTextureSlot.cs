@@ -653,7 +653,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             d3D12Resource.Get(),
             width,
             height,
-            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_COMMON);
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
         owner.AttachResource(texture, d3D12Resource.Get(), TrackedResourceState.Common, declaration.SizeInBytes);
 

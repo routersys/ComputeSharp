@@ -6,7 +6,7 @@ namespace ComputeSharp.Graphics.Pipelines;
 
 internal static unsafe class ResourceBarrierRecorder
 {
-    public static void RecordPrologue(
+    public static void RecordBarriers(
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList,
         Span<GraphicsResourceUsageEntry> usages,
         ReadOnlySpan<ResourceBarrierPlanEntry> plan)

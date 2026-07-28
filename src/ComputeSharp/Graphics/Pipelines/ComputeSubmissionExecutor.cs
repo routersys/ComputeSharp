@@ -5,7 +5,7 @@ using ComputeSharp.Win32;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
-internal static unsafe class ComputeSubmissionExecutor
+internal static unsafe partial class ComputeSubmissionExecutor
 {
     public static ComputeSubmission Submit(
         GraphicsDevice device,
@@ -34,17 +34,8 @@ internal static unsafe class ComputeSubmissionExecutor
             default(InvalidOperationException).ThrowIf(!record.TryCompleteValidation(), "The submission could not complete its validation.");
 
             Span<nint> d3D12CommandLists = stackalloc nint[CommandListLeaseSet.MaximumSegmentCount];
-            int segmentCount = 0;
 
-            for (int i = 0; i < retention.CommandLists.Count; i++)
-            {
-                ref CommandListSegmentLease lease = ref CommandListLeaseSet.GetSegment(ref retention.CommandLists, i);
-
-                if (lease.IsValid != 0)
-                {
-                    d3D12CommandLists[segmentCount++] = lease.CommandList;
-                }
-            }
+            int segmentCount = CollectCommandLists(ref retention, d3D12CommandLists);
 
             FencePoint completion = device.ExecutePipelineCommandLists(d3D12CommandLists[..segmentCount], copyFenceWaitValue);
 
@@ -98,7 +89,7 @@ internal static unsafe class ComputeSubmissionExecutor
 
         try
         {
-            ResourceBarrierRecorder.RecordPrologue(d3D12CommandList, usages, plan[..barrierCount]);
+            ResourceBarrierRecorder.RecordBarriers(d3D12CommandList, usages, plan[..barrierCount]);
 
             d3D12CommandList->Close().Assert();
 
