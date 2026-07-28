@@ -35,7 +35,7 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
             .WithTrackingName(WellKnownTrackingNames.Execute)
             .Where(static item => item is not null)!;
 
-        IncrementalValuesProvider<PipelineDescriptorInfo> resourceSetInfo =
+        IncrementalValuesProvider<InteropResourceSetInfo> resourceSetInfo =
             context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 "ComputeSharp.ComputeInteropResourceSetAttribute",
@@ -102,20 +102,23 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     /// <param name="context">The current generator context.</param>
     /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
     /// <returns>The descriptor info for the candidate type, if it declares a valid contract.</returns>
-    private static PipelineDescriptorInfo? GetResourceSetInfo(GeneratorAttributeSyntaxContext context, CancellationToken token)
+    private static InteropResourceSetInfo? GetResourceSetInfo(GeneratorAttributeSyntaxContext context, CancellationToken token)
     {
         if (context.TargetSymbol is not INamedTypeSymbol { IsGenericType: false } typeSymbol ||
             !PipelineWellKnownSymbols.TryCreate(context.SemanticModel.Compilation, out PipelineWellKnownSymbols? symbols) ||
-            !InteropResourceSetContractModelBuilder.TryBuild(typeSymbol, symbols, out InteropResourceSetContractInfo resourceSet))
+            !InteropResourceSetContractModelBuilder.TryBuild(typeSymbol, symbols, out InteropResourceSetContractInfo resourceSet) ||
+            !InteropResourceSetSyntaxModelBuilder.TryBuild(resourceSet, out EquatableArray<SharedTextureSlotSyntaxInfo> slots))
         {
             return null;
         }
 
         token.ThrowIfCancellationRequested();
 
-        return new PipelineDescriptorInfo(
+        return new InteropResourceSetInfo(
             HierarchyInfo.From(typeSymbol),
-            ImmutableArray.Create(PipelineDescriptorWriter.Write(resourceSet)));
+            typeSymbol.Name,
+            ImmutableArray.Create(PipelineDescriptorWriter.Write(resourceSet)),
+            slots);
     }
 
     /// <summary>
@@ -140,15 +143,23 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     }
 
     /// <summary>
-    /// Emits the generated source for a given descriptor info.
+    /// Emits the generated source for a given interop resource set info.
     /// </summary>
     /// <param name="context">The current source production context.</param>
-    /// <param name="item">The descriptor info to emit the source for.</param>
-    private static void Emit(SourceProductionContext context, PipelineDescriptorInfo item)
+    /// <param name="item">The resource set info to emit the source for.</param>
+    private static void Emit(SourceProductionContext context, InteropResourceSetInfo item)
     {
         using IndentedTextWriter writer = new();
 
-        item.Hierarchy.WriteSyntax(item, writer, [], [WriteCanonicalDescriptor]);
+        item.Hierarchy.WriteSyntax(
+            item,
+            writer,
+            ["global::System.IDisposable"],
+            [
+                static (item, writer) => WriteCanonicalDescriptor(item.Descriptor, writer),
+                WriteResourceSetRegistration,
+                WriteResourceSetSlots
+            ]);
 
         context.AddSource($"{item.Hierarchy.FullyQualifiedMetadataName}.g.cs", writer.ToString());
     }
@@ -198,16 +209,6 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
         item.Hierarchy.WriteSyntax(item, writer, [], [static (item, writer) => WriteResourcePlan(item.Plan, writer)]);
 
         context.AddSource($"{item.Hierarchy.FullyQualifiedMetadataName}.g.cs", writer.ToString());
-    }
-
-    /// <summary>
-    /// Writes the canonical descriptor member of a given descriptor info.
-    /// </summary>
-    /// <param name="item">The descriptor info to write the member for.</param>
-    /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
-    private static void WriteCanonicalDescriptor(PipelineDescriptorInfo item, IndentedTextWriter writer)
-    {
-        WriteCanonicalDescriptor(item.Descriptor, writer);
     }
 
     /// <summary>

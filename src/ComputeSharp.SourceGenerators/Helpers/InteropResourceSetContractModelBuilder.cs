@@ -51,7 +51,7 @@ internal static class InteropResourceSetContractModelBuilder
                 HasInitializer(fieldSymbol) ||
                 !GeneratedIdentifier.TryCreateCanonicalName(fieldSymbol.MetadataName, out string canonicalName) ||
                 !canonicalNames.Add(canonicalName) ||
-                !TryGetSharedTextureBindingType(fieldSymbol.Type, symbols, out string? bindingTypeMetadataName) ||
+                !TryGetSharedTextureSlotType(fieldSymbol.Type, symbols, out SharedTextureSlotTypeValues types) ||
                 !TryGetSharedTextureContract(attribute, out SharedTextureAttributeValues values))
             {
                 return false;
@@ -60,7 +60,12 @@ internal static class InteropResourceSetContractModelBuilder
             builder.Add(new SharedTextureContractInfo(
                 uint.MaxValue,
                 fieldSymbol.MetadataName,
-                bindingTypeMetadataName,
+                types.BindingTypeMetadataName,
+                types.ElementTypeName,
+                types.PixelTypeName,
+                types.ViewTypeName,
+                types.BindingAccessibility,
+                types.ViewAccessibility,
                 values.ResizePolicy,
                 values.ComputeAccess,
                 values.ExternalAccess,
@@ -86,18 +91,18 @@ internal static class InteropResourceSetContractModelBuilder
     }
 
     /// <summary>
-    /// Tries to get the canonical metadata name of the compute binding type of a shared texture slot.
+    /// Tries to get the declared types of a shared texture slot.
     /// </summary>
     /// <param name="slotTypeSymbol">The declared shared texture slot type.</param>
     /// <param name="symbols">The well known symbols to resolve the declaration with.</param>
-    /// <param name="bindingTypeMetadataName">The resulting canonical metadata name of the compute binding type.</param>
-    /// <returns>Whether the compute binding type could be resolved.</returns>
-    private static bool TryGetSharedTextureBindingType(
+    /// <param name="types">The resulting declared types, if the slot type is a shared texture slot.</param>
+    /// <returns>Whether the declared types could be resolved.</returns>
+    private static bool TryGetSharedTextureSlotType(
         ITypeSymbol slotTypeSymbol,
         PipelineWellKnownSymbols symbols,
-        out string bindingTypeMetadataName)
+        out SharedTextureSlotTypeValues types)
     {
-        bindingTypeMetadataName = "";
+        types = default;
 
         if (slotTypeSymbol is not INamedTypeSymbol { IsGenericType: true } namedTypeSymbol ||
             !SymbolEqualityComparer.Default.Equals(namedTypeSymbol.OriginalDefinition, symbols.SharedTextureSlot))
@@ -105,20 +110,33 @@ internal static class InteropResourceSetContractModelBuilder
             return false;
         }
 
+        ITypeSymbol elementTypeSymbol = namedTypeSymbol.TypeArguments[0];
+        ITypeSymbol pixelTypeSymbol = namedTypeSymbol.TypeArguments[1];
+        ITypeSymbol viewTypeSymbol = namedTypeSymbol.TypeArguments[2];
+
         using ImmutableArrayBuilder<char> builder = new();
 
         builder.AddRange(SharedTextureBindingTypeMetadataName.ToCharArray());
         builder.Add('[');
 
-        CanonicalTypeNameBuilder.AppendCanonicalTypeName(namedTypeSymbol.TypeArguments[0], in builder);
+        CanonicalTypeNameBuilder.AppendCanonicalTypeName(elementTypeSymbol, in builder);
 
         builder.Add(',');
 
-        CanonicalTypeNameBuilder.AppendCanonicalTypeName(namedTypeSymbol.TypeArguments[1], in builder);
+        CanonicalTypeNameBuilder.AppendCanonicalTypeName(pixelTypeSymbol, in builder);
 
         builder.Add(']');
 
-        bindingTypeMetadataName = builder.ToString();
+        Accessibility elementAccessibility = GeneratedAccessibility.GetEffectiveAccessibility(elementTypeSymbol);
+        Accessibility pixelAccessibility = GeneratedAccessibility.GetEffectiveAccessibility(pixelTypeSymbol);
+
+        types = new SharedTextureSlotTypeValues(
+            builder.ToString(),
+            elementTypeSymbol.GetFullyQualifiedName(includeGlobal: true),
+            pixelTypeSymbol.GetFullyQualifiedName(includeGlobal: true),
+            viewTypeSymbol.GetFullyQualifiedName(includeGlobal: true),
+            GeneratedAccessibility.GetKeyword(pixelAccessibility < elementAccessibility ? pixelAccessibility : elementAccessibility),
+            GeneratedAccessibility.GetKeyword(viewTypeSymbol));
 
         return true;
     }
@@ -173,6 +191,23 @@ internal static class InteropResourceSetContractModelBuilder
 
         return false;
     }
+
+    /// <summary>
+    /// The declared types of a shared texture slot.
+    /// </summary>
+    /// <param name="BindingTypeMetadataName">The canonical metadata name of the compute binding type.</param>
+    /// <param name="ElementTypeName">The fully qualified name of the element type.</param>
+    /// <param name="PixelTypeName">The fully qualified name of the pixel type.</param>
+    /// <param name="ViewTypeName">The fully qualified name of the external view type.</param>
+    /// <param name="BindingAccessibility">The accessibility keyword of the generated members referencing the compute binding type.</param>
+    /// <param name="ViewAccessibility">The accessibility keyword of the generated members referencing the external view type.</param>
+    private readonly record struct SharedTextureSlotTypeValues(
+        string BindingTypeMetadataName,
+        string ElementTypeName,
+        string PixelTypeName,
+        string ViewTypeName,
+        string BindingAccessibility,
+        string ViewAccessibility);
 
     /// <summary>
     /// The declared contract values of a <c>[ComputeSharedTexture]</c> attribute.

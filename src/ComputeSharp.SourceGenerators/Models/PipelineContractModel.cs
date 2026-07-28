@@ -138,6 +138,11 @@ internal sealed record ResourcePlanFieldContractInfo(
 /// <param name="Ordinal">The 0-based ordinal of the shared texture slot within its resource set.</param>
 /// <param name="MemberMetadataName">The metadata name of the owning member.</param>
 /// <param name="ResourceTypeMetadataName">The fully qualified metadata name of the shared texture type.</param>
+/// <param name="ElementTypeName">The fully qualified name of the element type, as written in generated code.</param>
+/// <param name="PixelTypeName">The fully qualified name of the pixel type, as written in generated code.</param>
+/// <param name="ViewTypeName">The fully qualified name of the external view type, as written in generated code.</param>
+/// <param name="BindingAccessibility">The accessibility keyword of the generated members referencing the compute binding type.</param>
+/// <param name="ViewAccessibility">The accessibility keyword of the generated members referencing the external view type.</param>
 /// <param name="ResizePolicy">The resize policy for the shared texture.</param>
 /// <param name="ComputeAccess">The compute access for the shared texture.</param>
 /// <param name="ExternalAccess">The external access for the shared texture.</param>
@@ -149,6 +154,11 @@ internal sealed record SharedTextureContractInfo(
     uint Ordinal,
     string MemberMetadataName,
     string ResourceTypeMetadataName,
+    string ElementTypeName,
+    string PixelTypeName,
+    string ViewTypeName,
+    string BindingAccessibility,
+    string ViewAccessibility,
     ComputeResourceResizePolicy ResizePolicy,
     ComputeResourceAccess ComputeAccess,
     ExternalResourceAccess ExternalAccess,
