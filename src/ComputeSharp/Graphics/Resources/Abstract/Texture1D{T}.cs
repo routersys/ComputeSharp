@@ -71,10 +71,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     /// </summary>
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT d3D12PlacedSubresourceFootprint;
 
-    /// <summary>
-    /// The current <see cref="D3D12_RESOURCE_STATES"/> value for the current resource.
-    /// </summary>
-    private D3D12_RESOURCE_STATES d3D12ResourceState;
+    private readonly TrackedResourceState residentState;
 
     private D3D12ComputeFenceTracker d3D12ComputeFenceTracker;
 
@@ -110,18 +107,20 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
             (uint)width,
             out this.allocation,
             out this.d3D12Resource,
-            out this.d3D12ResourceState);
+            out D3D12_RESOURCE_STATES d3D12ResourceState);
+
+        this.residentState = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceState);
 
         this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
 
         this.generationBinding.InitializeSelfOwned(
             this,
             device.ResourceIdentities,
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
+            this.residentState,
             this.memoryAllocation.Placement,
             this.memoryAllocation.Bytes);
 
-        this.d3D12CommandListType = this.d3D12ResourceState == D3D12_RESOURCE_STATE_COMMON
+        this.d3D12CommandListType = this.residentState is TrackedResourceState.Common
             ? D3D12_COMMAND_LIST_TYPE_COPY
             : D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
@@ -187,9 +186,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     /// <inheritdoc/>
     bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
     {
-        return this.generationBinding.TryGetBinding(
-            ComputeGenerationDescriber.GetTrackedState(this.d3D12ResourceState),
-            out binding);
+        return this.generationBinding.TryGetBinding(this.residentState, out binding);
     }
 
     /// <summary>
@@ -208,6 +205,14 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
     {
         this.d3D12ComputeFenceTracker.Mark(d3D12FenceValue);
+    }
+
+    private D3D12_RESOURCE_STATES GetD3D12ResourceState()
+    {
+        lock (GraphicsDevice.HazardGate)
+        {
+            return ComputeGenerationDescriber.GetD3D12ResourceStates(this.generationBinding.ActiveRecord.D3D12State);
+        }
     }
 
     /// <summary>
@@ -246,13 +251,15 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
             out *&allocation,
             out *&d3D12Resource);
 
+        D3D12_RESOURCE_STATES d3D12ResourceState = GetD3D12ResourceState();
+
         using (CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType))
         {
             copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
             if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
             {
-                copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
+                copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
             }
 
             copyCommandList.D3D12GraphicsCommandList->CopyTextureRegion(
@@ -271,7 +278,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
             if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
             {
-                copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, this.d3D12ResourceState);
+                copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, d3D12ResourceState);
             }
 
             copyCommandList.ExecuteAndWaitForCompletion();
@@ -319,6 +326,9 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
             ? D3D12_COMMAND_LIST_TYPE_COMPUTE
             : D3D12_COMMAND_LIST_TYPE_COPY;
 
+        D3D12_RESOURCE_STATES d3D12ResourceState = GetD3D12ResourceState();
+        D3D12_RESOURCE_STATES d3D12DestinationResourceState = destination.GetD3D12ResourceState();
+
         using CommandList copyCommandList = new(GraphicsDevice, d3D12CommandListType);
 
         copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
@@ -326,8 +336,8 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(destination.D3D12Resource, destination.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(destination.D3D12Resource, d3D12DestinationResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
         }
 
         copyCommandList.D3D12GraphicsCommandList->CopyTextureRegion(
@@ -345,8 +355,8 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, this.d3D12ResourceState);
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(destination.D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, destination.d3D12ResourceState);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, d3D12ResourceState);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(destination.D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, d3D12DestinationResourceState);
         }
 
         copyCommandList.ExecuteAndWaitForCompletion();
@@ -376,13 +386,15 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         destination.ThrowIfDeviceMismatch(GraphicsDevice);
 
+        D3D12_RESOURCE_STATES d3D12ResourceState = GetD3D12ResourceState();
+
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
 
         copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_SOURCE);
         }
 
         fixed (D3D12_PLACED_SUBRESOURCE_FOOTPRINT* d3D12PlacedSubresourceFootprintDestination = &destination.D3D12PlacedSubresourceFootprint)
@@ -404,7 +416,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, this.d3D12ResourceState);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_SOURCE, d3D12ResourceState);
         }
 
         copyCommandList.ExecuteAndWaitForCompletion();
@@ -458,13 +470,15 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
             }
         }
 
+        D3D12_RESOURCE_STATES d3D12ResourceState = GetD3D12ResourceState();
+
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
 
         copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
         }
 
         copyCommandList.D3D12GraphicsCommandList->CopyTextureRegion(
@@ -483,7 +497,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, this.d3D12ResourceState);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, d3D12ResourceState);
         }
 
         copyCommandList.ExecuteAndWaitForCompletion();
@@ -513,13 +527,15 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         source.ThrowIfDeviceMismatch(GraphicsDevice);
 
+        D3D12_RESOURCE_STATES d3D12ResourceState = GetD3D12ResourceState();
+
         using CommandList copyCommandList = new(GraphicsDevice, this.d3D12CommandListType);
 
         copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, this.d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, d3D12ResourceState, D3D12_RESOURCE_STATE_COPY_DEST);
         }
 
         fixed (D3D12_PLACED_SUBRESOURCE_FOOTPRINT* d3D12PlacedSubresourceFootprintSource = &source.D3D12PlacedSubresourceFootprint)
@@ -541,7 +557,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         if (copyCommandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
-            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, this.d3D12ResourceState);
+            copyCommandList.D3D12GraphicsCommandList->TransitionBarrier(D3D12Resource, D3D12_RESOURCE_STATE_COPY_DEST, d3D12ResourceState);
         }
 
         copyCommandList.ExecuteAndWaitForCompletion();
@@ -566,7 +582,7 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfIsNotInReadOnlyState()
     {
-        if (this.d3D12ResourceState == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        if (GetD3D12ResourceState() == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
         {
             static void Throw()
             {
@@ -630,14 +646,15 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
         ThrowIfDeviceMismatch(device);
 
-        D3D12_RESOURCE_STATES d3D12ResourceStatesBefore = this.d3D12ResourceState;
         D3D12_RESOURCE_STATES d3D12ResourceStatesAfter = ResourceStateHelper.GetD3D12ResourceStates(resourceState);
-
-        this.d3D12ResourceState = d3D12ResourceStatesAfter;
+        D3D12_RESOURCE_STATES d3D12ResourceStatesBefore;
 
         lock (device.HazardGate)
         {
-            this.generationBinding.Record.D3D12State = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceStatesAfter);
+            ref ResourceGenerationRecord record = ref this.generationBinding.ActiveRecord;
+
+            d3D12ResourceStatesBefore = ComputeGenerationDescriber.GetD3D12ResourceStates(record.D3D12State);
+            record.D3D12State = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceStatesAfter);
         }
 
         d3D12Resource = D3D12Resource;

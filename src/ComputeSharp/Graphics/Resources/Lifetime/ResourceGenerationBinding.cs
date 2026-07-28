@@ -57,6 +57,20 @@ internal struct ResourceGenerationBinding
     [UnscopedRef]
     public ref ResourceGenerationRecord Record => ref this.record;
 
+    [UnscopedRef]
+    public ref ResourceGenerationRecord ActiveRecord
+    {
+        get
+        {
+            if (this.owner is IResourceGenerationOwner owner)
+            {
+                return ref owner.GetResourceRecord(this.resourceIndex);
+            }
+
+            return ref this.record;
+        }
+    }
+
     public void InitializeObservedAccess(ComputeResourceAccess access)
     {
         this.access = access;
