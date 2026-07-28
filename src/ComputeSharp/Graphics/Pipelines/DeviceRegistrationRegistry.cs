@@ -438,10 +438,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     public void RunExternalMaintenance()
     {
-        foreach (InteropResourceSetRuntime runtime in GetOrderedResourceSets())
-        {
-            runtime.RunSharedSlotMaintenance();
-        }
+        RunExternalMaintenance(GetOrderedResourceSets());
     }
 
     public bool TryGetMinimumDrainFence(out ulong fenceValue)
@@ -566,22 +563,43 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         foreach (InteropResourceSetRuntime runtime in pendingResourceSets)
         {
             runtime.RequestDispose();
+        }
 
-            if (this.device.IsDeviceTerminal)
+        if (this.device.IsDeviceTerminal)
+        {
+            foreach (InteropResourceSetRuntime runtime in pendingResourceSets)
             {
                 runtime.ReleaseSharedSlotTerminalGenerations();
             }
-            else
-            {
-                runtime.RunSharedSlotMaintenance();
-            }
+        }
+        else
+        {
+            RunExternalMaintenance(pendingResourceSets);
 
+            while (TryGetMinimumDrainFence(out ulong fenceValue))
+            {
+                this.device.WaitForComputeFenceValue(fenceValue);
+
+                RunExternalMaintenance(pendingResourceSets);
+            }
+        }
+
+        foreach (InteropResourceSetRuntime runtime in pendingResourceSets)
+        {
             _ = TryUnregisterResourceSet(runtime);
         }
 
         lock (this.registrationGate)
         {
             this.resourceSets.Clear();
+        }
+    }
+
+    private static void RunExternalMaintenance(InteropResourceSetRuntime[] resourceSets)
+    {
+        foreach (InteropResourceSetRuntime runtime in resourceSets)
+        {
+            runtime.RunSharedSlotMaintenance();
         }
     }
 
