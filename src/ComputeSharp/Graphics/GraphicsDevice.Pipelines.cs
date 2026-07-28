@@ -371,6 +371,54 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Makes the compute queue wait for the external queue to drain a shared texture, and signals its completion.
+    /// </summary>
+    /// <param name="d3D12SharedFence">The shared fence backing the timeline of the interop domain.</param>
+    /// <param name="drainValue">The timeline value the external queue signals once it has drained.</param>
+    /// <returns>The completion fence point the drained generation retires against.</returns>
+    /// <remarks>
+    /// No command list is executed here, as the only purpose of the sequence is to give the drain of the
+    /// external queue a completion point of the compute queue to be observed through.
+    /// </remarks>
+    internal FencePoint EnqueueInteropFinalDrain(ID3D12Fence* d3D12SharedFence, ulong drainValue)
+    {
+        default(ArgumentNullException).ThrowIf(d3D12SharedFence is null, nameof(d3D12SharedFence));
+        default(ArgumentException).ThrowIf(drainValue == 0, nameof(drainValue));
+
+        ulong completionValue = 0;
+        HRESULT hresult;
+        bool isSequenceExhausted;
+        string operation = "Wait";
+
+        lock (this.d3D12ComputeCommandQueueLock)
+        {
+            hresult = this.d3D12ComputeCommandQueue.Get()->Wait(d3D12SharedFence, drainValue);
+
+            isSequenceExhausted = this.nextD3D12ComputeFenceValue == ulong.MaxValue;
+
+            if (hresult >= 0 && !isSequenceExhausted)
+            {
+                completionValue = ++this.nextD3D12ComputeFenceValue;
+                operation = "Signal";
+
+                hresult = this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue);
+            }
+        }
+
+        if (isSequenceExhausted)
+        {
+            ThrowTerminalSequenceExhaustion("compute completion fence");
+        }
+
+        if (hresult < 0)
+        {
+            ThrowTerminalQueueFailure(hresult, operation);
+        }
+
+        return new FencePoint(ComputeQueueKind.Compute, completionValue);
+    }
+
+    /// <summary>
     /// Moves the current device to its terminal state for a failed compute queue call, and throws the reason.
     /// </summary>
     /// <param name="hresult">The <see cref="HRESULT"/> the call failed with.</param>

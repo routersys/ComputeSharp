@@ -134,6 +134,12 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     }
 
     /// <inheritdoc/>
+    bool IComputeSharedSlot.TryGetPendingDrainFence(out FencePoint fence)
+    {
+        return TryGetPendingDrainFence(out fence);
+    }
+
+    /// <inheritdoc/>
     void IComputeSharedSlot.MarkTerminalRetained()
     {
         _ = this.slotGate.TryMarkDeviceTerminal();
@@ -312,7 +318,175 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             owner = TryGetPendingExternalRelease(in active) ?? TryGetPendingExternalRelease(in prepared);
         }
 
-        return owner is not null && TryReleaseExternalObjects(runtime, owner);
+        if (owner is null)
+        {
+            return false;
+        }
+
+        bool isDrainRequired = owner.GetResourceRecord(0).ReadOwnership() is not ExternalOwnershipState.ComputeAvailable;
+
+        if (!TryEnterExternalMaintenance(owner.GetResourceRecord(0).Id, isDrainRequired, out ExternalDrainPhase phase))
+        {
+            return false;
+        }
+
+        return phase switch
+        {
+            ExternalDrainPhase.FinalDrain => TryIssueFinalDrain(runtime, owner),
+            ExternalDrainPhase.RetirementFence => TryCompleteFinalDrain(runtime, owner),
+            _ => TryReleaseExternalObjects(runtime, owner)
+        };
+    }
+
+    /// <summary>
+    /// Gets the retirement fence the current slot is waiting for, if it is waiting for one.
+    /// </summary>
+    /// <param name="fence">The retirement fence of the pending final drain.</param>
+    /// <returns>Whether the current slot is waiting for a retirement fence.</returns>
+    private bool TryGetPendingDrainFence(out FencePoint fence)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.maintenanceExclusion.Enter(ref taken);
+
+            fence = this.maintenance.RetirementFence;
+
+            return this.maintenance.State is ExternalDrainState.FenceIssued or ExternalDrainState.WaitingFence && !fence.IsNone;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.maintenanceExclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Moves the maintenance record of the current slot to the phase the next pass has to run.
+    /// </summary>
+    /// <param name="generation">The generation to release the external objects of.</param>
+    /// <param name="isDrainRequired">Whether the external queue still has to drain the generation.</param>
+    /// <param name="phase">The phase the next pass has to run.</param>
+    /// <returns>Whether a phase has to run.</returns>
+    private bool TryEnterExternalMaintenance(ResourceGenerationId generation, bool isDrainRequired, out ExternalDrainPhase phase)
+    {
+        bool taken = false;
+
+        phase = ExternalDrainPhase.ExternalRelease;
+
+        try
+        {
+            this.maintenanceExclusion.Enter(ref taken);
+
+            if (this.maintenance.IsCompleted)
+            {
+                _ = this.maintenance.TryReset();
+            }
+
+            if (this.maintenance.IsIdle)
+            {
+                if (!this.maintenance.TryRequest(generation) || !this.maintenance.TryQueue())
+                {
+                    return false;
+                }
+
+                if (!isDrainRequired)
+                {
+                    return this.maintenance.TrySkipFinalDrain();
+                }
+            }
+            else if (this.maintenance.Generation.Value != generation.Value || this.maintenance.IsFaulted)
+            {
+                return false;
+            }
+
+            phase = this.maintenance.State switch
+            {
+                ExternalDrainState.Queued or ExternalDrainState.WaitingForDomainPermit => ExternalDrainPhase.FinalDrain,
+                ExternalDrainState.WaitingForScheduler when this.maintenance.RetirementFence.IsNone && isDrainRequired => ExternalDrainPhase.FinalDrain,
+                ExternalDrainState.FenceIssued or ExternalDrainState.WaitingFence => ExternalDrainPhase.RetirementFence,
+                ExternalDrainState.ExternalReleasePending or ExternalDrainState.WaitingForScheduler => ExternalDrainPhase.ExternalRelease,
+                _ => ExternalDrainPhase.None
+            };
+
+            return phase is not ExternalDrainPhase.None;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.maintenanceExclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Issues the final external drain of a retired generation of the current slot.
+    /// </summary>
+    /// <param name="runtime">The resource set the current slot is bound to.</param>
+    /// <param name="owner">The generation to drain the external queue of.</param>
+    /// <returns>Whether the drain was issued.</returns>
+    /// <remarks>
+    /// The external queue signals the timeline once it has drained the generation, and the compute queue waits
+    /// for that value before signaling the completion the generation retires against. No GPU work is waited on
+    /// here, so a busy domain or scheduler leaves the record waiting rather than spinning on it.
+    /// </remarks>
+    private bool TryIssueFinalDrain(InteropResourceSetRuntime runtime, ResourceGenerationOwner owner)
+    {
+        DomainOperationStatus status = runtime.Domain.TryAcquireOperation(
+            ExternalDomainReference.Maintenance,
+            owner.GetResourceRecord(0).Id,
+            releaseExternalReferenceOnDispose: false,
+            out DomainOperationLease lease,
+            out _);
+
+        if (status is not DomainOperationStatus.Acquired)
+        {
+            MarkExternalReleaseWaiting(status);
+
+            return false;
+        }
+
+        try
+        {
+            using (lease)
+            {
+                ulong drainValue = runtime.Domain.ReserveTimelineValue();
+
+                runtime.Domain.EnqueueExternalSignal(drainValue);
+
+                FencePoint retirementFence = runtime.Device.EnqueueInteropFinalDrain(runtime.Domain.SharedFence, drainValue);
+
+                owner.GetResourceRecord(0).RetirementFence = retirementFence;
+
+                return MarkFinalDrainIssued(retirementFence);
+            }
+        }
+        catch
+        {
+            MarkExternalReleaseFaulted();
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Completes the final external drain of a retired generation of the current slot.
+    /// </summary>
+    /// <param name="runtime">The resource set the current slot is bound to.</param>
+    /// <param name="owner">The generation the external queue is draining.</param>
+    /// <returns>Whether the drain completed.</returns>
+    private bool TryCompleteFinalDrain(InteropResourceSetRuntime runtime, ResourceGenerationOwner owner)
+    {
+        if (!runtime.Device.IsFenceCompleted(in owner.GetResourceRecord(0).RetirementFence))
+        {
+            return false;
+        }
+
+        return MarkFinalDrainCompleted();
     }
 
     /// <summary>
@@ -342,16 +516,9 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// </remarks>
     private bool TryReleaseExternalObjects(InteropResourceSetRuntime runtime, ResourceGenerationOwner owner)
     {
-        ResourceGenerationId generation = owner.GetResourceRecord(0).Id;
-
-        if (!TryRequestExternalRelease(generation))
-        {
-            return false;
-        }
-
         DomainOperationStatus status = runtime.Domain.TryAcquireOperation(
             ExternalDomainReference.Maintenance,
-            generation,
+            owner.GetResourceRecord(0).Id,
             releaseExternalReferenceOnDispose: false,
             out DomainOperationLease lease,
             out _);
@@ -383,11 +550,11 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     }
 
     /// <summary>
-    /// Moves the maintenance record of the current slot to the external release of a generation.
+    /// Moves the maintenance record of the current slot to the wait for its retirement fence.
     /// </summary>
-    /// <param name="generation">The generation to release the external objects of.</param>
-    /// <returns>Whether the record reached the external release.</returns>
-    private bool TryRequestExternalRelease(ResourceGenerationId generation)
+    /// <param name="retirementFence">The completion the drained generation retires against.</param>
+    /// <returns>Whether the record reached the wait.</returns>
+    private bool MarkFinalDrainIssued(FencePoint retirementFence)
     {
         bool taken = false;
 
@@ -395,19 +562,30 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         {
             this.maintenanceExclusion.Enter(ref taken);
 
-            if (this.maintenance.IsCompleted)
+            return this.maintenance.TryIssueFinalDrain(retirementFence) && this.maintenance.TryWaitForFence();
+        }
+        finally
+        {
+            if (taken)
             {
-                _ = this.maintenance.TryReset();
+                this.maintenanceExclusion.Exit(useMemoryBarrier: true);
             }
+        }
+    }
 
-            if (this.maintenance.IsIdle)
-            {
-                return this.maintenance.TryRequest(generation) &&
-                    this.maintenance.TryQueue() &&
-                    this.maintenance.TrySkipFinalDrain();
-            }
+    /// <summary>
+    /// Moves the maintenance record of the current slot past its completed retirement fence.
+    /// </summary>
+    /// <returns>Whether the record reached the external release.</returns>
+    private bool MarkFinalDrainCompleted()
+    {
+        bool taken = false;
 
-            return this.maintenance.Generation.Value == generation.Value && !this.maintenance.IsFaulted;
+        try
+        {
+            this.maintenanceExclusion.Enter(ref taken);
+
+            return this.maintenance.TryCompleteFinalDrain();
         }
         finally
         {

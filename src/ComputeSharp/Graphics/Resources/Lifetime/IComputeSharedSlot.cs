@@ -16,6 +16,8 @@ internal interface IComputeSharedSlot
 
     void RunMaintenance();
 
+    bool TryGetPendingDrainFence(out FencePoint fence);
+
     void MarkTerminalRetained();
 
     void ReleaseTerminalGenerations();

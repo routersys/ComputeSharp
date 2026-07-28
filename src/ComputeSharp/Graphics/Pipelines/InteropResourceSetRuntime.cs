@@ -128,6 +128,30 @@ internal sealed class InteropResourceSetRuntime
         }
     }
 
+    public bool TryGetMinimumDrainFence(out ulong fenceValue)
+    {
+        fenceValue = 0;
+
+        bool hasDrainFence = false;
+
+        foreach (IComputeSharedSlot slot in this.slots)
+        {
+            if (!slot.TryGetPendingDrainFence(out FencePoint fence) || fence.Queue is not ComputeQueueKind.Compute)
+            {
+                continue;
+            }
+
+            if (!hasDrainFence || fence.Value < fenceValue)
+            {
+                fenceValue = fence.Value;
+            }
+
+            hasDrainFence = true;
+        }
+
+        return hasDrainFence;
+    }
+
     public void MarkSharedSlotsTerminalRetained()
     {
         foreach (IComputeSharedSlot slot in this.slots)

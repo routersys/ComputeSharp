@@ -22,6 +22,8 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
 
     private volatile Exception? failure;
 
+    private volatile DeviceRegistrationRegistry? registrations;
+
     public CompletionCoordinator(GraphicsDevice device, CompletionRegistry registry)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -68,6 +70,14 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
         }
     }
 
+    public void AttachRegistrations(DeviceRegistrationRegistry registrations)
+    {
+        default(ArgumentNullException).ThrowIfNull(registrations);
+        default(InvalidOperationException).ThrowIf(this.registrations is not null, "The completion coordinator already has a registration registry.");
+
+        this.registrations = registrations;
+    }
+
     public void Wake()
     {
         if (this.isDisposed)
@@ -100,7 +110,7 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
             {
                 try
                 {
-                    if (this.registry.TryGetMinimumCommittedFence(out ulong fenceValue))
+                    if (TryGetArmedFence(out ulong fenceValue))
                     {
                         this.device.ArmComputeFenceEvent(fenceValue, this.eventHandle);
                     }
@@ -124,6 +134,8 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
                     while (ComputeSubmissionExecutor.TryReleaseCompleted(this.device, this.registry))
                     {
                     }
+
+                    this.registrations?.RunExternalMaintenance();
                 }
                 catch (Exception e)
                 {
@@ -139,6 +151,20 @@ internal sealed unsafe class CompletionCoordinator : IDisposable
         {
             WakeWaiters();
         }
+    }
+
+    private bool TryGetArmedFence(out ulong fenceValue)
+    {
+        bool hasFence = this.registry.TryGetMinimumCommittedFence(out fenceValue);
+
+        if (this.registrations?.TryGetMinimumDrainFence(out ulong drainFenceValue) is true &&
+            (!hasFence || drainFenceValue < fenceValue))
+        {
+            fenceValue = drainFenceValue;
+            hasFence = true;
+        }
+
+        return hasFence;
     }
 
     private void PublishProgress()

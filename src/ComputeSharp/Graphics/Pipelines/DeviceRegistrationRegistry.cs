@@ -53,6 +53,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         this.coordinator = new CompletionCoordinator(device, this.completions);
 
         this.completions.AttachCoordinator(this.coordinator);
+        this.coordinator.AttachRegistrations(this);
     }
 
     public GraphicsDevice Device => this.device;
@@ -433,6 +434,64 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         this.coordinator.Wake();
 
         return true;
+    }
+
+    public void RunExternalMaintenance()
+    {
+        foreach (InteropResourceSetRuntime runtime in GetOrderedResourceSets())
+        {
+            runtime.RunSharedSlotMaintenance();
+        }
+    }
+
+    public bool TryGetMinimumDrainFence(out ulong fenceValue)
+    {
+        InteropResourceSetRuntime[] registeredResourceSets;
+
+        lock (this.registrationGate)
+        {
+            registeredResourceSets = [.. this.resourceSets];
+        }
+
+        fenceValue = 0;
+
+        bool hasDrainFence = false;
+
+        foreach (InteropResourceSetRuntime runtime in registeredResourceSets)
+        {
+            if (!runtime.TryGetMinimumDrainFence(out ulong runtimeFenceValue))
+            {
+                continue;
+            }
+
+            if (!hasDrainFence || runtimeFenceValue < fenceValue)
+            {
+                fenceValue = runtimeFenceValue;
+            }
+
+            hasDrainFence = true;
+        }
+
+        return hasDrainFence;
+    }
+
+    private InteropResourceSetRuntime[] GetOrderedResourceSets()
+    {
+        InteropResourceSetRuntime[] registeredResourceSets;
+
+        lock (this.registrationGate)
+        {
+            registeredResourceSets = [.. this.resourceSets];
+        }
+
+        Array.Sort(registeredResourceSets, static (left, right) =>
+        {
+            int comparison = left.Domain.Id.Value.CompareTo(right.Domain.Id.Value);
+
+            return comparison != 0 ? comparison : left.Id.Value.CompareTo(right.Id.Value);
+        });
+
+        return registeredResourceSets;
     }
 
     public void MarkGenerationsTerminalRetained()

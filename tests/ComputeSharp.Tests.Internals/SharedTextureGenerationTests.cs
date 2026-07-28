@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Tests.Attributes;
 using ComputeSharp.Tests.Extensions;
 using ComputeSharp.Win32;
@@ -45,6 +47,21 @@ public unsafe class SharedTextureGenerationTests
     private static Fixture Create(Device device)
     {
         return new Fixture(device.Get()).Register();
+    }
+
+    private static void WaitForExternalRelease(Fixture fixture, FakeExternalView view)
+    {
+        for (int i = 0; i < 5000 && view.DisposeCount == 0; i++)
+        {
+            ((IComputeSharedSlot)fixture.Slot).RunMaintenance();
+
+            if (view.DisposeCount == 0)
+            {
+                Thread.Sleep(1);
+            }
+        }
+
+        Assert.AreEqual(1, view.DisposeCount);
     }
 
     [CombinatorialTestMethod]
@@ -135,9 +152,12 @@ public unsafe class SharedTextureGenerationTests
 
         Assert.AreNotSame(first, second);
         Assert.AreEqual(2, fixture.Provider.OpenSharedTextureCount);
-        Assert.AreEqual(1, first.DisposeCount);
         Assert.AreEqual(0, second.DisposeCount);
         Assert.AreEqual(32, fixture.Slot.Width);
+
+        WaitForExternalRelease(fixture, first);
+
+        Assert.AreEqual(0, second.DisposeCount);
         Assert.IsFalse(fixture.Scheduler.IsReserved);
     }
 
@@ -155,10 +175,11 @@ public unsafe class SharedTextureGenerationTests
 
             fixture.Slot.Dispose();
 
-            Assert.AreEqual(1, view.DisposeCount);
             Assert.IsFalse(fixture.Slot.IsAllocated);
 
             fixture.Slot.WaitForDisposal();
+
+            Assert.AreEqual(1, view.DisposeCount);
         }
         finally
         {
@@ -180,10 +201,11 @@ public unsafe class SharedTextureGenerationTests
 
             fixture.Resources.Dispose();
 
-            Assert.AreEqual(1, view.DisposeCount);
             Assert.IsTrue(fixture.Resources.IsDisposeRequested);
 
             fixture.Resources.WaitForDisposal();
+
+            Assert.AreEqual(1, view.DisposeCount);
 
             fixture.Domain.Dispose();
 
