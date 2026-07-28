@@ -159,11 +159,18 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         FlushCount++;
     }
 
+    public bool ThrowOnWait { get; set; }
+
     public void EnqueueWait(ulong value)
     {
         WaitCount++;
         ObservedWaitValue = value;
         WasReservedWhileWaiting = this.scheduler.IsReserved;
+
+        if (this.ThrowOnWait)
+        {
+            throw new InvalidOperationException("The external queue could not wait on the shared timeline.");
+        }
     }
 
     public int OpenSharedTextureCount { get; private set; }

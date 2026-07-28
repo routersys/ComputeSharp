@@ -181,6 +181,46 @@ public class GeneratedInteropPipelineTests
         }
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void PublishesTheSubmissionWhenTheProviderCannotWait(Device device)
+    {
+        Fixture fixture = Create(device);
+
+        try
+        {
+            FakeExternalView view = fixture.Provider.LastOpenedView!;
+            ReadWriteTexture2D<Bgra32, Float4> target = fixture.Target;
+            ResourceGenerationOwner owner = GetOwner(target);
+
+            fixture.Provider.ThrowOnWait = true;
+
+            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(target));
+
+            Assert.AreEqual(1, fixture.Provider.SignalCount);
+            Assert.AreEqual(1, fixture.Provider.WaitCount);
+            Assert.IsFalse(fixture.Device.IsDeviceTerminal);
+            Assert.IsNotNull(fixture.Domain.PoisonReason);
+            Assert.IsTrue(fixture.Domain.IsDisposeRequested);
+            Assert.AreEqual(ExternalOwnershipState.Faulted, owner.GetResourceRecord(0).ReadOwnership());
+
+            fixture.Resources.WaitForDisposal();
+
+            Assert.IsFalse(fixture.Scheduler.IsReserved);
+            Assert.AreEqual(1, view.DisposeCount);
+            Assert.AreEqual(ResourceGenerationState.Released, owner.GetResourceRecord(0).ReadLifecycle());
+            Assert.IsTrue(fixture.Domain.IsDisposed);
+            Assert.AreEqual(1, fixture.Provider.DisposeCount);
+        }
+        finally
+        {
+            fixture.Host.Dispose();
+            fixture.Host.WaitForDisposal();
+            fixture.Resources.Dispose();
+            fixture.Scheduler.Dispose();
+        }
+    }
+
     private static Bgra32[] CreateOpaquePixels(int count)
     {
         Bgra32[] pixels = new Bgra32[count];
