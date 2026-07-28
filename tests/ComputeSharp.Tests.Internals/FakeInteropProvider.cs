@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ComputeSharp.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -6,13 +8,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeSharp.Tests.Internals;
 
-internal sealed class FakeExternalView : IDisposable
+internal sealed class FakeExternalView(FakeInteropProvider? provider = null) : IDisposable
 {
     public int DisposeCount { get; private set; }
+
+    public int CompletedSignalsAtDispose { get; private set; }
 
     public void Dispose()
     {
         DisposeCount++;
+        CompletedSignalsAtDispose = provider?.CompletedSignalCount ?? 0;
     }
 }
 
@@ -57,6 +62,10 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     private readonly FakeInteropScheduler scheduler = scheduler;
 
     private ComPtr<ID3D12Fence> d3D12SharedFence;
+
+    private Task? pendingSignal;
+
+    private int completedSignalCount;
 
     public ExternalAdapterIdentity AdapterIdentity { get; set; } = new ExternalAdapterIdentity(device.Luid.ToInt64());
 
@@ -108,6 +117,10 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public bool ThrowOnSignal { get; set; }
 
+    public int SignalDelayInMilliseconds { get; set; }
+
+    public int CompletedSignalCount => Volatile.Read(ref this.completedSignalCount);
+
     public void EnqueueSignal(ulong value)
     {
         SignalCount++;
@@ -119,7 +132,26 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
             throw new InvalidOperationException("The external queue could not signal the shared timeline.");
         }
 
-        Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
+        if (this.SignalDelayInMilliseconds <= 0)
+        {
+            Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
+
+            _ = Interlocked.Increment(ref this.completedSignalCount);
+
+            return;
+        }
+
+        nint d3D12Fence = (nint)this.d3D12SharedFence.Get();
+        int delay = this.SignalDelayInMilliseconds;
+
+        this.pendingSignal = Task.Run(() =>
+        {
+            Thread.Sleep(delay);
+
+            Assert.IsTrue(((ID3D12Fence*)d3D12Fence)->Signal(value) >= 0);
+
+            _ = Interlocked.Increment(ref this.completedSignalCount);
+        });
     }
 
     public void FlushAfterSignal()
@@ -158,7 +190,7 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
             throw new InvalidOperationException("The shared texture could not be opened.");
         }
 
-        LastOpenedView = new FakeExternalView();
+        LastOpenedView = new FakeExternalView(this);
 
         return LastOpenedView;
     }
@@ -171,6 +203,7 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     {
         DisposeCount++;
 
+        this.pendingSignal?.Wait();
         this.d3D12SharedFence.Dispose();
     }
 }
