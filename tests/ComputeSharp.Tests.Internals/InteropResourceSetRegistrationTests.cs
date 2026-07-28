@@ -33,6 +33,11 @@ public class InteropResourceSetRegistrationTests
 
     internal static byte[] ResourceSetDescriptor(int sharedTextureSlotCount)
     {
+        return ResourceSetDescriptor(sharedTextureSlotCount, ComputeSharedTextureInitialOwner.External);
+    }
+
+    internal static byte[] ResourceSetDescriptor(int sharedTextureSlotCount, ComputeSharedTextureInitialOwner initialOwner)
+    {
         List<byte> payload = [1];
 
         WriteString(payload, "R");
@@ -50,7 +55,7 @@ public class InteropResourceSetRegistrationTests
             payload.Add((byte)ExternalResourceAccess.Write);
             payload.Add((byte)ExternalTextureUsage.RenderTarget);
             payload.Add((byte)ComputeAlphaMode.Premultiplied);
-            payload.Add((byte)ComputeSharedTextureInitialOwner.External);
+            payload.Add((byte)initialOwner);
             payload.Add((byte)ComputeResourceRecovery.RecreateFromHost);
         }
 
