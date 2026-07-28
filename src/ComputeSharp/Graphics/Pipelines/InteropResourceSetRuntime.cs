@@ -104,6 +104,22 @@ internal sealed class InteropResourceSetRuntime
         }
     }
 
+    public bool TryAcquirePersistentLease()
+    {
+        lock (this.registrationGate)
+        {
+            return this.registration.TryAcquirePersistentLease();
+        }
+    }
+
+    public void ReleasePersistentLease()
+    {
+        lock (this.registrationGate)
+        {
+            this.registration.ReleasePersistentLease();
+        }
+    }
+
     public void RequestDispose()
     {
         lock (this.registrationGate)
