@@ -1,5 +1,6 @@
 using System;
 using ComputeSharp.Win32;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #pragma warning disable CA2213
 
@@ -55,6 +56,8 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     private readonly FakeInteropScheduler scheduler = scheduler;
 
+    private ComPtr<ID3D12Fence> d3D12SharedFence;
+
     public ExternalAdapterIdentity AdapterIdentity { get; set; } = new ExternalAdapterIdentity(device.Luid.ToInt64());
 
     public ExternalInteropCapabilities Capabilities { get; set; } =
@@ -79,9 +82,9 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         InitializeCount++;
         ObservedFenceHandle = initialization.SharedFenceHandle.DangerousGetHandle();
 
-        using ComPtr<ID3D12Fence> d3D12Fence = this.device.OpenSharedFence(new HANDLE((void*)ObservedFenceHandle));
+        this.d3D12SharedFence = this.device.OpenSharedFence(new HANDLE((void*)ObservedFenceHandle));
 
-        OpenedSharedFence = d3D12Fence.Get() is not null;
+        OpenedSharedFence = this.d3D12SharedFence.Get() is not null;
 
         if (this.ThrowOnInitialize)
         {
@@ -89,16 +92,46 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         }
     }
 
+    public int SignalCount { get; private set; }
+
+    public int FlushCount { get; private set; }
+
+    public int WaitCount { get; private set; }
+
+    public ulong ObservedSignalValue { get; private set; }
+
+    public ulong ObservedWaitValue { get; private set; }
+
+    public bool WasReservedWhileSignaling { get; private set; }
+
+    public bool WasReservedWhileWaiting { get; private set; }
+
+    public bool ThrowOnSignal { get; set; }
+
     public void EnqueueSignal(ulong value)
     {
+        SignalCount++;
+        ObservedSignalValue = value;
+        WasReservedWhileSignaling = this.scheduler.IsReserved;
+
+        if (this.ThrowOnSignal)
+        {
+            throw new InvalidOperationException("The external queue could not signal the shared timeline.");
+        }
+
+        Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
     }
 
     public void FlushAfterSignal()
     {
+        FlushCount++;
     }
 
     public void EnqueueWait(ulong value)
     {
+        WaitCount++;
+        ObservedWaitValue = value;
+        WasReservedWhileWaiting = this.scheduler.IsReserved;
     }
 
     public int OpenSharedTextureCount { get; private set; }
@@ -137,5 +170,7 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     public void Dispose()
     {
         DisposeCount++;
+
+        this.d3D12SharedFence.Dispose();
     }
 }
