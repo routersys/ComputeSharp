@@ -50,7 +50,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         ComputeResourceRecovery recovery,
         in MemoryReservationToken reservation,
         int resourceCount,
-        bool hasExternalObjects)
+        ComputeInteropDomain? domain)
     {
         default(ArgumentNullException).ThrowIfNull(device);
         default(ArgumentNullException).ThrowIfNull(identities);
@@ -59,6 +59,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
         this.device = device;
         this.reservation = reservation;
+        Domain = domain;
         this.records = new ResourceGenerationRecord[resourceCount];
         this.resources = new IReferenceTrackedObject?[resourceCount];
         this.nativeResources = new ComPtr<ID3D12Resource>[resourceCount];
@@ -74,11 +75,13 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
             record.Id = identities.CreateGenerationId();
             record.Placement = reservation.Placement;
             record.Recovery = recovery;
-            record.ExternalObjectsReleased = hasExternalObjects ? 0 : 1;
+            record.ExternalObjectsReleased = domain is null ? 1 : 0;
         }
     }
 
     public ResourceGenerationSetId SetId { get; }
+
+    public ComputeInteropDomain? Domain { get; }
 
     public int ResourceCount => this.records.Length;
 

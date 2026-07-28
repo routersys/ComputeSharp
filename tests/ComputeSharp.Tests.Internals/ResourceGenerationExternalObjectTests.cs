@@ -20,7 +20,7 @@ public class ResourceGenerationExternalObjectTests
         }
     }
 
-    private static ResourceGenerationOwner CreateOwner(GraphicsDevice device, bool hasExternalObjects)
+    private static ResourceGenerationOwner CreateOwner(GraphicsDevice device, ComputeInteropDomain? domain)
     {
         Assert.AreEqual(
             MemoryAdmissionStatus.Admitted,
@@ -32,14 +32,19 @@ public class ResourceGenerationExternalObjectTests
             ComputeResourceRecovery.Discardable,
             in token,
             1,
-            hasExternalObjects);
+            domain);
+    }
+
+    private static ComputeInteropDomain RegisterDomain(GraphicsDevice device, FakeInteropScheduler scheduler)
+    {
+        return device.RegisterExternalDomain(new FakeInteropProvider(device, scheduler));
     }
 
     [CombinatorialTestMethod]
     [AllDevices]
     public void AGenerationWithoutExternalObjectsStartsReleased(Device device)
     {
-        ResourceGenerationOwner owner = CreateOwner(device.Get(), hasExternalObjects: false);
+        ResourceGenerationOwner owner = CreateOwner(device.Get(), domain: null);
 
         Assert.AreEqual(1, owner.GetResourceRecord(0).ExternalObjectsReleased);
 
@@ -52,7 +57,12 @@ public class ResourceGenerationExternalObjectTests
     [AllDevices]
     public void AGenerationWithExternalObjectsBlocksPromotionUntilTheyAreReleased(Device device)
     {
-        ResourceGenerationOwner owner = CreateOwner(device.Get(), hasExternalObjects: true);
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+        using ComputeInteropDomain domain = RegisterDomain(graphicsDevice, scheduler);
+
+        ResourceGenerationOwner owner = CreateOwner(graphicsDevice, domain);
         TrackedExternalObject externalObject = new();
 
         owner.AttachExternalObject(0, externalObject);
@@ -77,7 +87,12 @@ public class ResourceGenerationExternalObjectTests
     [AllDevices]
     public void AnUnpublishedGenerationStillReleasesItsExternalObject(Device device)
     {
-        ResourceGenerationOwner owner = CreateOwner(device.Get(), hasExternalObjects: true);
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+        using ComputeInteropDomain domain = RegisterDomain(graphicsDevice, scheduler);
+
+        ResourceGenerationOwner owner = CreateOwner(graphicsDevice, domain);
         TrackedExternalObject externalObject = new();
 
         owner.AttachExternalObject(0, externalObject);
@@ -91,7 +106,12 @@ public class ResourceGenerationExternalObjectTests
     [AllDevices]
     public void AGenerationOwnsOneExternalObjectPerResource(Device device)
     {
-        ResourceGenerationOwner owner = CreateOwner(device.Get(), hasExternalObjects: true);
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+        using ComputeInteropDomain domain = RegisterDomain(graphicsDevice, scheduler);
+
+        ResourceGenerationOwner owner = CreateOwner(graphicsDevice, domain);
         TrackedExternalObject externalObject = new();
 
         owner.AttachExternalObject(0, externalObject);

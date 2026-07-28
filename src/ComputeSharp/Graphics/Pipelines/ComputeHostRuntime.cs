@@ -275,7 +275,7 @@ public sealed class ComputeHostRuntime : IDisposable
             return false;
         }
 
-        ResourceGenerationOwner owner = new(device, this.runtime.Identities, descriptor.Recovery, in token, layout.ResourceCount, hasExternalObjects: false);
+        ResourceGenerationOwner owner = new(device, this.runtime.Identities, descriptor.Recovery, in token, layout.ResourceCount, domain: null);
         ulong preparedToken = this.runtime.CreatePreparedToken();
 
         if (!slot.TryInstallPrepared(new ResourceGenerationSetHandle(owner), preparedToken, requestedPlan))

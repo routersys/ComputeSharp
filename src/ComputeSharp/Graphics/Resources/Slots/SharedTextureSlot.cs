@@ -542,7 +542,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             descriptor.Recovery,
             in token,
             1,
-            hasExternalObjects: true);
+            runtime.Domain);
 
         ulong preparedToken = runtime.CreatePreparedToken();
 
