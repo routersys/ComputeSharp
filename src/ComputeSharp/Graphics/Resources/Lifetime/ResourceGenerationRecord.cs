@@ -239,9 +239,70 @@ internal struct ResourceGenerationRecord
         }
     }
 
+    public bool TryMarkAcquireSignalEnqueued()
+    {
+        return TryTransitionOwnership(ExternalOwnershipState.ExternalAvailable, ExternalOwnershipState.AcquireSignalEnqueued);
+    }
+
+    public bool TryMarkComputeExecutionIssued()
+    {
+        if (ReadOwnership() is not (ExternalOwnershipState.ComputeAvailable or ExternalOwnershipState.AcquireSignalEnqueued))
+        {
+            return false;
+        }
+
+        WriteOwnership(ExternalOwnershipState.ComputeExecutionIssued);
+
+        return true;
+    }
+
+    public bool TryMarkReleaseSignalEnqueued()
+    {
+        return TryTransitionOwnership(ExternalOwnershipState.ComputeExecutionIssued, ExternalOwnershipState.ReleaseSignalEnqueued);
+    }
+
+    public bool TryMarkExternalAvailable()
+    {
+        return TryTransitionOwnership(ExternalOwnershipState.ReleaseSignalEnqueued, ExternalOwnershipState.ExternalAvailable);
+    }
+
+    public bool TryMarkOwnershipFaulted()
+    {
+        if (ReadOwnership() is ExternalOwnershipState.Faulted)
+        {
+            return false;
+        }
+
+        WriteOwnership(ExternalOwnershipState.Faulted);
+
+        return true;
+    }
+
     public readonly ResourceGenerationState ReadLifecycle()
     {
         return (ResourceGenerationState)Volatile.Read(in Unsafe.As<ResourceGenerationState, int>(ref Unsafe.AsRef(in this.Lifecycle)));
+    }
+
+    public readonly ExternalOwnershipState ReadOwnership()
+    {
+        return (ExternalOwnershipState)Volatile.Read(in Unsafe.As<ExternalOwnershipState, byte>(ref Unsafe.AsRef(in this.Ownership)));
+    }
+
+    private bool TryTransitionOwnership(ExternalOwnershipState expected, ExternalOwnershipState next)
+    {
+        if (ReadOwnership() != expected)
+        {
+            return false;
+        }
+
+        WriteOwnership(next);
+
+        return true;
+    }
+
+    private void WriteOwnership(ExternalOwnershipState value)
+    {
+        Volatile.Write(ref Unsafe.As<ExternalOwnershipState, byte>(ref this.Ownership), (byte)value);
     }
 
     private bool TryTransitionLifecycle(ResourceGenerationState expected, ResourceGenerationState next)
