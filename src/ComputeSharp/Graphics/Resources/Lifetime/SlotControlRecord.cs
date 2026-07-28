@@ -339,11 +339,7 @@ internal struct SlotControlRecord
             ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
 
             default(InvalidOperationException).ThrowIf(
-                record.ReadLifecycle() is not ResourceGenerationState.Active,
-                "The retiring resource generation is not active.");
-
-            default(InvalidOperationException).ThrowIf(
-                record.OwnerReferenceCount <= 0,
+                record.ReadLifecycle() is ResourceGenerationState.Active && record.OwnerReferenceCount <= 0,
                 "The retiring resource generation is not owned by the slot.");
         }
 

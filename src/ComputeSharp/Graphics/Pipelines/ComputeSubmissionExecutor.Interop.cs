@@ -64,9 +64,11 @@ internal static unsafe partial class ComputeSubmissionExecutor
             {
                 domain.EnqueueExternalSignal(acquireValue);
             }
-            catch
+            catch (Exception e)
             {
                 FaultExternalGenerations(usages, externalUsages);
+
+                domain.MarkPoisoned(e);
 
                 throw;
             }
@@ -90,11 +92,13 @@ internal static unsafe partial class ComputeSubmissionExecutor
         {
             domain.EnqueueExternalWait(releaseValue);
         }
-        catch
+        catch (Exception e)
         {
             FaultExternalGenerations(usages, externalUsages);
 
             Publish(device, host, completionRegistry, recordIndex, completion, in retention);
+
+            domain.MarkPoisoned(e);
 
             throw;
         }

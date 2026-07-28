@@ -331,7 +331,6 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         catch (Exception e)
         {
             SaveProviderDiagnostic(e);
-            MarkPoisoned(e);
 
             throw;
         }
@@ -351,7 +350,6 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         catch (Exception e)
         {
             SaveProviderDiagnostic(e);
-            MarkPoisoned(e);
 
             throw;
         }
