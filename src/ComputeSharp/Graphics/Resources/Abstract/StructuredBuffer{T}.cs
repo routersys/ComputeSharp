@@ -8,7 +8,6 @@ using ComputeSharp.Interop;
 using ComputeSharp.Interop.Allocation;
 using ComputeSharp.Memory;
 using ComputeSharp.Win32;
-using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
 namespace ComputeSharp.Resources;
@@ -83,13 +82,11 @@ public abstract class StructuredBuffer<T> : Buffer<T>
                 out *&allocation,
                 out *&d3D12Resource);
 
-            using (CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY))
-            {
-                copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
+            using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
 
-                copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(d3D12Resource.Get(), 0, D3D12Resource, (ulong)byteOffset, (ulong)byteLength);
-                copyCommandList.ExecuteAndWaitForCompletion();
-            }
+            copyCommandList.TrackResource(this, D3D12Resource, ComputeResourceAccess.Read);
+            copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(d3D12Resource.Get(), 0, D3D12Resource, (ulong)byteOffset, (ulong)byteLength);
+            copyCommandList.ExecuteAndWaitForCompletion();
 
             using ID3D12ResourceMap resource = d3D12Resource.Get()->Map();
 
@@ -132,11 +129,10 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             nint byteLength = count * sizeof(T);
 
             // Directly copy the input buffer
-            using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+            using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
 
-            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
-            copyCommandList.AddComputeFenceWait(destination.D3D12ComputeFenceValue);
-
+            copyCommandList.TrackResource(this, D3D12Resource, ComputeResourceAccess.Read);
+            copyCommandList.TrackResource(destination, destination.D3D12Resource, ComputeResourceAccess.Write);
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(
                 destination.D3D12Resource,
                 (ulong)destinationByteOffset,
@@ -197,10 +193,9 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             ulong byteOffset = (uint)sourceOffset * (uint)sizeof(T);
             ulong byteLength = (uint)count * (uint)sizeof(T);
 
-            using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+            using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
 
-            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
-
+            copyCommandList.TrackResource(this, D3D12Resource, ComputeResourceAccess.Read);
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(destination.D3D12Resource, byteDestinationOffset, D3D12Resource, byteOffset, byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();
         }
@@ -266,10 +261,9 @@ public abstract class StructuredBuffer<T> : Buffer<T>
                 }
             }
 
-            using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+            using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
 
-            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
-
+            copyCommandList.TrackResource(this, D3D12Resource, ComputeResourceAccess.Write);
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(D3D12Resource, (ulong)byteOffset, d3D12Resource.Get(), 0, (ulong)byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();
         }
@@ -320,10 +314,9 @@ public abstract class StructuredBuffer<T> : Buffer<T>
             ulong byteOffset = (uint)destinationOffset * (uint)sizeof(T);
             ulong byteLength = (uint)count * (uint)sizeof(T);
 
-            using CommandList copyCommandList = new(GraphicsDevice, D3D12_COMMAND_LIST_TYPE_COPY);
+            using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
 
-            copyCommandList.AddComputeFenceWait(D3D12ComputeFenceValue);
-
+            copyCommandList.TrackResource(this, D3D12Resource, ComputeResourceAccess.Write);
             copyCommandList.D3D12GraphicsCommandList->CopyBufferRegion(D3D12Resource, byteOffset, source.D3D12Resource, byteSourceOffset, byteLength);
             copyCommandList.ExecuteAndWaitForCompletion();
         }

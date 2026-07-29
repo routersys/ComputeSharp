@@ -230,9 +230,10 @@ unsafe partial class GraphicsDevice
             return false;
         }
 
-        default(ArgumentException).ThrowIf(
-            commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COMPUTE,
-            nameof(commandList));
+        if (commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COMPUTE)
+        {
+            return false;
+        }
 
         try
         {
@@ -298,9 +299,10 @@ unsafe partial class GraphicsDevice
             return false;
         }
 
-        default(ArgumentException).ThrowIf(
-            commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COPY,
-            nameof(commandList));
+        if (commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COPY)
+        {
+            return false;
+        }
 
         try
         {

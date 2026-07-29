@@ -75,6 +75,30 @@ public partial class ManualResourceHazardTests
     }
 
     [TestMethod]
+    public void ManualBufferCopyCommitsCommonStateAndCopyFences()
+    {
+        GraphicsDevice device = GraphicsDevice.GetDefault();
+        int[] values = [1, 2, 3, 4];
+        using ReadWriteBuffer<int> source = device.AllocateReadWriteBuffer(values);
+        using ReadWriteBuffer<int> destination = device.AllocateReadWriteBuffer<int>(values.Length);
+
+        source.CopyTo(destination);
+
+        ref ResourceGenerationRecord sourceRecord = ref ((IResourceGenerationOwner)source).GetResourceRecord(0);
+        ref ResourceGenerationRecord destinationRecord = ref ((IResourceGenerationOwner)destination).GetResourceRecord(0);
+
+        Assert.AreEqual(ComputeQueueKind.Copy, sourceRecord.LastCopyRead.Queue);
+        Assert.AreNotEqual(0ul, sourceRecord.LastCopyRead.Value);
+        Assert.AreEqual(TrackedResourceState.Common, sourceRecord.D3D12State);
+        Assert.AreEqual(ComputeQueueKind.Copy, destinationRecord.LastWrite.Queue);
+        Assert.AreNotEqual(0ul, destinationRecord.LastWrite.Value);
+        Assert.IsTrue(destinationRecord.LastComputeRead.IsNone);
+        Assert.IsTrue(destinationRecord.LastCopyRead.IsNone);
+        Assert.AreEqual(TrackedResourceState.Common, destinationRecord.D3D12State);
+        CollectionAssert.AreEqual(values, destination.ToArray());
+    }
+
+    [TestMethod]
     public void ManualWriteRevokesReadOnlyViewAvailability()
     {
         GraphicsDevice device = GraphicsDevice.GetDefault();
