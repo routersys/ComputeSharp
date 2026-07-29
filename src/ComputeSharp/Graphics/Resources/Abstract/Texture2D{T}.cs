@@ -333,7 +333,10 @@ public abstract unsafe partial class Texture2D<T> : IReferenceTrackedObject, IGr
         this.residentState = TrackedResourceState.Common;
 
         this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetObservedAccess(resourceType));
-        this.generationBinding.InitializeD3D12State(this.residentState);
+        this.generationBinding.InitializeSelfOwnedExternal(
+            this,
+            device.ResourceIdentities,
+            this.residentState);
 
         this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COPY;
 

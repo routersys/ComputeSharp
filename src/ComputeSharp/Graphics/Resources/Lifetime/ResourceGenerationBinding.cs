@@ -76,11 +76,21 @@ internal struct ResourceGenerationBinding
         this.access = access;
     }
 
-    public void InitializeD3D12State(TrackedResourceState d3D12State)
+    public void InitializeSelfOwnedExternal(
+        IResourceGenerationOwner self,
+        ResourceIdentityAllocator identities,
+        TrackedResourceState d3D12State)
     {
         default(ArgumentException).ThrowIf(d3D12State is TrackedResourceState.Unknown, nameof(d3D12State));
 
+        this.setId = identities.CreateGenerationSetId();
+        this.record.ResourceId = identities.CreateResourceId();
+        this.record.Id = identities.CreateGenerationId();
+        this.record.Lifecycle = ResourceGenerationState.Active;
         this.record.D3D12State = d3D12State;
+        this.record.ExternalObjectsReleased = 1;
+        this.owner = self;
+        this.resourceIndex = 0;
     }
 
     public void InitializeSelfOwned(
