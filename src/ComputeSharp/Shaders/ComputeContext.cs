@@ -9,6 +9,8 @@ using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources.Interop;
+using ComputeSharp.Resources.Lifetime;
+using ComputeSharp.Resources.Plans;
 using ComputeSharp.Shaders.Dispatching;
 using ComputeSharp.Shaders.Loading;
 using ComputeSharp.Win32;
@@ -291,19 +293,33 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// <summary>
     /// Inserts a transition for a specific resource.
     /// </summary>
+    /// <param name="resource">The resource to change state for.</param>
     /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to change state for.</param>
-    /// <param name="d3D12ResourceStatesBefore">The starting <see cref="D3D12_RESOURCE_STATES"/> value for the transition.</param>
     /// <param name="d3D12ResourceStatesAfter">The destnation <see cref="D3D12_RESOURCE_STATES"/> value for the transition.</param>
     internal readonly unsafe void Transition(
+        IGraphicsResource resource,
         ID3D12Resource* d3D12Resource,
-        D3D12_RESOURCE_STATES d3D12ResourceStatesBefore,
         D3D12_RESOURCE_STATES d3D12ResourceStatesAfter)
     {
         default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
 
+        TrackedResourceState finalState = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceStatesAfter);
+        TrackedResourceState firstState = this.usageRecorder.RecordTransition(resource, finalState);
+
+        ((ID3D12ReadWriteResource)resource).SetReadOnlyViewAvailability(
+            finalState is TrackedResourceState.NonPixelShaderResource);
+
+        if (firstState == finalState)
+        {
+            return;
+        }
+
         ref CommandList commandList = ref GetCommandList(pipelineState: null);
 
-        commandList.D3D12GraphicsCommandList->TransitionBarrier(d3D12Resource, d3D12ResourceStatesBefore, d3D12ResourceStatesAfter);
+        commandList.D3D12GraphicsCommandList->TransitionBarrier(
+            d3D12Resource,
+            ComputeGenerationDescriber.GetD3D12ResourceStates(firstState),
+            d3D12ResourceStatesAfter);
     }
 
     /// <inheritdoc/>

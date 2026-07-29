@@ -1,4 +1,5 @@
 using System;
+using ComputeSharp.Resources.Interop;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -102,11 +103,27 @@ internal static class ResourceHazardTracker
 
             record.D3D12State = usage.FinalState;
 
+            CommitReadOnlyViewAvailability(in usage);
+
             if (record.LastUseSequence < submissionSequence)
             {
                 record.LastUseSequence = submissionSequence;
             }
         }
+    }
+
+    private static void CommitReadOnlyViewAvailability(in GraphicsResourceUsageEntry usage)
+    {
+        ID3D12ReadWriteResource? resource = usage.Set.Owner as ID3D12ReadWriteResource;
+
+        if (resource is null &&
+            usage.Set.Owner is ResourceGenerationOwner owner)
+        {
+            resource = owner.TryGetResource<IGraphicsResource>(checked((int)usage.ResourceIndex)) as ID3D12ReadWriteResource;
+        }
+
+        resource?.SetReadOnlyViewAvailability(
+            usage.FinalState is not TrackedResourceState.UnorderedAccess);
     }
 
     private static void AccumulateCrossQueueWait(

@@ -629,9 +629,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -650,9 +650,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -671,9 +671,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -692,9 +692,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -717,9 +717,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -738,9 +738,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -759,9 +759,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -780,9 +780,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -801,9 +801,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -826,9 +826,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -847,9 +847,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -868,9 +868,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -889,9 +889,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -910,9 +910,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }
@@ -935,9 +935,9 @@ public static class ComputeContextExtensions
 
         using ReferenceTracker.Lease lease = default;
 
-        (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) states = texture.ValidateAndGetID3D12ResourceAndTransitionStates(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
+        D3D12_RESOURCE_STATES state = texture.ValidateAndGetID3D12ResourceAndTransitionState(context.GraphicsDevice, resourceState, out ID3D12Resource* d3D12Resource, out *&lease);
 
-        context.Transition(d3D12Resource, states.Before, states.After);
+        context.Transition(texture, d3D12Resource, state);
 
         context.TrackResourceLease(ref *&lease);
     }

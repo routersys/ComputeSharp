@@ -1,3 +1,4 @@
+using System;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
@@ -21,6 +22,19 @@ public partial class ManualResourceHazardTests
         }
     }
 
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+    [GeneratedComputeShaderDescriptor]
+    public readonly partial struct TextureWriteShader : IComputeShader
+    {
+        private readonly ReadWriteTexture2D<float> texture;
+
+        public void Execute()
+        {
+            this.texture[ThreadIds.XY] = 1;
+        }
+    }
+
     [TestMethod]
     public void ManualComputeCommitsTheResourceFence()
     {
@@ -38,6 +52,46 @@ public partial class ManualResourceHazardTests
         Assert.IsTrue(record.LastComputeRead.IsNone);
         Assert.IsTrue(record.LastCopyRead.IsNone);
         Assert.AreEqual(TrackedResourceState.Common, record.D3D12State);
+    }
+
+    [TestMethod]
+    public void ManualTransitionCommitsStateOnSubmission()
+    {
+        GraphicsDevice device = GraphicsDevice.GetDefault();
+        using ReadWriteTexture2D<float> texture = device.AllocateReadWriteTexture2D<float>(16, 16);
+        using ComputeContext context = device.CreateComputeContext();
+
+        context.Transition(texture, ResourceState.ReadOnly);
+
+        ref ResourceGenerationRecord record = ref ((IResourceGenerationOwner)texture).GetResourceRecord(0);
+
+        Assert.AreEqual(TrackedResourceState.UnorderedAccess, record.D3D12State);
+
+        context.Submit();
+
+        Assert.AreEqual(ComputeQueueKind.Compute, record.LastWrite.Queue);
+        Assert.AreNotEqual(0ul, record.LastWrite.Value);
+        Assert.AreEqual(TrackedResourceState.NonPixelShaderResource, record.D3D12State);
+    }
+
+    [TestMethod]
+    public void ManualWriteRevokesReadOnlyViewAvailability()
+    {
+        GraphicsDevice device = GraphicsDevice.GetDefault();
+        using ReadWriteTexture2D<float> texture = device.AllocateReadWriteTexture2D<float>(16, 16);
+
+        using (ComputeContext transitionContext = device.CreateComputeContext())
+        {
+            transitionContext.Transition(texture, ResourceState.ReadOnly);
+        }
+
+        Assert.IsNotNull(texture.AsReadOnly());
+
+        using ComputeContext writeContext = device.CreateComputeContext();
+
+        writeContext.For(16, 16, new TextureWriteShader(texture));
+
+        _ = Assert.ThrowsExactly<InvalidOperationException>(() => texture.AsReadOnly());
     }
 
     [TestMethod]

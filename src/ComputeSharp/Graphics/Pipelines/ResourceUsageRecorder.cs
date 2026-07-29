@@ -1,5 +1,6 @@
 using System;
 using ComputeSharp.Graphics.Commands;
+using ComputeSharp.Resources.Interop;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp.Graphics.Pipelines;
@@ -84,6 +85,13 @@ internal readonly struct ResourceUsageRecorder
 
         ResourceUsageBinding binding = GetBinding(resource);
         ComputeResourceAccess access = observedAccess ?? binding.Access;
+
+        if (this.manualUsages is not null &&
+            access is not ComputeResourceAccess.Read &&
+            resource is ID3D12ReadWriteResource readWriteResource)
+        {
+            readWriteResource.SetReadOnlyViewAvailability(false);
+        }
 
         if (this.manualUsages is GraphicsResourceLeaseSet manualUsages)
         {

@@ -39,6 +39,7 @@ internal sealed partial class GeneratedPipelineHost
         _ = this.device;
 
         context.Clear(GetValuesComputeBinding().Resource!);
+        context.Clear(GetMaskComputeBinding().Resource!);
     }
 }
 
@@ -177,8 +178,16 @@ public class GeneratedPipelineHostTests
             Assert.IsTrue(host.TryEnsureGrid(new GeneratedGridResources.Plan(64, 8, 8), out _));
 
             ReadWriteBuffer<int> values = host.GetValuesComputeBinding().Resource!;
+            ReadWriteTexture2D<float> mask = host.GetMaskComputeBinding().Resource!;
 
             values.CopyFrom(Enumerable.Range(1, 64).ToArray());
+
+            using (ComputeContext context = graphicsDevice.CreateComputeContext())
+            {
+                context.Transition(mask, ResourceState.ReadOnly);
+            }
+
+            Assert.IsNotNull(mask.AsReadOnly());
 
             ComputeSubmission submission = host.Run();
 
@@ -190,6 +199,8 @@ public class GeneratedPipelineHostTests
             {
                 Assert.AreEqual(0, value);
             }
+
+            _ = Assert.ThrowsExactly<InvalidOperationException>(() => mask.AsReadOnly());
         }
         finally
         {

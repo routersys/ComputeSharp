@@ -73,6 +73,8 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
 
     private readonly TrackedResourceState residentState;
 
+    private volatile int readOnlyViewAvailability;
+
     private D3D12ComputeFenceTracker d3D12ComputeFenceTracker;
 
     /// <summary>
@@ -582,7 +584,9 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void ThrowIfIsNotInReadOnlyState()
     {
-        if (GetD3D12ResourceState() == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
+        if (this.readOnlyViewAvailability < 0 ||
+            (this.readOnlyViewAvailability == 0 &&
+             GetD3D12ResourceState() == D3D12_RESOURCE_STATE_UNORDERED_ACCESS))
         {
             static void Throw()
             {
@@ -639,33 +643,27 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
         return (this.d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle, this.d3D12ResourceDescriptorHandles.D3D12CpuDescriptorHandleNonShaderVisible);
     }
 
-    /// <inheritdoc cref="ID3D12ReadWriteResource.ValidateAndGetID3D12ResourceAndTransitionStates(GraphicsDevice, ResourceState, out ID3D12Resource*, out ReferenceTracker.Lease)"/>
-    internal (D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After) ValidateAndGetID3D12ResourceAndTransitionStates(GraphicsDevice device, ResourceState resourceState, out ID3D12Resource* d3D12Resource, out ReferenceTracker.Lease lease)
+    /// <inheritdoc cref="ID3D12ReadWriteResource.ValidateAndGetID3D12ResourceAndTransitionState(GraphicsDevice, ResourceState, out ID3D12Resource*, out ReferenceTracker.Lease)"/>
+    internal D3D12_RESOURCE_STATES ValidateAndGetID3D12ResourceAndTransitionState(GraphicsDevice device, ResourceState resourceState, out ID3D12Resource* d3D12Resource, out ReferenceTracker.Lease lease)
     {
         lease = GetReferenceTracker().GetLease();
 
         ThrowIfDeviceMismatch(device);
 
-        D3D12_RESOURCE_STATES d3D12ResourceStatesAfter = ResourceStateHelper.GetD3D12ResourceStates(resourceState);
-        D3D12_RESOURCE_STATES d3D12ResourceStatesBefore;
-
-        lock (device.HazardGate)
-        {
-            ref ResourceGenerationRecord record = ref this.generationBinding.ActiveRecord;
-
-            d3D12ResourceStatesBefore = ComputeGenerationDescriber.GetD3D12ResourceStates(record.D3D12State);
-            record.D3D12State = ComputeGenerationDescriber.GetTrackedState(d3D12ResourceStatesAfter);
-        }
-
         d3D12Resource = D3D12Resource;
 
-        return (d3D12ResourceStatesBefore, d3D12ResourceStatesAfter);
+        return ResourceStateHelper.GetD3D12ResourceStates(resourceState);
     }
 
     /// <inheritdoc/>
     ID3D12Resource* ID3D12ReadOnlyResource.ValidateAndGetID3D12Resource(GraphicsDevice device, out ReferenceTracker.Lease lease)
     {
         return ValidateAndGetID3D12Resource(device, out lease);
+    }
+
+    void ID3D12ReadWriteResource.SetReadOnlyViewAvailability(bool isAvailable)
+    {
+        this.readOnlyViewAvailability = isAvailable ? 1 : -1;
     }
 
     /// <inheritdoc/>
@@ -675,8 +673,8 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     }
 
     /// <inheritdoc/>
-    (D3D12_RESOURCE_STATES, D3D12_RESOURCE_STATES) ID3D12ReadWriteResource.ValidateAndGetID3D12ResourceAndTransitionStates(GraphicsDevice device, ResourceState resourceState, out ID3D12Resource* d3D12Resource, out ReferenceTracker.Lease lease)
+    D3D12_RESOURCE_STATES ID3D12ReadWriteResource.ValidateAndGetID3D12ResourceAndTransitionState(GraphicsDevice device, ResourceState resourceState, out ID3D12Resource* d3D12Resource, out ReferenceTracker.Lease lease)
     {
-        return ValidateAndGetID3D12ResourceAndTransitionStates(device, resourceState, out d3D12Resource, out lease);
+        return ValidateAndGetID3D12ResourceAndTransitionState(device, resourceState, out d3D12Resource, out lease);
     }
 }
