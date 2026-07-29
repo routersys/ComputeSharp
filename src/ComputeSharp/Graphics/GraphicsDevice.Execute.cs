@@ -9,6 +9,7 @@ using System.Threading.Tasks.Sources;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Commands.Interop;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 
@@ -21,8 +22,28 @@ unsafe partial class GraphicsDevice
     /// Executes a given command list and waits for the operation to be completed.
     /// </summary>
     /// <param name="commandList">The input <see cref="CommandList"/> to execute.</param>
-    internal void ExecuteCommandList(ref CommandList commandList)
+    /// <param name="resourceLeases">The resource leases and usages associated with the command list.</param>
+    internal void ExecuteCommandList(ref CommandList commandList, GraphicsResourceLeaseSet? resourceLeases)
     {
+        if (TryExecuteTrackedComputeCommandList(ref commandList, resourceLeases, out FencePoint completion, out CommandList prologue))
+        {
+            try
+            {
+                WaitForSubmission(completion);
+            }
+            finally
+            {
+                if (prologue.IsAllocated)
+                {
+                    this.computeCommandListPool.Return(prologue.DetachD3D12CommandList(), prologue.DetachD3D12CommandAllocator());
+                }
+
+                this.computeCommandListPool.Return(commandList.DetachD3D12CommandList(), commandList.DetachD3D12CommandAllocator());
+            }
+
+            return;
+        }
+
         ref readonly ID3D12CommandListPool commandListPool = ref Unsafe.NullRef<ID3D12CommandListPool>();
         ID3D12CommandQueue* d3D12CommandQueue;
         ID3D12Fence* d3D12Fence;
@@ -81,18 +102,37 @@ unsafe partial class GraphicsDevice
     /// Executes a given command list and returns an awaitable for the operation to be completed.
     /// </summary>
     /// <param name="commandList">The input <see cref="ValueTask"/> to execute.</param>
+    /// <param name="resourceLeases">The resource leases and usages associated with the command list.</param>
     /// <returns>The <see cref="ValueTask"/> object representing the operation to wait for.</returns>
     /// <remarks>This method is only supported for compute operations.</remarks>
-    internal ValueTask ExecuteCommandListAsync(ref CommandList commandList)
+    internal ValueTask ExecuteCommandListAsync(ref CommandList commandList, GraphicsResourceLeaseSet? resourceLeases)
     {
-        ulong updatedFenceValue = ExecuteCommandListCore(
-            ref commandList,
-            this.d3D12ComputeCommandQueue.Get(),
-            this.d3D12ComputeFence.Get(),
-            ref this.nextD3D12ComputeFenceValue,
-            this.d3D12ComputeCommandQueueLock,
-            d3D12WaitFence: null,
-            d3D12WaitFenceValue: 0);
+        ulong updatedFenceValue;
+
+        if (TryExecuteTrackedComputeCommandList(ref commandList, resourceLeases, out FencePoint completion, out CommandList prologue))
+        {
+            updatedFenceValue = completion.Value;
+
+            if (prologue.IsAllocated)
+            {
+                this.computeCommandListPool.ReturnWhenCompleted(
+                    prologue.DetachD3D12CommandList(),
+                    prologue.DetachD3D12CommandAllocator(),
+                    updatedFenceValue,
+                    null);
+            }
+        }
+        else
+        {
+            updatedFenceValue = ExecuteCommandListCore(
+                ref commandList,
+                this.d3D12ComputeCommandQueue.Get(),
+                this.d3D12ComputeFence.Get(),
+                ref this.nextD3D12ComputeFenceValue,
+                this.d3D12ComputeCommandQueueLock,
+                d3D12WaitFence: null,
+                d3D12WaitFenceValue: 0);
+        }
 
         // If the fence value has been reached, complete synchronously
         if (updatedFenceValue <= this.d3D12ComputeFence.Get()->GetCompletedValue())
@@ -113,14 +153,32 @@ unsafe partial class GraphicsDevice
 
     internal void ExecuteCommandListWithoutWaiting(ref CommandList commandList, ref GraphicsResourceLeaseSet? resourceLeases)
     {
-        ulong updatedFenceValue = ExecuteCommandListCore(
-            ref commandList,
-            this.d3D12ComputeCommandQueue.Get(),
-            this.d3D12ComputeFence.Get(),
-            ref this.nextD3D12ComputeFenceValue,
-            this.d3D12ComputeCommandQueueLock,
-            d3D12WaitFence: null,
-            d3D12WaitFenceValue: 0);
+        ulong updatedFenceValue;
+
+        if (TryExecuteTrackedComputeCommandList(ref commandList, resourceLeases, out FencePoint completion, out CommandList prologue))
+        {
+            updatedFenceValue = completion.Value;
+
+            if (prologue.IsAllocated)
+            {
+                this.computeCommandListPool.ReturnWhenCompleted(
+                    prologue.DetachD3D12CommandList(),
+                    prologue.DetachD3D12CommandAllocator(),
+                    updatedFenceValue,
+                    null);
+            }
+        }
+        else
+        {
+            updatedFenceValue = ExecuteCommandListCore(
+                ref commandList,
+                this.d3D12ComputeCommandQueue.Get(),
+                this.d3D12ComputeFence.Get(),
+                ref this.nextD3D12ComputeFenceValue,
+                this.d3D12ComputeCommandQueueLock,
+                d3D12WaitFence: null,
+                d3D12WaitFenceValue: 0);
+        }
 
         GraphicsResourceLeaseSet? pendingResourceLeases = resourceLeases;
 
@@ -133,6 +191,74 @@ unsafe partial class GraphicsDevice
             commandList.DetachD3D12CommandAllocator(),
             updatedFenceValue,
             pendingResourceLeases);
+    }
+
+    private bool TryExecuteTrackedComputeCommandList(
+        ref CommandList commandList,
+        GraphicsResourceLeaseSet? resourceLeases,
+        out FencePoint completion,
+        out CommandList prologue)
+    {
+        Span<GraphicsResourceUsageEntry> usages = resourceLeases is null
+            ? default
+            : resourceLeases.GetResourceUsages();
+
+        completion = FencePoint.None;
+        prologue = default;
+
+        if (usages.IsEmpty)
+        {
+            return false;
+        }
+
+        default(ArgumentException).ThrowIf(
+            commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            nameof(commandList));
+
+        try
+        {
+            lock (this.HazardGate)
+            {
+                Span<ResourceBarrierPlanEntry> plan = stackalloc ResourceBarrierPlanEntry[usages.Length];
+                int barrierCount = ResourceHazardTracker.PlanQueueDependencies(
+                    usages,
+                    ComputeQueueKind.Compute,
+                    plan,
+                    out ulong copyFenceWaitValue);
+                Span<nint> d3D12CommandLists = stackalloc nint[2];
+                int commandListCount = 0;
+
+                if (barrierCount > 0)
+                {
+                    prologue = new CommandList(this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+                    ResourceBarrierRecorder.RecordBarriers(
+                        prologue.D3D12GraphicsCommandList,
+                        usages,
+                        plan[..barrierCount]);
+
+                    prologue.D3D12GraphicsCommandList->Close().Assert();
+                    d3D12CommandLists[commandListCount++] = (nint)prologue.D3D12GraphicsCommandList;
+                }
+
+                d3D12CommandLists[commandListCount++] = (nint)commandList.D3D12GraphicsCommandList;
+
+                completion = ExecutePipelineCommandLists(
+                    d3D12CommandLists[..commandListCount],
+                    copyFenceWaitValue);
+
+                ResourceHazardTracker.CommitResourceUsages(usages, completion, 0);
+            }
+        }
+        catch
+        {
+            prologue.Dispose();
+            prologue = default;
+
+            throw;
+        }
+
+        return true;
     }
 
     internal void WaitForComputeFence(ulong d3D12FenceValue)

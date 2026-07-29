@@ -58,8 +58,8 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     {
         this.device = device;
         this.commandList = default;
-        this.resourceLeases = null;
-        this.usageRecorder = default;
+        this.resourceLeases = GraphicsResourceLeaseSet.Rent();
+        this.usageRecorder = new ResourceUsageRecorder(this.resourceLeases);
         this.state = ContextState.Recording;
         this.isCommandListBorrowed = false;
 
@@ -343,7 +343,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         try
         {
-            this.commandList.ExecuteAndWaitForCompletion();
+            this.commandList.ExecuteAndWaitForCompletion(resourceLeases);
         }
         finally
         {
@@ -390,7 +390,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
 
         try
         {
-            ValueTask executeTask = this.commandList.ExecuteAndWaitForCompletionAsync();
+            ValueTask executeTask = this.commandList.ExecuteAndWaitForCompletionAsync(resourceLeases);
 
             if (resourceLeases is null)
             {

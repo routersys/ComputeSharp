@@ -172,9 +172,14 @@ internal unsafe struct CommandList : IDisposable
     /// </summary>
     public void ExecuteAndWaitForCompletion()
     {
+        ExecuteAndWaitForCompletion(null);
+    }
+
+    public void ExecuteAndWaitForCompletion(GraphicsResourceLeaseSet? resourceLeases)
+    {
         this.d3D12GraphicsCommandList.Get()->Close().Assert();
 
-        this.device.ExecuteCommandList(ref this);
+        this.device.ExecuteCommandList(ref this, resourceLeases);
     }
 
     /// <summary>
@@ -183,9 +188,14 @@ internal unsafe struct CommandList : IDisposable
     /// <returns>The <see cref="ValueTask"/> to await for the operations to complete.</returns>
     public ValueTask ExecuteAndWaitForCompletionAsync()
     {
+        return ExecuteAndWaitForCompletionAsync(null);
+    }
+
+    public ValueTask ExecuteAndWaitForCompletionAsync(GraphicsResourceLeaseSet? resourceLeases)
+    {
         this.d3D12GraphicsCommandList.Get()->Close().Assert();
 
-        return this.device.ExecuteCommandListAsync(ref this);
+        return this.device.ExecuteCommandListAsync(ref this, resourceLeases);
     }
 
     public void ExecuteWithoutWaiting(ref GraphicsResourceLeaseSet? resourceLeases)
