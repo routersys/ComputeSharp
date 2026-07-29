@@ -99,6 +99,30 @@ public partial class ManualResourceHazardTests
     }
 
     [TestMethod]
+    public void SharedTextureTransitionThenCopyUsesTheCopyQueue()
+    {
+        GraphicsDevice device = GraphicsDevice.GetDefault();
+        using ReadWriteTexture2D<float> texture = InteropServices.AllocateSharedReadWriteTexture2D<float>(device, 16, 16);
+        ref ResourceGenerationRecord record = ref ((IResourceGenerationOwner)texture).GetResourceRecord(0);
+
+        Assert.AreEqual(TrackedResourceState.Common, record.D3D12State);
+
+        using (ComputeContext context = device.CreateComputeContext())
+        {
+            context.Transition(texture, ResourceState.ReadOnly);
+            context.Submit();
+        }
+
+        Assert.AreEqual(TrackedResourceState.NonPixelShaderResource, record.D3D12State);
+
+        texture.CopyTo(new float[16 * 16]);
+
+        Assert.AreEqual(ComputeQueueKind.Copy, record.LastCopyRead.Queue);
+        Assert.AreNotEqual(0ul, record.LastCopyRead.Value);
+        Assert.AreEqual(TrackedResourceState.Common, record.D3D12State);
+    }
+
+    [TestMethod]
     public void ManualWriteRevokesReadOnlyViewAvailability()
     {
         GraphicsDevice device = GraphicsDevice.GetDefault();
