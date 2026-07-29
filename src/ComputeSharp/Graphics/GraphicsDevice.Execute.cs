@@ -90,23 +90,12 @@ unsafe partial class GraphicsDevice
             default: default(ArgumentException).Throw(nameof(commandList)); return;
         }
 
-        ID3D12Fence* d3D12WaitFence = null;
-        ulong d3D12WaitFenceValue = 0;
-
-        if (commandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COPY && commandList.D3D12ComputeFenceWaitValue > 0)
-        {
-            d3D12WaitFence = this.d3D12ComputeFence.Get();
-            d3D12WaitFenceValue = commandList.D3D12ComputeFenceWaitValue;
-        }
-
         ulong updatedFenceValue = ExecuteCommandListCore(
             ref commandList,
             d3D12CommandQueue,
             d3D12Fence,
             ref d3D12FenceValue,
-            d3D12CommandQueueLock,
-            d3D12WaitFence,
-            d3D12WaitFenceValue);
+            d3D12CommandQueueLock);
 
         // If the fence value hasn't been reached, wait until the operation completes
         if (updatedFenceValue > d3D12Fence->GetCompletedValue())
@@ -149,9 +138,7 @@ unsafe partial class GraphicsDevice
                 this.d3D12ComputeCommandQueue.Get(),
                 this.d3D12ComputeFence.Get(),
                 ref this.nextD3D12ComputeFenceValue,
-                this.d3D12ComputeCommandQueueLock,
-                d3D12WaitFence: null,
-                d3D12WaitFenceValue: 0);
+                this.d3D12ComputeCommandQueueLock);
         }
 
         // If the fence value has been reached, complete synchronously
@@ -195,16 +182,12 @@ unsafe partial class GraphicsDevice
                 this.d3D12ComputeCommandQueue.Get(),
                 this.d3D12ComputeFence.Get(),
                 ref this.nextD3D12ComputeFenceValue,
-                this.d3D12ComputeCommandQueueLock,
-                d3D12WaitFence: null,
-                d3D12WaitFenceValue: 0);
+                this.d3D12ComputeCommandQueueLock);
         }
 
         GraphicsResourceLeaseSet? pendingResourceLeases = resourceLeases;
 
         resourceLeases = null;
-
-        pendingResourceLeases?.MarkComputeFence(updatedFenceValue);
 
         this.computeCommandListPool.ReturnWhenCompleted(
             commandList.DetachD3D12CommandList(),
@@ -419,17 +402,10 @@ unsafe partial class GraphicsDevice
         ID3D12CommandQueue* d3D12CommandQueue,
         ID3D12Fence* d3D12Fence,
         ref ulong d3D12FenceValue,
-        object d3D12CommandQueueLock,
-        ID3D12Fence* d3D12WaitFence,
-        ulong d3D12WaitFenceValue)
+        object d3D12CommandQueueLock)
     {
         lock (d3D12CommandQueueLock)
         {
-            if (d3D12WaitFence is not null && d3D12WaitFenceValue > d3D12WaitFence->GetCompletedValue())
-            {
-                d3D12CommandQueue->Wait(d3D12WaitFence, d3D12WaitFenceValue).Assert();
-            }
-
             fixed (ID3D12CommandList** d3D12CommandList = &commandList.GetD3D12CommandListPinnableAddressOf())
             {
                 d3D12CommandQueue->ExecuteCommandLists(1, d3D12CommandList);

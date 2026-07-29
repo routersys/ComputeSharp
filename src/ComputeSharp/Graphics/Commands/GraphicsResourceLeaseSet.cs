@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Threading;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
-using ComputeSharp.Resources.Interop;
 using ComputeSharp.Resources.Lifetime;
 
 namespace ComputeSharp.Graphics.Commands;
@@ -107,19 +106,6 @@ internal sealed class GraphicsResourceLeaseSet
         default(InvalidOperationException).ThrowIf(!isTracked, "The manual resource usage set has no entry left.");
 
         this.usageCount = usageSet.Count;
-    }
-
-    public void MarkComputeFence(ulong d3D12FenceValue)
-    {
-        ReferenceTracker.Lease[] leases = this.leases;
-
-        for (int i = 0; i < this.count; i++)
-        {
-            if (leases[i].TrackedObject is ID3D12ComputeFenceTrackedResource resource)
-            {
-                resource.MarkComputeFence(d3D12FenceValue);
-            }
-        }
     }
 
     public void Release()

@@ -27,7 +27,7 @@ namespace ComputeSharp.Resources;
 /// A <see langword="class"/> representing a typed 1D texture stored on GPU memory.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
-public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource, ID3D12ComputeFenceTrackedResource, IResourceGenerationOwner, IGenerationBoundResource
+public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGraphicsResource, ID3D12ReadWriteResource, IResourceGenerationOwner, IGenerationBoundResource
     where T : unmanaged
 {
     /// <summary>
@@ -68,8 +68,6 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     private readonly TrackedResourceState residentState;
 
     private volatile int readOnlyViewAvailability;
-
-    private D3D12ComputeFenceTracker d3D12ComputeFenceTracker;
 
     /// <summary>
     /// Creates a new <see cref="Texture1D{T}"/> instance with the specified parameters.
@@ -190,14 +188,6 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
     /// Gets the <see cref="D3D12_GPU_DESCRIPTOR_HANDLE"/> instance for the current resource.
     /// </summary>
     internal D3D12_GPU_DESCRIPTOR_HANDLE D3D12GpuDescriptorHandle => this.d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle;
-
-    internal ulong D3D12ComputeFenceValue => this.d3D12ComputeFenceTracker.Value;
-
-    /// <inheritdoc/>
-    void ID3D12ComputeFenceTrackedResource.MarkComputeFence(ulong d3D12FenceValue)
-    {
-        this.d3D12ComputeFenceTracker.Mark(d3D12FenceValue);
-    }
 
     private D3D12_RESOURCE_STATES GetD3D12ResourceState()
     {

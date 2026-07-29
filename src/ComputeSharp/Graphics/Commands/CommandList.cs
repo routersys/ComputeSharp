@@ -33,8 +33,6 @@ internal unsafe struct CommandList : IDisposable
     /// </summary>
     private ComPtr<ID3D12CommandAllocator> d3D12CommandAllocator;
 
-    private ulong d3D12ComputeFenceWaitValue;
-
     /// <summary>
     /// Creates a new <see cref="CommandList"/> instance with the specified parameters.
     /// </summary>
@@ -44,8 +42,6 @@ internal unsafe struct CommandList : IDisposable
     {
         this.device = device;
         this.d3D12CommandListType = d3D12CommandListType;
-        this.d3D12ComputeFenceWaitValue = 0;
-
         Unsafe.SkipInit(out this.d3D12GraphicsCommandList);
         Unsafe.SkipInit(out this.d3D12CommandAllocator);
 
@@ -70,8 +66,6 @@ internal unsafe struct CommandList : IDisposable
     {
         this.device = device;
         this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-        this.d3D12ComputeFenceWaitValue = 0;
-
         Unsafe.SkipInit(out this.d3D12GraphicsCommandList);
         Unsafe.SkipInit(out this.d3D12CommandAllocator);
 
@@ -98,7 +92,6 @@ internal unsafe struct CommandList : IDisposable
     {
         this.device = device;
         this.d3D12CommandListType = D3D12_COMMAND_LIST_TYPE_COMPUTE;
-        this.d3D12ComputeFenceWaitValue = 0;
         this.d3D12GraphicsCommandList = new ComPtr<ID3D12GraphicsCommandList>(d3D12GraphicsCommandList);
         this.d3D12CommandAllocator = new ComPtr<ID3D12CommandAllocator>(d3D12CommandAllocator);
 
@@ -119,13 +112,6 @@ internal unsafe struct CommandList : IDisposable
     /// Gets the command list type being used by the current instance.
     /// </summary>
     public readonly D3D12_COMMAND_LIST_TYPE D3D12CommandListType => this.d3D12CommandListType;
-
-    public readonly ulong D3D12ComputeFenceWaitValue => this.d3D12ComputeFenceWaitValue;
-
-    public void AddComputeFenceWait(ulong d3D12FenceValue)
-    {
-        this.d3D12ComputeFenceWaitValue = Math.Max(this.d3D12ComputeFenceWaitValue, d3D12FenceValue);
-    }
 
     /// <summary>
     /// Gets the <see cref="ID3D12GraphicsCommandList"/> object in use by the current instance.
