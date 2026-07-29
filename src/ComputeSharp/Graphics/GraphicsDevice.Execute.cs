@@ -10,6 +10,7 @@ using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Commands;
 using ComputeSharp.Graphics.Commands.Interop;
 using ComputeSharp.Graphics.Pipelines;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 
@@ -354,11 +355,62 @@ unsafe partial class GraphicsDevice
         return true;
     }
 
-    internal void WaitForComputeFence(ulong d3D12FenceValue)
+    internal void WaitForResourceAccess(IGraphicsResource resource, ComputeResourceAccess access)
     {
-        if (d3D12FenceValue > this.d3D12ComputeFence.Get()->GetCompletedValue())
+        default(ArgumentNullException).ThrowIfNull(resource);
+        default(ArgumentException).ThrowIf(
+            access is not ComputeResourceAccess.Read and
+            not ComputeResourceAccess.Write and
+            not ComputeResourceAccess.ReadWrite,
+            nameof(access));
+        default(ArgumentException).ThrowIf(resource is not IGenerationBoundResource, nameof(resource));
+
+        IGenerationBoundResource boundResource = (IGenerationBoundResource)resource;
+
+        default(InvalidOperationException).ThrowIf(
+            !boundResource.TryGetGenerationBinding(out ResourceUsageBinding binding),
+            "The bound resource carries no generation identity to track its CPU access with.");
+
+        ref ResourceGenerationRecord record = ref binding.Set.Owner.GetResourceRecord(checked((int)binding.ResourceIndex));
+
+        default(InvalidOperationException).ThrowIf(
+            record.Id != binding.Generation,
+            "The generation of the CPU-accessed resource no longer matches its binding.");
+
+        ulong computeFenceWaitValue = 0;
+        ulong copyFenceWaitValue = 0;
+
+        Accumulate(in record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
+
+        if (access is not ComputeResourceAccess.Read)
         {
-            this.d3D12ComputeFence.Get()->SetEventOnCompletion(d3D12FenceValue, default).Assert();
+            Accumulate(in record.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+            Accumulate(in record.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+        }
+
+        if (computeFenceWaitValue > 0)
+        {
+            WaitForSubmission(new FencePoint(ComputeQueueKind.Compute, computeFenceWaitValue));
+        }
+
+        if (copyFenceWaitValue > 0)
+        {
+            WaitForSubmission(new FencePoint(ComputeQueueKind.Copy, copyFenceWaitValue));
+        }
+
+        ThrowIfDeviceTerminal();
+
+        static void Accumulate(in FencePoint fence, ref ulong computeFenceWaitValue, ref ulong copyFenceWaitValue)
+        {
+            switch (fence.Queue)
+            {
+                case ComputeQueueKind.Compute:
+                    computeFenceWaitValue = Math.Max(computeFenceWaitValue, fence.Value);
+                    break;
+                case ComputeQueueKind.Copy:
+                    copyFenceWaitValue = Math.Max(copyFenceWaitValue, fence.Value);
+                    break;
+            }
         }
     }
 

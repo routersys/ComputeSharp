@@ -67,18 +67,23 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         GraphicsDevice.ThrowIfDeviceLost();
 
-        using ID3D12ResourceMap resource = D3D12Resource->Map();
-
-        fixed (void* destinationPointer = &destination)
+        lock (GraphicsDevice.HazardGate)
         {
-            MemoryHelper.Copy<T>(
-                source: resource.Pointer,
-                destination: destinationPointer,
-                sourceElementOffset: (uint)offset,
-                destinationElementOffset: 0,
-                sourceElementPitchInBytes: (uint)GetPaddedSize(),
-                destinationElementPitchInBytes: (uint)sizeof(T),
-                count: (uint)length);
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
+
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
+
+            fixed (void* destinationPointer = &destination)
+            {
+                MemoryHelper.Copy<T>(
+                    source: resource.Pointer,
+                    destination: destinationPointer,
+                    sourceElementOffset: (uint)offset,
+                    destinationElementOffset: 0,
+                    sourceElementPitchInBytes: (uint)GetPaddedSize(),
+                    destinationElementPitchInBytes: (uint)sizeof(T),
+                    count: (uint)length);
+            }
         }
     }
 
@@ -102,17 +107,23 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         if (destination is ConstantBuffer<T> buffer)
         {
-            using ID3D12ResourceMap sourceMap = D3D12Resource->Map();
-            using ID3D12ResourceMap destinationMap = buffer.D3D12Resource->Map();
+            lock (GraphicsDevice.HazardGate)
+            {
+                GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
+                GraphicsDevice.WaitForResourceAccess(buffer, ComputeResourceAccess.Write);
 
-            MemoryHelper.Copy<T>(
-                source: sourceMap.Pointer,
-                destination: destinationMap.Pointer,
-                sourceElementOffset: (uint)sourceOffset,
-                destinationElementOffset: (uint)destinationOffset,
-                sourceElementPitchInBytes: (uint)GetPaddedSize(),
-                destinationElementPitchInBytes: (uint)GetPaddedSize(),
-                count: (uint)length);
+                using ID3D12ResourceMap sourceMap = D3D12Resource->Map();
+                using ID3D12ResourceMap destinationMap = buffer.D3D12Resource->Map();
+
+                MemoryHelper.Copy<T>(
+                    source: sourceMap.Pointer,
+                    destination: destinationMap.Pointer,
+                    sourceElementOffset: (uint)sourceOffset,
+                    destinationElementOffset: (uint)destinationOffset,
+                    sourceElementPitchInBytes: (uint)GetPaddedSize(),
+                    destinationElementPitchInBytes: (uint)GetPaddedSize(),
+                    count: (uint)length);
+            }
         }
         else
         {
@@ -132,18 +143,23 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         GraphicsDevice.ThrowIfDeviceLost();
 
-        using ID3D12ResourceMap resource = D3D12Resource->Map();
-
-        fixed (void* sourcePointer = &source)
+        lock (GraphicsDevice.HazardGate)
         {
-            MemoryHelper.Copy<T>(
-                source: sourcePointer,
-                destination: resource.Pointer,
-                sourceElementOffset: 0,
-                destinationElementOffset: (uint)offset,
-                sourceElementPitchInBytes: (uint)sizeof(T),
-                destinationElementPitchInBytes: (uint)GetPaddedSize(),
-                count: (uint)length);
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
+
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
+
+            fixed (void* sourcePointer = &source)
+            {
+                MemoryHelper.Copy<T>(
+                    source: sourcePointer,
+                    destination: resource.Pointer,
+                    sourceElementOffset: 0,
+                    destinationElementOffset: (uint)offset,
+                    sourceElementPitchInBytes: (uint)sizeof(T),
+                    destinationElementPitchInBytes: (uint)GetPaddedSize(),
+                    count: (uint)length);
+            }
         }
     }
 
