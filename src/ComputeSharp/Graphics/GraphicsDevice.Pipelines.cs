@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using System.Threading;
-using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Memory;
@@ -284,6 +283,58 @@ unsafe partial class GraphicsDevice
         }
 
         return new FencePoint(ComputeQueueKind.Compute, completionValue);
+    }
+
+    internal FencePoint ExecuteCopyCommandLists(ReadOnlySpan<nint> d3D12CommandLists, ulong d3D12ComputeFenceWaitValue)
+    {
+        default(ArgumentException).ThrowIf(d3D12CommandLists.IsEmpty, nameof(d3D12CommandLists));
+        default(ArgumentException).ThrowIf(d3D12CommandLists.Length > CommandListLeaseSet.MaximumSegmentCount, nameof(d3D12CommandLists));
+
+        ID3D12CommandList** d3D12CommandListEntries = stackalloc ID3D12CommandList*[CommandListLeaseSet.MaximumSegmentCount];
+
+        for (int i = 0; i < d3D12CommandLists.Length; i++)
+        {
+            default(ArgumentException).ThrowIf(d3D12CommandLists[i] == 0, nameof(d3D12CommandLists));
+
+            d3D12CommandListEntries[i] = (ID3D12CommandList*)d3D12CommandLists[i];
+        }
+
+        ulong completionValue = 0;
+        HRESULT hresult = S.S_OK;
+        bool isSequenceExhausted = false;
+        string operation = "Wait";
+
+        lock (this.d3D12CopyCommandQueueLock)
+        {
+            if (d3D12ComputeFenceWaitValue > 0 && d3D12ComputeFenceWaitValue > this.d3D12ComputeFence.Get()->GetCompletedValue())
+            {
+                hresult = this.d3D12CopyCommandQueue.Get()->Wait(this.d3D12ComputeFence.Get(), d3D12ComputeFenceWaitValue);
+            }
+
+            isSequenceExhausted = this.nextD3D12CopyFenceValue == ulong.MaxValue;
+
+            if (hresult >= 0 && !isSequenceExhausted)
+            {
+                this.d3D12CopyCommandQueue.Get()->ExecuteCommandLists((uint)d3D12CommandLists.Length, d3D12CommandListEntries);
+
+                completionValue = ++this.nextD3D12CopyFenceValue;
+                operation = "Signal";
+
+                hresult = this.d3D12CopyCommandQueue.Get()->Signal(this.d3D12CopyFence.Get(), completionValue);
+            }
+        }
+
+        if (isSequenceExhausted)
+        {
+            ThrowTerminalSequenceExhaustion("copy completion fence");
+        }
+
+        if (hresult < 0)
+        {
+            ThrowTerminalQueueFailure(hresult, operation);
+        }
+
+        return new FencePoint(ComputeQueueKind.Copy, completionValue);
     }
 
     /// <summary>
@@ -676,7 +727,12 @@ unsafe partial class GraphicsDevice
             case ComputeQueueKind.Copy:
                 if (completion.Value > this.d3D12CopyFence.Get()->GetCompletedValue())
                 {
-                    this.d3D12CopyFence.Get()->SetEventOnCompletion(completion.Value, default).Assert();
+                    HRESULT hresult = this.d3D12CopyFence.Get()->SetEventOnCompletion(completion.Value, default);
+
+                    if (hresult < 0)
+                    {
+                        ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+                    }
                 }
 
                 break;

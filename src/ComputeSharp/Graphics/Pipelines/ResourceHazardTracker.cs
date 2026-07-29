@@ -74,6 +74,54 @@ internal static class ResourceHazardTracker
         return barrierCount;
     }
 
+    public static int PlanManualCopyDependencies(
+        Span<GraphicsResourceUsageEntry> usages,
+        Span<ResourceBarrierPlanEntry> handoff,
+        out ulong handoffCopyFenceWaitValue,
+        out ulong copyComputeFenceWaitValue)
+    {
+        default(ArgumentException).ThrowIf(handoff.Length < usages.Length, nameof(handoff));
+
+        int barrierCount = 0;
+
+        handoffCopyFenceWaitValue = 0;
+        copyComputeFenceWaitValue = 0;
+
+        for (int i = 0; i < usages.Length; i++)
+        {
+            ref GraphicsResourceUsageEntry usage = ref usages[i];
+            ref ResourceGenerationRecord record = ref usage.Set.Owner.GetResourceRecord(checked((int)usage.ResourceIndex));
+
+            default(InvalidOperationException).ThrowIf(
+                usage.FirstState is not TrackedResourceState.Common ||
+                usage.FinalState is not TrackedResourceState.Common,
+                "The manual copy usage does not start and finish in the common state.");
+
+            AccumulateCrossQueueWait(
+                in record,
+                usage.Access,
+                ComputeQueueKind.Copy,
+                ref copyComputeFenceWaitValue);
+
+            if (record.D3D12State is not TrackedResourceState.Common)
+            {
+                AccumulateCrossQueueWait(
+                    in record,
+                    ComputeResourceAccess.ReadWrite,
+                    ComputeQueueKind.Compute,
+                    ref handoffCopyFenceWaitValue);
+
+                handoff[barrierCount++] = new ResourceBarrierPlanEntry(
+                    i,
+                    ResourceBarrierKind.Transition,
+                    record.D3D12State,
+                    TrackedResourceState.Common);
+            }
+        }
+
+        return barrierCount;
+    }
+
     public static void CommitResourceUsages(Span<GraphicsResourceUsageEntry> usages, FencePoint completion, ulong submissionSequence)
     {
         default(ArgumentException).ThrowIf(completion.IsNone, nameof(completion));

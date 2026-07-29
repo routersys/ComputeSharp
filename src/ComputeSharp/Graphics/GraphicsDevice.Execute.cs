@@ -44,6 +44,25 @@ unsafe partial class GraphicsDevice
             return;
         }
 
+        if (TryExecuteTrackedCopyCommandList(ref commandList, resourceLeases, out completion, out CommandList handoff))
+        {
+            try
+            {
+                WaitForSubmission(completion);
+            }
+            finally
+            {
+                if (handoff.IsAllocated)
+                {
+                    this.computeCommandListPool.Return(handoff.DetachD3D12CommandList(), handoff.DetachD3D12CommandAllocator());
+                }
+
+                this.copyCommandListPool.Return(commandList.DetachD3D12CommandList(), commandList.DetachD3D12CommandAllocator());
+            }
+
+            return;
+        }
+
         ref readonly ID3D12CommandListPool commandListPool = ref Unsafe.NullRef<ID3D12CommandListPool>();
         ID3D12CommandQueue* d3D12CommandQueue;
         ID3D12Fence* d3D12Fence;
@@ -254,6 +273,78 @@ unsafe partial class GraphicsDevice
         {
             prologue.Dispose();
             prologue = default;
+
+            throw;
+        }
+
+        return true;
+    }
+
+    private bool TryExecuteTrackedCopyCommandList(
+        ref CommandList commandList,
+        GraphicsResourceLeaseSet? resourceLeases,
+        out FencePoint completion,
+        out CommandList handoff)
+    {
+        Span<GraphicsResourceUsageEntry> usages = resourceLeases is null
+            ? default
+            : resourceLeases.GetResourceUsages();
+
+        completion = FencePoint.None;
+        handoff = default;
+
+        if (usages.IsEmpty)
+        {
+            return false;
+        }
+
+        default(ArgumentException).ThrowIf(
+            commandList.D3D12CommandListType is not D3D12_COMMAND_LIST_TYPE_COPY,
+            nameof(commandList));
+
+        try
+        {
+            lock (this.HazardGate)
+            {
+                Span<ResourceBarrierPlanEntry> plan = stackalloc ResourceBarrierPlanEntry[usages.Length];
+                int barrierCount = ResourceHazardTracker.PlanManualCopyDependencies(
+                    usages,
+                    plan,
+                    out ulong handoffCopyFenceWaitValue,
+                    out ulong copyComputeFenceWaitValue);
+
+                if (barrierCount > 0)
+                {
+                    handoff = new CommandList(this, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+                    ResourceBarrierRecorder.RecordBarriers(
+                        handoff.D3D12GraphicsCommandList,
+                        usages,
+                        plan[..barrierCount]);
+
+                    handoff.D3D12GraphicsCommandList->Close().Assert();
+
+                    Span<nint> handoffCommandLists = [(nint)handoff.D3D12GraphicsCommandList];
+                    FencePoint handoffCompletion = ExecutePipelineCommandLists(
+                        handoffCommandLists,
+                        handoffCopyFenceWaitValue);
+
+                    copyComputeFenceWaitValue = Math.Max(copyComputeFenceWaitValue, handoffCompletion.Value);
+                }
+
+                Span<nint> copyCommandLists = [(nint)commandList.D3D12GraphicsCommandList];
+
+                completion = ExecuteCopyCommandLists(
+                    copyCommandLists,
+                    copyComputeFenceWaitValue);
+
+                ResourceHazardTracker.CommitResourceUsages(usages, completion, 0);
+            }
+        }
+        catch
+        {
+            handoff.Dispose();
+            handoff = default;
 
             throw;
         }

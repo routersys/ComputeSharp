@@ -183,6 +183,60 @@ public unsafe class ResourceHazardTrackerTests
     }
 
     [TestMethod]
+    public void PlansManualCopyHandoffAndQueueDependencies()
+    {
+        ResourceGenerationSetHandle set = Handle();
+
+        set.Owner.GetResourceRecord(0).D3D12State = TrackedResourceState.UnorderedAccess;
+        set.Owner.GetResourceRecord(0).LastWrite = new FencePoint(ComputeQueueKind.Compute, 9);
+        set.Owner.GetResourceRecord(0).LastCopyRead = new FencePoint(ComputeQueueKind.Copy, 4);
+
+        GraphicsResourceUsageEntry[] usages =
+        [
+            Usage(set, 0, ComputeResourceAccess.Write, TrackedResourceState.Common, TrackedResourceState.Common)
+        ];
+
+        ResourceBarrierPlanEntry[] handoff = new ResourceBarrierPlanEntry[1];
+
+        int count = ResourceHazardTracker.PlanManualCopyDependencies(
+            usages,
+            handoff,
+            out ulong handoffWait,
+            out ulong copyWait);
+
+        Assert.AreEqual(1, count);
+        Assert.AreEqual(4ul, handoffWait);
+        Assert.AreEqual(9ul, copyWait);
+        Assert.AreEqual(ResourceBarrierKind.Transition, handoff[0].Kind);
+        Assert.AreEqual(TrackedResourceState.UnorderedAccess, handoff[0].BeforeState);
+        Assert.AreEqual(TrackedResourceState.Common, handoff[0].AfterState);
+    }
+
+    [TestMethod]
+    public void PlansManualCopyWithoutHandoffFromCommon()
+    {
+        ResourceGenerationSetHandle set = Handle();
+
+        set.Owner.GetResourceRecord(0).D3D12State = TrackedResourceState.Common;
+        set.Owner.GetResourceRecord(0).LastWrite = new FencePoint(ComputeQueueKind.Compute, 7);
+
+        GraphicsResourceUsageEntry[] usages =
+        [
+            Usage(set, 0, ComputeResourceAccess.Read, TrackedResourceState.Common, TrackedResourceState.Common)
+        ];
+
+        int count = ResourceHazardTracker.PlanManualCopyDependencies(
+            usages,
+            new ResourceBarrierPlanEntry[1],
+            out ulong handoffWait,
+            out ulong copyWait);
+
+        Assert.AreEqual(0, count);
+        Assert.AreEqual(0ul, handoffWait);
+        Assert.AreEqual(7ul, copyWait);
+    }
+
+    [TestMethod]
     public void CommitsReadsWithoutClearingTheLastWrite()
     {
         ResourceGenerationSetHandle set = Handle();

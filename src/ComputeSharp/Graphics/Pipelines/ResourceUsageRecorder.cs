@@ -43,6 +43,29 @@ internal readonly struct ResourceUsageRecorder
         Record(resource, ComputeResourceAccess.Write);
     }
 
+    public void RecordCopy(IGraphicsResource resource, ComputeResourceAccess access)
+    {
+        default(ArgumentNullException).ThrowIfNull(resource);
+        default(ArgumentException).ThrowIf(
+            access is not ComputeResourceAccess.Read and not ComputeResourceAccess.Write,
+            nameof(access));
+        default(InvalidOperationException).ThrowIf(this.manualUsages is null);
+
+        ResourceUsageBinding binding = GetBinding(resource);
+
+        this.manualUsages!.RecordResourceUsage(
+            in binding,
+            access,
+            TrackedResourceState.Common,
+            TrackedResourceState.Common);
+
+        if (access is ComputeResourceAccess.Write &&
+            resource is ID3D12ReadWriteResource readWriteResource)
+        {
+            readWriteResource.SetReadOnlyViewAvailability(false);
+        }
+    }
+
     public TrackedResourceState RecordTransition(IGraphicsResource resource, TrackedResourceState finalState)
     {
         default(ArgumentNullException).ThrowIfNull(resource);
