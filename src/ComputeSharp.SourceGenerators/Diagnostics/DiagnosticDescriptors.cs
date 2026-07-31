@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned resource whose type has no resource plan.
+    /// <para>
+    /// Format: <c>"The owned resource {0} declares the type {1}, which has no resource plan dimensions"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedResourcePlanMember = new(
+        id: "CMPS0102",
+        title: "Unsupported resource plan member",
+        messageFormat: "The owned resource {0} declares the type {1}, which has no resource plan dimensions",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An owned resource is created from an exact resource plan, so its type must be a buffer or a 2D texture.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline host that owns a disposable field other than a slot.
     /// <para>
     /// Format: <c>"The compute pipeline host {0} declares the owned disposable field {1}, which it cannot release"</c>.

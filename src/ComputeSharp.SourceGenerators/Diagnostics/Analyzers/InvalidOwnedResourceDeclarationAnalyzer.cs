@@ -15,7 +15,7 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        [InvalidOwnedResourceSlotDeclaration, MissingOwnedResourceRecoveryContract, DuplicateResourceGroupMemberRecoveryContract];
+        [InvalidOwnedResourceSlotDeclaration, MissingOwnedResourceRecoveryContract, DuplicateResourceGroupMemberRecoveryContract, UnsupportedResourcePlanMember];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -47,16 +47,22 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                 {
                     foreach (ISymbol memberSymbol in typeSymbol.GetMembers())
                     {
-                        if (memberSymbol is IPropertySymbol &&
-                            memberSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out AttributeData? memberAttribute) &&
-                            PipelineResourceContractReader.TryRead(memberAttribute, out _, out bool memberHasRecovery, out _) &&
-                            memberHasRecovery)
+                        if (memberSymbol is not IPropertySymbol propertySymbol ||
+                            !memberSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out AttributeData? memberAttribute) ||
+                            !PipelineResourceContractReader.TryRead(memberAttribute, out _, out bool memberHasRecovery, out _))
+                        {
+                            continue;
+                        }
+
+                        if (memberHasRecovery)
                         {
                             context.ReportDiagnostic(Diagnostic.Create(
                                 DuplicateResourceGroupMemberRecoveryContract,
                                 memberSymbol.Locations[0],
                                 memberSymbol));
                         }
+
+                        ReportIfPlanIsUnsupported(context, memberSymbol, propertySymbol.Type);
                     }
 
                     return;
@@ -76,10 +82,21 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                         continue;
                     }
 
+                    bool isResourceSlot =
+                        fieldSymbol.Type is INamedTypeSymbol { IsGenericType: true } resourceSlotTypeSymbol &&
+                        SymbolEqualityComparer.Default.Equals(resourceSlotTypeSymbol.OriginalDefinition, resourceSlotSymbol);
+
                     bool isSlot =
-                        fieldSymbol.Type is INamedTypeSymbol { IsGenericType: true } slotTypeSymbol &&
-                        (SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, resourceSlotSymbol) ||
-                         SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, resourceGroupSlotSymbol));
+                        isResourceSlot ||
+                        (fieldSymbol.Type is INamedTypeSymbol { IsGenericType: true } groupSlotTypeSymbol &&
+                         SymbolEqualityComparer.Default.Equals(groupSlotTypeSymbol.OriginalDefinition, resourceGroupSlotSymbol));
+
+                    // The resource of a slot is created from its exact plan, while the plan of a group
+                    // slot is the concatenation of the dimensions its members declare on the group type
+                    if (isResourceSlot)
+                    {
+                        ReportIfPlanIsUnsupported(context, fieldSymbol, ((INamedTypeSymbol)fieldSymbol.Type).TypeArguments[0]);
+                    }
 
                     // A recovery contract declares the resource as owned, so it has to be held by a slot
                     if (hasRecovery && !isSlot)
@@ -102,5 +119,25 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                 }
             }, SymbolKind.NamedType);
         });
+    }
+
+    /// <summary>
+    /// Reports a diagnostic if the declared type of an owned resource has no resource plan.
+    /// </summary>
+    /// <param name="context">The current symbol analysis context.</param>
+    /// <param name="memberSymbol">The member declaring the owned resource.</param>
+    /// <param name="resourceTypeSymbol">The declared type of the owned resource.</param>
+    private static void ReportIfPlanIsUnsupported(SymbolAnalysisContext context, ISymbol memberSymbol, ITypeSymbol resourceTypeSymbol)
+    {
+        if (ResourcePlanGrammar.TryGetPlanKind(resourceTypeSymbol, out _))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            UnsupportedResourcePlanMember,
+            memberSymbol.Locations[0],
+            memberSymbol,
+            resourceTypeSymbol));
     }
 }
