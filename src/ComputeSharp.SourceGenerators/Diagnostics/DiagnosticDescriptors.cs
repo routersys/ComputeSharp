@@ -1172,4 +1172,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "The canonical name of an owned member must not be empty, and the plan members generated from it must not conflict with another declared or generated member.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned resource that is not declared through a slot.
+    /// <para>
+    /// Format: <c>"The owned resource {0} declares the type {1}, but an owned resource must be declared as a ComputeResourceSlot&lt;T&gt; or a ComputeResourceGroupSlot&lt;T&gt; field"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOwnedResourceSlotDeclaration = new(
+        id: "CMPS0075",
+        title: "Owned resource is not declared through a slot",
+        messageFormat: "The owned resource {0} declares the type {1}, but an owned resource must be declared as a ComputeResourceSlot<T> or a ComputeResourceGroupSlot<T> field",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An owned resource is created and replaced by its slot, so it must be declared as a ComputeResourceSlot<T> or a ComputeResourceGroupSlot<T> field.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned slot that declares no recovery contract.
+    /// <para>
+    /// Format: <c>"The owned slot {0} declares no recovery contract, which is required to recover its contents after a replacement"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor MissingOwnedResourceRecoveryContract = new(
+        id: "CMPS0101",
+        title: "Missing owned resource recovery contract",
+        messageFormat: "The owned slot {0} declares no recovery contract, which is required to recover its contents after a replacement",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An owned slot recreates its resource on every replacement, so it must declare how the contents of the previous generation are recovered.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
