@@ -1222,6 +1222,54 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an internal resource that is not a graphics resource.
+    /// <para>
+    /// Format: <c>"The internal resource {0} declares the type {1}, which is not a graphics resource"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidInternalResourceContract = new(
+        id: "CMPS0071",
+        title: "Invalid internal resource contract",
+        messageFormat: "The internal resource {0} declares the type {1}, which is not a graphics resource",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An internal resource of a compute pipeline host is bound as a graphics resource, so its declared type must be one.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned slot that is assigned instead of created in place.
+    /// <para>
+    /// Format: <c>"The owned slot {0} must be initialized with an object creation expression, not with an assigned value"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOwnedSlotInitializer = new(
+        id: "CMPS0087",
+        title: "Invalid owned slot initializer",
+        messageFormat: "The owned slot {0} must be initialized with an object creation expression, not with an assigned value",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An owned slot has to exist before the generated host factory binds it, so it must be created in its own declaration.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a resource declared through a collection type.
+    /// <para>
+    /// Format: <c>"The resource {0} declares the collection type {1}, which cannot be a compute pipeline resource"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedDynamicResourceCollection = new(
+        id: "CMPS0092",
+        title: "Unsupported dynamic resource collection",
+        messageFormat: "The resource {0} declares the collection type {1}, which cannot be a compute pipeline resource",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The resources of a compute pipeline are declared one by one, so a dynamic resource collection cannot be declared.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for an owned resource whose type has no resource plan.
     /// <para>
     /// Format: <c>"The owned resource {0} declares the type {1}, which has no resource plan dimensions"</c>.

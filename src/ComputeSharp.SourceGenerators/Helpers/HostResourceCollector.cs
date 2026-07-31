@@ -267,7 +267,7 @@ internal static class HostResourceCollector
     /// </summary>
     /// <param name="fieldSymbol">The field to check.</param>
     /// <returns>Whether <paramref name="fieldSymbol"/> is initialized in its declaration with an object creation expression.</returns>
-    private static bool HasObjectCreationInitializer(IFieldSymbol fieldSymbol)
+    public static bool HasObjectCreationInitializer(IFieldSymbol fieldSymbol)
     {
         foreach (SyntaxReference syntaxReference in fieldSymbol.DeclaringSyntaxReferences)
         {

@@ -15,7 +15,15 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        [InvalidOwnedResourceSlotDeclaration, MissingOwnedResourceRecoveryContract, DuplicateResourceGroupMemberRecoveryContract, UnsupportedResourcePlanMember];
+        [
+            InvalidOwnedResourceSlotDeclaration,
+            MissingOwnedResourceRecoveryContract,
+            DuplicateResourceGroupMemberRecoveryContract,
+            UnsupportedResourcePlanMember,
+            InvalidInternalResourceContract,
+            InvalidOwnedSlotInitializer,
+            UnsupportedDynamicResourceCollection
+        ];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -30,10 +38,13 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceGroupAttribute") is not { } resourceGroupAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputePipelineResourceAttribute") is not { } resourceAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceSlot`1") is not { } resourceSlotSymbol ||
-                context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceGroupSlot`1") is not { } resourceGroupSlotSymbol)
+                context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceGroupSlot`1") is not { } resourceGroupSlotSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeSharp.IGraphicsResource") is not { } graphicsResourceSymbol)
             {
                 return;
             }
+
+            INamedTypeSymbol enumerableSymbol = context.Compilation.GetSpecialType(SpecialType.System_Collections_IEnumerable);
 
             context.RegisterSymbolAction(context =>
             {
@@ -50,6 +61,11 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                         if (memberSymbol is not IPropertySymbol propertySymbol ||
                             !memberSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out AttributeData? memberAttribute) ||
                             !PipelineResourceContractReader.TryRead(memberAttribute, out _, out bool memberHasRecovery, out _))
+                        {
+                            continue;
+                        }
+
+                        if (ReportIfCollection(context, memberSymbol, propertySymbol.Type, enumerableSymbol))
                         {
                             continue;
                         }
@@ -82,6 +98,11 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                         continue;
                     }
 
+                    if (ReportIfCollection(context, fieldSymbol, fieldSymbol.Type, enumerableSymbol))
+                    {
+                        continue;
+                    }
+
                     bool isResourceSlot =
                         fieldSymbol.Type is INamedTypeSymbol { IsGenericType: true } resourceSlotTypeSymbol &&
                         SymbolEqualityComparer.Default.Equals(resourceSlotTypeSymbol.OriginalDefinition, resourceSlotSymbol);
@@ -98,27 +119,79 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
                         ReportIfPlanIsUnsupported(context, fieldSymbol, ((INamedTypeSymbol)fieldSymbol.Type).TypeArguments[0]);
                     }
 
-                    // A recovery contract declares the resource as owned, so it has to be held by a slot
-                    if (hasRecovery && !isSlot)
+                    if (!isSlot)
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            InvalidOwnedResourceSlotDeclaration,
-                            fieldSymbol.Locations[0],
-                            fieldSymbol,
-                            fieldSymbol.Type));
+                        // A recovery contract declares the resource as owned, so it has to be held by a slot
+                        if (hasRecovery)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                InvalidOwnedResourceSlotDeclaration,
+                                fieldSymbol.Locations[0],
+                                fieldSymbol,
+                                fieldSymbol.Type));
+                        }
+                        else if (!fieldSymbol.Type.HasInterfaceWithType(graphicsResourceSymbol))
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                InvalidInternalResourceContract,
+                                fieldSymbol.Locations[0],
+                                fieldSymbol,
+                                fieldSymbol.Type));
+                        }
+
+                        continue;
                     }
 
                     // A slot always owns the resource it holds, so it has to declare how the contents are recovered
-                    if (isSlot && !hasRecovery)
+                    if (!hasRecovery)
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             MissingOwnedResourceRecoveryContract,
                             fieldSymbol.Locations[0],
                             fieldSymbol));
                     }
+
+                    // The slot instance has to exist before the generated host factory binds it
+                    if (!HostResourceCollector.HasObjectCreationInitializer(fieldSymbol))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            InvalidOwnedSlotInitializer,
+                            fieldSymbol.Locations[0],
+                            fieldSymbol));
+                    }
                 }
             }, SymbolKind.NamedType);
         });
+    }
+
+    /// <summary>
+    /// Reports a diagnostic if a declared resource type is a collection, and returns whether it is one.
+    /// </summary>
+    /// <param name="context">The current symbol analysis context.</param>
+    /// <param name="memberSymbol">The member declaring the resource.</param>
+    /// <param name="resourceTypeSymbol">The declared type of the resource.</param>
+    /// <param name="enumerableSymbol">The <see cref="System.Collections.IEnumerable"/> symbol.</param>
+    /// <returns>Whether <paramref name="resourceTypeSymbol"/> is a collection type.</returns>
+    private static bool ReportIfCollection(
+        SymbolAnalysisContext context,
+        ISymbol memberSymbol,
+        ITypeSymbol resourceTypeSymbol,
+        INamedTypeSymbol enumerableSymbol)
+    {
+        if (resourceTypeSymbol.SpecialType is SpecialType.System_String ||
+            (resourceTypeSymbol.TypeKind is not TypeKind.Array &&
+             !resourceTypeSymbol.HasInterfaceWithType(enumerableSymbol)))
+        {
+            return false;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            UnsupportedDynamicResourceCollection,
+            memberSymbol.Locations[0],
+            memberSymbol,
+            resourceTypeSymbol));
+
+        return true;
     }
 
     /// <summary>
