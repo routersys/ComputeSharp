@@ -61,6 +61,14 @@ internal struct ResourceGenerationRecord
         Volatile.Read(in this.ExternalReferenceCount) != 0 ||
         Volatile.Read(in this.CpuReferenceCount) != 0;
 
+    public readonly bool IsIdle =>
+        ReadLifecycle() is ResourceGenerationState.Active &&
+        Volatile.Read(in this.RecordingReferenceCount) == 0 &&
+        Volatile.Read(in this.PendingSubmissionReferenceCount) == 0 &&
+        Volatile.Read(in this.ExternalReferenceCount) == 0 &&
+        Volatile.Read(in this.CpuReferenceCount) == 0 &&
+        Volatile.Read(in this.PersistentLeaseActive) == 0;
+
     public bool TryAcquireRecordingReference()
     {
         if (ReadLifecycle() is not ResourceGenerationState.Active)

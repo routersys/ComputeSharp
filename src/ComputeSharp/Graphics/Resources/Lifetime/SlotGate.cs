@@ -367,6 +367,11 @@ internal struct SlotGate
         {
             this.exclusion.Enter(ref taken);
 
+            if (!TryGetIdleActiveSet(out _))
+            {
+                return false;
+            }
+
             return SlotResourcePlanController.TryTrim(ref this.control, this.PlanStorage, in this.planState);
         }
         finally
@@ -376,6 +381,112 @@ internal struct SlotGate
                 this.exclusion.Exit(useMemoryBarrier: true);
             }
         }
+    }
+
+    public bool TryGetTrimCandidate(out SlotTrimCandidate candidate)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            if (!TryGetIdleActiveSet(out ResourceGenerationSetHandle active))
+            {
+                candidate = default;
+
+                return false;
+            }
+
+            IResourceGenerationOwner owner = active.Owner;
+            ref ResourceGenerationRecord first = ref owner.GetResourceRecord(0);
+
+            ulong lastUseSequence = first.LastUseSequence;
+            ulong reclaimableBytes = first.ReclaimableBytes;
+            ResourceId tieBreakResourceId = first.ResourceId;
+
+            for (int i = 1; i < owner.ResourceCount; i++)
+            {
+                ref ResourceGenerationRecord record = ref owner.GetResourceRecord(i);
+
+                lastUseSequence = Math.Max(lastUseSequence, record.LastUseSequence);
+                reclaimableBytes = checked(reclaimableBytes + record.ReclaimableBytes);
+
+                if (record.ResourceId.Value < tieBreakResourceId.Value)
+                {
+                    tieBreakResourceId = record.ResourceId;
+                }
+            }
+
+            candidate = new SlotTrimCandidate(first.Recovery, lastUseSequence, reclaimableBytes, tieBreakResourceId);
+
+            return true;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    public void GetGenerationCounts(ref int activeCount, ref int retiredCount)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            if (!this.control.Active.IsEmpty)
+            {
+                activeCount = checked(activeCount + this.control.Active.Owner.ResourceCount);
+            }
+
+            if (!this.control.Prepared.IsEmpty)
+            {
+                activeCount = checked(activeCount + this.control.Prepared.Owner.ResourceCount);
+            }
+
+            if (!this.control.Retired.IsEmpty)
+            {
+                retiredCount = checked(retiredCount + this.control.Retired.Owner.ResourceCount);
+            }
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    private readonly bool TryGetIdleActiveSet(out ResourceGenerationSetHandle active)
+    {
+        active = this.control.Active;
+
+        if (this.control.State is not SlotControlState.Active ||
+            this.control.IsDisposeRequested ||
+            !this.control.Prepared.IsEmpty ||
+            !this.control.Retired.IsEmpty ||
+            active.IsEmpty)
+        {
+            return false;
+        }
+
+        IResourceGenerationOwner owner = active.Owner;
+
+        for (int i = 0; i < owner.ResourceCount; i++)
+        {
+            if (!owner.GetResourceRecord(i).IsIdle)
+            {
+                return false;
+            }
+        }
+
+        return owner.ResourceCount > 0;
     }
 
     public ResourceGenerationSetHandle RequestDispose()

@@ -15,6 +15,12 @@ internal interface IComputeOwnedSlot
 
     void RunMaintenance();
 
+    bool TryTrim();
+
+    bool TryGetTrimCandidate(out SlotTrimCandidate candidate);
+
+    void GetGenerationCounts(ref int activeCount, ref int retiredCount);
+
     void MarkTerminalRetained();
 
     void ReleaseTerminalGenerations();

@@ -75,6 +75,24 @@ public sealed class ComputeResourceSlot<TResource> : IComputeOwnedResourceSlot, 
     }
 
     /// <inheritdoc/>
+    bool IComputeOwnedSlot.TryTrim()
+    {
+        return this.slotGate.TryTrim();
+    }
+
+    /// <inheritdoc/>
+    bool IComputeOwnedSlot.TryGetTrimCandidate(out SlotTrimCandidate candidate)
+    {
+        return this.slotGate.TryGetTrimCandidate(out candidate);
+    }
+
+    /// <inheritdoc/>
+    void IComputeOwnedSlot.GetGenerationCounts(ref int activeCount, ref int retiredCount)
+    {
+        this.slotGate.GetGenerationCounts(ref activeCount, ref retiredCount);
+    }
+
+    /// <inheritdoc/>
     void IComputeOwnedSlot.MarkTerminalRetained()
     {
         _ = this.slotGate.TryMarkDeviceTerminal();
