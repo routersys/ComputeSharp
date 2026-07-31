@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a transient CPU upload performed inside a compute pipeline.
+    /// <para>
+    /// Format: <c>"The compute pipeline method {0} uploads from CPU memory through {1}, which allocates a transient upload resource"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedTransientCpuUploadInPipeline = new(
+        id: "CMPS0105",
+        title: "Unsupported transient CPU upload in a compute pipeline",
+        messageFormat: "The compute pipeline method {0} uploads from CPU memory through {1}, which allocates a transient upload resource",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline records GPU work without allocating, so uploading from CPU memory has to happen through a manual compute context or an owned upload resource.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a member declaring more than one contract attribute.
     /// <para>
     /// Format: <c>"The member {0} declares both [ComputePipelineResource] and [ComputeSharedTexture], which are exclusive contracts"</c>.
