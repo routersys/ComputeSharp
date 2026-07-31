@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a raw external view escaping the scope it is valid in.
+    /// <para>
+    /// Format: <c>"The raw view returned by {0} is only valid within the scope it was obtained in, so it cannot be stored or returned"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor RawExternalViewEscape = new(
+        id: "CMPS0096",
+        title: "Raw external view escape",
+        messageFormat: "The raw view returned by {0} is only valid within the scope it was obtained in, so it cannot be stored or returned",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A raw external view is released with the lease or the borrow it was obtained from, so it must not outlive that scope.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a transient CPU upload performed inside a compute pipeline.
     /// <para>
     /// Format: <c>"The compute pipeline method {0} uploads from CPU memory through {1}, which allocates a transient upload resource"</c>.
