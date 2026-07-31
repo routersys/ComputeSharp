@@ -1,0 +1,129 @@
+using ComputeSharp.SourceGenerators;
+using ComputeSharp.Tests.SourceGenerators.Helpers;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace ComputeSharp.Tests.SourceGenerators.Canonicalization;
+
+[TestClass]
+public class OwnedResourceSlotDeclarationAnalyzerTests
+{
+    private const string Preamble = """
+        using ComputeSharp;
+        using ComputeSharp.Resources;
+
+        namespace Ukiyoe;
+        """;
+
+    private static string Host(string members)
+    {
+        return $$"""
+            {{Preamble}}
+
+            [ComputePipelineHost("device", 1)]
+            public sealed partial class Host
+            {
+                private readonly GraphicsDevice device;
+
+            {{members}}
+
+                [ComputePipeline]
+                private void Run(in ComputeContext context)
+                {
+                }
+            }
+            """;
+    }
+
+    private static string Group()
+    {
+        return $$"""
+            {{Preamble}}
+
+            [ComputeResourceGroup]
+            public sealed partial class GridResources
+            {
+                [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                internal ReadWriteBuffer<int> Cells { get; } = null!;
+            }
+            """;
+    }
+
+    [TestMethod]
+    public void AcceptsOwnedSlotsWithARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Discardable)]
+                    private readonly ComputeResourceGroupSlot<GridResources> grid = new();
+                """), Group()],
+            "AcceptsOwnedSlots");
+    }
+
+    [TestMethod]
+    public void AcceptsBorrowedResourcesWithoutARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly ReadWriteBuffer<int> borrowed;
+                """)],
+            "AcceptsBorrowedResources");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedResourceThatIsNotDeclaredThroughASlot()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ReadWriteBuffer<int> owned;
+                """)],
+            "DetectsOwnedResourceWithoutSlot",
+            "CMPS0075");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedResourceCollection()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly System.Collections.Generic.List<ComputeResourceSlot<ReadWriteBuffer<int>>> owned = new();
+                """)],
+            "DetectsOwnedResourceCollection",
+            "CMPS0075");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedSlotWithoutARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+                """)],
+            "DetectsSlotWithoutRecovery",
+            "CMPS0101");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedGroupSlotWithoutARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly ComputeResourceGroupSlot<GridResources> grid = new();
+                """), Group()],
+            "DetectsGroupSlotWithoutRecovery",
+            "CMPS0101");
+    }
+}
