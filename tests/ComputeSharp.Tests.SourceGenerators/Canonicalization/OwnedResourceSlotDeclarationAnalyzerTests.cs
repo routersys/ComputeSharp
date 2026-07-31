@@ -126,4 +126,61 @@ public class OwnedResourceSlotDeclarationAnalyzerTests
             "DetectsGroupSlotWithoutRecovery",
             "CMPS0101");
     }
+
+    [TestMethod]
+    public void AcceptsResourceGroupMembersWithoutARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Group()],
+            "AcceptsGroupMembers");
+    }
+
+    [TestMethod]
+    public void DetectsAResourceGroupMemberDeclaringARecoveryContract()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [$$"""
+                {{Preamble}}
+
+                [ComputeResourceGroup]
+                public sealed partial class GridResources
+                {
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    internal ReadWriteBuffer<int> Cells { get; } = null!;
+                }
+                """],
+            "DetectsGroupMemberRecovery",
+            "CMPS0108");
+    }
+
+    [TestMethod]
+    public void AcceptsAHostWithoutOwnedDisposableFields()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new UnsupportedOwnedDisposableFieldAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly ReadWriteBuffer<int> borrowed;
+
+                    private readonly int seed;
+                """)],
+            "AcceptsHostWithoutDisposables");
+    }
+
+    [TestMethod]
+    public void DetectsAHostOwningADisposableFieldOtherThanASlot()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new UnsupportedOwnedDisposableFieldAnalyzer(),
+            [Host("""
+                    private readonly System.IO.MemoryStream stream = new();
+                """)],
+            "DetectsOwnedDisposableField",
+            "CMPS0097");
+    }
 }
