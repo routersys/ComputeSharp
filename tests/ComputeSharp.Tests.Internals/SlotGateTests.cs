@@ -185,6 +185,78 @@ public unsafe class SlotGateTests
     }
 
     [TestMethod]
+    public void RefusesToTrimAGenerationThatIsNotIdle()
+    {
+        GateHolder holder = PublishedGate(out ResourceGenerationSetHandle active);
+
+        Assert.IsTrue(active.Owner.GetResourceRecord(0).TryAcquireRecordingReference());
+        Assert.IsFalse(holder.Gate.TryGetTrimCandidate(out _));
+        Assert.IsFalse(holder.Gate.TryTrim());
+
+        active.Owner.GetResourceRecord(0).ReleaseRecordingReference();
+
+        Assert.IsTrue(holder.Gate.TryGetTrimCandidate(out _));
+        Assert.IsTrue(holder.Gate.TryTrim());
+    }
+
+    [TestMethod]
+    public void ReportsTheTrimCandidateOfTheActiveGeneration()
+    {
+        GateHolder holder = PublishedGate(out ResourceGenerationSetHandle active);
+
+        ref ResourceGenerationRecord record = ref active.Owner.GetResourceRecord(0);
+
+        record.Recovery = ComputeResourceRecovery.RecreateFromHost;
+        record.LastUseSequence = 7;
+        record.ReclaimableBytes = 2048;
+        record.ResourceId = new ResourceId(5);
+
+        Assert.IsTrue(holder.Gate.TryGetTrimCandidate(out SlotTrimCandidate candidate));
+        Assert.AreEqual(ComputeResourceRecovery.RecreateFromHost, candidate.Recovery);
+        Assert.AreEqual(7UL, candidate.LastUseSequence);
+        Assert.AreEqual(2048UL, candidate.ReclaimableBytes);
+        Assert.AreEqual(5UL, candidate.TieBreakResourceId.Value);
+    }
+
+    [TestMethod]
+    public void OrdersTrimCandidatesByUseThenBytesThenIdentifier()
+    {
+        SlotTrimCandidate older = new(ComputeResourceRecovery.Discardable, 1, 16, new ResourceId(9));
+        SlotTrimCandidate newer = new(ComputeResourceRecovery.Discardable, 2, 16, new ResourceId(1));
+        SlotTrimCandidate larger = new(ComputeResourceRecovery.Discardable, 1, 32, new ResourceId(9));
+        SlotTrimCandidate lowerId = new(ComputeResourceRecovery.Discardable, 1, 16, new ResourceId(3));
+
+        Assert.IsTrue(SlotTrimCandidate.Compare(older, newer) < 0);
+        Assert.IsTrue(SlotTrimCandidate.Compare(larger, older) < 0);
+        Assert.IsTrue(SlotTrimCandidate.Compare(lowerId, older) < 0);
+        Assert.AreEqual(0, SlotTrimCandidate.Compare(older, older));
+    }
+
+    [TestMethod]
+    public void CountsTheGenerationsOfTheGate()
+    {
+        GateHolder holder = PublishedGate(out _);
+
+        int activeCount = 0;
+        int retiredCount = 0;
+
+        holder.Gate.GetGenerationCounts(ref activeCount, ref retiredCount);
+
+        Assert.AreEqual(1, activeCount);
+        Assert.AreEqual(0, retiredCount);
+
+        Assert.IsTrue(holder.Gate.TryTrim());
+
+        activeCount = 0;
+        retiredCount = 0;
+
+        holder.Gate.GetGenerationCounts(ref activeCount, ref retiredCount);
+
+        Assert.AreEqual(0, activeCount);
+        Assert.AreEqual(1, retiredCount);
+    }
+
+    [TestMethod]
     public void RequestsDisposeThroughGate()
     {
         GateHolder holder = PublishedGate(out _);

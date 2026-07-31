@@ -240,6 +240,69 @@ public class GeneratedPipelineHostTests
         Assert.AreEqual(before.UsageSetCount, released.UsageSetCount);
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void TrimsTheIdleGenerationsOfEveryOwnedSlot(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ulong before = GetOwnedBytes(graphicsDevice);
+        GeneratedPipelineHost host = GeneratedPipelineHost.Create(graphicsDevice, 1);
+
+        try
+        {
+            Assert.IsTrue(host.TryEnsureValues(new GeneratedPipelineHost.ValuesPlan(64), out _));
+            Assert.IsTrue(host.TryEnsureMask(new GeneratedPipelineHost.MaskPlan(8, 8), out _));
+            Assert.IsTrue(host.TryEnsureGrid(new GeneratedGridResources.Plan(64, 8, 8), out _));
+
+            GraphicsMemoryStatistics allocated = graphicsDevice.GetMemoryStatistics();
+
+            Assert.AreEqual(4, allocated.ActiveGenerationCount);
+            Assert.AreEqual(0, allocated.RetiredGenerationCount);
+            Assert.IsTrue(GetOwnedBytes(graphicsDevice) > before);
+
+            host.Run().Wait();
+
+            graphicsDevice.TrimMemory();
+
+            GraphicsMemoryStatistics trimmed = graphicsDevice.GetMemoryStatistics();
+
+            Assert.AreEqual(0, trimmed.ActiveGenerationCount);
+            Assert.AreEqual(0, trimmed.RetiredGenerationCount);
+            Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+
+            Assert.IsFalse(host.GetValuesComputeBinding().IsValid);
+            Assert.IsTrue(host.TryEnsureValues(new GeneratedPipelineHost.ValuesPlan(64), out _));
+            Assert.IsTrue(host.GetValuesComputeBinding().IsValid);
+        }
+        finally
+        {
+            host.Dispose();
+            host.WaitForDisposal();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void TrimsTheManagedPoolSurplusLeftByAnUnregisteredHost(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        graphicsDevice.TrimMemory();
+
+        Assert.AreEqual(0, graphicsDevice.GetMemoryStatistics().ManagedPoolSurplusCount);
+
+        GeneratedPipelineHost host = GeneratedPipelineHost.Create(graphicsDevice, 1);
+
+        host.Dispose();
+        host.WaitForDisposal();
+
+        Assert.AreEqual(1, graphicsDevice.GetMemoryStatistics().ManagedPoolSurplusCount);
+
+        graphicsDevice.TrimMemory();
+
+        Assert.AreEqual(0, graphicsDevice.GetMemoryStatistics().ManagedPoolSurplusCount);
+    }
+
     private static ulong GetOwnedBytes(GraphicsDevice device)
     {
         GraphicsMemoryStatistics statistics = device.GetMemoryStatistics();
