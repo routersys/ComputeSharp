@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using ComputeSharp.Core.Extensions;
 using ComputeSharp.Graphics.Extensions;
+using ComputeSharp.Graphics.Pipelines;
 using ComputeSharp.Interop;
 using ComputeSharp.Memory;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_HEAP_TYPE;
 using static ComputeSharp.Win32.D3D12_MEMORY_POOL;
@@ -90,13 +93,15 @@ unsafe partial class GraphicsDevice
         GraphicsMemorySegmentStatistics local = QuerySegmentStatistics(MemoryPlacement.Local);
         GraphicsMemorySegmentStatistics nonLocal = QuerySegmentStatistics(MemoryPlacement.NonLocal);
 
+        GetGenerationCounts(out int activeGenerationCount, out int retiredGenerationCount);
+
         return new GraphicsMemoryStatistics(
             this.memoryCoordinator.Epoch,
             local,
             nonLocal,
-            activeGenerationCount: 0,
-            retiredGenerationCount: 0,
-            managedPoolSurplusCount: 0);
+            activeGenerationCount,
+            retiredGenerationCount,
+            GetManagedPoolSurplusCount());
     }
 
     /// <summary>
@@ -108,7 +113,89 @@ unsafe partial class GraphicsDevice
 
         ThrowIfDeviceTerminal();
 
+        TrimReclaimableMemory();
+    }
+
+    /// <summary>
+    /// Runs the deterministic trim phases of the current device.
+    /// </summary>
+    private void TrimReclaimableMemory()
+    {
         _ = RefreshMemoryObservations();
+
+        DeviceRegistrationRegistry? registry = TryGetRegistrationRegistry();
+
+        if (registry is null)
+        {
+            return;
+        }
+
+        registry.RunOwnedSlotMaintenance();
+
+        _ = registry.ManagedPools.TrimSurplus();
+
+        List<SlotTrimEntry> candidates = [];
+
+        registry.CollectTrimCandidates(candidates);
+
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        candidates.Sort(static (left, right) => SlotTrimCandidate.Compare(left.Candidate, right.Candidate));
+
+        TrimCandidatePhase(candidates, ComputeResourceRecovery.Discardable);
+        TrimCandidatePhase(candidates, ComputeResourceRecovery.RecreateFromHost);
+        TrimCandidatePhase(candidates, ComputeResourceRecovery.Recompute);
+        TrimCandidatePhase(candidates, ComputeResourceRecovery.CapacityOnly);
+
+        registry.RunOwnedSlotMaintenance();
+    }
+
+    /// <summary>
+    /// Trims every idle candidate of a single recovery phase, in candidate order.
+    /// </summary>
+    /// <param name="candidates">The trim candidates, already ordered within each phase.</param>
+    /// <param name="recovery">The recovery contract of the phase to trim.</param>
+    private static void TrimCandidatePhase(List<SlotTrimEntry> candidates, ComputeResourceRecovery recovery)
+    {
+        foreach (SlotTrimEntry entry in candidates)
+        {
+            if (entry.Candidate.Recovery == recovery)
+            {
+                _ = entry.Slot.TryTrim();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the number of generations owned by the registered slots of the current device.
+    /// </summary>
+    /// <param name="activeCount">The number of active and prepared generations.</param>
+    /// <param name="retiredCount">The number of retired generations.</param>
+    private void GetGenerationCounts(out int activeCount, out int retiredCount)
+    {
+        DeviceRegistrationRegistry? registry = TryGetRegistrationRegistry();
+
+        if (registry is null)
+        {
+            activeCount = 0;
+            retiredCount = 0;
+
+            return;
+        }
+
+        registry.GetGenerationCounts(out activeCount, out retiredCount);
+    }
+
+    /// <summary>
+    /// Gets the number of managed pool partitions retained without a live owner.
+    /// </summary>
+    /// <returns>The managed pool surplus of the current device.</returns>
+    private int GetManagedPoolSurplusCount()
+    {
+        return TryGetRegistrationRegistry()?.ManagedPools.GetSurplusCount() ?? 0;
     }
 
     /// <summary>
@@ -172,7 +259,7 @@ unsafe partial class GraphicsDevice
 
             if (outcome is NativeAllocationOutcome.OutOfMemory && attempt == 0)
             {
-                _ = RefreshMemoryObservations();
+                TrimReclaimableMemory();
 
                 continue;
             }
