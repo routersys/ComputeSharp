@@ -135,6 +135,18 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Gets the registration registry of the current device, without creating it.
+    /// </summary>
+    /// <returns>The <see cref="DeviceRegistrationRegistry"/> instance of the current device, if one exists.</returns>
+    internal DeviceRegistrationRegistry? TryGetRegistrationRegistry()
+    {
+        lock (this.registrationRegistryGate)
+        {
+            return this.registrationRegistry;
+        }
+    }
+
+    /// <summary>
     /// Gets the registration registry of the current device, creating it if needed.
     /// </summary>
     /// <returns>The <see cref="DeviceRegistrationRegistry"/> instance of the current device.</returns>

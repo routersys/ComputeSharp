@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using ComputeSharp.Memory;
 
 namespace ComputeSharp.Graphics.Pipelines;
 
@@ -83,7 +84,7 @@ internal sealed class ResourceUsageSetPartition
     }
 }
 
-internal sealed class ResourceUsageSetPool
+internal sealed class ResourceUsageSetPool : IManagedSurplusPool
 {
     private sealed class Segment(UsageSetPoolEntry[] sets, GraphicsResourceUsageEntry[] entries, int globalSetBase)
     {
@@ -144,6 +145,34 @@ internal sealed class ResourceUsageSetPool
             {
                 return this.segments.Count;
             }
+        }
+    }
+
+    public int SurplusCount
+    {
+        get
+        {
+            lock (this.gate)
+            {
+                return this.releasedRanges.Count;
+            }
+        }
+    }
+
+    public int TrimSurplus()
+    {
+        lock (this.gate)
+        {
+            int count = this.releasedRanges.Count;
+
+            foreach (ReleasedRange released in this.releasedRanges)
+            {
+                _ = this.segments.Remove(released.Segment);
+            }
+
+            this.releasedRanges.Clear();
+
+            return count;
         }
     }
 

@@ -18,6 +18,8 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
     private readonly ResourceUsageSetPool usageSetPool = new();
 
+    private readonly ManagedPoolRegistry managedPools = new();
+
     private readonly ResourceIdentityAllocator identities;
 
     private readonly List<PipelineHostRuntime> hosts = [];
@@ -54,6 +56,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         this.completions.AttachCoordinator(this.coordinator);
         this.coordinator.AttachRegistrations(this);
+        this.managedPools.Register(this.usageSetPool);
     }
 
     public GraphicsDevice Device => this.device;
@@ -439,6 +442,64 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     public void RunExternalMaintenance()
     {
         RunExternalMaintenance(GetOrderedResourceSets());
+    }
+
+    public ManagedPoolRegistry ManagedPools => this.managedPools;
+
+    public void RunOwnedSlotMaintenance()
+    {
+        foreach (PipelineHostRuntime host in GetOrderedHosts())
+        {
+            host.RunOwnedSlotMaintenance();
+
+            _ = host.TryCompleteDeferredRelease();
+        }
+    }
+
+    public void GetGenerationCounts(out int activeCount, out int retiredCount)
+    {
+        activeCount = 0;
+        retiredCount = 0;
+
+        foreach (PipelineHostRuntime host in GetOrderedHosts())
+        {
+            for (int i = 0; i < host.SlotCount; i++)
+            {
+                host.GetSlot(i).GetGenerationCounts(ref activeCount, ref retiredCount);
+            }
+        }
+    }
+
+    public void CollectTrimCandidates(List<SlotTrimEntry> candidates)
+    {
+        default(ArgumentNullException).ThrowIfNull(candidates);
+
+        foreach (PipelineHostRuntime host in GetOrderedHosts())
+        {
+            for (int i = 0; i < host.SlotCount; i++)
+            {
+                IComputeOwnedSlot slot = host.GetSlot(i);
+
+                if (slot.TryGetTrimCandidate(out SlotTrimCandidate candidate))
+                {
+                    candidates.Add(new SlotTrimEntry(host, slot, candidate));
+                }
+            }
+        }
+    }
+
+    private PipelineHostRuntime[] GetOrderedHosts()
+    {
+        PipelineHostRuntime[] registeredHosts;
+
+        lock (this.registrationGate)
+        {
+            registeredHosts = [.. this.hosts];
+        }
+
+        Array.Sort(registeredHosts, static (left, right) => left.Id.Value.CompareTo(right.Id.Value));
+
+        return registeredHosts;
     }
 
     public void RequestResourceSetDispose(ComputeInteropDomain domain)
