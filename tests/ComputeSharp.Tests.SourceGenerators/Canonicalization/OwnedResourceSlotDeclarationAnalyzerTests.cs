@@ -98,7 +98,7 @@ public class OwnedResourceSlotDeclarationAnalyzerTests
                     private readonly System.Collections.Generic.List<ComputeResourceSlot<ReadWriteBuffer<int>>> owned = new();
                 """)],
             "DetectsOwnedResourceCollection",
-            "CMPS0075");
+            "CMPS0092");
     }
 
     [TestMethod]
@@ -229,5 +229,76 @@ public class OwnedResourceSlotDeclarationAnalyzerTests
                 """],
             "DetectsGroupMemberWithoutPlan",
             "CMPS0102");
+    }
+
+    [TestMethod]
+    public void DetectsAnInternalResourceThatIsNotAGraphicsResource()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly object borrowed;
+                """)],
+            "DetectsInternalResourceContract",
+            "CMPS0071");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedSlotWithAnAssignedInitializer()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = null!;
+                """)],
+            "DetectsAssignedSlotInitializer",
+            "CMPS0087");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedSlotWithoutAnInitializer()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index;
+                """)],
+            "DetectsMissingSlotInitializer",
+            "CMPS0087");
+    }
+
+    [TestMethod]
+    public void DetectsADynamicResourceCollectionOnAHost()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    private readonly ReadWriteBuffer<int>[] resources;
+                """)],
+            "DetectsHostResourceCollection",
+            "CMPS0092");
+    }
+
+    [TestMethod]
+    public void DetectsADynamicResourceCollectionOnAResourceGroup()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [$$"""
+                {{Preamble}}
+
+                [ComputeResourceGroup]
+                public sealed partial class GridResources
+                {
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    internal System.Collections.Generic.List<ReadWriteBuffer<int>> Cells { get; } = null!;
+                }
+                """],
+            "DetectsGroupResourceCollection",
+            "CMPS0092");
     }
 }
