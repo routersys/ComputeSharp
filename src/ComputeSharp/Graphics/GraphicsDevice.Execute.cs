@@ -219,6 +219,8 @@ unsafe partial class GraphicsDevice
             return false;
         }
 
+        bool isSubmissionAttempted = false;
+
         try
         {
             lock (this.HazardGate)
@@ -246,6 +248,7 @@ unsafe partial class GraphicsDevice
                 }
 
                 d3D12CommandLists[commandListCount++] = (nint)commandList.D3D12GraphicsCommandList;
+                isSubmissionAttempted = true;
 
                 completion = ExecutePipelineCommandLists(
                     d3D12CommandLists[..commandListCount],
@@ -256,7 +259,11 @@ unsafe partial class GraphicsDevice
         }
         catch
         {
-            prologue.Dispose();
+            if (!isSubmissionAttempted)
+            {
+                prologue.Dispose();
+            }
+
             prologue = default;
 
             throw;
@@ -288,6 +295,8 @@ unsafe partial class GraphicsDevice
             return false;
         }
 
+        bool isSubmissionAttempted = false;
+
         try
         {
             lock (this.HazardGate)
@@ -311,6 +320,9 @@ unsafe partial class GraphicsDevice
                     handoff.D3D12GraphicsCommandList->Close().Assert();
 
                     Span<nint> handoffCommandLists = [(nint)handoff.D3D12GraphicsCommandList];
+
+                    isSubmissionAttempted = true;
+
                     FencePoint handoffCompletion = ExecutePipelineCommandLists(
                         handoffCommandLists,
                         handoffCopyFenceWaitValue);
@@ -329,7 +341,11 @@ unsafe partial class GraphicsDevice
         }
         catch
         {
-            handoff.Dispose();
+            if (!isSubmissionAttempted)
+            {
+                handoff.Dispose();
+            }
+
             handoff = default;
 
             throw;
