@@ -535,10 +535,6 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         else
         {
             commandList = new CommandList(this.device!, pipelineState);
-
-            ref GraphicsResourceLeaseSet? resourceLeases = ref Unsafe.AsRef(in this.resourceLeases);
-
-            resourceLeases ??= GraphicsResourceLeaseSet.Rent();
         }
 
         return ref commandList;

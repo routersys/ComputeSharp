@@ -156,11 +156,7 @@ internal unsafe struct CommandList : IDisposable
     /// <summary>
     /// Executes the commands in the current commands list, and waits for completion.
     /// </summary>
-    public void ExecuteAndWaitForCompletion()
-    {
-        ExecuteAndWaitForCompletion(null);
-    }
-
+    /// <param name="resourceLeases">The resource leases and usages recorded into the current command list.</param>
     public void ExecuteAndWaitForCompletion(GraphicsResourceLeaseSet? resourceLeases)
     {
         this.d3D12GraphicsCommandList.Get()->Close().Assert();
@@ -171,12 +167,8 @@ internal unsafe struct CommandList : IDisposable
     /// <summary>
     /// Executes the commands in the current commands list, returns a <see cref="ValueTask"/>.
     /// </summary>
+    /// <param name="resourceLeases">The resource leases and usages recorded into the current command list.</param>
     /// <returns>The <see cref="ValueTask"/> to await for the operations to complete.</returns>
-    public ValueTask ExecuteAndWaitForCompletionAsync()
-    {
-        return ExecuteAndWaitForCompletionAsync(null);
-    }
-
     public ValueTask ExecuteAndWaitForCompletionAsync(GraphicsResourceLeaseSet? resourceLeases)
     {
         this.d3D12GraphicsCommandList.Get()->Close().Assert();
