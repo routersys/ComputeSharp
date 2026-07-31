@@ -354,7 +354,7 @@ unsafe partial class GraphicsDevice
         return true;
     }
 
-    internal void WaitForResourceAccess(IGraphicsResource resource, ComputeResourceAccess access)
+    internal ResourceCpuAccessScope BeginCpuAccess(IGraphicsResource resource, ComputeResourceAccess access)
     {
         default(ArgumentNullException).ThrowIfNull(resource);
         default(ArgumentException).ThrowIf(
@@ -370,16 +370,23 @@ unsafe partial class GraphicsDevice
             !boundResource.TryGetGenerationBinding(out ResourceUsageBinding binding),
             "The bound resource carries no generation identity to track its CPU access with.");
 
+        IResourceGenerationOwner owner = binding.Set.Owner;
+        int resourceIndex = checked((int)binding.ResourceIndex);
+
         ulong computeFenceWaitValue = 0;
         ulong copyFenceWaitValue = 0;
 
         lock (this.HazardGate)
         {
-            ref ResourceGenerationRecord record = ref binding.Set.Owner.GetResourceRecord(checked((int)binding.ResourceIndex));
+            ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
 
             default(InvalidOperationException).ThrowIf(
                 record.Id != binding.Generation,
                 "The generation of the CPU-accessed resource no longer matches its binding.");
+
+            default(InvalidOperationException).ThrowIf(
+                !record.TryAcquireCpuReference(),
+                "The generation of the CPU-accessed resource is no longer available.");
 
             Accumulate(in record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
 
@@ -390,17 +397,30 @@ unsafe partial class GraphicsDevice
             }
         }
 
-        if (computeFenceWaitValue > 0)
+        ResourceCpuAccessScope scope = new(owner, resourceIndex);
+
+        try
         {
-            WaitForSubmission(new FencePoint(ComputeQueueKind.Compute, computeFenceWaitValue));
+            if (computeFenceWaitValue > 0)
+            {
+                WaitForSubmission(new FencePoint(ComputeQueueKind.Compute, computeFenceWaitValue));
+            }
+
+            if (copyFenceWaitValue > 0)
+            {
+                WaitForSubmission(new FencePoint(ComputeQueueKind.Copy, copyFenceWaitValue));
+            }
+
+            ThrowIfDeviceTerminal();
+        }
+        catch
+        {
+            scope.Dispose();
+
+            throw;
         }
 
-        if (copyFenceWaitValue > 0)
-        {
-            WaitForSubmission(new FencePoint(ComputeQueueKind.Copy, copyFenceWaitValue));
-        }
-
-        ThrowIfDeviceTerminal();
+        return scope;
 
         static void Accumulate(in FencePoint fence, ref ulong computeFenceWaitValue, ref ulong copyFenceWaitValue)
         {

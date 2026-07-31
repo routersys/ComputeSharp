@@ -8,6 +8,7 @@ using ComputeSharp.Graphics.Resources.Interop;
 using ComputeSharp.Interop;
 using ComputeSharp.Resources;
 using ComputeSharp.Resources.Debug;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using ResourceType = ComputeSharp.Graphics.Resources.Enums.ResourceType;
 
@@ -67,7 +68,7 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         GraphicsDevice.ThrowIfDeviceLost();
 
-        GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
+        using ResourceCpuAccessScope _2 = GraphicsDevice.BeginCpuAccess(this, ComputeResourceAccess.Read);
 
         using ID3D12ResourceMap resource = D3D12Resource->Map();
 
@@ -104,8 +105,8 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         if (destination is ConstantBuffer<T> buffer)
         {
-            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
-            GraphicsDevice.WaitForResourceAccess(buffer, ComputeResourceAccess.Write);
+            using ResourceCpuAccessScope _3 = GraphicsDevice.BeginCpuAccess(this, ComputeResourceAccess.Read);
+            using ResourceCpuAccessScope _4 = GraphicsDevice.BeginCpuAccess(buffer, ComputeResourceAccess.Write);
 
             using ID3D12ResourceMap sourceMap = D3D12Resource->Map();
             using ID3D12ResourceMap destinationMap = buffer.D3D12Resource->Map();
@@ -137,7 +138,7 @@ public sealed class ConstantBuffer<T> : Buffer<T>
 
         GraphicsDevice.ThrowIfDeviceLost();
 
-        GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
+        using ResourceCpuAccessScope _2 = GraphicsDevice.BeginCpuAccess(this, ComputeResourceAccess.Write);
 
         using ID3D12ResourceMap resource = D3D12Resource->Map();
 
