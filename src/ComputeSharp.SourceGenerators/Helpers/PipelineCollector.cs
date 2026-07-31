@@ -146,7 +146,7 @@ internal static class PipelineCollector
     /// <param name="sharing">The declared sharing mode.</param>
     /// <param name="aliasing">The declared aliasing mode.</param>
     /// <returns>Whether the attribute declares a supported contract.</returns>
-    private static bool TryGetResourceContract(
+    public static bool TryGetResourceContract(
         AttributeData attribute,
         out ComputeResourceAccess access,
         out ComputeResourceSharing sharing,

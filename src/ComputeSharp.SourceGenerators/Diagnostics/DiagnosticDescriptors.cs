@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline parameter bound as read-write without a read-write access.
+    /// <para>
+    /// Format: <c>"The pipeline parameter {0} declares the type {1}, which is bound to a shader as read-write, so its declared access must be read-write"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidReadWriteParameterAccessContract = new(
+        id: "CMPS0098",
+        title: "Invalid read-write parameter access contract",
+        messageFormat: "The pipeline parameter {0} declares the type {1}, which is bound to a shader as read-write, so its declared access must be read-write",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A resource bound to a shader as a read-write type is written by the shader, so the access it declares must be read-write.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for an internal resource that is not a graphics resource.
     /// <para>
     /// Format: <c>"The internal resource {0} declares the type {1}, which is not a graphics resource"</c>.
