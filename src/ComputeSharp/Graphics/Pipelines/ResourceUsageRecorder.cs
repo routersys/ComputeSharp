@@ -43,7 +43,7 @@ internal readonly struct ResourceUsageRecorder
         Record(resource, ComputeResourceAccess.Write);
     }
 
-    public void RecordCopy(IGraphicsResource resource, ComputeResourceAccess access)
+    public TrackedResourceState RecordCopy(IGraphicsResource resource, ComputeResourceAccess access)
     {
         default(ArgumentNullException).ThrowIfNull(resource);
         default(ArgumentException).ThrowIf(
@@ -64,6 +64,8 @@ internal readonly struct ResourceUsageRecorder
         {
             readWriteResource.SetReadOnlyViewAvailability(false);
         }
+
+        return binding.ResidentState;
     }
 
     public TrackedResourceState RecordTransition(IGraphicsResource resource, TrackedResourceState finalState)

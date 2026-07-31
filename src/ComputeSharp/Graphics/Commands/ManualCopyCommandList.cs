@@ -1,6 +1,7 @@
 using System;
 using ComputeSharp.Graphics.Extensions;
 using ComputeSharp.Graphics.Pipelines;
+using ComputeSharp.Resources.Lifetime;
 using ComputeSharp.Win32;
 using static ComputeSharp.Win32.D3D12_COMMAND_LIST_TYPE;
 using static ComputeSharp.Win32.D3D12_RESOURCE_STATES;
@@ -9,6 +10,8 @@ namespace ComputeSharp.Graphics.Commands;
 
 internal unsafe struct ManualCopyCommandList : IDisposable
 {
+    private readonly GraphicsDevice device;
+
     private CommandList commandList;
 
     private GraphicsResourceLeaseSet? resourceLeases;
@@ -23,31 +26,33 @@ internal unsafe struct ManualCopyCommandList : IDisposable
 
     private int resourceCount;
 
+    private bool isComputeQueueRequired;
+
     public ManualCopyCommandList(GraphicsDevice device)
     {
+        default(ArgumentNullException).ThrowIfNull(device);
+
         this = default;
+        this.device = device;
         this.resourceLeases = GraphicsResourceLeaseSet.Rent();
-
-        try
-        {
-            this.commandList = new CommandList(device, D3D12_COMMAND_LIST_TYPE_COPY);
-        }
-        catch
-        {
-            this.resourceLeases.Release();
-            this.resourceLeases = null;
-
-            throw;
-        }
     }
 
-    public readonly ID3D12GraphicsCommandList* D3D12GraphicsCommandList => this.commandList.D3D12GraphicsCommandList;
+    public ID3D12GraphicsCommandList* D3D12GraphicsCommandList
+    {
+        get
+        {
+            EnsureCommandList();
+
+            return this.commandList.D3D12GraphicsCommandList;
+        }
+    }
 
     public void TrackResource(IGraphicsResource resource, ID3D12Resource* d3D12Resource, ComputeResourceAccess access)
     {
         default(ArgumentNullException).ThrowIfNull(resource);
         default(ArgumentNullException).ThrowIf(d3D12Resource is null, nameof(d3D12Resource));
         default(InvalidOperationException).ThrowIf(this.resourceLeases is null);
+        default(InvalidOperationException).ThrowIf(this.commandList.IsAllocated);
         default(InvalidOperationException).ThrowIf(this.resourceCount == 2);
 
         D3D12_RESOURCE_STATES state = access switch
@@ -57,12 +62,9 @@ internal unsafe struct ManualCopyCommandList : IDisposable
             _ => default(ArgumentException).Throw<D3D12_RESOURCE_STATES>(nameof(access))
         };
 
-        new ResourceUsageRecorder(this.resourceLeases).RecordCopy(resource, access);
+        TrackedResourceState residentState = new ResourceUsageRecorder(this.resourceLeases).RecordCopy(resource, access);
 
-        this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
-            d3D12Resource,
-            D3D12_RESOURCE_STATE_COMMON,
-            state);
+        this.isComputeQueueRequired |= residentState is not TrackedResourceState.Common;
 
         if (this.resourceCount++ == 0)
         {
@@ -79,7 +81,8 @@ internal unsafe struct ManualCopyCommandList : IDisposable
     public void ExecuteAndWaitForCompletion()
     {
         default(InvalidOperationException).ThrowIf(this.resourceLeases is null);
-        default(InvalidOperationException).ThrowIf(this.resourceCount == 0);
+
+        EnsureCommandList();
 
         this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
             this.firstResource,
@@ -104,5 +107,32 @@ internal unsafe struct ManualCopyCommandList : IDisposable
         this.resourceLeases = null;
         this.commandList.Dispose();
         resourceLeases?.Release();
+    }
+
+    private void EnsureCommandList()
+    {
+        if (this.commandList.IsAllocated)
+        {
+            return;
+        }
+
+        default(InvalidOperationException).ThrowIf(this.resourceCount == 0);
+
+        this.commandList = new CommandList(
+            this.device,
+            this.isComputeQueueRequired ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_COPY);
+
+        this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
+            this.firstResource,
+            D3D12_RESOURCE_STATE_COMMON,
+            this.firstState);
+
+        if (this.resourceCount == 2)
+        {
+            this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
+                this.secondResource,
+                D3D12_RESOURCE_STATE_COMMON,
+                this.secondState);
+        }
     }
 }
