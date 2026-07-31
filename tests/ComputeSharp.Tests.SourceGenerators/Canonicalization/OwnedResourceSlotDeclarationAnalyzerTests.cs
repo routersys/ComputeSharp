@@ -183,4 +183,51 @@ public class OwnedResourceSlotDeclarationAnalyzerTests
             "DetectsOwnedDisposableField",
             "CMPS0097");
     }
+
+    [TestMethod]
+    public void AcceptsOwnedSlotsWithABufferOrTexture2DPlan()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+                    [ComputePipelineResource(ComputeResourceAccess.Read, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadOnlyTexture2D<float>> mask = new();
+                """)],
+            "AcceptsSupportedPlans");
+    }
+
+    [TestMethod]
+    public void DetectsAnOwnedSlotWithoutAResourcePlan()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [Host("""
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+                    private readonly ComputeResourceSlot<ReadWriteTexture3D<float>> volume = new();
+                """)],
+            "DetectsSlotWithoutPlan",
+            "CMPS0102");
+    }
+
+    [TestMethod]
+    public void DetectsAResourceGroupMemberWithoutAResourcePlan()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidOwnedResourceDeclarationAnalyzer(),
+            [$$"""
+                {{Preamble}}
+
+                [ComputeResourceGroup]
+                public sealed partial class GridResources
+                {
+                    [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
+                    internal ReadWriteTexture1D<float> Line { get; } = null!;
+                }
+                """],
+            "DetectsGroupMemberWithoutPlan",
+            "CMPS0102");
+    }
 }
