@@ -170,8 +170,7 @@ internal static class ResourceHazardTracker
             resource = owner.TryGetResource<IGraphicsResource>(checked((int)usage.ResourceIndex)) as ID3D12ReadWriteResource;
         }
 
-        resource?.SetReadOnlyViewAvailability(
-            usage.FinalState is not TrackedResourceState.UnorderedAccess);
+        resource?.ResetReadOnlyViewAvailability();
     }
 
     private static void AccumulateCrossQueueWait(

@@ -573,6 +573,11 @@ public abstract unsafe partial class Texture1D<T> : IReferenceTrackedObject, IGr
         this.readOnlyViewAvailability = isAvailable ? 1 : -1;
     }
 
+    void ID3D12ReadWriteResource.ResetReadOnlyViewAvailability()
+    {
+        this.readOnlyViewAvailability = 0;
+    }
+
     /// <inheritdoc/>
     (D3D12_GPU_DESCRIPTOR_HANDLE, D3D12_CPU_DESCRIPTOR_HANDLE) ID3D12ReadWriteResource.ValidateAndGetGpuAndCpuDescriptorHandlesForClear(GraphicsDevice device, out bool isNormalized)
     {

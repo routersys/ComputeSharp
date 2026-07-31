@@ -10,6 +10,8 @@ internal unsafe interface ID3D12ReadWriteResource : ID3D12ReadOnlyResource
 {
     void SetReadOnlyViewAvailability(bool isAvailable);
 
+    void ResetReadOnlyViewAvailability();
+
     /// <summary>
     /// Validates the given resource for usage with a specified device, and retrieves its GPU and CPU descriptor handles for a clear operation.
     /// </summary>
