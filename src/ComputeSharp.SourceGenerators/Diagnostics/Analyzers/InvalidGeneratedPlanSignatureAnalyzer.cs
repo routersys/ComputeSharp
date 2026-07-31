@@ -134,7 +134,7 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
 
         Dictionary<string, int> canonicalNameCounts = GetCanonicalNameCounts(memberBuilder.WrittenSpan);
 
-        bool isPlanTypeNameDeclared = IsDeclaredByUser(
+        bool isPlanTypeNameDeclared = GeneratedMemberLookup.IsDeclaredByUser(
             typeSymbol,
             GeneratedIdentifier.ResourceGroupPlanTypeName,
             generatedCodeAttributeSymbol);
@@ -200,8 +200,8 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
         bool isResourceGroupSlot,
         INamedTypeSymbol generatedCodeAttributeSymbol)
     {
-        if (IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreateMaterializerTypeName(canonicalName), generatedCodeAttributeSymbol) ||
-            IsDeclaredByUser(typeSymbol, $"TryEnsure{canonicalName}", generatedCodeAttributeSymbol))
+        if (GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreateMaterializerTypeName(canonicalName), generatedCodeAttributeSymbol) ||
+            GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryEnsure{canonicalName}", generatedCodeAttributeSymbol))
         {
             return true;
         }
@@ -211,28 +211,8 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        return IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreatePlanTypeName(canonicalName), generatedCodeAttributeSymbol) ||
-               IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol);
-    }
-
-    /// <summary>
-    /// Checks whether a type declares a member with a given name that is not generated.
-    /// </summary>
-    /// <param name="typeSymbol">The type declaring the member.</param>
-    /// <param name="name">The name of the member to look for.</param>
-    /// <param name="generatedCodeAttributeSymbol">The <see cref="System.CodeDom.Compiler.GeneratedCodeAttribute"/> symbol.</param>
-    /// <returns>Whether <paramref name="typeSymbol"/> declares a member named <paramref name="name"/> that is not generated.</returns>
-    private static bool IsDeclaredByUser(INamedTypeSymbol typeSymbol, string name, INamedTypeSymbol generatedCodeAttributeSymbol)
-    {
-        foreach (ISymbol memberSymbol in typeSymbol.GetMembers(name))
-        {
-            if (!memberSymbol.HasAttributeWithType(generatedCodeAttributeSymbol))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreatePlanTypeName(canonicalName), generatedCodeAttributeSymbol) ||
+               GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol);
     }
 
     /// <summary>

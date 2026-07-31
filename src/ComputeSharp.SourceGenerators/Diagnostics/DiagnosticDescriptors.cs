@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline method whose generated members conflict with a declared member.
+    /// <para>
+    /// Format: <c>"The compute pipeline method {0} of {1} must have a canonical name that is not empty, and the overload and invocation type generated from it must not conflict with another declared or generated member"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidGeneratedPipelineOverload = new(
+        id: "CMPS0073",
+        title: "Generated pipeline overload conflict",
+        messageFormat: "The compute pipeline method {0} of {1} must have a canonical name that is not empty, and the overload and invocation type generated from it must not conflict with another declared or generated member",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A compute pipeline method generates a submitting overload and a nested invocation type, so neither of them can conflict with another declared or generated member.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline parameter bound as read-write without a read-write access.
     /// <para>
     /// Format: <c>"The pipeline parameter {0} declares the type {1}, which is bound to a shader as read-write, so its declared access must be read-write"</c>.
