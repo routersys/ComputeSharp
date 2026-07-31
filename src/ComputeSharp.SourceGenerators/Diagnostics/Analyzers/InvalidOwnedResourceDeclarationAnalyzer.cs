@@ -15,7 +15,7 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
 {
     /// <inheritdoc/>
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        [InvalidOwnedResourceSlotDeclaration, MissingOwnedResourceRecoveryContract];
+        [InvalidOwnedResourceSlotDeclaration, MissingOwnedResourceRecoveryContract, DuplicateResourceGroupMemberRecoveryContract];
 
     /// <inheritdoc/>
     public override void Initialize(AnalysisContext context)
@@ -27,6 +27,7 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
         {
             // Get the attribute and slot symbols the owned resources of a host are declared with
             if (context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputePipelineHostAttribute") is not { } hostAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceGroupAttribute") is not { } resourceGroupAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputePipelineResourceAttribute") is not { } resourceAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceSlot`1") is not { } resourceSlotSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeSharp.ComputeResourceGroupSlot`1") is not { } resourceGroupSlotSymbol)
@@ -36,8 +37,32 @@ public sealed class InvalidOwnedResourceDeclarationAnalyzer : DiagnosticAnalyzer
 
             context.RegisterSymbolAction(context =>
             {
-                if (context.Symbol is not INamedTypeSymbol typeSymbol ||
-                    !typeSymbol.TryGetAttributeWithType(hostAttributeSymbol, out _))
+                if (context.Symbol is not INamedTypeSymbol typeSymbol)
+                {
+                    return;
+                }
+
+                // A recovery contract belongs to the slot holding the group, so the members must not declare one
+                if (typeSymbol.TryGetAttributeWithType(resourceGroupAttributeSymbol, out _))
+                {
+                    foreach (ISymbol memberSymbol in typeSymbol.GetMembers())
+                    {
+                        if (memberSymbol is IPropertySymbol &&
+                            memberSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out AttributeData? memberAttribute) &&
+                            PipelineResourceContractReader.TryRead(memberAttribute, out _, out bool memberHasRecovery, out _) &&
+                            memberHasRecovery)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                DuplicateResourceGroupMemberRecoveryContract,
+                                memberSymbol.Locations[0],
+                                memberSymbol));
+                        }
+                    }
+
+                    return;
+                }
+
+                if (!typeSymbol.TryGetAttributeWithType(hostAttributeSymbol, out _))
                 {
                     return;
                 }

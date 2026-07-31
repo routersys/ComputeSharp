@@ -1204,4 +1204,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "An owned slot recreates its resource on every replacement, so it must declare how the contents of the previous generation are recovered.",
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a resource group member that declares a recovery contract.
+    /// <para>
+    /// Format: <c>"The resource group member {0} declares a recovery contract, which belongs to the slot holding the group"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor DuplicateResourceGroupMemberRecoveryContract = new(
+        id: "CMPS0108",
+        title: "Duplicate resource group member recovery contract",
+        messageFormat: "The resource group member {0} declares a recovery contract, which belongs to the slot holding the group",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A recovery contract is declared once per slot, so the members of a resource group must not declare one.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline host that owns a disposable field other than a slot.
+    /// <para>
+    /// Format: <c>"The compute pipeline host {0} declares the owned disposable field {1}, which it cannot release"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedOwnedDisposableFieldInPipelineHost = new(
+        id: "CMPS0097",
+        title: "Unsupported owned disposable field in a compute pipeline host",
+        messageFormat: "The compute pipeline host {0} declares the owned disposable field {1}, which it cannot release",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The generated disposal of a compute pipeline host only releases its owned slots, so the host must not declare any other owned disposable field.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 }
