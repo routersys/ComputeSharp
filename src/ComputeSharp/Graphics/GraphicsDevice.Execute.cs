@@ -370,21 +370,24 @@ unsafe partial class GraphicsDevice
             !boundResource.TryGetGenerationBinding(out ResourceUsageBinding binding),
             "The bound resource carries no generation identity to track its CPU access with.");
 
-        ref ResourceGenerationRecord record = ref binding.Set.Owner.GetResourceRecord(checked((int)binding.ResourceIndex));
-
-        default(InvalidOperationException).ThrowIf(
-            record.Id != binding.Generation,
-            "The generation of the CPU-accessed resource no longer matches its binding.");
-
         ulong computeFenceWaitValue = 0;
         ulong copyFenceWaitValue = 0;
 
-        Accumulate(in record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
-
-        if (access is not ComputeResourceAccess.Read)
+        lock (this.HazardGate)
         {
-            Accumulate(in record.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
-            Accumulate(in record.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+            ref ResourceGenerationRecord record = ref binding.Set.Owner.GetResourceRecord(checked((int)binding.ResourceIndex));
+
+            default(InvalidOperationException).ThrowIf(
+                record.Id != binding.Generation,
+                "The generation of the CPU-accessed resource no longer matches its binding.");
+
+            Accumulate(in record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
+
+            if (access is not ComputeResourceAccess.Read)
+            {
+                Accumulate(in record.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+                Accumulate(in record.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+            }
         }
 
         if (computeFenceWaitValue > 0)

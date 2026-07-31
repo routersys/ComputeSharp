@@ -51,23 +51,20 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
-            lock (GraphicsDevice.HazardGate)
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
+
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
+
+            fixed (void* destinationPointer = &destination)
             {
-                GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
-
-                using ID3D12ResourceMap resource = D3D12Resource->Map();
-
-                fixed (void* destinationPointer = &destination)
-                {
-                    MemoryHelper.Copy<T>(
-                        source: resource.Pointer,
-                        destination: destinationPointer,
-                        sourceElementOffset: (uint)sourceOffset,
-                        destinationElementOffset: 0,
-                        sourceElementPitchInBytes: (uint)sizeof(T),
-                        destinationElementPitchInBytes: (uint)sizeof(T),
-                        count: (uint)count);
-                }
+                MemoryHelper.Copy<T>(
+                    source: resource.Pointer,
+                    destination: destinationPointer,
+                    sourceElementOffset: (uint)sourceOffset,
+                    destinationElementOffset: 0,
+                    sourceElementPitchInBytes: (uint)sizeof(T),
+                    destinationElementPitchInBytes: (uint)sizeof(T),
+                    count: (uint)count);
             }
         }
         else
@@ -177,21 +174,18 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
-            lock (GraphicsDevice.HazardGate)
-            {
-                GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Read);
 
-                using ID3D12ResourceMap resource = D3D12Resource->Map();
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
 
-                MemoryHelper.Copy<T>(
-                    source: resource.Pointer,
-                    destination: destination.MappedData,
-                    sourceElementOffset: (uint)sourceOffset,
-                    destinationElementOffset: (uint)destinationOffset,
-                    sourceElementPitchInBytes: (uint)sizeof(T),
-                    destinationElementPitchInBytes: (uint)sizeof(T),
-                    count: (uint)count);
-            }
+            MemoryHelper.Copy<T>(
+                source: resource.Pointer,
+                destination: destination.MappedData,
+                sourceElementOffset: (uint)sourceOffset,
+                destinationElementOffset: (uint)destinationOffset,
+                sourceElementPitchInBytes: (uint)sizeof(T),
+                destinationElementPitchInBytes: (uint)sizeof(T),
+                count: (uint)count);
         }
         else
         {
@@ -221,23 +215,20 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
-            lock (GraphicsDevice.HazardGate)
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
+
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
+
+            fixed (void* sourcePointer = &source)
             {
-                GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
-
-                using ID3D12ResourceMap resource = D3D12Resource->Map();
-
-                fixed (void* sourcePointer = &source)
-                {
-                    MemoryHelper.Copy<T>(
-                        source: sourcePointer,
-                        destination: resource.Pointer,
-                        sourceElementOffset: 0,
-                        destinationElementOffset: (uint)offset,
-                        sourceElementPitchInBytes: (uint)sizeof(T),
-                        destinationElementPitchInBytes: (uint)sizeof(T),
-                        count: (uint)length);
-                }
+                MemoryHelper.Copy<T>(
+                    source: sourcePointer,
+                    destination: resource.Pointer,
+                    sourceElementOffset: 0,
+                    destinationElementOffset: (uint)offset,
+                    sourceElementPitchInBytes: (uint)sizeof(T),
+                    destinationElementPitchInBytes: (uint)sizeof(T),
+                    count: (uint)length);
             }
         }
         else
@@ -304,21 +295,18 @@ public abstract class StructuredBuffer<T> : Buffer<T>
 
         if (GraphicsDevice.IsCacheCoherentUMA)
         {
-            lock (GraphicsDevice.HazardGate)
-            {
-                GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
+            GraphicsDevice.WaitForResourceAccess(this, ComputeResourceAccess.Write);
 
-                using ID3D12ResourceMap resource = D3D12Resource->Map();
+            using ID3D12ResourceMap resource = D3D12Resource->Map();
 
-                MemoryHelper.Copy<T>(
-                    source: source.MappedData,
-                    destination: resource.Pointer,
-                    sourceElementOffset: (uint)sourceOffset,
-                    destinationElementOffset: (uint)destinationOffset,
-                    sourceElementPitchInBytes: (uint)sizeof(T),
-                    destinationElementPitchInBytes: (uint)sizeof(T),
-                    count: (uint)count);
-            }
+            MemoryHelper.Copy<T>(
+                source: source.MappedData,
+                destination: resource.Pointer,
+                sourceElementOffset: (uint)sourceOffset,
+                destinationElementOffset: (uint)destinationOffset,
+                sourceElementPitchInBytes: (uint)sizeof(T),
+                destinationElementPitchInBytes: (uint)sizeof(T),
+                count: (uint)count);
         }
         else
         {
