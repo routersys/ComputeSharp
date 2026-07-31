@@ -17,6 +17,7 @@ CMPS0074 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/S
 CMPS0075 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0076 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0087 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
+CMPS0089 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0091 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0092 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)
 CMPS0094 | ComputeSharp.Pipelines | Error | [Documentation](https://github.com/Sergio0694/ComputeSharp)

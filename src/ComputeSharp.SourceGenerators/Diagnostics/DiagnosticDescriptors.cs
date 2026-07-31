@@ -1222,6 +1222,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a member declaring more than one contract attribute.
+    /// <para>
+    /// Format: <c>"The member {0} declares both [ComputePipelineResource] and [ComputeSharedTexture], which are exclusive contracts"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor DuplicateContractAttribute = new(
+        id: "CMPS0089",
+        title: "Duplicate contract attribute",
+        messageFormat: "The member {0} declares both [ComputePipelineResource] and [ComputeSharedTexture], which are exclusive contracts",
+        category: "ComputeSharp.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A member declares exactly one contract, so it cannot carry more than one contract attribute.",
+        helpLinkUri: "https://github.com/Sergio0694/ComputeSharp");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a pipeline method whose generated members conflict with a declared member.
     /// <para>
     /// Format: <c>"The compute pipeline method {0} of {1} must have a canonical name that is not empty, and the overload and invocation type generated from it must not conflict with another declared or generated member"</c>.
