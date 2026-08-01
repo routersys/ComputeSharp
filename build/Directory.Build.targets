@@ -20,15 +20,12 @@
     <Version Condition="'$(Version)' == ''">$(VersionPrefix)</Version>
   </PropertyGroup>
 
-  <!-- Set the base package version (this applies to all build types) -->
+  <!--
+    Set the package version. Releases are driven by git tags, and the release workflow passes the version
+    from the tag, so the version must not be altered any further for continuous integration builds.
+  -->
   <PropertyGroup>
     <PackageVersion>$(Version)</PackageVersion>
-  </PropertyGroup>
-
-  <!-- Settings that are only set for CI builds -->
-  <PropertyGroup Condition="'$(GITHUB_RUN_ID)' != ''">
-    <PackageVersion Condition="'$(EXCLUDE_RUN_ID_FROM_PACKAGE)' != 'true' AND '$(IsCommitOnReleaseBranch)' != true">$(Version).$(GITHUB_RUN_ID)</PackageVersion>
-    <PackageVersion Condition="'$(GITHUB_SHA)' != ''">$(PackageVersion)+$(GITHUB_SHA)</PackageVersion>
   </PropertyGroup>
 
   <!-- Import all .tt files with their generated .g.cs files (the T4 service is imported in the .props file) -->
