@@ -352,6 +352,75 @@ public partial class BufferTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void Dispatch_ReadWriteBufferAsReadOnly(Device device)
+    {
+        int[] data = Enumerable.Range(0, 1024).ToArray();
+
+        using ReadWriteBuffer<int> source = device.Get().AllocateReadWriteBuffer<int>(data.Length);
+        using ReadWriteBuffer<int> destination = device.Get().AllocateReadWriteBuffer<int>(data.Length);
+
+        device.Get().For(source.Length, new WriteIndexKernel(source));
+        device.Get().For(source.Length, new ReadOnlyViewBufferKernel(source.AsReadOnly(), destination));
+
+        int[] result = destination.ToArray();
+
+        CollectionAssert.AreEqual(data, result);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Dispatch_ReadWriteBufferAsReadOnly_ReusesTheSameWrapper(Device device)
+    {
+        using ReadWriteBuffer<int> source = device.Get().AllocateReadWriteBuffer<int>(16);
+
+        Assert.AreSame(source.AsReadOnly(), source.AsReadOnly());
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Dispatch_ReadOnlyBufferAsReadOnlyView(Device device)
+    {
+        int[] data = Enumerable.Range(0, 1024).ToArray();
+
+        using ReadOnlyBuffer<int> source = device.Get().AllocateReadOnlyBuffer(data);
+        using ReadWriteBuffer<int> destination = device.Get().AllocateReadWriteBuffer<int>(data.Length);
+
+        device.Get().For(source.Length, new ReadOnlyViewBufferKernel(source, destination));
+
+        int[] result = destination.ToArray();
+
+        CollectionAssert.AreEqual(data, result);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct WriteIndexKernel : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> destination;
+
+        public void Execute()
+        {
+            this.destination[ThreadIds.X] = ThreadIds.X;
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ReadOnlyViewBufferKernel : IComputeShader
+    {
+        public readonly IReadOnlyBuffer<int> source;
+        public readonly ReadWriteBuffer<int> destination;
+
+        public void Execute()
+        {
+            this.destination[ThreadIds.X] = this.source[ThreadIds.X];
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void Dispatch_ReadWriteBuffer_DoublePrecision(Device device)
     {
         if (!device.Get().IsDoublePrecisionSupportAvailable())

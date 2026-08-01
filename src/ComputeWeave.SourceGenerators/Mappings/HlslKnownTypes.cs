@@ -50,7 +50,8 @@ partial class HlslKnownTypes
         {
             "ComputeWeave.ConstantBuffer`1" or
             "ComputeWeave.ReadOnlyBuffer`1" or
-            "ComputeWeave.ReadWriteBuffer`1" => true,
+            "ComputeWeave.ReadWriteBuffer`1" or
+            "ComputeWeave.IReadOnlyBuffer`1" => true,
             _ => false
         };
     }
@@ -65,6 +66,7 @@ partial class HlslKnownTypes
         return typeName switch
         {
             "ComputeWeave.ReadOnlyBuffer`1" or
+            "ComputeWeave.IReadOnlyBuffer`1" or
             "ComputeWeave.ReadOnlyTexture1D`1" or
             "ComputeWeave.ReadOnlyTexture1D`2" or
             "ComputeWeave.ReadOnlyTexture2D`1" or
@@ -116,6 +118,7 @@ partial class HlslKnownTypes
             "ComputeWeave.ConstantBuffer`1" or
             "ComputeWeave.ReadOnlyBuffer`1" or
             "ComputeWeave.ReadWriteBuffer`1" or
+            "ComputeWeave.IReadOnlyBuffer`1" or
             "ComputeWeave.ReadOnlyTexture1D`1" or
             "ComputeWeave.ReadOnlyTexture1D`2" or
             "ComputeWeave.ReadOnlyTexture2D`1" or
@@ -169,6 +172,7 @@ partial class HlslKnownTypes
             {
                 "ComputeWeave.ConstantBuffer`1" => mappedElementType,
                 "ComputeWeave.ReadOnlyBuffer`1" => $"StructuredBuffer<{mappedElementType}>",
+                "ComputeWeave.IReadOnlyBuffer`1" => $"StructuredBuffer<{mappedElementType}>",
                 "ComputeWeave.ReadWriteBuffer`1" => $"RWStructuredBuffer<{mappedElementType}>",
                 "ComputeWeave.ReadOnlyTexture1D`1" => $"Texture1D<{mappedElementType}>",
                 "ComputeWeave.ReadOnlyTexture1D`2" => $"Texture1D<unorm {mappedElementType}>",

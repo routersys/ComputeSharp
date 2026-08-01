@@ -42,6 +42,7 @@ partial class HlslKnownProperties
         return new()
         {
             ["ComputeWeave.Resources.Buffer`1.Length"] = (2, 0),
+            ["ComputeWeave.IReadOnlyBuffer`1.Length"] = (2, 0),
             ["ComputeWeave.Resources.Texture1D`1.Width"] = (1, 0),
             ["ComputeWeave.Resources.Texture2D`1.Width"] = (2, 0),
             ["ComputeWeave.Resources.Texture2D`1.Height"] = (2, 1),
