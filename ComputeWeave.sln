@@ -86,16 +86,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "x64", "x64", "{79FD7862-470
 	ProjectSection(SolutionItems) = preProject
 		libs\x64\dxcompiler.dll = libs\x64\dxcompiler.dll
 		libs\x64\dxil.dll = libs\x64\dxil.dll
-		libs\x64\WinPixEventRuntime.dll = libs\x64\WinPixEventRuntime.dll
-		libs\x64\WinPixEventRuntime_UAP.dll = libs\x64\WinPixEventRuntime_UAP.dll
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "arm64", "arm64", "{B4F6A41C-AA9A-4302-92B3-AC64CF2E30F5}"
 	ProjectSection(SolutionItems) = preProject
 		libs\arm64\dxcompiler.dll = libs\arm64\dxcompiler.dll
 		libs\arm64\dxil.dll = libs\arm64\dxil.dll
-		libs\arm64\WinPixEventRuntime.dll = libs\arm64\WinPixEventRuntime.dll
-		libs\arm64\WinPixEventRuntime_UAP.dll = libs\arm64\WinPixEventRuntime_UAP.dll
 	EndProjectSection
 EndProject
 Global
