@@ -13,7 +13,6 @@ public unsafe class SharedTextureNativeDescriptorTests
 {
     private static GraphicsCommittedResourceDescription Describe(
         GraphicsDevice device,
-        ExternalTextureUsage externalUsage,
         int width,
         int height)
     {
@@ -21,7 +20,6 @@ public unsafe class SharedTextureNativeDescriptorTests
             ComputeGenerationDeclarationStatus.Valid,
             ComputeGenerationDescriber.DescribeInteropSharedTexture(
                 device,
-                externalUsage,
                 width,
                 height,
                 out ComputeGenerationDeclaration declaration));
@@ -38,7 +36,7 @@ public unsafe class SharedTextureNativeDescriptorTests
     [AllDevices]
     public void FixesEveryFieldOfTheSharedTextureNativeDescriptor(Device device)
     {
-        GraphicsCommittedResourceDescription description = Describe(device.Get(), ExternalTextureUsage.Sampled, 64, 32);
+        GraphicsCommittedResourceDescription description = Describe(device.Get(), 64, 32);
 
         Assert.AreEqual(D3D12_HEAP_TYPE.D3D12_HEAP_TYPE_DEFAULT, description.HeapProperties.Type);
         Assert.AreEqual(D3D12_HEAP_FLAGS.D3D12_HEAP_FLAG_SHARED, description.HeapFlags);
@@ -59,31 +57,22 @@ public unsafe class SharedTextureNativeDescriptorTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void NeverAllowsSimultaneousAccessOrCrossAdapterSharing(Device device)
+    public void NeverAllowsCrossAdapterSharing(Device device)
     {
-        GraphicsDevice graphicsDevice = device.Get();
+        D3D12_RESOURCE_FLAGS flags = Describe(device.Get(), 16, 16).ResourceDescription.Flags;
 
-        foreach (ExternalTextureUsage externalUsage in (ExternalTextureUsage[])[ExternalTextureUsage.Sampled, ExternalTextureUsage.RenderTarget])
-        {
-            D3D12_RESOURCE_FLAGS flags = Describe(graphicsDevice, externalUsage, 16, 16).ResourceDescription.Flags;
-
-            Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS);
-            Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER);
-            Assert.AreNotEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-        }
+        Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER);
     }
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void AllowsRenderTargetOnlyForTheRenderTargetUsage(Device device)
+    public void AlwaysAllowsUnorderedAccessRenderTargetAndSimultaneousAccess(Device device)
     {
-        GraphicsDevice graphicsDevice = device.Get();
+        D3D12_RESOURCE_FLAGS flags = Describe(device.Get(), 16, 16).ResourceDescription.Flags;
 
-        D3D12_RESOURCE_FLAGS sampled = Describe(graphicsDevice, ExternalTextureUsage.Sampled, 16, 16).ResourceDescription.Flags;
-        D3D12_RESOURCE_FLAGS renderTarget = Describe(graphicsDevice, ExternalTextureUsage.RenderTarget, 16, 16).ResourceDescription.Flags;
-
-        Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, sampled & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
-        Assert.AreNotEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, renderTarget & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+        Assert.AreNotEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+        Assert.AreNotEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+        Assert.AreNotEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS);
     }
 
     [CombinatorialTestMethod]
@@ -92,7 +81,7 @@ public unsafe class SharedTextureNativeDescriptorTests
     {
         GraphicsDevice graphicsDevice = device.Get();
 
-        GraphicsCommittedResourceDescription description = Describe(graphicsDevice, ExternalTextureUsage.RenderTarget, 32, 16);
+        GraphicsCommittedResourceDescription description = Describe(graphicsDevice, 32, 16);
 
         HRESULT hresult = ID3D12DeviceExtensions.CreateCommittedResource(
             ref *graphicsDevice.D3D12Device,
@@ -109,7 +98,7 @@ public unsafe class SharedTextureNativeDescriptorTests
         Assert.AreEqual(32ul, created.Width);
         Assert.AreEqual(16u, created.Height);
         Assert.AreEqual((ushort)1, created.MipLevels);
-        Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, created.Flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS);
+        Assert.AreEqual(D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_NONE, created.Flags & D3D12_RESOURCE_FLAGS.D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER);
 
         HANDLE sharedHandle = graphicsDevice.CreateSharedHandle((IUnknown*)d3D12Resource.Get());
 

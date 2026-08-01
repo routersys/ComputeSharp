@@ -177,6 +177,40 @@ internal sealed unsafe class Direct3D11ImmediateContext : IDisposable
         return pixels;
     }
 
+    public void Write(ID3D11Texture2D* d3D11Texture, ReadOnlySpan<uint> pixels, int width, int height)
+    {
+        fixed (uint* source = pixels)
+        {
+            D3D11_SUBRESOURCE_DATA initialData = new()
+            {
+                pSysMem = source,
+                SysMemPitch = (uint)(width * sizeof(uint)),
+                SysMemSlicePitch = 0
+            };
+
+            D3D11_TEXTURE2D_DESC stagingDescription = new()
+            {
+                Width = (uint)width,
+                Height = (uint)height,
+                MipLevels = 1,
+                ArraySize = 1,
+                Format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+                SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+                Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT,
+                BindFlags = 0,
+                CPUAccessFlags = 0,
+                MiscFlags = 0
+            };
+
+            using ComPtr<ID3D11Texture2D> staging = default;
+
+            ThrowIfFailed(this.d3D11Device.Get()->CreateTexture2D(&stagingDescription, &initialData, staging.GetAddressOf()));
+
+            this.d3D11ImmediateContext.Get()->CopyResource((ID3D11Resource*)d3D11Texture, (ID3D11Resource*)staging.Get());
+            this.d3D11ImmediateContext.Get()->Flush();
+        }
+    }
+
     public void Dispose()
     {
         this.d3D11ImmediateContext.Dispose();

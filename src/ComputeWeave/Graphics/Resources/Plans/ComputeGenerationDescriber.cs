@@ -154,7 +154,6 @@ internal static unsafe class ComputeGenerationDescriber
 
     public static ComputeGenerationDeclarationStatus DescribeInteropSharedTexture(
         GraphicsDevice device,
-        ExternalTextureUsage externalUsage,
         int width,
         int height,
         out ComputeGenerationDeclaration declaration)
@@ -175,7 +174,6 @@ internal static unsafe class ComputeGenerationDescriber
         declaration.Height = height;
 
         GraphicsCommittedResourceDescription description = ID3D12DeviceExtensions.GetInteropSharedTextureDescription(
-            externalUsage,
             (uint)width,
             (uint)height);
 

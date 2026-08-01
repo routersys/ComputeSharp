@@ -72,12 +72,12 @@ public unsafe class Direct3D11SharedTextureTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void ComputeWritesAreVisibleThroughTheDirect3D11View(Device device)
+    public void Direct3D11WritesAreVisibleThroughTheComputeTexture(Device device)
     {
         const int Width = 64;
         const int Height = 32;
 
-        using Fixture fixture = Fixture.Create(device, ComputeSharedTextureInitialOwner.Compute);
+        using Fixture fixture = Fixture.Create(device, ComputeSharedTextureInitialOwner.External);
 
         Assert.IsTrue(fixture.Slot.TryEnsure(Width, Height, out _));
 
@@ -85,37 +85,35 @@ public unsafe class Direct3D11SharedTextureTests
 
         Assert.IsNotNull(texture);
 
-        Bgra32[,] source = new Bgra32[Height, Width];
+        uint[] source = new uint[Width * Height];
 
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
             {
-                source[y, x].PackedValue = unchecked((uint)((0xFF << 24) | ((x & 0xFF) << 16) | ((y & 0xFF) << 8) | ((x ^ y) & 0xFF)));
+                source[(y * Width) + x] = unchecked((uint)((0xFF << 24) | ((x & 0xFF) << 16) | ((y & 0xFF) << 8) | ((x ^ y) & 0xFF)));
             }
         }
-
-        texture.CopyFrom(source);
-
-        uint[] readBack;
 
         using (BorrowedExternalTextureView<Direct3D11ExternalView> borrow = fixture.Slot.BeginExternalOperation())
         {
             Assert.IsTrue(borrow.IsValid);
 
-            Direct3D11ExternalView view = borrow.DangerousGetView();
-
-            readBack = fixture.Context.ReadBack(view.D3D11Texture, Width, Height);
+            fixture.Context.Write(borrow.DangerousGetView().D3D11Texture, source, Width, Height);
         }
+
+        Bgra32[,] readBack = new Bgra32[Height, Width];
+
+        texture.CopyTo(readBack);
 
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
             {
                 Assert.AreEqual(
-                    source[y, x].PackedValue,
-                    readBack[(y * Width) + x],
-                    $"The pixel at ({x}, {y}) differs between the compute texture and the Direct3D 11 view.");
+                    source[(y * Width) + x],
+                    readBack[y, x].PackedValue,
+                    $"The pixel at ({x}, {y}) differs between the Direct3D 11 view and the compute texture.");
             }
         }
     }
@@ -127,48 +125,43 @@ public unsafe class Direct3D11SharedTextureTests
         const int Width = 32;
         const int Height = 16;
 
-        using Fixture fixture = Fixture.Create(device, ComputeSharedTextureInitialOwner.Compute);
+        using Fixture fixture = Fixture.Create(device, ComputeSharedTextureInitialOwner.External);
 
         Assert.IsTrue(fixture.Slot.TryEnsure(Width, Height, out _));
 
         ReadWriteTexture2D<Bgra32, Float4> texture = fixture.Slot.GetComputeBinding().Resource!;
 
-        Bgra32[,] first = new Bgra32[Height, Width];
-        Bgra32[,] second = new Bgra32[Height, Width];
+        uint[] first = new uint[Width * Height];
+        uint[] second = new uint[Width * Height];
+
+        Array.Fill(first, 0xFF102030u);
+        Array.Fill(second, 0xFF4050C0u);
+
+        using (BorrowedExternalTextureView<Direct3D11ExternalView> borrow = fixture.Slot.BeginExternalOperation())
+        {
+            fixture.Context.Write(borrow.DangerousGetView().D3D11Texture, first, Width, Height);
+        }
+
+        Bgra32[,] afterFirst = new Bgra32[Height, Width];
+
+        texture.CopyTo(afterFirst);
+
+        using (BorrowedExternalTextureView<Direct3D11ExternalView> borrow = fixture.Slot.BeginExternalOperation())
+        {
+            fixture.Context.Write(borrow.DangerousGetView().D3D11Texture, second, Width, Height);
+        }
+
+        Bgra32[,] afterSecond = new Bgra32[Height, Width];
+
+        texture.CopyTo(afterSecond);
 
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
             {
-                first[y, x].PackedValue = 0xFF102030u;
-                second[y, x].PackedValue = 0xFF4050C0u;
+                Assert.AreEqual(0xFF102030u, afterFirst[y, x].PackedValue);
+                Assert.AreEqual(0xFF4050C0u, afterSecond[y, x].PackedValue);
             }
-        }
-
-        texture.CopyFrom(first);
-
-        uint[] afterFirst;
-        uint[] afterSecond;
-
-        using (BorrowedExternalTextureView<Direct3D11ExternalView> borrow = fixture.Slot.BeginExternalOperation())
-        {
-            afterFirst = fixture.Context.ReadBack(borrow.DangerousGetView().D3D11Texture, Width, Height);
-        }
-
-        texture.CopyFrom(second);
-
-        using (BorrowedExternalTextureView<Direct3D11ExternalView> borrow = fixture.Slot.BeginExternalOperation())
-        {
-            afterSecond = fixture.Context.ReadBack(borrow.DangerousGetView().D3D11Texture, Width, Height);
-        }
-
-        Assert.AreEqual(0xFF102030u, afterFirst[0]);
-        Assert.AreEqual(0xFF4050C0u, afterSecond[0]);
-
-        for (int index = 0; index < afterFirst.Length; index++)
-        {
-            Assert.AreEqual(0xFF102030u, afterFirst[index]);
-            Assert.AreEqual(0xFF4050C0u, afterSecond[index]);
         }
     }
 

@@ -780,7 +780,6 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         ComputeGenerationDeclarationStatus status = ComputeGenerationDescriber.DescribeInteropSharedTexture(
             device,
-            descriptor.ExternalUsage,
             width,
             height,
             out ComputeGenerationDeclaration declaration);
