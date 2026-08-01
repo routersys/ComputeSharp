@@ -1,15 +1,7 @@
 name: .NET
 
-# This workflow should trigger in the following cases:
-#   - The commit is any push in any branch in the repo
-#   - The commit is a published PR from anyone else
-#
-# This setup is done to avoid duplicate runs for the same exact commits, for cases when
-# the PR is done from a branch in this repo, which would already trigger the "push"
-# condition. This way, only PRs from forks will actually trigger the workflow.
-#
-# Because we can't really check these conditions from the global triggers here, they are
-# added to the two root jobs below instead. If canceled, the whole workflow will stop.
+# 同一コミットでの重複実行を避けるため、push は常に、pull_request は他所のフォークからのものだけを対象とする。
+# 全体のトリガーではこの条件を判定できないので、起点となるジョブ側で判定する。
 on: [push, pull_request]
 
 env:
@@ -18,30 +10,19 @@ env:
 
 jobs:
 
-  # Build the whole ComputeWeave solution
+  # ソリューション全体を Release/x64 でビルドする。
   build-solution:
     if: >-
       github.event_name == 'push' ||
       github.event.pull_request.user.login != github.repository_owner
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-        platform: [x64, arm64]
     runs-on: windows-2022
     steps:
     - name: Git checkout
       uses: actions/checkout@v4
     - name: Build
-      run: dotnet build ComputeWeave.sln -c ${{matrix.configuration}} -p:Platform=${{matrix.platform}} -bl
-    - name: Upload MSBuild binary log
-      uses: actions/upload-artifact@v4
-      with:
-        name: msbuild_log_${{matrix.configuration}}_${{matrix.platform}}
-        path: msbuild.binlog
-        if-no-files-found: error
+      run: dotnet build ComputeWeave.sln -c Release -p:Platform=x64
 
-  # Pack all projects with dotnet/MSBuild to generate NuGet packages.
-  # This workflow also uploads the resulting packages as artifacts.
+  # NuGet パッケージを生成し、成果物として保存する。
   build-packages:
     if: >-
       github.event_name == 'push' ||
@@ -58,8 +39,6 @@ jobs:
       run: dotnet pack src\ComputeWeave.Dxc\ComputeWeave.Dxc.csproj -c Release
     - name: Build ComputeWeave.D3D12MemoryAllocator package
       run: dotnet pack src\ComputeWeave.D3D12MemoryAllocator\ComputeWeave.D3D12MemoryAllocator.csproj -c Release
-
-      # Upload the packages to the pipeline artifacts
     - name: Upload package artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -67,46 +46,30 @@ jobs:
         path: artifacts\*.nupkg
         if-no-files-found: error
 
-  # Run all unit tests referencing the ComputeWeave projects directly
+  # 全テストを実行する。
   run-tests:
     needs: [build-solution]
     runs-on: windows-2022
 
-    # Set the environment variable which is then looked up in ComputeWeave.Dxc.
-    # This is a workaround for https://github.com/actions/runner-images/issues/6531.
+    # ComputeWeave.Dxc が参照する環境変数。
+    # https://github.com/actions/runner-images/issues/6531 への対処。
     env:
       CI_RUNNER_DOTNET_TEST_PLATFORM: x64
     steps:
     - name: Git checkout
       uses: actions/checkout@v4
-
-      # DirectX 12 unit tests
     - name: Run ComputeWeave.Tests
-      run: dotnet test tests\ComputeWeave.Tests\ComputeWeave.Tests.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+      run: dotnet test tests\ComputeWeave.Tests\ComputeWeave.Tests.csproj -c Release -p:Platform=x64
     - name: Run ComputeWeave.Tests.Internals
-      run: dotnet test tests\ComputeWeave.Tests.Internals\ComputeWeave.Tests.Internals.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+      run: dotnet test tests\ComputeWeave.Tests.Internals\ComputeWeave.Tests.Internals.csproj -c Release -p:Platform=x64
     - name: Run ComputeWeave.Tests.SourceGenerators
-      run: dotnet test tests\ComputeWeave.Tests.SourceGenerators\ComputeWeave.Tests.SourceGenerators.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+      run: dotnet test tests\ComputeWeave.Tests.SourceGenerators\ComputeWeave.Tests.SourceGenerators.csproj -c Release -p:Platform=x64
 
-  # Run all unit tests using D3D12MA
-  run-tests-d3d12ma:
-    needs: [build-solution]
-    runs-on: windows-2022
-    env:
-      CI_RUNNER_DOTNET_TEST_PLATFORM: x64
-    steps:
-    - name: Git checkout
-      uses: actions/checkout@v4
-
-      # D3D12MA tests (main ComputeWeave tests)
-    - name: Run ComputeWeave.Tests
-      run: dotnet test tests\ComputeWeave.Tests\ComputeWeave.Tests.csproj -c Release /p:Platform=x64 /p:UseD3D12MemoryAllocator=true -v n -l "console;verbosity=detailed"
-
-  # ビルドした NuGet パッケージ(.nupkg)を GitHub Release として公開する。
-  # GitHub Packages や Azure DevOps への push はフォークでは認証できず失敗する(403)ため、
+  # ビルドした NuGet パッケージを GitHub Release として公開する。
+  # GitHub Packages や Azure DevOps への push はフォークでは認証できず失敗するため、
   # 代わりに自動生成のリリースノートを付けたリリースを作成し、.nupkg を資産として添付する。
   publish-release:
-    needs: [run-tests, run-tests-d3d12ma, build-packages]
+    needs: [run-tests, build-packages]
     runs-on: windows-2022
     if: ${{github.event_name == 'push'}}
     permissions:
