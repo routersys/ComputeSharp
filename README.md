@@ -195,12 +195,12 @@ HLSLへ変換できない構文、属性の指定漏れ、リソースの誤っ�
 
 ## サードパーティライセンス
 
-本ライブラリは以下のサードパーティソフトウェアを派生元とし、また同梱しています。ライセンスの全文はリポジトリの[`.github/LICENSE`](.github/LICENSE)に収録しています。
+本ライブラリは以下のサードパーティソフトウェアを派生元とし、また同梱しています。ライセンスの全文は、リポジトリの[`.github/LICENSE`](.github/LICENSE)と、NuGetパッケージの`LICENSE`フォルダーに収録しています。
 
 | ソフトウェア | 用途 | ライセンス | 著作権表示 |
 |---|---|---|---|
 | [ComputeSharp](https://github.com/Sergio0694/ComputeSharp) | 本ライブラリの派生元 | [MIT License](.github/LICENSE/ComputeSharp.txt) | Copyright (c) 2024 Sergio Pedri |
-| [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler) | HLSLのコンパイル。`dxcompiler.dll`と`dxil.dll`を同梱 | [University of Illinois/NCSA Open Source License](https://github.com/microsoft/DirectXShaderCompiler/blob/main/LICENSE.TXT) | 同ライセンスファイルを参照 |
+| [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler) | HLSLのコンパイル。`dxcompiler.dll`と`dxil.dll`を同梱 | [University of Illinois/NCSA Open Source License](.github/LICENSE/DirectXShaderCompiler.txt)（[第三者表記](.github/LICENSE/DirectXShaderCompiler.ThirdPartyNotices.txt)） | Copyright (c) 2003-2015 University of Illinois at Urbana-Champaign |
 
 本リポジトリは[Sergio0694/ComputeSharp](https://github.com/Sergio0694/ComputeSharp)から派生した独立の実装であり、原作者との関係はありません。原作のComputeSharpは[DX12GameEngine](https://github.com/Aminator/DirectX12GameEngine)のコードを一部の基礎としています。
 

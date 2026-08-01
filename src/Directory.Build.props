@@ -56,6 +56,9 @@
     <!-- Pack the NuGet icon file -->
     <None Include="$(MSBuildThisFileDirectory)..\assets\icon.png" Pack="true" PackagePath="\" Visible="False" />
 
+    <!-- Pack the third party license files -->
+    <None Include="$(MSBuildThisFileDirectory)..\.github\LICENSE\*.txt" Pack="true" PackagePath="LICENSE" Visible="False" />
+
     <!-- Pack .targets files, if present -->
     <None Condition="$(IsTargetsFileAvailableForPacking)" Include="$(MSBuildProjectName).targets" PackagePath="buildTransitive" Pack="true" />
     <None Condition="$(IsTargetsFileAvailableForPacking)" Include="$(MSBuildProjectName).targets" PackagePath="build" Pack="true" />
