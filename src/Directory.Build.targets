@@ -79,9 +79,9 @@
   </Target>
 
   <!-- Emit an error if our custom 'BeforeMicrosoftNETSdkTargets' .targets file has not been invoked -->
-  <Target Name="_ComputeSharpCheckForInvalidBeforeMicrosoftNETSdkTargets"
+  <Target Name="_ComputeWeaveCheckForInvalidBeforeMicrosoftNETSdkTargets"
           BeforeTargets="_CheckForInvalidConfigurationAndPlatform;CoreCompile">
-    <Error Condition ="'$(_ComputeSharpBeforeMicrosoftNETSdkTargetsValid)' != 'true'"
-           Text="The '_ComputeSharpBeforeMicrosoftNETSdkTargetsValid' marker property is not set."/>
+    <Error Condition ="'$(_ComputeWeaveBeforeMicrosoftNETSdkTargetsValid)' != 'true'"
+           Text="The '_ComputeWeaveBeforeMicrosoftNETSdkTargetsValid' marker property is not set."/>
   </Target>
 </Project>

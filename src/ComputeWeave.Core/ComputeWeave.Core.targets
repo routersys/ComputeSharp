@@ -1,0 +1,55 @@
+<Project>
+
+  <!-- Get the analyzer from the ComputeWeave.Core NuGet package -->
+  <Target Name="_ComputeWeaveCoreGatherAnalyzers">
+    <ItemGroup>
+      <_ComputeWeaveCoreAnalyzer Include="@(Analyzer)" Condition="'%(Analyzer.NuGetPackageId)' == 'ComputeWeave.Core'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Remove the analyzer if using Roslyn < 4.9 (ComputeWeave.Core's generators require Roslyn 4.9) -->
+  <Target Name="_ComputeWeaveCoreRemoveAnalyzersForRoslyn3"
+          Condition="'$(CSharpCoreTargetsPath)' != ''"
+          AfterTargets="ResolvePackageDependenciesForBuild;ResolveNuGetPackageAssets"
+          DependsOnTargets="_ComputeWeaveCoreGatherAnalyzers">
+
+    <!--
+      Use the CSharpCoreTargetsPath property to find the version of the compiler we are using. This is the same mechanism
+      MSBuild uses to find the compiler. We could check the assembly version for any compiler assembly (since they all have
+      the same version) but Microsoft.Build.Tasks.CodeAnalysis.dll is where MSBuild loads the compiler tasks from so if
+      someone is getting creative with msbuild tasks/targets this is the "most correct" assembly to check.
+    -->
+    <GetAssemblyIdentity AssemblyFiles="$([System.IO.Path]::Combine(`$([System.IO.Path]::GetDirectoryName($(CSharpCoreTargetsPath)))`,`Microsoft.Build.Tasks.CodeAnalysis.dll`))">
+      <Output TaskParameter="Assemblies" ItemName="ComputeWeaveCoreCurrentCompilerAssemblyIdentity"/>
+    </GetAssemblyIdentity>
+
+    <PropertyGroup>
+
+      <!-- Transform the resulting item from GetAssemblyIdentity into a property representing its assembly version -->
+      <ComputeWeaveCoreCurrentCompilerVersion>@(ComputeWeaveCoreCurrentCompilerAssemblyIdentity->'%(Version)')</ComputeWeaveCoreCurrentCompilerVersion>
+
+      <!-- The CurrentCompilerVersionIsNotNewEnough property can now be defined based on the Roslyn assembly version -->
+      <ComputeWeaveCoreCurrentCompilerVersionIsNotNewEnough Condition="$([MSBuild]::VersionLessThan($(ComputeWeaveCoreCurrentCompilerVersion), 4.9))">true</ComputeWeaveCoreCurrentCompilerVersionIsNotNewEnough>
+    </PropertyGroup>
+
+    <!-- If the Roslyn version is < 4.9, disable the source generators -->
+    <ItemGroup Condition ="'$(ComputeWeaveCoreCurrentCompilerVersionIsNotNewEnough)' == 'true'">
+      <Analyzer Remove="@(_ComputeWeaveCoreAnalyzer)"/>
+    </ItemGroup>
+
+    <!-- There is no need to emit a warning here, as this package is always a transitive dependency from ComputeWeave, which does emit the warning -->
+  </Target>
+  
+  <!-- Remove the analyzer if Roslyn is missing -->
+  <Target Name="_ComputeWeaveCoreRemoveAnalyzersForRosynNotFound"
+          Condition="'$(CSharpCoreTargetsPath)' == ''"
+          AfterTargets="ResolvePackageDependenciesForBuild;ResolveNuGetPackageAssets"
+          DependsOnTargets="_ComputeWeaveCoreGatherAnalyzers">
+
+    <!-- If no Roslyn assembly could be found, just remove the analyzer without emitting a warning -->
+    <ItemGroup>
+      <Analyzer Remove="@(_ComputeWeaveCoreAnalyzer)"/>
+    </ItemGroup>
+  </Target>
+
+</Project>

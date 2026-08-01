@@ -40,6 +40,6 @@
   
   <!-- Add a marker value to verify from a later .targets that this .targets has been correctly invoked -->
   <PropertyGroup>
-    <_ComputeSharpBeforeMicrosoftNETSdkTargetsValid>true</_ComputeSharpBeforeMicrosoftNETSdkTargetsValid>
+    <_ComputeWeaveBeforeMicrosoftNETSdkTargetsValid>true</_ComputeWeaveBeforeMicrosoftNETSdkTargetsValid>
   </PropertyGroup>
 </Project>

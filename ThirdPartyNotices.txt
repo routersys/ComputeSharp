@@ -3,7 +3,7 @@ Do Not Translate or Localize
 
 This project incorporates components from the projects listed below.
 
-1. PIX on Windows (https://devblogs.microsoft.com/pix/winpixeventruntime/), included in ComputeSharp.Pix.
+1. PIX on Windows (https://devblogs.microsoft.com/pix/winpixeventruntime/), included in ComputeWeave.Pix.
 
 %% PIX on Windows NOTICES AND INFORMATION BEGIN HERE
 =========================================

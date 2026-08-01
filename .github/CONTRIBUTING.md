@@ -1,6 +1,6 @@
-# Contributing to ComputeSharp
+# Contributing to ComputeWeave
 
-Thank you for your interest in contributing to **ComputeSharp**! Below you'll find some info on how to get started with the project.
+Thank you for your interest in contributing to **ComputeWeave**! Below you'll find some info on how to get started with the project.
 
 > **NOTE:** it is highly recommended to carfully read the [README](/README.md) first to get a general understanding of the library.
 

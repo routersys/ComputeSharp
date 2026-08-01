@@ -339,7 +339,7 @@ ASALocalRun/
 samples/**/city_*.jpg
 
 # XML docs files
-src/**/ComputeSharp*.xml
+src/**/ComputeWeave*.xml
 
 # Preserve .rd.xml files
-!src/**/ComputeSharp*.rd.xml
+!src/**/ComputeWeave*.rd.xml

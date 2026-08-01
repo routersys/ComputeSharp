@@ -1,0 +1,101 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);D3D12_SOURCE_GENERATOR</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+
+    <!-- Ignore warnings for unresolved XML cref attributes (for imported types from ComputeWeave) -->
+    <NoWarn>$(NoWarn);CS1574</NoWarn>
+  </PropertyGroup>
+
+  <!-- Same setup as ComputeWeave.Core.SourceGenerators, just with also APIs from ComputeWeave -->
+  <ItemGroup>
+
+    <!-- ComputeWeave.Core APIs -->
+    <Compile Include="..\ComputeWeave.Core\Exceptions\InvalidExecutionContextException.cs" Link="ComputeWeave.Core\Exceptions\InvalidExecutionContextException.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Attributes\HlslIntrinsicNameAttribute.cs" Link="ComputeWeave.Core\Intrinsics\Attributes\HlslIntrinsicNameAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.Casts.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.Casts.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.Void.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.Void.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool2.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool3.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool4.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\BoolMxN.g.cs" Link="ComputeWeave.Core\Primitives\Bool\BoolMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double2.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double3.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double4.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\DoubleMxN.g.cs" Link="ComputeWeave.Core\Primitives\Double\DoubleMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float2.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float3.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float4.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\FloatMxN.g.cs" Link="ComputeWeave.Core\Primitives\Float\FloatMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int2.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int3.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int4.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\IntMxN.g.cs" Link="ComputeWeave.Core\Primitives\Int\IntMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Internals\UndefinedData.cs" Link="ComputeWeave.Core\Primitives\Internals\UndefinedData.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt2.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt3.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt4.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UIntMxN.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UIntMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\MatrixIndex.cs" Link="ComputeWeave.Core\Primitives\MatrixIndex.cs" />
+
+    <!-- ComputeWeave APIs -->
+    <Compile Include="..\ComputeWeave\Attributes\Enums\CompileOptions.cs" Link="ComputeWeave\Attributes\Enums\CompileOptions.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeAlphaMode.cs" Link="ComputeWeave\Attributes\Enums\ComputeAlphaMode.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeResourceAccess.cs" Link="ComputeWeave\Attributes\Enums\ComputeResourceAccess.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeResourceAliasing.cs" Link="ComputeWeave\Attributes\Enums\ComputeResourceAliasing.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeResourceRecovery.cs" Link="ComputeWeave\Attributes\Enums\ComputeResourceRecovery.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeResourceResizePolicy.cs" Link="ComputeWeave\Attributes\Enums\ComputeResourceResizePolicy.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeResourceSharing.cs" Link="ComputeWeave\Attributes\Enums\ComputeResourceSharing.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ComputeSharedTextureInitialOwner.cs" Link="ComputeWeave\Attributes\Enums\ComputeSharedTextureInitialOwner.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\DefaultThreadGroupSizes.cs" Link="ComputeWeave\Attributes\Enums\DefaultThreadGroupSizes.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ExternalResourceAccess.cs" Link="ComputeWeave\Attributes\Enums\ExternalResourceAccess.cs" />
+    <Compile Include="..\ComputeWeave\Attributes\Enums\ExternalTextureUsage.cs" Link="ComputeWeave\Attributes\Enums\ExternalTextureUsage.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\DescriptorKind.cs" Link="ComputeWeave\Graphics\Pipelines\DescriptorKind.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\PipelineDescriptorLimits.cs" Link="ComputeWeave\Graphics\Pipelines\PipelineDescriptorLimits.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\PipelineFlags.cs" Link="ComputeWeave\Graphics\Pipelines\PipelineFlags.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\PipelineSchema.cs" Link="ComputeWeave\Graphics\Pipelines\PipelineSchema.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\ResourceOwnershipKind.cs" Link="ComputeWeave\Graphics\Pipelines\ResourceOwnershipKind.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\ResourcePlanDimensionKind.cs" Link="ComputeWeave\Graphics\Pipelines\ResourcePlanDimensionKind.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Pipelines\ResourcePlanKind.cs" Link="ComputeWeave\Graphics\Pipelines\ResourcePlanKind.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\DispatchSize.cs" Link="ComputeWeave\Dispatch\DispatchSize.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\GridIds.cs" Link="ComputeWeave\Dispatch\GridIds.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\GroupIds.cs" Link="ComputeWeave\Dispatch\GroupIds.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\GroupSize.cs" Link="ComputeWeave\Dispatch\GroupSize.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\ThreadIds.cs" Link="ComputeWeave\Dispatch\ThreadIds.cs" />
+    <Compile Include="..\ComputeWeave\Dispatch\ThreadIds.Normalized.cs" Link="ComputeWeave\Dispatch\ThreadIds.Normalized.cs" />
+    <Compile Include="..\ComputeWeave\Graphics\Helpers\AlignmentHelper.cs" Link="ComputeWeave\Graphics\Helpers\AlignmentHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="all" Pack="false" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\libs\x64\dxcompiler.dll" Link="ComputeWeave\Libraries\x64\dxcompiler.dll" />
+    <EmbeddedResource Include="..\..\libs\x64\dxil.dll" Link="ComputeWeave\Libraries\x64\dxil.dll" />
+    <EmbeddedResource Include="..\..\libs\arm64\dxcompiler.dll" Link="ComputeWeave\Libraries\arm64\dxcompiler.dll" />
+    <EmbeddedResource Include="..\..\libs\arm64\dxil.dll" Link="ComputeWeave\Libraries\arm64\dxil.dll" />
+  </ItemGroup>
+
+  <!-- Shared projects with common helpers -->
+  <Import Project="..\ComputeWeave.SourceGeneration\ComputeWeave.SourceGeneration.projitems" Label="Shared" />
+  <Import Project="..\ComputeWeave.SourceGeneration.Hlsl\ComputeWeave.SourceGeneration.Hlsl.projitems" Label="Shared" />
+
+  <!-- Give access to the code fixers project for the exported diagnostic ids and properties -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ComputeWeave.CodeFixers, PublicKey=$(AssemblySignPublicKey)" />
+    <InternalsVisibleTo Include="ComputeWeave.Tests.SourceGenerators, PublicKey=$(AssemblySignPublicKey)" />
+  </ItemGroup>
+</Project>

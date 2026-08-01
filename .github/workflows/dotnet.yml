@@ -18,7 +18,7 @@ env:
 
 jobs:
 
-  # Build the whole ComputeSharp solution
+  # Build the whole ComputeWeave solution
   build-solution:
     if: >-
       github.event_name == 'push' ||
@@ -32,7 +32,7 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v4
     - name: Build
-      run: dotnet build ComputeSharp.sln -c ${{matrix.configuration}} -p:Platform=${{matrix.platform}} -bl
+      run: dotnet build ComputeWeave.sln -c ${{matrix.configuration}} -p:Platform=${{matrix.platform}} -bl
     - name: Upload MSBuild binary log
       uses: actions/upload-artifact@v4
       with:
@@ -50,14 +50,14 @@ jobs:
     steps:
     - name: Git checkout
       uses: actions/checkout@v4
-    - name: Build ComputeSharp.Core package
-      run: dotnet pack src\ComputeSharp.Core\ComputeSharp.Core.csproj -c Release
-    - name: Build ComputeSharp package
-      run: dotnet pack src\ComputeSharp\ComputeSharp.csproj -c Release
-    - name: Build ComputeSharp.Dxc package
-      run: dotnet pack src\ComputeSharp.Dxc\ComputeSharp.Dxc.csproj -c Release
-    - name: Build ComputeSharp.D3D12MemoryAllocator package
-      run: dotnet pack src\ComputeSharp.D3D12MemoryAllocator\ComputeSharp.D3D12MemoryAllocator.csproj -c Release
+    - name: Build ComputeWeave.Core package
+      run: dotnet pack src\ComputeWeave.Core\ComputeWeave.Core.csproj -c Release
+    - name: Build ComputeWeave package
+      run: dotnet pack src\ComputeWeave\ComputeWeave.csproj -c Release
+    - name: Build ComputeWeave.Dxc package
+      run: dotnet pack src\ComputeWeave.Dxc\ComputeWeave.Dxc.csproj -c Release
+    - name: Build ComputeWeave.D3D12MemoryAllocator package
+      run: dotnet pack src\ComputeWeave.D3D12MemoryAllocator\ComputeWeave.D3D12MemoryAllocator.csproj -c Release
 
       # Upload the packages to the pipeline artifacts
     - name: Upload package artifacts
@@ -67,12 +67,12 @@ jobs:
         path: artifacts\*.nupkg
         if-no-files-found: error
 
-  # Run all unit tests referencing the ComputeSharp projects directly
+  # Run all unit tests referencing the ComputeWeave projects directly
   run-tests:
     needs: [build-solution]
     runs-on: windows-2022
 
-    # Set the environment variable which is then looked up in ComputeSharp.Dxc.
+    # Set the environment variable which is then looked up in ComputeWeave.Dxc.
     # This is a workaround for https://github.com/actions/runner-images/issues/6531.
     env:
       CI_RUNNER_DOTNET_TEST_PLATFORM: x64
@@ -81,12 +81,12 @@ jobs:
       uses: actions/checkout@v4
 
       # DirectX 12 unit tests
-    - name: Run ComputeSharp.Tests
-      run: dotnet test tests\ComputeSharp.Tests\ComputeSharp.Tests.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
-    - name: Run ComputeSharp.Tests.Internals
-      run: dotnet test tests\ComputeSharp.Tests.Internals\ComputeSharp.Tests.Internals.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
-    - name: Run ComputeSharp.Tests.SourceGenerators
-      run: dotnet test tests\ComputeSharp.Tests.SourceGenerators\ComputeSharp.Tests.SourceGenerators.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+    - name: Run ComputeWeave.Tests
+      run: dotnet test tests\ComputeWeave.Tests\ComputeWeave.Tests.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+    - name: Run ComputeWeave.Tests.Internals
+      run: dotnet test tests\ComputeWeave.Tests.Internals\ComputeWeave.Tests.Internals.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
+    - name: Run ComputeWeave.Tests.SourceGenerators
+      run: dotnet test tests\ComputeWeave.Tests.SourceGenerators\ComputeWeave.Tests.SourceGenerators.csproj -c Release /p:Platform=x64 -v n -l "console;verbosity=detailed"
 
   # Run all unit tests using D3D12MA
   run-tests-d3d12ma:
@@ -98,9 +98,9 @@ jobs:
     - name: Git checkout
       uses: actions/checkout@v4
 
-      # D3D12MA tests (main ComputeSharp tests)
-    - name: Run ComputeSharp.Tests
-      run: dotnet test tests\ComputeSharp.Tests\ComputeSharp.Tests.csproj -c Release /p:Platform=x64 /p:UseD3D12MemoryAllocator=true -v n -l "console;verbosity=detailed"
+      # D3D12MA tests (main ComputeWeave tests)
+    - name: Run ComputeWeave.Tests
+      run: dotnet test tests\ComputeWeave.Tests\ComputeWeave.Tests.csproj -c Release /p:Platform=x64 /p:UseD3D12MemoryAllocator=true -v n -l "console;verbosity=detailed"
 
   # ビルドした NuGet パッケージ(.nupkg)を GitHub Release として公開する。
   # GitHub Packages や Azure DevOps への push はフォークでは認証できず失敗する(403)ため、

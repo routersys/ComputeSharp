@@ -29,7 +29,7 @@ This section should contain a description of the actual behavior being observed.
 ### System info
 
 This section should contain useful info such as:
-- **ComputeSharp** NuGet version (or branch/commit, if building from source)
+- **ComputeWeave** NuGet version (or branch/commit, if building from source)
 - Operating system version
 - CPU/GPU model (the latter is especially useful for shader issues)
 - Visual Studio version, or .NET SDK/runtime version

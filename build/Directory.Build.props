@@ -72,7 +72,7 @@
     As such, this needs to be changed before a new release as well.
   -->
   <PropertyGroup>
-    <ComputeSharpPackageVersion>3.2.0</ComputeSharpPackageVersion>
+    <ComputeWeavePackageVersion>3.2.0</ComputeWeavePackageVersion>
     <IsCommitOnReleaseBranch>false</IsCommitOnReleaseBranch>
   </PropertyGroup>
 
@@ -88,16 +88,16 @@
   <!-- If the current branch and action match a release for NuGet, override the relative build properties -->
   <PropertyGroup Condition="'$(GITHUB_EVENT_NAME)' == 'push' AND '$(GITHUB_REF_NAME)' != '' AND '$(IsBranchNameStartingWithRefPrefix)' == 'true'">
     <IsCommitOnReleaseBranch>true</IsCommitOnReleaseBranch>
-    <ComputeSharpPackageVersionFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[1].Value)</ComputeSharpPackageVersionFromReleaseBranch>
-    <ComputeSharpPackageVersionSuffixFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[2].Value)</ComputeSharpPackageVersionSuffixFromReleaseBranch>
-    <ComputeSharpPackageVersion>$(ComputeSharpPackageVersionFromReleaseBranch)</ComputeSharpPackageVersion>
-    <VersionSuffix>$(ComputeSharpPackageVersionSuffixFromReleaseBranch)</VersionSuffix>
+    <ComputeWeavePackageVersionFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[1].Value)</ComputeWeavePackageVersionFromReleaseBranch>
+    <ComputeWeavePackageVersionSuffixFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[2].Value)</ComputeWeavePackageVersionSuffixFromReleaseBranch>
+    <ComputeWeavePackageVersion>$(ComputeWeavePackageVersionFromReleaseBranch)</ComputeWeavePackageVersion>
+    <VersionSuffix>$(ComputeWeavePackageVersionSuffixFromReleaseBranch)</VersionSuffix>
   </PropertyGroup>
 
   <!-- Configure the assembly version and suffix for both normal CI builds and release builds -->
   <PropertyGroup>
-    <AssemblyVersion>$(ComputeSharpPackageVersion).0</AssemblyVersion>
-    <VersionPrefix>$(ComputeSharpPackageVersion)</VersionPrefix>
+    <AssemblyVersion>$(ComputeWeavePackageVersion).0</AssemblyVersion>
+    <VersionPrefix>$(ComputeWeavePackageVersion)</VersionPrefix>
     <VersionSuffix Condition="'$(EXCLUDE_SUFFIX_FROM_VERSION)' != 'true' AND '$(IsCommitOnReleaseBranch)' != 'true'">alpha</VersionSuffix>
     <VersionSuffix Condition="'$(GITHUB_EVENT_NAME)' == 'pull_request' AND '$(IsCommitOnReleaseBranch)' != 'true'">pr</VersionSuffix>
   </PropertyGroup>
@@ -113,10 +113,10 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_RUN_ID)' != ''">true</ContinuousIntegrationBuild>
     <PackageId>$(MSBuildProjectName)</PackageId>
     <Title>$(MSBuildProjectName)</Title>
-    <RepositoryUrl>https://github.com/Sergio0694/ComputeSharp/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/routersys/ComputeWeave/</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <ProjectUrl>https://github.com/Sergio0694/ComputeSharp/</ProjectUrl>
+    <ProjectUrl>https://github.com/routersys/ComputeWeave/</ProjectUrl>
     <RepositoryBranch Condition="$(GITHUB_REF.Contains('refs/heads/'))">$(GITHUB_REF.Replace('refs/heads/', ''))</RepositoryBranch>
     <RepositoryBranch Condition="$(GITHUB_REF.Contains('refs/pull/'))">pr$(GITHUB_REF.Replace('refs/pull/', '').Replace('/merge', ''))</RepositoryBranch>
     <Authors>Sergio Pedri</Authors>
@@ -125,7 +125,7 @@
     <Copyright>Copyright (c) 2024 Sergio Pedri</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageProjectUrl>https://github.com/Sergio0694/ComputeSharp/</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/routersys/ComputeWeave/</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIconUrl>https://user-images.githubusercontent.com/10199417/110238403-b8811080-7f41-11eb-8cfe-e47e7e58f05b.png</PackageIconUrl>
@@ -173,7 +173,7 @@
   <!-- Enable strong name signing when needed (see notes above) -->
   <PropertyGroup Condition="$(IsPublishedProject) OR $(IsInternalsTestProject)">
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\build\computesharp.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\build\computeweave.snk</AssemblyOriginatorKeyFile>
     <AssemblySignPublicKey>00240000048000009400000006020000002400005253413100040000010001001DA244ACFEE0D02ADF2D7F464B5E2562BB1AEF50B32DCD8B2DADEC659A5ED8B6C5817B03EB5E723067718A7972C936F626879DCE8E85636E7812B92CAB100D4947E3E6655AD49359E279A09F34B65E5ECA5FD5D8941C70BD48E56D8739A3BFF4F1C85071B7494D0B3A692F16CA6CC40585BCA8AD5B24BB2E7B834F15B6E667BB</AssemblySignPublicKey>
   </PropertyGroup>
 

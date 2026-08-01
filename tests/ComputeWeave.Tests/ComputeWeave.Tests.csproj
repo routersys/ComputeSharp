@@ -1,0 +1,109 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- Add a defined constant to selectively enable D3D12MA in unit tests -->
+  <PropertyGroup Condition="'$(UseD3D12MemoryAllocator)' == 'true'">
+    <DefineConstants>$(DefineConstants);USE_D3D12MA</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoConstructor" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+    <PackageReference Include="MSTest" Version="3.8.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComputeWeave.CodeFixers\ComputeWeave.CodeFixers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+    <ProjectReference Include="..\..\src\ComputeWeave.Core\ComputeWeave.Core.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.Core.SourceGenerators\ComputeWeave.Core.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D3D12MemoryAllocator\ComputeWeave.D3D12MemoryAllocator.csproj" Condition="'$(UseD3D12MemoryAllocator)' == 'true'" />
+    <ProjectReference Include="..\..\src\ComputeWeave\ComputeWeave.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.Dxc\ComputeWeave.Dxc.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.SourceGenerators\ComputeWeave.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+  </ItemGroup>
+
+  <!-- T4 template generation service (the .tt/.g.cs files are resolved in the .targets file) -->
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <Import Project="..\..\samples\ComputeWeave.SwapChain.Shaders\ComputeWeave.SwapChain.Shaders.projitems" Label="Shared" />
+
+  <ItemGroup>
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Primitives\Complex64.cs" Link="Imaging\Primitives\Complex64.cs" />
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Primitives\ComplexVector4.cs" Link="Imaging\Primitives\ComplexVector4.cs" />
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Processors\HlslBokehBlurProcessor.cs" Link="Imaging\Processors\HlslBokehBlurProcessor.cs" />
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Processors\HlslBokehBlurProcessor.Implementation.cs" Link="Imaging\Processors\HlslBokehBlurProcessor.Implementation.cs" />
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Processors\HlslGaussianBlurProcessor.cs" Link="Imaging\Processors\HlslGaussianBlurProcessor.cs" />
+    <Compile Include="..\..\samples\ComputeWeave.ImageProcessing\Processors\HlslGaussianBlurProcessor.Implementation.cs" Link="Imaging\Processors\HlslGaussianBlurProcessor.Implementation.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\samples\ComputeWeave.ImageProcessing\city.jpg" Link="Imaging\city.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\samples\ComputeWeave.SwapChain\Textures\RustyMetal.png" Link="Shaders\Textures\RustyMetal.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Assets\CityAfter1024x1024Sampling.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\CityAfter1024x1024SamplingAndDashing.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\CityAfter1024x1024SamplingFrom1920x1080.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\CityAfter1024x1024SamplingFrom1920x1080AndDashing.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\CityAfter1024x1024SamplingInverted.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\CityWith1920x1280Resizing.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\HelloWorld.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\ColorfulInfinity.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\ContouredLayers.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\ExtrudedTruchetPattern.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\FourColorGradient.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\FractalTiling.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\MengerJourney.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\TerracedHills.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Octagrams.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\TwoTiledTruchet.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Octagrams.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\ProteanClouds.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\PyramidPattern.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\TriangleGridContouring.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

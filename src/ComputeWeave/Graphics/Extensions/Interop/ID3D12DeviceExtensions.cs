@@ -1,0 +1,821 @@
+using System;
+using ComputeWeave.Core.Extensions;
+using ComputeWeave.Graphics.Resources.Enums;
+using ComputeWeave.Memory;
+using ComputeWeave.Win32;
+using static ComputeWeave.Win32.D3D12_COMMAND_QUEUE_FLAGS;
+using static ComputeWeave.Win32.D3D12_COMMAND_QUEUE_PRIORITY;
+using static ComputeWeave.Win32.D3D12_CPU_PAGE_PROPERTY;
+using static ComputeWeave.Win32.D3D12_DESCRIPTOR_HEAP_FLAGS;
+using static ComputeWeave.Win32.D3D12_DESCRIPTOR_HEAP_TYPE;
+using static ComputeWeave.Win32.D3D12_FEATURE;
+using static ComputeWeave.Win32.D3D12_FENCE_FLAGS;
+using static ComputeWeave.Win32.D3D12_HEAP_FLAGS;
+using static ComputeWeave.Win32.D3D12_MEMORY_POOL;
+using static ComputeWeave.Win32.D3D12_MESSAGE_ID;
+using static ComputeWeave.Win32.D3D12_HEAP_TYPE;
+using static ComputeWeave.Win32.D3D12_RESOURCE_FLAGS;
+using static ComputeWeave.Win32.D3D12_RESOURCE_STATES;
+using static ComputeWeave.Win32.D3D12_SRV_DIMENSION;
+using static ComputeWeave.Win32.D3D12_UAV_DIMENSION;
+
+namespace ComputeWeave.Graphics.Extensions;
+
+/// <summary>
+/// A <see langword="class"/> with extensions for the <see cref="ID3D12Device"/> type.
+/// </summary>
+internal static unsafe class ID3D12DeviceExtensions
+{
+    /// <summary>
+    /// Gets the committed resource description for a given buffer type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="sizeInBytes">The size in bytes of the current buffer.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current buffer.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        ulong sizeInBytes,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_HEAP_TYPE d3D12HeapType,
+         D3D12_RESOURCE_FLAGS d3D12ResourceFlags,
+         D3D12_RESOURCE_STATES d3D12ResourceStates) = resourceType switch
+         {
+             ResourceType.Constant => (D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ),
+             ResourceType.ReadOnly => (D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
+             ResourceType.ReadWrite => (D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COMMON),
+             ResourceType.ReadBack => (D3D12_HEAP_TYPE_READBACK, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COPY_DEST),
+             ResourceType.Upload => (D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ),
+             _ => default(ArgumentException).Throw<(D3D12_HEAP_TYPE, D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
+         };
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(d3D12HeapType, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Buffer(sizeInBytes, d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a given 1D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex1D(dxgiFormat, width, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a given 2D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a given 3D texture type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="depth">The depth of the texture resource.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the current texture.</returns>
+    public static GraphicsCommittedResourceDescription GetCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        ushort depth,
+        bool isCacheCoherentUMA)
+    {
+        (D3D12_RESOURCE_FLAGS d3D12ResourceFlags, D3D12_RESOURCE_STATES d3D12ResourceStates) = GetTextureResourceTypeInfo(resourceType);
+
+        return new GraphicsCommittedResourceDescription(
+            GetHeapProperties(D3D12_HEAP_TYPE_DEFAULT, isCacheCoherentUMA),
+            D3D12_HEAP_FLAG_NONE,
+            D3D12_RESOURCE_DESC.Tex3D(dxgiFormat, width, height, depth, mipLevels: 1, flags: d3D12ResourceFlags),
+            d3D12ResourceStates);
+    }
+
+    /// <summary>
+    /// Gets the committed resource description for a 2D texture that can be shared across APIs.
+    /// </summary>
+    /// <param name="resourceType">The resource type of the resource to create.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <param name="isRenderTarget">Whether the texture can be used as a render target.</param>
+    /// <returns>The <see cref="GraphicsCommittedResourceDescription"/> value for the shareable texture.</returns>
+    public static GraphicsCommittedResourceDescription GetSharedCommittedResourceDescription(
+        ResourceType resourceType,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        bool isRenderTarget)
+    {
+        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = resourceType switch
+        {
+            ResourceType.ReadOnly => D3D12_RESOURCE_FLAG_NONE,
+            ResourceType.ReadWrite => D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS | D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS,
+            _ => default(ArgumentException).Throw<D3D12_RESOURCE_FLAGS>(nameof(resourceType))
+        };
+
+        if (isRenderTarget)
+        {
+            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        return new GraphicsCommittedResourceDescription(
+            d3D12HeapProperties,
+            D3D12_HEAP_FLAG_SHARED,
+            D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height, mipLevels: 1, flags: d3D12ResourceFlags),
+            D3D12_RESOURCE_STATE_COMMON);
+    }
+
+    /// <summary>
+    /// Gets the description of the committed resource backing a shared texture generation of an interop resource set.
+    /// </summary>
+    /// <param name="externalUsage">The usage of the shared texture on the external queue.</param>
+    /// <param name="width">The width of the texture.</param>
+    /// <param name="height">The height of the texture.</param>
+    /// <returns>The description of the committed resource to create.</returns>
+    /// <remarks>
+    /// Every value here is fixed by the specification of the shared texture native descriptor. Simultaneous
+    /// access and cross adapter sharing are forbidden, as queue ownership is handed over through the shared
+    /// timeline while the resource stays in the common state at every external boundary.
+    /// </remarks>
+    public static GraphicsCommittedResourceDescription GetInteropSharedTextureDescription(
+        ExternalTextureUsage externalUsage,
+        uint width,
+        uint height)
+    {
+        D3D12_RESOURCE_FLAGS d3D12ResourceFlags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+        if (externalUsage is ExternalTextureUsage.RenderTarget)
+        {
+            d3D12ResourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+        }
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
+        d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        return new GraphicsCommittedResourceDescription(
+            d3D12HeapProperties,
+            D3D12_HEAP_FLAG_SHARED,
+            D3D12_RESOURCE_DESC.Tex2D(
+                DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+                width,
+                height,
+                arraySize: 1,
+                mipLevels: 1,
+                sampleCount: 1,
+                sampleQuality: 0,
+                flags: d3D12ResourceFlags,
+                layout: D3D12_TEXTURE_LAYOUT.D3D12_TEXTURE_LAYOUT_UNKNOWN),
+            D3D12_RESOURCE_STATE_COMMON);
+    }
+
+    /// <summary>
+    /// Gets the allocation info of a described committed resource.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="description">The description of the resource to get the allocation info of.</param>
+    /// <returns>The <see cref="D3D12_RESOURCE_ALLOCATION_INFO"/> value for the described resource.</returns>
+    public static D3D12_RESOURCE_ALLOCATION_INFO GetResourceAllocationInfo(
+        this ref ID3D12Device d3D12Device,
+        in GraphicsCommittedResourceDescription description)
+    {
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = description.ResourceDescription;
+
+        return d3D12Device.GetResourceAllocationInfo(1, 1, &d3D12ResourceDescription);
+    }
+
+    /// <summary>
+    /// Creates a described committed resource.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="description">The description of the resource to create.</param>
+    /// <param name="d3D12Resource">The resulting <see cref="ID3D12Resource"/> object.</param>
+    /// <returns>The <see cref="HRESULT"/> of the creation.</returns>
+    public static HRESULT CreateCommittedResource(
+        this ref ID3D12Device d3D12Device,
+        in GraphicsCommittedResourceDescription description,
+        out ComPtr<ID3D12Resource> d3D12Resource)
+    {
+        using ComPtr<ID3D12Resource> d3D12ResourceResult = default;
+
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties = description.HeapProperties;
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = description.ResourceDescription;
+
+        HRESULT hresult = d3D12Device.CreateCommittedResource(
+            &d3D12HeapProperties,
+            description.HeapFlags,
+            &d3D12ResourceDescription,
+            description.ResourceStates,
+            null,
+            Windows.__uuidof<ID3D12Resource>(),
+            (void**)d3D12ResourceResult.GetAddressOf());
+
+        d3D12Resource = d3D12ResourceResult.Move();
+
+        return hresult;
+    }
+
+    /// <summary>
+    /// Gets the resource flags and default resource states for a given texture resource type.
+    /// </summary>
+    /// <param name="resourceType">The resource type currently in use.</param>
+    /// <returns>The resource flags and default resource states for <paramref name="resourceType"/>.</returns>
+    private static (D3D12_RESOURCE_FLAGS Flags, D3D12_RESOURCE_STATES States) GetTextureResourceTypeInfo(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.ReadOnly => (D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_COMMON),
+            ResourceType.ReadWrite => (D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS),
+            _ => default(ArgumentException).Throw<(D3D12_RESOURCE_FLAGS, D3D12_RESOURCE_STATES)>(nameof(resourceType))
+        };
+    }
+
+    /// <summary>
+    /// Gets the heap properties for a given heap type.
+    /// </summary>
+    /// <param name="d3D12HeapType">The heap type to get the properties for.</param>
+    /// <param name="isCacheCoherentUMA">Indicates whether or not the current device has a cache coherent UMA architecture.</param>
+    /// <returns>The <see cref="D3D12_HEAP_PROPERTIES"/> value to allocate from.</returns>
+    private static D3D12_HEAP_PROPERTIES GetHeapProperties(D3D12_HEAP_TYPE d3D12HeapType, bool isCacheCoherentUMA)
+    {
+        D3D12_HEAP_PROPERTIES d3D12HeapProperties;
+        d3D12HeapProperties.CreationNodeMask = 1;
+        d3D12HeapProperties.VisibleNodeMask = 1;
+
+        if (isCacheCoherentUMA)
+        {
+            d3D12HeapProperties.Type = D3D12_HEAP_TYPE_CUSTOM;
+            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
+            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+        }
+        else
+        {
+            d3D12HeapProperties.Type = d3D12HeapType;
+            d3D12HeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+            d3D12HeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        }
+
+        return d3D12HeapProperties;
+    }
+
+    /// <summary>
+    /// Creates an <see cref="ID3D12Fence"/> that can be shared with other APIs.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <returns>A reference to the shareable <see cref="ID3D12Fence"/> created.</returns>
+    public static ComPtr<ID3D12Fence> CreateSharedFence(this ref ID3D12Device d3D12Device)
+    {
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        d3D12Device.CreateFence(
+            0,
+            D3D12_FENCE_FLAG_SHARED,
+            Windows.__uuidof<ID3D12Fence>(),
+            (void**)d3D12Fence.GetAddressOf()).Assert();
+
+        return d3D12Fence.Move();
+    }
+
+    /// <summary>
+    /// Creates a shared NT handle for the specified COM object.
+    /// </summary>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <param name="pObject">The COM object to create the shared handle for.</param>
+    /// <returns>The created shared NT handle. The caller is responsible for releasing it with <c>CloseHandle</c>.</returns>
+    public static HANDLE CreateSharedHandle(this ref ID3D12Device d3D12Device, IUnknown* pObject)
+    {
+        HANDLE handle;
+
+        d3D12Device.CreateSharedHandle(pObject, null, Windows.GENERIC_ALL, null, &handle).Assert();
+
+        return handle;
+    }
+
+    /// <summary>
+    /// Opens a COM object of type <typeparamref name="T"/> from the specified shared NT handle.
+    /// </summary>
+    /// <typeparam name="T">The type of COM object to open.</typeparam>
+    /// <param name="d3D12Device">The <see cref="ID3D12Device"/> instance to use.</param>
+    /// <param name="handle">The shared NT handle to open.</param>
+    /// <returns>A reference to the opened <typeparamref name="T"/>.</returns>
+    public static ComPtr<T> OpenSharedHandle<T>(this ref ID3D12Device d3D12Device, HANDLE handle)
+        where T : unmanaged, IComObject
+    {
+        using ComPtr<T> obj = default;
+
+        d3D12Device.OpenSharedHandle(handle, Windows.__uuidof<T>(), (void**)obj.GetAddressOf()).Assert();
+
+        return obj.Move();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12InfoQueue"/> for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the info queue.</param>
+    /// <returns>A pointer to the newly created <see cref="ID3D12InfoQueue"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the info queue fails.</exception>
+    public static ComPtr<ID3D12InfoQueue> CreateInfoQueue(this ref ID3D12Device d3D12Device)
+    {
+        ComPtr<ID3D12InfoQueue> d3D12InfoQueue = default;
+
+        d3D12Device.QueryInterface(Windows.__uuidof<ID3D12InfoQueue>(), (void**)d3D12InfoQueue.GetAddressOf()).Assert();
+
+        D3D12_MESSAGE_ID* d3D12MessageIds = stackalloc D3D12_MESSAGE_ID[3]
+        {
+            // The map/unmap warnings when using null ranges are being suppressed due to
+            // them only being generated due to a bug in the DirectX runtime. Using null
+            // ranges when calling Map()/Unmap() is allowed and perfeclty well defined.
+            D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+            D3D12_MESSAGE_ID_UNMAP_INVALID_NULLRANGE,
+
+            // Some devices (like the Surface Go) can show this warning when creating a
+            // readback buffer, probably due to some driver-specific behavior. This is not
+            // an issue, as the initial state doesn't matter anyway and the readback buffer
+            // is still correctly transitioned when needed, so it can be safely ignored.
+            D3D12_MESSAGE_ID_CREATERESOURCE_STATE_IGNORED
+        };
+
+        D3D12_INFO_QUEUE_FILTER d3D12InfoQueueFilter = default;
+        d3D12InfoQueueFilter.DenyList.NumIDs = 3;
+        d3D12InfoQueueFilter.DenyList.pIDList = d3D12MessageIds;
+
+        d3D12InfoQueue.Get()->PushRetrievalFilter(&d3D12InfoQueueFilter).Assert();
+
+        return d3D12InfoQueue.Move();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12CommandQueue"/> of the specified type, for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the command queue.</param>
+    /// <param name="type">The type of command queue to create.</param>
+    /// <returns>A pointer to the newly allocated <see cref="ID3D12CommandQueue"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the command queue fails.</exception>
+    public static ComPtr<ID3D12CommandQueue> CreateCommandQueue(this ref ID3D12Device d3D12Device, D3D12_COMMAND_LIST_TYPE type)
+    {
+        using ComPtr<ID3D12CommandQueue> d3D12CommandQueue = default;
+
+        D3D12_COMMAND_QUEUE_DESC d3D12CommandQueueDesc;
+        d3D12CommandQueueDesc.Type = type;
+        d3D12CommandQueueDesc.Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+        d3D12CommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        d3D12CommandQueueDesc.NodeMask = 0;
+
+        if (!Configuration.IsGpuTimeoutEnabled)
+        {
+            d3D12CommandQueueDesc.Flags |= D3D12_COMMAND_QUEUE_FLAG_DISABLE_GPU_TIMEOUT;
+        }
+
+        d3D12Device.CreateCommandQueue(
+            &d3D12CommandQueueDesc,
+            Windows.__uuidof<ID3D12CommandQueue>(),
+            (void**)d3D12CommandQueue.GetAddressOf()).Assert();
+
+        return d3D12CommandQueue.Move();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12Fence"/> for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the fence.</param>
+    /// <returns>A pointer to the newly allocated <see cref="ID3D12Fence"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the command queue fails.</exception>
+    public static ComPtr<ID3D12Fence> CreateFence(this ref ID3D12Device d3D12Device)
+    {
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        d3D12Device.CreateFence(
+            0,
+            D3D12_FENCE_FLAG_NONE,
+            Windows.__uuidof<ID3D12Fence>(),
+            (void**)d3D12Fence.GetAddressOf()).Assert();
+
+        return d3D12Fence.Move();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12DescriptorHeap"/> for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the descriptor heap.</param>
+    /// <param name="descriptorsCount">The number of descriptors to allocate.</param>
+    /// <param name="isShaderVisible">Whether or not the descriptor heap should be shader visible.</param>
+    /// <returns>A pointer to the newly allocated <see cref="ID3D12DescriptorHeap"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the command queue fails.</exception>
+    public static ComPtr<ID3D12DescriptorHeap> CreateDescriptorHeap(this ref ID3D12Device d3D12Device, uint descriptorsCount, bool isShaderVisible)
+    {
+        using ComPtr<ID3D12DescriptorHeap> d3D12DescriptorHeap = default;
+
+        D3D12_DESCRIPTOR_HEAP_DESC d3D12DescriptorHeapDesc;
+        d3D12DescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        d3D12DescriptorHeapDesc.NumDescriptors = descriptorsCount;
+        d3D12DescriptorHeapDesc.Flags = isShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAGS.D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        d3D12DescriptorHeapDesc.NodeMask = 0;
+
+        d3D12Device.CreateDescriptorHeap(
+            &d3D12DescriptorHeapDesc,
+            Windows.__uuidof<ID3D12DescriptorHeap>(),
+            (void**)d3D12DescriptorHeap.GetAddressOf()).Assert();
+
+        return d3D12DescriptorHeap.Move();
+    }
+
+    /// <summary>
+    /// Creates a view for a constant buffer.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="bufferSize">The size of the target resource.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateConstantBufferView(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        nint bufferSize,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle)
+    {
+        uint constantBufferSize = checked((uint)((bufferSize + 255) & ~255));
+
+        D3D12_CONSTANT_BUFFER_VIEW_DESC d3D12ConstantBufferViewDescription;
+        d3D12ConstantBufferViewDescription.BufferLocation = d3D12Resource->GetGPUVirtualAddress();
+        d3D12ConstantBufferViewDescription.SizeInBytes = constantBufferSize;
+
+        d3D12Device.CreateConstantBufferView(&d3D12ConstantBufferViewDescription, d3D12CpuDescriptorHandle);
+    }
+
+    /// <summary>
+    /// Creates a view for a readonly buffer.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="bufferSize">The size of the target resource.</param>
+    /// <param name="elementSize">The size in byte of each item in the resource.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateShaderResourceView(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        uint bufferSize,
+        uint elementSize,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC d3D12ShaderResourceViewDescription = default;
+        d3D12ShaderResourceViewDescription.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+        d3D12ShaderResourceViewDescription.Shader4ComponentMapping = D3D12.D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        d3D12ShaderResourceViewDescription.Buffer.NumElements = bufferSize;
+        d3D12ShaderResourceViewDescription.Buffer.StructureByteStride = elementSize;
+
+        d3D12Device.CreateShaderResourceView(d3D12Resource, &d3D12ShaderResourceViewDescription, d3D12CpuDescriptorHandle);
+    }
+
+    /// <summary>
+    /// Creates a view for a readonly texture.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="d3D12SrvDimension">The <see cref="D3D12_SRV_DIMENSION"/> value for the view to create.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateShaderResourceView(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        DXGI_FORMAT dxgiFormat,
+        D3D12_SRV_DIMENSION d3D12SrvDimension,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle)
+    {
+        D3D12_SHADER_RESOURCE_VIEW_DESC d3D12ShaderResourceViewDescription = default;
+        d3D12ShaderResourceViewDescription.ViewDimension = d3D12SrvDimension;
+        d3D12ShaderResourceViewDescription.Format = dxgiFormat;
+        d3D12ShaderResourceViewDescription.Shader4ComponentMapping = D3D12.D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        d3D12ShaderResourceViewDescription.Texture2D.MipLevels = uint.MaxValue;
+
+        d3D12Device.CreateShaderResourceView(d3D12Resource, &d3D12ShaderResourceViewDescription, d3D12CpuDescriptorHandle);
+    }
+
+    /// <summary>
+    /// Creates a view for a buffer that can be both read and written to.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="bufferSize">The size of the target resource.</param>
+    /// <param name="elementSize">The size in byte of each item in the resource.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateUnorderedAccessView(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        uint bufferSize,
+        uint elementSize,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC d3D12UnorderedAccessViewDescription = default;
+        d3D12UnorderedAccessViewDescription.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        d3D12UnorderedAccessViewDescription.Buffer.NumElements = bufferSize;
+        d3D12UnorderedAccessViewDescription.Buffer.StructureByteStride = elementSize;
+
+        d3D12Device.CreateUnorderedAccessView(d3D12Resource, null, &d3D12UnorderedAccessViewDescription, d3D12CpuDescriptorHandle);
+    }
+
+    /// <summary>
+    /// Creates a view for a texture that can be both read and written to.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="d3D12UavDimension">The <see cref="D3D12_UAV_DIMENSION"/> value for the view to create.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateUnorderedAccessView(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        DXGI_FORMAT dxgiFormat,
+        D3D12_UAV_DIMENSION d3D12UavDimension,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC d3D12UnorderedAccessViewDescription = default;
+        d3D12UnorderedAccessViewDescription.ViewDimension = d3D12UavDimension;
+        d3D12UnorderedAccessViewDescription.Format = dxgiFormat;
+        d3D12UnorderedAccessViewDescription.Texture3D.WSize = uint.MaxValue;
+
+        d3D12Device.CreateUnorderedAccessView(d3D12Resource, null, &d3D12UnorderedAccessViewDescription, d3D12CpuDescriptorHandle);
+    }
+
+    /// <summary>
+    /// Creates a view for a buffer that will need to be cleared.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> instance in use.</param>
+    /// <param name="d3D12Resource">The <see cref="ID3D12Resource"/> to create a view for.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="bufferSize">The size of the target resource.</param>
+    /// <param name="d3D12CpuDescriptorHandle">The <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    /// <param name="d3D12CpuDescriptorHandleNonShaderVisible">The non shader visible<see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> instance for the current resource.</param>
+    public static void CreateUnorderedAccessViewForClear(
+        this ref ID3D12Device d3D12Device,
+        ID3D12Resource* d3D12Resource,
+        DXGI_FORMAT dxgiFormat,
+        uint bufferSize,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandle,
+        D3D12_CPU_DESCRIPTOR_HANDLE d3D12CpuDescriptorHandleNonShaderVisible)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC d3D12UnorderedAccessViewDescription = default;
+        d3D12UnorderedAccessViewDescription.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        d3D12UnorderedAccessViewDescription.Format = dxgiFormat;
+        d3D12UnorderedAccessViewDescription.Buffer.NumElements = bufferSize;
+
+        d3D12Device.CreateUnorderedAccessView(d3D12Resource, null, &d3D12UnorderedAccessViewDescription, d3D12CpuDescriptorHandleNonShaderVisible);
+
+        d3D12Device.CopyDescriptorsSimple(
+            NumDescriptors: 1,
+            DestDescriptorRangeStart: d3D12CpuDescriptorHandle,
+            SrcDescriptorRangeStart: d3D12CpuDescriptorHandleNonShaderVisible,
+            D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12CommandAllocator"/> for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the command allocator.</param>
+    /// <param name="d3D12CommandListType">The type of command list allocator to create.</param>
+    /// <returns>A pointer to the newly allocated <see cref="ID3D12CommandAllocator"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the command allocator fails.</exception>
+    public static ComPtr<ID3D12CommandAllocator> CreateCommandAllocator(
+        this ref ID3D12Device d3D12Device,
+        D3D12_COMMAND_LIST_TYPE d3D12CommandListType)
+    {
+        using ComPtr<ID3D12CommandAllocator> d3D12CommandAllocator = default;
+
+        d3D12Device.CreateCommandAllocator(
+            d3D12CommandListType,
+            Windows.__uuidof<ID3D12CommandAllocator>(),
+            (void**)d3D12CommandAllocator.GetAddressOf()).Assert();
+
+        return d3D12CommandAllocator.Move();
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ID3D12GraphicsCommandList"/> for a given device.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to create the command list.</param>
+    /// <param name="d3D12CommandListType">The type of command list to create.</param>
+    /// <param name="d3D12CommandAllocator">The command allocator to use to create the command list.</param>
+    /// <param name="d3D12PipelineState">The initial <see cref="ID3D12PipelineState"/> object, if present.</param>
+    /// <returns>A pointer to the newly allocated <see cref="ID3D12GraphicsCommandList"/> instance.</returns>
+    /// <exception cref="Exception">Thrown when the creation of the command list fails.</exception>
+    public static ComPtr<ID3D12GraphicsCommandList> CreateCommandList(
+        this ref ID3D12Device d3D12Device,
+        D3D12_COMMAND_LIST_TYPE d3D12CommandListType,
+        ID3D12CommandAllocator* d3D12CommandAllocator,
+        ID3D12PipelineState* d3D12PipelineState)
+    {
+        using ComPtr<ID3D12GraphicsCommandList> d3D12GraphicsCommandList = default;
+
+        d3D12Device.CreateCommandList(
+            0,
+            d3D12CommandListType,
+            d3D12CommandAllocator,
+            d3D12PipelineState,
+            Windows.__uuidof<ID3D12GraphicsCommandList>(),
+            (void**)d3D12GraphicsCommandList.GetAddressOf()).Assert();
+
+        return d3D12GraphicsCommandList.Move();
+    }
+
+    /// <summary>
+    /// Gets the layout data for a target resource.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to get the layout info.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="d3D12PlacedSubresourceFootprint">The resulting layout info for the resource.</param>
+    /// <param name="rowSizeInBytes">The size in bytes of each row in the resource.</param>
+    /// <param name="totalSizeInBytes">The total number of bytes for the resource.</param>
+    public static void GetCopyableFootprint(
+        this ref ID3D12Device d3D12Device,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        out D3D12_PLACED_SUBRESOURCE_FOOTPRINT d3D12PlacedSubresourceFootprint,
+        out ulong rowSizeInBytes,
+        out ulong totalSizeInBytes)
+    {
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex1D(dxgiFormat, width);
+        ulong a;
+        ulong b;
+
+        fixed (D3D12_PLACED_SUBRESOURCE_FOOTPRINT* p = &d3D12PlacedSubresourceFootprint)
+        {
+            uint _;
+
+            d3D12Device.GetCopyableFootprints(&d3D12ResourceDescription, 0, 1, 0, p, &_, &a, &b);
+        }
+
+        rowSizeInBytes = a;
+        totalSizeInBytes = b;
+    }
+
+    /// <summary>
+    /// Gets the layout data for a target resource.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to get the layout info.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="d3D12PlacedSubresourceFootprint">The resulting layout info for the resource.</param>
+    /// <param name="rowSizeInBytes">The size in bytes of each row in the resource.</param>
+    /// <param name="totalSizeInBytes">The total number of bytes for the resource.</param>
+    public static void GetCopyableFootprint(
+        this ref ID3D12Device d3D12Device,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        out D3D12_PLACED_SUBRESOURCE_FOOTPRINT d3D12PlacedSubresourceFootprint,
+        out ulong rowSizeInBytes,
+        out ulong totalSizeInBytes)
+    {
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex2D(dxgiFormat, width, height);
+        ulong a;
+        ulong b;
+
+        fixed (D3D12_PLACED_SUBRESOURCE_FOOTPRINT* p = &d3D12PlacedSubresourceFootprint)
+        {
+            uint _;
+
+            d3D12Device.GetCopyableFootprints(&d3D12ResourceDescription, 0, 1, 0, p, &_, &a, &b);
+        }
+
+        rowSizeInBytes = a;
+        totalSizeInBytes = b;
+    }
+
+    /// <summary>
+    /// Gets the layout data for a target resource.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to get the layout info.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> value to use.</param>
+    /// <param name="width">The width of the texture resource.</param>
+    /// <param name="height">The height of the texture resource.</param>
+    /// <param name="depth">The depth of the texture resource.</param>
+    /// <param name="d3D12PlacedSubresourceFootprint">The resulting layout info for the resource.</param>
+    /// <param name="rowSizeInBytes">The size in bytes of each row in the resource.</param>
+    /// <param name="totalSizeInBytes">The total number of bytes for the resource.</param>
+    public static void GetCopyableFootprint(
+        this ref ID3D12Device d3D12Device,
+        DXGI_FORMAT dxgiFormat,
+        uint width,
+        uint height,
+        ushort depth,
+        out D3D12_PLACED_SUBRESOURCE_FOOTPRINT d3D12PlacedSubresourceFootprint,
+        out ulong rowSizeInBytes,
+        out ulong totalSizeInBytes)
+    {
+        D3D12_RESOURCE_DESC d3D12ResourceDescription = D3D12_RESOURCE_DESC.Tex3D(dxgiFormat, width, height, depth);
+        ulong a;
+        ulong b;
+
+        fixed (D3D12_PLACED_SUBRESOURCE_FOOTPRINT* p = &d3D12PlacedSubresourceFootprint)
+        {
+            uint _;
+
+            d3D12Device.GetCopyableFootprints(&d3D12ResourceDescription, 0, 1, 0, p, &_, &a, &b);
+        }
+
+        rowSizeInBytes = a;
+        totalSizeInBytes = b;
+    }
+
+    /// <summary>
+    /// Checks the feature support of a given type for a given device.
+    /// </summary>
+    /// <typeparam name="TFeature">The type of feature support data to retrieve.</typeparam>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to check features for.</param>
+    /// <param name="d3D12Feature">The type of features to check.</param>
+    /// <returns>A <see typeparamref="TFeature"/> value with the features data.</returns>
+    public static unsafe TFeature CheckFeatureSupport<TFeature>(this ref ID3D12Device d3D12Device, D3D12_FEATURE d3D12Feature)
+        where TFeature : unmanaged
+    {
+        TFeature feature = default;
+
+        d3D12Device.CheckFeatureSupport(d3D12Feature, &feature, (uint)sizeof(TFeature)).Assert();
+
+        return feature;
+    }
+
+    /// <summary>
+    /// Checks whether or not a given DXGI format is supported for the specified resource type.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to check features for.</param>
+    /// <param name="dxgiFormat">The <see cref="DXGI_FORMAT"/> type to check support for.</param>
+    /// <param name="d3D12FormatSupport1">The resource type to check support for.</param>
+    /// <returns>Whether or not the input device supports the requested format for the specified resource type.</returns>
+    public static unsafe bool IsDxgiFormatSupported(this ref ID3D12Device d3D12Device, DXGI_FORMAT dxgiFormat, D3D12_FORMAT_SUPPORT1 d3D12FormatSupport1)
+    {
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT d3D12FeatureDataFormatSupport = default;
+        d3D12FeatureDataFormatSupport.Format = dxgiFormat;
+
+        d3D12Device.CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &d3D12FeatureDataFormatSupport, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT)).Assert();
+
+        return (d3D12FeatureDataFormatSupport.Support1 & d3D12FormatSupport1) == d3D12FormatSupport1;
+    }
+
+    /// <summary>
+    /// Checks whether or not a given shader model is supported.
+    /// </summary>
+    /// <param name="d3D12Device">The target <see cref="ID3D12Device"/> to use to check features for.</param>
+    /// <param name="d3DShaderModel">The <see cref="D3D_SHADER_MODEL"/> value to check support for.</param>
+    /// <returns>Whether or not the input device supports the requested shader model.</returns>
+    public static unsafe bool IsShaderModelSupported(this ref ID3D12Device d3D12Device, D3D_SHADER_MODEL d3DShaderModel)
+    {
+        D3D12_FEATURE_DATA_SHADER_MODEL d3D12ShaderModel = default;
+        d3D12ShaderModel.HighestShaderModel = d3DShaderModel;
+
+        d3D12Device.CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &d3D12ShaderModel, (uint)sizeof(D3D12_FEATURE_DATA_SHADER_MODEL)).Assert();
+
+        return d3D12ShaderModel.HighestShaderModel == d3DShaderModel;
+    }
+}

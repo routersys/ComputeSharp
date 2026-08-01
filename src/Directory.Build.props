@@ -1,27 +1,27 @@
 <Project>
   <Import Project="..\build\Directory.Build.props" />
 
-  <PropertyGroup Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props')">
-    <CustomAfterDirectoryBuildProps>$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.after.props</CustomAfterDirectoryBuildProps>
+  <PropertyGroup Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props')">
+    <CustomAfterDirectoryBuildProps>$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.after.props</CustomAfterDirectoryBuildProps>
   </PropertyGroup>
 
-  <Import Project="$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props" Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeSharp.Build.props')" />
+  <Import Project="$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props" Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props')" />
 
   <!-- Centralized packaging metadata for published projects -->
   <PropertyGroup Condition="$(IsPackagedProject)">
 
     <!-- Package descriptions-->
-    <Description Condition="'$(MSBuildProjectName)' == 'ComputeSharp'">
+    <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave'">
 <![CDATA[A library to run C# code in parallel on the GPU through DX12 and dynamically generated HLSL compute shaders.]]>
     </Description>
-    <Description Condition="'$(MSBuildProjectName)' == 'ComputeSharp.Core'">
-<![CDATA[A library containing basic primitives to support ComputeSharp (this package is not supposed to be referenced directly by developers).]]>
+    <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Core'">
+<![CDATA[A library containing basic primitives to support ComputeWeave (this package is not supposed to be referenced directly by developers).]]>
     </Description>
-    <Description Condition="'$(MSBuildProjectName)' == 'ComputeSharp.D3D12MemoryAllocator'">
-<![CDATA[An extension library for ComputeSharp to enable using D3D12MA as the memory allocator for graphics resources.]]>
+    <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D3D12MemoryAllocator'">
+<![CDATA[An extension library for ComputeWeave to enable using D3D12MA as the memory allocator for graphics resources.]]>
     </Description>
-    <Description Condition="'$(MSBuildProjectName)' == 'ComputeSharp.Dxc'">
-<![CDATA[An extension library for ComputeSharp bundling the DXC compiler and enabling shader reflection.]]>
+    <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Dxc'">
+<![CDATA[An extension library for ComputeWeave bundling the DXC compiler and enabling shader reflection.]]>
     </Description>
   </PropertyGroup>
 
