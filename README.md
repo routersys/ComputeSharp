@@ -4,208 +4,339 @@
 [![.NET](https://img.shields.io/badge/.NET-10.0-purple.svg)](#)
 [![Release](https://img.shields.io/github/v/release/routersys/ComputeWeave.svg)](https://github.com/routersys/ComputeWeave/releases)
 
----
-
-DirectX 12の計算シェーダーをC#だけで記述し、GPU上で実行するための.NETライブラリです。
-シェーダー本体をC#のメソッドとして書くと、ソースジェネレーターがHLSLへ変換してコンパイル済みのバイトコードを埋め込みます。HLSLのファイルを別に用意する必要はありません。
-GPUデバイスの取得、バッファとテクスチャの確保、メインメモリとの転送、コマンドの投入までを型付きのAPIで扱えます。
-Direct3D 11で動く既存のアプリケーションとは、共有テクスチャと共有フェンスを介して接続できます。
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/README.ja.md)
 
 ---
 
-## 目次
-
-1. [概要](#概要)
-2. [動作要件](#動作要件)
-3. [インストール方法](#インストール方法)
-4. [主な機能](#主な機能)
-   - [1. C#による計算シェーダーの記述](#1-cによる計算シェーダーの記述)
-   - [2. GPUリソースの確保と転送](#2-gpuリソースの確保と転送)
-   - [3. コマンドの一括投入](#3-コマンドの一括投入)
-   - [4. Direct3D 11・12相互運用](#4-direct3d-1112相互運用)
-   - [5. シェーダーのリフレクション](#5-シェーダーのリフレクション)
-   - [6. アナライザーによる静的検証](#6-アナライザーによる静的検証)
-5. [パッケージ一覧](#パッケージ一覧)
-6. [制限事項](#制限事項)
-7. [注意事項](#注意事項)
-8. [免責事項](#免責事項)
-9. [サードパーティライセンス](#サードパーティライセンス)
-10. [ライセンス](#ライセンス)
+ComputeWeave is a fork of [ComputeSharp](https://github.com/Sergio0694/ComputeSharp), the library that lets DirectX 12 compute shaders be written entirely in C#.
+That base is unchanged and is documented upstream; this document covers what the fork adds on top of it.
+The addition is a declarative layer: a compute pipeline and its resources are declared with attributes, a source generator turns the declaration into a canonical binary descriptor embedded in the assembly, and the runtime reads that descriptor to bind resources, record command lists and track completion.
+The same layer carries shared textures and shared fences across the Direct3D 11 and Direct3D 12 boundary, and adds a GPU memory budget.
 
 ---
 
-## 概要
+## Table of Contents
 
-公開APIの入口は`GraphicsDevice`型です。`GraphicsDevice.GetDefault()`が現在の環境の既定のデバイスを返します。このメソッドは、機能レベル`D3D_FEATURE_LEVEL_11_0`とシェーダーモデル`D3D_SHADER_MODEL_6_0`を満たすアダプターを探し、見つからない場合はWARPデバイスへ切り替えます。どちらも取得できない場合だけ`NotSupportedException`を送出します。対応GPUが無い環境のためのフォールバック経路を自分で書く必要はありません。
-
-シェーダーは`IComputeShader`を実装する`partial struct`として宣言します。ソースジェネレーターが型のフィールドから定数バッファとリソースの束縛を組み立て、`Execute`メソッドの本体をHLSLへ変換し、DXCでコンパイルしたバイトコードを生成コードへ埋め込みます。HLSLへ変換できない構文はアナライザーがコンパイル時に検出します。
-
-計算シェーダーの実行に加えて、Direct3D 11で動く既存のアプリケーションと接続するための相互運用の仕組みを備えます。共有テクスチャと共有フェンスをC#の属性から宣言し、両APIの間で所有権を受け渡します。
+1. [Overview](#overview)
+2. [Requirements](#requirements)
+3. [Installation](#installation)
+4. [Features](#features)
+   - [1. Declarative compute pipelines](#1-declarative-compute-pipelines)
+   - [2. Owned resource slots](#2-owned-resource-slots)
+   - [3. Direct3D 11 interoperation](#3-direct3d-11-interoperation)
+   - [4. Shared texture slots](#4-shared-texture-slots)
+   - [5. GPU memory budget](#5-gpu-memory-budget)
+   - [6. Compile-time validation](#6-compile-time-validation)
+5. [API Reference](#api-reference)
+   - [Declaration attributes](#declaration-attributes)
+   - [Generated members](#generated-members)
+   - [Runtime](#runtime)
+   - [Slots and bindings](#slots-and-bindings)
+   - [Interoperation](#interoperation)
+   - [Shared resources](#shared-resources)
+   - [Memory](#memory)
+   - [Enumerations](#enumerations)
+6. [Limitations](#limitations)
+7. [Notes](#notes)
+8. [Disclaimer](#disclaimer)
+9. [Third-Party Licenses](#third-party-licenses)
+10. [License](#license)
 
 ---
 
-## 動作要件
+## Overview
 
-| 項目 | 要件 |
+The base library is unchanged. A compute shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches. Nothing in this document replaces that.
+
+What the fork adds is 56 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
+
+Resources are not held directly. They live in slots that publish generations: `TryEnsure` asks a slot to match a requested plan, and a new generation is published only when the plan actually changes. Work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded.
+
+---
+
+## Requirements
+
+| Item | Requirement |
 |---|---|
-| OS | Windows 10 以降（64bit） |
-| ランタイム | .NET 10.0 |
-| GPU | 機能レベル `D3D_FEATURE_LEVEL_11_0` とシェーダーモデル `D3D_SHADER_MODEL_6_0` に対応したDirect3D 12デバイス |
-| 代替 | 上記を満たすGPUが無い場合はWARPデバイスで動作します |
+| OS | Windows 10 or later (64-bit) |
+| Runtime | .NET 10.0 |
+| GPU | A Direct3D 12 device at feature level `D3D_FEATURE_LEVEL_11_0` and shader model `D3D_SHADER_MODEL_6_0` |
+| Fallback | A WARP device is used when no such GPU is present |
+| Interoperation | Shared textures require an adapter able to create shared handles for both Direct3D 11 and Direct3D 12 |
 
 ---
 
-## インストール方法
-
-NuGetパッケージとして参照します。
+## Installation
 
 ```bash
 dotnet add package ComputeWeave
 ```
 
-シェーダーのリフレクションやD3D12MAを使う場合は、対応する拡張パッケージを追加します。
+Optional extension packages:
 
 ```bash
 dotnet add package ComputeWeave.Dxc
 dotnet add package ComputeWeave.D3D12MemoryAllocator
 ```
 
-`ComputeWeave.Core`は他のパッケージの推移的な依存先です。直接参照する必要はありません。
+`ComputeWeave.Core` is a transitive dependency and is not referenced directly.
 
 ---
 
-## 主な機能
+## Features
 
-### 1. C#による計算シェーダーの記述
+### 1. Declarative compute pipelines
 
-シェーダーは`IComputeShader`を実装する`partial struct`として宣言します。`partial`はコード生成に必要なので省略できません。`[ThreadGroupSize]`でスレッドグループの構成を、`[GeneratedComputeShaderDescriptor]`でコード生成の対象であることを指定します。フィールドはそのままGPUへ渡す値になります。
+A host is a `partial` type marked with `[ComputePipelineHost]`. The first argument names the field holding the device, the second is the number of concurrent invocations to reserve. A pipeline is a method marked `[ComputePipeline]` whose first parameter is `in ComputeContext`.
 
 ```csharp
-[ThreadGroupSize(DefaultThreadGroupSizes.X)]
-[GeneratedComputeShaderDescriptor]
-public readonly partial struct MultiplyByTwo(ReadWriteBuffer<int> buffer) : IComputeShader
+using ComputeWeave;
+
+[ComputePipelineHost("device", 1)]
+public sealed partial class Host
 {
-    public void Execute()
+    private readonly GraphicsDevice device = null!;
+
+    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+    [ComputePipeline]
+    private void Run(in ComputeContext context)
     {
-        buffer[ThreadIds.X] *= 2;
     }
 }
 ```
 
-`ThreadIds`はシェーダー本体からディスパッチ情報を参照するための特別な型で、ここでは`for`文の添字に相当する値を返します。実行は`GraphicsDevice`の`For`メソッドで行います。
+The generator emits into the same partial type a static `Create` factory, `Dispose`, `WaitForDisposal`, and for each pipeline an overload of the same name that takes the declared arguments without the context and returns `ComputeSubmission`. The overload is public unless a parameter type is less accessible.
 
 ```csharp
-GraphicsDevice.GetDefault().For(buffer.Length, new MultiplyByTwo(buffer));
+using Host host = Host.Create(GraphicsDevice.GetDefault(), maximumPendingSubmissions: 4);
+
+ComputeSubmission submission = host.Run();
+
+submission.Wait();
 ```
 
-`For`は1次元から3次元までのオーバーロードがあります。
+`ComputeSubmission` carries a `FencePoint`, a `ComputeSubmissionStatus` and `IsCompleted`. Waiting is explicit; a submission is not awaited implicitly at disposal.
 
-その他に、GPUのグループ共有メモリを使う`[GroupShared]`、書き込みの可視性を全体へ広げる`[GloballyCoherent]`、倍精度の対応を要求する`[RequiresDoublePrecisionSupport]`、コンパイルオプションを指定する`[CompileOptions]`を利用できます。
+### 2. Owned resource slots
 
-### 2. GPUリソースの確保と転送
+A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` or `[ComputeResourceGroup]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
 
-バッファとテクスチャを型付きで確保します。用途に応じて次の型を使い分けます。
+`TryEnsure` reports whether the owned resources match the requested plan, and `changed` reports whether a new generation was published. `ComputeResourceRecovery` selects what happens to the contents when a generation is replaced: `Discardable`, `RecreateFromHost`, `Recompute` or `CapacityOnly`.
 
-| 分類 | 型 |
+### 3. Direct3D 11 interoperation
+
+An external API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
+
+```csharp
+using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
+```
+
+`ComputeInteropDomain` exposes `Device`, `Id`, `Capabilities` and the disposal pair `Dispose` / `WaitForDisposal`. `ExternalInteropCapabilities` reports `SharedFence`, `SharedTexture2D`, `SingleImmediateContextOrdering` and `PersistentExternalViewOrdering`. Providers whose queue must be entered and left around each operation derive a `ComputeExternalQueueScheduler`.
+
+### 4. Shared texture slots
+
+A resource set is a `partial` type marked `[ComputeInteropResourceSet]` holding `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`. The attribute fixes the resize policy, the access on each side, the external usage, the alpha mode, the initial owner and the recovery.
+
+```csharp
+using System;
+using ComputeWeave;
+
+[ComputeInteropResourceSet]
+public sealed partial class ResourceSet
+{
+    [ComputeSharedTexture(
+        ComputeResourceResizePolicy.Exact,
+        ComputeResourceAccess.ReadWrite,
+        ExternalResourceAccess.Write,
+        ExternalTextureUsage.RenderTarget,
+        ComputeAlphaMode.Premultiplied,
+        ComputeSharedTextureInitialOwner.External,
+        ComputeResourceRecovery.RecreateFromHost)]
+    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+}
+```
+
+The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)` and, per slot, `TryEnsure<Slot>(int width, int height, out bool changed)`. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
+
+### 5. GPU memory budget
+
+`GraphicsDevice` gains three members. `SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GetMemoryStatistics` returns a `GraphicsMemoryStatistics` snapshot carrying an epoch, per-segment statistics and generation counts. `TrimMemory` releases what is retired and idle.
+
+Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`, which derives from `InvalidOperationException`.
+
+### 6. Compile-time validation
+
+The declarations above are checked by analyzers that report 92 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+
+---
+
+## API Reference
+
+### Declaration attributes
+
+| Member | Description |
 |---|---|
-| バッファ | `ReadOnlyBuffer<T>` / `ReadWriteBuffer<T>` / `ConstantBuffer<T>` |
-| テクスチャ | `ReadOnlyTexture1D` / `2D` / `3D`、`ReadWriteTexture1D` / `2D` / `3D` |
-| 転送用バッファ | `UploadBuffer<T>` / `ReadBackBuffer<T>` |
-| 転送用テクスチャ | `UploadTexture1D` / `2D` / `3D`、`ReadBackTexture1D` / `2D` / `3D` |
+| `[ComputePipelineHost(string deviceFieldName, int maximumConcurrentInvocations)]` | Marks a partial type as a pipeline host. |
+| `[ComputePipeline]` | Marks a method as a pipeline. Its first parameter must be `in ComputeContext`. |
+| `[ComputePipelineResource(ComputeResourceAccess access)]` | Declares an owned resource slot. |
+| `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | Declares an owned resource slot with an explicit recovery. |
+| `[ComputeResource(ComputeResourceAccess access)]` | Declares a resource inside a group. `Sharing` and `Aliasing` are settable. |
+| `[ComputeResourceGroup]` | Declares a resource group slot. |
+| `[ComputeInterop]` | Marks a pipeline method as an external interop round-trip. |
+| `[ComputeInteropResourceSet]` | Marks a partial type as an interop resource set. |
+| `[ComputeSharedTexture(resizePolicy, computeAccess, externalAccess, externalUsage, alphaMode, initialOwner, recovery)]` | Declares a shared texture slot. |
 
-確保と転送は`GraphicsDevice`の拡張メソッドで行います。
+### Generated members
 
-```csharp
-int[] array = [.. Enumerable.Range(1, 100)];
-
-using ReadWriteBuffer<int> buffer = GraphicsDevice.GetDefault().AllocateReadWriteBuffer(array);
-
-buffer.CopyTo(array);
-```
-
-`AllocateReadWriteBuffer`は入力配列と同じ長さのバッファを確保して内容を転送します。要素型や長さの異なるオーバーロードも用意しています。
-
-### 3. コマンドの一括投入
-
-`ComputeContext`は、複数のディスパッチと転送を1つのコマンドリストへまとめて投入するための型です。`IDisposable`と`IAsyncDisposable`の両方を実装しており、破棄の時点でコマンドを投入します。個別に投入する場合と比べて、コマンドリストの生成と同期の回数を減らせます。
-
-### 4. Direct3D 11・12相互運用
-
-Direct3D 11で動く既存のアプリケーションとGPUリソースを共有するための仕組みです。`[ComputePipelineHost]`を付けた型にパイプラインの束をまとめ、個々の処理を`[ComputePipeline]`を付けたメソッドとして宣言します。共有するテクスチャは`[ComputeInteropResourceSet]`を付けた型の中で、`[ComputeSharedTexture]`を付けた`SharedTextureSlot<...>`のフィールドとして宣言します。
-
-宣言の内容はソースジェネレーターが記述子へ変換してアセンブリへ埋め込み、実行時に`ComputeHostRuntime`と`ComputeInteropResourceSetRuntime`が読み取ります。共有テクスチャの所有権はフェンスで受け渡すため、通常の処理ではCPUへの読み戻しが発生しません。
-
-### 5. シェーダーのリフレクション
-
-`ComputeWeave.Dxc`パッケージを追加すると、生成されたHLSLのソースやDirect3D 12のリフレクションAPIが公開する統計値を参照できます。
-
-```csharp
-ShaderInfo shaderInfo = ReflectionServices.GetShaderInfo<MyShader>();
-
-string hlslSource = shaderInfo.HlslSource;
-uint numberOfResources = shaderInfo.BoundResourceCount;
-uint instructionCount = shaderInfo.InstructionCount;
-```
-
-### 6. アナライザーによる静的検証
-
-HLSLへ変換できない構文、属性の指定漏れ、リソースの誤った扱いを、コンパイル時に`CMPW`で始まる診断として報告します。診断は92種類あり、一部にはコード修正の提案が付きます。GPU上でしか現れない不具合の多くを、ビルドの時点で検出できます。
-
----
-
-## パッケージ一覧
-
-| 名前 | 説明 |
+| Member | Description |
 |---|---|
-| ComputeWeave | 本体。計算シェーダーの記述と実行、相互運用を提供します。 |
-| ComputeWeave.Core | 各パッケージが共有する基本型と内部基盤です。直接参照する必要はありません。 |
-| ComputeWeave.Dxc | DXCコンパイラーを同梱し、シェーダーのリフレクションを可能にします。 |
-| ComputeWeave.D3D12MemoryAllocator | グラフィックスリソースの確保にD3D12MAを用いるようにします。 |
+| `static THost Create(GraphicsDevice device, int maximumPendingSubmissions)` | Registers the host on a device. |
+| `ComputeSubmission <Pipeline>(...)` | Records and submits one invocation of the pipeline. |
+| `bool TryEnsure<Slot>(in TPlan plan, out bool changed)` | Matches the owned resources to a plan. |
+| `ComputeResourceBinding<T> Get<Slot>ComputeBinding()` | Returns the binding of the owned resource. |
+| `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | Registers an interop resource set. |
+| `bool TryEnsure<Slot>(int width, int height, out bool changed)` | Matches a shared texture to a size. |
+| `void Dispose()` / `void WaitForDisposal()` | Releases the registration and waits for it to complete. |
+
+### Runtime
+
+| Member | Description |
+|---|---|
+| `ComputeHostRuntime.Create(device, canonicalDescriptor, maximumPendingSubmissions, ownedSlots)` | Creates the host runtime. Called by generated code. |
+| `ComputeHostRuntime.Submit<TInvocation>(in TInvocation invocation)` | Records and submits one invocation. |
+| `ComputeHostRuntime.TryEnsureResource<TMaterializer>(...)` | Matches an owned slot to a plan. |
+| `ComputeHostRuntime.GetBinding<TResource>(int slotOrdinal, int resourceIndex)` | Returns a resource binding. |
+| `ComputeHostRuntime.Device` / `IsDisposeRequested` | Reports the device and the disposal state. |
+| `ComputeInteropResourceSetRuntime.Create(device, domain, canonicalDescriptor, slots)` | Creates the resource set runtime. |
+| `ComputeInteropResourceSetRuntime.Device` / `Domain` / `IsDisposeRequested` | Reports the device, the domain and the disposal state. |
+| `ComputeSubmission.Completion` / `Status` / `IsCompleted` / `Wait()` | Tracks the completion of submitted work. |
+| `IComputePipelineInvocation.Bind(ref ComputePipelineBinder)` / `Record(in ComputeContext)` | Implemented by generated invocation types. |
+
+### Slots and bindings
+
+| Member | Description |
+|---|---|
+| `ComputeResourceSlot<TResource>` | Owns a single resource and publishes generations of it. |
+| `ComputeResourceGroupSlot<TGroup>` | Owns a group of resources published as one generation. |
+| `SharedTextureSlot<T, TPixel, TView>` | Owns a texture shared with an external API. |
+| `SharedTextureSlot.TryEnsure(int width, int height, out bool changed)` | Matches the texture to a size. |
+| `SharedTextureSlot.GetComputeBinding()` | Returns the compute-side binding. |
+| `SharedTextureSlot.BeginExternalOperation()` | Borrows the external view for one operation. |
+| `SharedTextureSlot.AcquireExternalViewLease()` | Takes a lease on the external view. |
+| `SharedTextureSlot.Width` / `Height` / `IsAllocated` | Reports the published size and whether one exists. |
+| `ComputeResourceBinding<TResource>` | A binding to a published resource generation. |
+| `IComputeGenerationMaterializer.Materialize(ref ComputeGenerationContext)` | Implemented by generated materializers. |
+
+### Interoperation
+
+| Member | Description |
+|---|---|
+| `GraphicsDevice.RegisterExternalDomain<TView>(IComputeExternalInteropProvider<TView> provider)` | Registers an external API and returns its domain. |
+| `ComputeInteropDomain.Device` / `Id` / `Capabilities` | Reports the device, the domain identifier and the negotiated capabilities. |
+| `IComputeExternalInteropProvider.Initialize(in ExternalTimelineInitialization)` | Initialises the shared timeline. |
+| `IComputeExternalInteropProvider.EnqueueSignal(ulong)` / `EnqueueWait(ulong)` / `FlushAfterSignal()` | Drives the shared fence on the external queue. |
+| `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | Opens a shared texture as the external view type. |
+| `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | Reports that the device entered a terminal state. |
+| `ComputeExternalQueueScheduler` | Base class for providers needing a scope around each queue operation. |
+| `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | Uses the leased external view. |
+| `ExternalTextureDescriptor` | `Width`, `Height`, `Format`, `ExternalUsage`, `AlphaMode`. |
+| `ExternalAdapterIdentity(long adapterLuid)` / `ExternalDomainId` | Identifies the adapter and the domain. |
+
+### Shared resources
+
+| Member | Description |
+|---|---|
+| `InteropServices.AllocateSharedReadWriteTexture2D<T>(device, width, height)` | Allocates a shareable read-write texture. |
+| `InteropServices.AllocateSharedReadWriteTexture2D<T, TPixel>(device, width, height)` | Allocates a shareable normalized read-write texture. |
+| `InteropServices.AllocateSharedReadOnlyTexture2D<T>(device, width, height)` | Allocates a shareable read-only texture. |
+| `InteropServices.OpenSharedReadWriteTexture2D<T>(device, handle)` | Opens a shared texture from a handle. |
+| `InteropServices.OpenSharedReadWriteTexture2D<T, TPixel>(device, handle)` | Opens a shared normalized texture from a handle. |
+| `InteropServices.OpenSharedReadOnlyTexture2D<T>(device, handle)` | Opens a shared read-only texture from a handle. |
+| `InteropServices.CreateSharedHandle<T>(Texture2D<T> texture)` | Creates a shared handle for a texture. |
+| `InteropServices.CreateSharedFence(device, riid, ppvFence, sharedHandle)` | Creates a shared fence and its handle. |
+| `InteropServices.OpenSharedFence(device, handle, riid, ppvFence)` | Opens a shared fence from a handle. |
+| `InteropServices.SignalSharedFence(device, d3D12Fence, value)` | Signals a shared fence on the compute queue. |
+| `InteropServices.WaitForSharedFence(device, d3D12Fence, value)` | Waits on a shared fence on the compute queue. |
+
+### Memory
+
+| Member | Description |
+|---|---|
+| `GraphicsDevice.SetMemoryPolicy(in GraphicsMemoryPolicy policy)` | Installs the budget policy. |
+| `GraphicsDevice.GetMemoryStatistics()` | Returns a snapshot of the memory state. |
+| `GraphicsDevice.TrimMemory()` | Releases retired and idle memory. |
+| `GraphicsMemoryPolicy` | `BudgetBroker`, `LocalOwnedHardLimitBytes`, `NonLocalOwnedHardLimitBytes`. |
+| `GraphicsMemoryStatistics` | `Epoch`, `Local`, `NonLocal`, `ActiveGenerationCount`, `RetiredGenerationCount`, `ManagedPoolSurplusCount`. |
+| `IGraphicsMemoryBudgetBroker.RegisterClient(in GraphicsMemoryClientDescriptor)` | Registers a budget client. |
+| `IGraphicsMemoryBudgetClient.TryGetGrant(GraphicsMemorySegment, out GraphicsMemoryGrant)` | Requests a grant for a segment. |
+| `GraphicsMemoryAllocationException` | Thrown when the budget refuses an allocation. |
+
+### Enumerations
+
+| Type | Members |
+|---|---|
+| `ComputeResourceAccess` | `Read`, `Write`, `ReadWrite` |
+| `ComputeResourceResizePolicy` | `Exact`, `GrowOnly` |
+| `ComputeResourceRecovery` | `Discardable`, `RecreateFromHost`, `Recompute`, `CapacityOnly` |
+| `ComputeResourceSharing` / `ComputeResourceAliasing` | Options of `[ComputeResource]` |
+| `ComputeSharedTextureInitialOwner` | `Compute`, `External` |
+| `ExternalResourceAccess` | `Read`, `Write`, `ReadWrite` |
+| `ExternalTextureUsage` | `Sampled`, `RenderTarget` |
+| `ComputeAlphaMode` | `Ignore`, `Premultiplied`, `Straight` |
+| `ComputeQueueKind` | `None`, `Compute`, `Copy` |
+| `ComputeSubmissionStatus` | `Succeeded`, `Pending`, `Faulted` |
+| `ExternalTextureFormat` | `Bgra8Unorm` |
+| `ExternalInteropCapabilities` | `None`, `SharedFence`, `SharedTexture2D`, `SingleImmediateContextOrdering`, `PersistentExternalViewOrdering` |
+| `GraphicsMemorySegment` | `Local`, `NonLocal` |
+| `MemoryBudgetStatus` | `Unknown`, `Valid`, `Unsupported`, `DeviceLost` |
 
 ---
 
-## 制限事項
+## Limitations
 
-- Windows専用です。Direct3D 12を利用するため、他のOSでは動作しません。
-- シェーダーの本体に書けるC#の構文は、HLSLへ変換できる範囲に限られます。範囲外の構文はコンパイル時に診断として報告します。
-- `ComputeWeave.Dxc`は`dxcompiler.dll`と`dxil.dll`を同梱するため、x64とARM64以外のプロセスアーキテクチャでは動作しません。
-- 相互運用の共有テクスチャは、Direct3D 11とDirect3D 12の両方で共有ハンドルを作成できるGPUを必要とします。
-
----
-
-## 注意事項
-
-- 既定のデバイスはプロセス内でキャッシュされます。`GraphicsDevice.GetDefault()`は同じインスタンスを返します。
-- GPUリソースは`IDisposable`です。`using`で確実に破棄してください。破棄しない場合、GPUメモリが解放されません。
-- WARPデバイスはCPU上のエミュレーションで動作するため、実GPUと比べて処理速度が大きく低下します。
-- 実GPUとWARPでは、超越関数の実装差により計算結果の下位桁が一致しない場合があります。画像の一致を検証する場合は許容誤差を設けてください。
-- 本ライブラリは`ComputeSharp`から派生していますが、名前空間、アセンブリ名、診断IDのすべてが異なります。両者を同一プロジェクトへ同時に参照した場合の動作は検証していません。
+- Windows only. The library uses Direct3D 12 and does not run on other operating systems.
+- `ExternalTextureFormat` currently declares a single member, `Bgra8Unorm`. Shared textures are limited to that format.
+- `ExternalTextureUsage` declares `Sampled` and `RenderTarget` only.
+- The body of a compute shader is limited to the C# constructs the generator can translate to HLSL. Anything outside that range is reported as a diagnostic at compile time.
+- `ComputeWeave.Dxc` bundles `dxcompiler.dll` and `dxil.dll` and therefore runs only in x64 and Arm64 processes.
 
 ---
 
-## 免責事項
+## Notes
 
-本ライブラリはMITライセンスのもとで公開されています。
-
-本ソフトウェアは「現状のまま」提供されており、明示または黙示を問わず、商品性、特定目的への適合性、および権利非侵害に関する保証を含む、いかなる種類の保証も行いません。
-
-作者は、本ライブラリの使用または使用不能に起因するいかなる損害についても、一切の責任を負いません。ご利用は自己責任でお願いします。
+- The canonical descriptor is the contract between the generator and the runtime. Both sides ship in the same version and a descriptor written by one version is not intended to be read by another.
+- A submission is not awaited implicitly. Call `ComputeSubmission.Wait()` when the result is needed.
+- `Dispose` requests the release of a registration; `WaitForDisposal` blocks until it has completed. Work still in flight keeps the generation it captured alive.
+- `GraphicsDevice.GetDefault()` caches the device for the process and returns the same instance until it is disposed.
+- The `DeviceLost` event on `GraphicsDevice` is raised at most once per instance. After the device is lost, the public APIs throw `InvalidOperationException`.
 
 ---
 
-## サードパーティライセンス
+## Disclaimer
 
-本ライブラリは以下のサードパーティソフトウェアを派生元とし、また同梱しています。ライセンスの全文は、リポジトリの[`.github/LICENSE`](.github/LICENSE)と、NuGetパッケージの`LICENSE`フォルダーに収録しています。
+This library is published under the MIT license.
 
-| ソフトウェア | 用途 | ライセンス | 著作権表示 |
+The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose and noninfringement.
+
+The authors accept no liability for any damage arising from the use of or the inability to use this library.
+
+---
+
+## Third-Party Licenses
+
+The full text of each license is included under [`.github/LICENSE`](.github/LICENSE) in the repository and under `THIRD-PARTY-NOTICES` in the NuGet packages.
+
+| Software | Use | License | Copyright |
 |---|---|---|---|
-| [ComputeSharp](https://github.com/Sergio0694/ComputeSharp) | 本ライブラリの派生元 | [MIT License](.github/LICENSE/ComputeSharp.txt) | Copyright (c) 2024 Sergio Pedri |
-| [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler) | HLSLのコンパイル。`dxcompiler.dll`と`dxil.dll`を同梱 | [University of Illinois/NCSA Open Source License](.github/LICENSE/DirectXShaderCompiler.txt)（[第三者表記](.github/LICENSE/DirectXShaderCompiler.ThirdPartyNotices.txt)） | Copyright (c) 2003-2015 University of Illinois at Urbana-Champaign |
+| [ComputeSharp](https://github.com/Sergio0694/ComputeSharp) | The project this library is derived from | [MIT License](.github/LICENSE/ComputeSharp.txt) | Copyright (c) 2024 Sergio Pedri |
+| [DirectX Shader Compiler](https://github.com/microsoft/DirectXShaderCompiler) | HLSL compilation. `dxcompiler.dll` and `dxil.dll` are bundled | [University of Illinois/NCSA Open Source License](.github/LICENSE/DirectXShaderCompiler.txt) ([third-party notices](.github/LICENSE/DirectXShaderCompiler.ThirdPartyNotices.txt)) | Copyright (c) 2003-2015 University of Illinois at Urbana-Champaign |
 
-本リポジトリは[Sergio0694/ComputeSharp](https://github.com/Sergio0694/ComputeSharp)から派生した独立の実装であり、原作者との関係はありません。原作のComputeSharpは[DX12GameEngine](https://github.com/Aminator/DirectX12GameEngine)のコードを一部の基礎としています。
+This repository is an independently maintained derivative of [Sergio0694/ComputeSharp](https://github.com/Sergio0694/ComputeSharp) and is not affiliated with the original author. ComputeSharp itself was originally based in part on code from [DX12GameEngine](https://github.com/Aminator/DirectX12GameEngine).
 
 ---
 
-## ライセンス
+## License
 
 [MIT License](LICENSE)
