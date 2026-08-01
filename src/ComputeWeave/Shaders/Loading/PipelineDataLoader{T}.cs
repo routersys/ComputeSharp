@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using ComputeWeave.Shaders.Extensions;
 using ComputeWeave.Descriptors;
 using ComputeWeave.Interop;
@@ -21,7 +22,7 @@ internal static unsafe class PipelineDataLoader<T>
     /// </summary>
     private static readonly ConditionalWeakTable<GraphicsDevice, PipelineData> CachedPipelines = [];
 
-    private static readonly ConditionalWeakTable<GraphicsDevice, object> PipelineCreationLocks = [];
+    private static readonly ConditionalWeakTable<GraphicsDevice, Lock> PipelineCreationLocks = [];
 
     /// <summary>
     /// Gets the <see cref="PipelineData"/> instance for a given shader.
