@@ -70,6 +70,11 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     private readonly ID3D12ResourceDescriptorHandles d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView;
 
     /// <summary>
+    /// The <see cref="ID3D12ResourceDescriptorHandles"/> instance for the current resource, when an SRV over a read write buffer is needed.
+    /// </summary>
+    private readonly ID3D12ResourceDescriptorHandles d3D12ResourceDescriptorHandlesForShaderResourceView;
+
+    /// <summary>
     /// The size in bytes of the current buffer (this value is never negative).
     /// </summary>
     protected readonly nint SizeInBytes;
@@ -151,6 +156,12 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
                     (uint)(usableSizeInBytes / sizeof(uint)),
                     this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandle,
                     this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandleNonShaderVisible);
+                device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForShaderResourceView);
+                device.D3D12Device->CreateShaderResourceView(
+                    this.d3D12Resource.Get(),
+                    (uint)length,
+                    elementSizeInBytes,
+                    this.d3D12ResourceDescriptorHandlesForShaderResourceView.D3D12CpuDescriptorHandle);
                 break;
         }
 
@@ -206,6 +217,12 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
                     (uint)(usableSizeInBytes / sizeof(uint)),
                     this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandle,
                     this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView.D3D12CpuDescriptorHandleNonShaderVisible);
+                device.RentShaderResourceViewDescriptorHandles(out this.d3D12ResourceDescriptorHandlesForShaderResourceView);
+                device.D3D12Device->CreateShaderResourceView(
+                    this.d3D12Resource.Get(),
+                    (uint)length,
+                    elementSizeInBytes,
+                    this.d3D12ResourceDescriptorHandlesForShaderResourceView.D3D12CpuDescriptorHandle);
                 break;
         }
 
@@ -274,6 +291,17 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
     internal D3D12_GPU_DESCRIPTOR_HANDLE D3D12GpuDescriptorHandle => this.d3D12ResourceDescriptorHandles.D3D12GpuDescriptorHandle;
 
     /// <summary>
+    /// Gets the <see cref="D3D12_GPU_DESCRIPTOR_HANDLE"/> instance for the SRV over the current resource.
+    /// </summary>
+    /// <remarks>This handle only refers to a created view when the current buffer is a read write buffer.</remarks>
+    internal D3D12_GPU_DESCRIPTOR_HANDLE D3D12ShaderResourceViewGpuDescriptorHandle => this.d3D12ResourceDescriptorHandlesForShaderResourceView.D3D12GpuDescriptorHandle;
+
+    /// <summary>
+    /// Gets the <see cref="TrackedResourceState"/> value the current instance permanently resides in.
+    /// </summary>
+    internal TrackedResourceState ResidentState => this.residentState;
+
+    /// <summary>
     /// Reads the contents of the specified range from the current <see cref="Buffer{T}"/> instance and writes them into a target memory area.
     /// </summary>
     /// <param name="destination">The input memory area to write data to.</param>
@@ -334,6 +362,7 @@ public abstract unsafe partial class Buffer<T> : IReferenceTrackedObject, IGraph
         {
             device.ReturnShaderResourceViewDescriptorHandles(in this.d3D12ResourceDescriptorHandles);
             device.ReturnShaderResourceViewDescriptorHandles(in this.d3D12ResourceDescriptorHandlesForTypedUnorderedAccessView);
+            device.ReturnShaderResourceViewDescriptorHandles(in this.d3D12ResourceDescriptorHandlesForShaderResourceView);
         }
     }
 
