@@ -37,8 +37,29 @@ internal sealed unsafe class Direct3D11ExternalQueueScheduler : ComputeExternalQ
 
 internal sealed unsafe class Direct3D11ExternalView : IDisposable
 {
+    private ComPtr<ID3D11Texture2D> d3D11Texture;
+
+    public Direct3D11ExternalView(ID3D11Texture2D* d3D11Texture, int width, int height)
+    {
+        this.d3D11Texture.Attach(d3D11Texture);
+
+        Width = width;
+        Height = height;
+    }
+
+    public int Width { get; }
+
+    public int Height { get; }
+
+    public int DisposeCount { get; private set; }
+
+    public ID3D11Texture2D* D3D11Texture => this.d3D11Texture.Get();
+
     public void Dispose()
     {
+        DisposeCount++;
+
+        this.d3D11Texture.Dispose();
     }
 }
 
@@ -105,6 +126,55 @@ internal sealed unsafe class Direct3D11ImmediateContext : IDisposable
         ThrowIfFailed(d3D11ImmediateContext.CopyTo(d3D11ImmediateContext4.GetAddressOf()));
 
         return new Direct3D11ImmediateContext(d3D11Device5.Detach(), d3D11ImmediateContext4.Detach(), adapterLuid);
+    }
+
+    public uint[] ReadBack(ID3D11Texture2D* d3D11Texture, int width, int height)
+    {
+        using ComPtr<ID3D11Texture2D> staging = default;
+
+        D3D11_TEXTURE2D_DESC stagingDescription = new()
+        {
+            Width = (uint)width,
+            Height = (uint)height,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+            SampleDesc = new DXGI_SAMPLE_DESC(1, 0),
+            Usage = D3D11_USAGE.D3D11_USAGE_STAGING,
+            BindFlags = 0,
+            CPUAccessFlags = (uint)D3D11_CPU_ACCESS_FLAG.D3D11_CPU_ACCESS_READ,
+            MiscFlags = 0
+        };
+
+        ThrowIfFailed(this.d3D11Device.Get()->CreateTexture2D(&stagingDescription, null, staging.GetAddressOf()));
+
+        this.d3D11ImmediateContext.Get()->CopyResource((ID3D11Resource*)staging.Get(), (ID3D11Resource*)d3D11Texture);
+        this.d3D11ImmediateContext.Get()->Flush();
+
+        D3D11_MAPPED_SUBRESOURCE mapped;
+
+        ThrowIfFailed(this.d3D11ImmediateContext.Get()->Map((ID3D11Resource*)staging.Get(), 0, D3D11_MAP.D3D11_MAP_READ, 0, &mapped));
+
+        uint[] pixels = new uint[width * height];
+
+        try
+        {
+            for (int y = 0; y < height; y++)
+            {
+                uint* row = (uint*)((byte*)mapped.pData + ((nuint)y * mapped.RowPitch));
+
+                for (int x = 0; x < width; x++)
+                {
+                    pixels[(y * width) + x] = row[x];
+                }
+            }
+        }
+        finally
+        {
+            this.d3D11ImmediateContext.Get()->Unmap((ID3D11Resource*)staging.Get(), 0);
+        }
+
+        return pixels;
     }
 
     public void Dispose()
@@ -177,8 +247,41 @@ internal sealed unsafe class Direct3D11InteropProvider(Direct3D11ImmediateContex
 
     public Direct3D11ExternalView OpenSharedTexture(BorrowedSharedHandle resourceHandle, in ExternalTextureDescriptor descriptor)
     {
-        throw new NotSupportedException("The harness opens shared textures once the interop resource set is implemented.");
+        using ComPtr<ID3D11Texture2D> d3D11Texture = default;
+
+        HRESULT hresult = this.context.D3D11Device->OpenSharedResource1(
+            (HANDLE)resourceHandle.DangerousGetHandle(),
+            Windows.__uuidof<ID3D11Texture2D>(),
+            (void**)d3D11Texture.GetAddressOf());
+
+        if (hresult.FAILED)
+        {
+            throw new InvalidOperationException($"The provider could not open the shared texture, code 0x{(uint)hresult:X8}.");
+        }
+
+        D3D11_TEXTURE2D_DESC textureDescription;
+
+        d3D11Texture.Get()->GetDesc(&textureDescription);
+
+        if (textureDescription.Width != (uint)descriptor.Width || textureDescription.Height != (uint)descriptor.Height)
+        {
+            throw new InvalidOperationException("The opened shared texture does not match the requested dimensions.");
+        }
+
+        if (textureDescription.Format != DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM)
+        {
+            throw new InvalidOperationException($"The opened shared texture has an unexpected format {textureDescription.Format}.");
+        }
+
+        LastOpenedView = new Direct3D11ExternalView(d3D11Texture.Detach(), descriptor.Width, descriptor.Height);
+        OpenSharedTextureCount++;
+
+        return LastOpenedView;
     }
+
+    public Direct3D11ExternalView? LastOpenedView { get; private set; }
+
+    public int OpenSharedTextureCount { get; private set; }
 
     public void OnDeviceTerminal(Exception reason)
     {
