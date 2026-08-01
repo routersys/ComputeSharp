@@ -25,8 +25,9 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
    - [2. Owned resource slots](#2-owned-resource-slots)
    - [3. Direct3D 11 interoperation](#3-direct3d-11-interoperation)
    - [4. Shared texture slots](#4-shared-texture-slots)
-   - [5. GPU memory budget](#5-gpu-memory-budget)
-   - [6. Compile-time validation](#6-compile-time-validation)
+   - [5. Read-only buffer views](#5-read-only-buffer-views)
+   - [6. GPU memory budget](#6-gpu-memory-budget)
+   - [7. Compile-time validation](#7-compile-time-validation)
 5. [API Reference](#api-reference)
    - [Declaration attributes](#declaration-attributes)
    - [Generated members](#generated-members)
@@ -160,15 +161,30 @@ public sealed partial class ResourceSet
 
 The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)` and, per slot, `TryEnsure<Slot>(int width, int height, out bool changed)`. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
-### 5. GPU memory budget
+### 5. Read-only buffer views
+
+`ReadWriteBuffer<T>.AsReadOnly()` returns an `IReadOnlyBuffer<T>`. The view binds the same resource through its SRV, so a shader taking it cannot write to it.
+
+```csharp
+using ReadWriteBuffer<int> source = device.AllocateReadWriteBuffer<int>(length);
+
+device.For(length, new ProduceShader(source));
+device.For(length, new ConsumeShader(source.AsReadOnly(), destination));
+```
+
+A buffer produced on the GPU can be handed to later shaders as read-only without copying it into a read-only buffer. Copying between two `Buffer<T>` instances blocks the CPU until the GPU completes, so this keeps that wait out of a per-frame path.
+
+Unlike the texture counterparts, no state transition is involved: a buffer resides in `COMMON` and needs no transition to be read through an SRV. The returned view stays valid for the whole lifetime of the buffer and can be cached and reused. `ReadOnlyBuffer<T>` also implements `IReadOnlyBuffer<T>`, so either one can be passed to the same parameter.
+
+### 6. GPU memory budget
 
 `GraphicsDevice` gains three members. `SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GetMemoryStatistics` returns a `GraphicsMemoryStatistics` snapshot carrying an epoch, per-segment statistics and generation counts. `TrimMemory` releases what is retired and idle.
 
 Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`, which derives from `InvalidOperationException`.
 
-### 6. Compile-time validation
+### 7. Compile-time validation
 
-The declarations above are checked by analyzers that report 92 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 93 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
 ---
 
@@ -193,7 +209,7 @@ The declarations above are checked by analyzers that report 92 diagnostics with 
 | Member | Description |
 |---|---|
 | `static THost Create(GraphicsDevice device, int maximumPendingSubmissions)` | Registers the host on a device. |
-| `ComputeSubmission <Pipeline>(...)` | Records and submits one invocation of the pipeline. |
+| `ComputeSubmission <Pipeline>(...)` | Records and submits one invocation of the pipeline. Resource parameters declaring `Sharing.External` are replaced by `ComputeResourceBinding<T>`. |
 | `bool TryEnsure<Slot>(in TPlan plan, out bool changed)` | Matches the owned resources to a plan. |
 | `ComputeResourceBinding<T> Get<Slot>ComputeBinding()` | Returns the binding of the owned resource. |
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | Registers an interop resource set. |
@@ -226,8 +242,13 @@ The declarations above are checked by analyzers that report 92 diagnostics with 
 | `SharedTextureSlot.BeginExternalOperation()` | Borrows the external view for one operation. |
 | `SharedTextureSlot.AcquireExternalViewLease()` | Takes a lease on the external view. |
 | `SharedTextureSlot.Width` / `Height` / `IsAllocated` | Reports the published size and whether one exists. |
-| `ComputeResourceBinding<TResource>` | A binding to a published resource generation. |
+| `ComputeResourceBinding<TResource>` | A binding to a published resource generation. It carries the slot it was produced from. |
+| `ComputePipelineBinder.TryPin(IGraphicsResource resource)` | Pins the generation of a borrowed resource. |
+| `ComputePipelineBinder.TryPin<TResource>(in ComputeResourceBinding<TResource> binding, out TResource resource)` | Pins a resource shared with an external queue, revalidated under the slot the binding carries. |
+| `ComputePipelineBinder.TryPin<TResource>(int slotOrdinal, in ComputeResourceBinding<TResource> binding)` | Pins a resource owned by a slot of the host. |
 | `IComputeGenerationMaterializer.Materialize(ref ComputeGenerationContext)` | Implemented by generated materializers. |
+| `IReadOnlyBuffer<T>` | A structured buffer a shader takes as read-only. |
+| `ReadWriteBuffer<T>.AsReadOnly()` | Returns a read-only view binding the same resource through its SRV. |
 
 ### Interoperation
 

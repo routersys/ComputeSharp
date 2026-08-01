@@ -25,8 +25,9 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
    - [2. 所有資源スロット](#2-所有資源スロット)
    - [3. Direct3D 11との相互運用](#3-direct3d-11との相互運用)
    - [4. 共有テクスチャスロット](#4-共有テクスチャスロット)
-   - [5. GPUメモリの予算管理](#5-gpuメモリの予算管理)
-   - [6. コンパイル時の検証](#6-コンパイル時の検証)
+   - [5. バッファの読み取り専用ビュー](#5-バッファの読み取り専用ビュー)
+   - [6. GPUメモリの予算管理](#6-gpuメモリの予算管理)
+   - [7. コンパイル時の検証](#7-コンパイル時の検証)
 5. [APIリファレンス](#apiリファレンス)
    - [宣言用の属性](#宣言用の属性)
    - [生成されるメンバー](#生成されるメンバー)
@@ -160,15 +161,30 @@ public sealed partial class ResourceSet
 
 ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
-### 5. GPUメモリの予算管理
+### 5. バッファの読み取り専用ビュー
+
+`ReadWriteBuffer<T>.AsReadOnly()` が `IReadOnlyBuffer<T>` を返します。同じ資源をSRVとして束縛するビューで、これを受けるシェーダーは書き込めません。
+
+```csharp
+using ReadWriteBuffer<int> source = device.AllocateReadWriteBuffer<int>(length);
+
+device.For(length, new ProduceShader(source));
+device.For(length, new ConsumeShader(source.AsReadOnly(), destination));
+```
+
+GPUが書いたバッファを、以降のシェーダーへ読み取り専用として渡せます。読み取り専用バッファへ複製する必要はありません。`Buffer<T>` 同士の複製はCPUがGPUの完了を待つため、フレームごとの経路からその待ちを外せます。
+
+テクスチャの読み取り専用ビューと違い、状態の遷移は要りません。バッファは常在状態が `COMMON` で、SRVとして読むために遷移しないためです。返るビューは資源の寿命の間ずっと有効で、保持して使い回せます。`ReadOnlyBuffer<T>` も `IReadOnlyBuffer<T>` を実装するので、同じ引数へどちらも渡せます。
+
+### 6. GPUメモリの予算管理
 
 `GraphicsDevice` へ3つのメンバーが加わります。`SetMemoryPolicy` はメモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GetMemoryStatistics` は、世代番号、区分ごとの統計、世代数を持つ `GraphicsMemoryStatistics` の断面を返します。`TrimMemory` は退役して待機中の資源を解放します。
 
 予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。これは `InvalidOperationException` を継承します。
 
-### 6. コンパイル時の検証
+### 7. コンパイル時の検証
 
-以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断92種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
+以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断93種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
 
 ---
 
@@ -193,7 +209,7 @@ public sealed partial class ResourceSet
 | メンバー | 説明 |
 |---|---|
 | `static THost Create(GraphicsDevice device, int maximumPendingSubmissions)` | ホストをデバイスへ登録します。 |
-| `ComputeSubmission <パイプライン名>(...)` | パイプラインを1回記録して投入します。 |
+| `ComputeSubmission <パイプライン名>(...)` | パイプラインを1回記録して投入します。`Sharing.External` を宣言した資源の引数は `ComputeResourceBinding<T>` へ置き換わります。 |
 | `bool TryEnsure<スロット名>(in TPlan plan, out bool changed)` | 所有資源を計画へ一致させます。 |
 | `ComputeResourceBinding<T> Get<スロット名>ComputeBinding()` | 所有資源の束縛を返します。 |
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | 相互運用の資源集合を登録します。 |
@@ -226,8 +242,13 @@ public sealed partial class ResourceSet
 | `SharedTextureSlot.BeginExternalOperation()` | 1回の操作のために外部ビューを借ります。 |
 | `SharedTextureSlot.AcquireExternalViewLease()` | 外部ビューの貸与を取ります。 |
 | `SharedTextureSlot.Width` / `Height` / `IsAllocated` | 発行済みの寸法と、その有無を報告します。 |
-| `ComputeResourceBinding<TResource>` | 発行済みの資源世代への束縛です。 |
+| `ComputeResourceBinding<TResource>` | 発行済みの資源世代への束縛です。生成元のスロットを保持します。 |
+| `ComputePipelineBinder.TryPin(IGraphicsResource resource)` | 借用した資源の世代を固定します。 |
+| `ComputePipelineBinder.TryPin<TResource>(in ComputeResourceBinding<TResource> binding, out TResource resource)` | 外部と共有する資源を、束縛が持つスロットの門で再検証してから固定します。 |
+| `ComputePipelineBinder.TryPin<TResource>(int slotOrdinal, in ComputeResourceBinding<TResource> binding)` | ホストが所有するスロットの資源を固定します。 |
 | `IComputeGenerationMaterializer.Materialize(ref ComputeGenerationContext)` | 生成される実体化器が実装します。 |
+| `IReadOnlyBuffer<T>` | シェーダーが読み取り専用として受ける構造化バッファです。 |
+| `ReadWriteBuffer<T>.AsReadOnly()` | 同じ資源をSRVとして束縛する読み取り専用ビューを返します。 |
 
 ### 相互運用
 
