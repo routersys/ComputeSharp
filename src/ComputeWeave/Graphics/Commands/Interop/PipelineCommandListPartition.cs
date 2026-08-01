@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using ComputeWeave.Core.Extensions;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Win32;
@@ -15,6 +16,8 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
 
         public bool IsRented;
     }
+
+    private readonly Lock gate = new();
 
     private readonly Entry[] entries;
 
@@ -78,7 +81,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
     {
         get
         {
-            lock (this.entries)
+            lock (this.gate)
             {
                 return this.size;
             }
@@ -89,7 +92,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
     {
         get
         {
-            lock (this.entries)
+            lock (this.gate)
             {
                 return this.size != this.entries.Length;
             }
@@ -100,7 +103,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
     {
         int index;
 
-        lock (this.entries)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(this.isDisposed, "The command list partition has been disposed.");
             default(InvalidOperationException).ThrowIf(this.size <= 0, "The command list partition has no reserved entry left.");
@@ -127,7 +130,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
     {
         int index = IndexOf((nint)d3D12CommandList);
 
-        lock (this.entries)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(this.isDisposed, "The command list partition has been disposed.");
             default(InvalidOperationException).ThrowIf(!this.entries[index].IsRented, "The command list entry is not rented.");
@@ -140,7 +143,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
             this.entries[index].D3D12CommandList->Close().Assert();
         }
 
-        lock (this.entries)
+        lock (this.gate)
         {
             this.freeIndices[this.tail++] = index;
 
@@ -155,7 +158,7 @@ internal sealed unsafe class PipelineCommandListPartition : IDisposable
 
     public void Dispose()
     {
-        lock (this.entries)
+        lock (this.gate)
         {
             if (this.isDisposed)
             {
