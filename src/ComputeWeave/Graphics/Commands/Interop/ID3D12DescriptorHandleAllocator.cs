@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Win32;
 using static ComputeWeave.Win32.D3D12_DESCRIPTOR_HEAP_TYPE;
@@ -24,6 +25,8 @@ internal unsafe struct ID3D12DescriptorHandleAllocator : IDisposable
     /// The non shader visible <see cref="ID3D12DescriptorHeap"/> in use for the current <see cref="ID3D12DescriptorHandleAllocator"/> instance.
     /// </summary>
     private ComPtr<ID3D12DescriptorHeap> d3D12DescriptorHeapNonShaderVisible;
+
+    private readonly Lock gate;
 
     /// <summary>
     /// The array of <see cref="ID3D12ResourceDescriptorHandles"/> items with the available descriptor handles.
@@ -53,6 +56,7 @@ internal unsafe struct ID3D12DescriptorHandleAllocator : IDisposable
     {
         this.d3D12DescriptorHeap = device->CreateDescriptorHeap(DescriptorsPerHeap, isShaderVisible: true);
         this.d3D12DescriptorHeapNonShaderVisible = device->CreateDescriptorHeap(DescriptorsPerHeap, isShaderVisible: false);
+        this.gate = new Lock();
         this.d3D12DescriptorHandlePairs = GC.AllocateUninitializedArray<ID3D12ResourceDescriptorHandles>((int)DescriptorsPerHeap);
         this.head = 0;
         this.tail = 0;
@@ -87,7 +91,7 @@ internal unsafe struct ID3D12DescriptorHandleAllocator : IDisposable
     /// <param name="d3D12ResourceDescriptorHandles">The resulting <see cref="D3D12_CPU_DESCRIPTOR_HANDLE"/> value.</param>
     public void Rent(out ID3D12ResourceDescriptorHandles d3D12ResourceDescriptorHandles)
     {
-        lock (this.d3D12DescriptorHandlePairs)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(this.size <= 0);
 
@@ -115,7 +119,7 @@ internal unsafe struct ID3D12DescriptorHandleAllocator : IDisposable
             return;
         }
 
-        lock (this.d3D12DescriptorHandlePairs)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(this.size >= DescriptorsPerHeap);
 
