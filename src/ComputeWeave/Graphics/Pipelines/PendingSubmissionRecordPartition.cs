@@ -1,9 +1,12 @@
 using System;
+using System.Threading;
 
 namespace ComputeWeave.Graphics.Pipelines;
 
 internal sealed class PendingSubmissionRecordPartition
 {
+    private readonly Lock gate = new();
+
     private readonly PendingSubmissionRecord[] records;
 
     private readonly bool[] isCheckedOut;
@@ -40,7 +43,7 @@ internal sealed class PendingSubmissionRecordPartition
     {
         get
         {
-            lock (this.records)
+            lock (this.gate)
             {
                 return this.size;
             }
@@ -51,7 +54,7 @@ internal sealed class PendingSubmissionRecordPartition
     {
         get
         {
-            lock (this.records)
+            lock (this.gate)
             {
                 return this.size != this.records.Length;
             }
@@ -60,7 +63,7 @@ internal sealed class PendingSubmissionRecordPartition
 
     public bool TryCheckout(PipelineKey pipeline, ulong submissionSequence, out int index)
     {
-        lock (this.records)
+        lock (this.gate)
         {
             if (this.size <= 0)
             {
@@ -96,7 +99,7 @@ internal sealed class PendingSubmissionRecordPartition
 
     public void Return(int index)
     {
-        lock (this.records)
+        lock (this.gate)
         {
             default(ArgumentOutOfRangeException).ThrowIfNotInRange(index, 0, this.records.Length);
             default(InvalidOperationException).ThrowIf(!this.isCheckedOut[index], "The pending submission record is not checked out.");
