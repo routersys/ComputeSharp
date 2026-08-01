@@ -151,11 +151,11 @@ public sealed class ComputeResourceSlot<TResource> : IComputeOwnedResourceSlot, 
     bool IComputeOwnedSlot.TryGetBinding<TBoundResource>(int resourceIndex, out ComputeResourceBinding<TBoundResource> binding)
         where TBoundResource : class
     {
-        return this.slotGate.TryGetBinding(resourceIndex, out binding);
+        return this.slotGate.TryGetBinding(this, resourceIndex, out binding);
     }
 
     /// <inheritdoc/>
-    bool IComputeOwnedSlot.TryPinGeneration(
+    bool IComputeGenerationPinSource.TryPinGeneration(
         ResourceGenerationSetId setId,
         ResourceGenerationId generationId,
         ulong bindingEpoch,

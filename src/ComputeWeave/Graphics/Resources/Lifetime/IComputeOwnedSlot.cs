@@ -3,7 +3,7 @@ using ComputeWeave.Graphics.Pipelines;
 
 namespace ComputeWeave.Resources.Lifetime;
 
-internal interface IComputeOwnedSlot
+internal interface IComputeOwnedSlot : IComputeGenerationPinSource
 {
     bool IsDisposalComplete { get; }
 
@@ -43,11 +43,4 @@ internal interface IComputeOwnedSlot
 
     bool TryGetBinding<TResource>(int resourceIndex, out ComputeResourceBinding<TResource> binding)
         where TResource : class, IGraphicsResource;
-
-    bool TryPinGeneration(
-        ResourceGenerationSetId setId,
-        ResourceGenerationId generationId,
-        ulong bindingEpoch,
-        int resourceIndex,
-        out ResourceGenerationPin pin);
 }

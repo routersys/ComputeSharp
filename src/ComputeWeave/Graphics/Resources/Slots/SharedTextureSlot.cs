@@ -17,7 +17,7 @@ namespace ComputeWeave;
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
 /// <typeparam name="TPixel">The type of pixels used on the GPU side.</typeparam>
 /// <typeparam name="TView">The type of the external view of the texture.</typeparam>
-public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedResourceSlot, IDisposable, IComputeSharedSlot
+public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedResourceSlot, IDisposable, IComputeSharedSlot, IComputeGenerationPinSource
     where T : unmanaged, IPixel<T, TPixel>
     where TPixel : unmanaged
     where TView : class, IDisposable
@@ -140,6 +140,17 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     }
 
     /// <inheritdoc/>
+    bool IComputeGenerationPinSource.TryPinGeneration(
+        ResourceGenerationSetId setId,
+        ResourceGenerationId generationId,
+        ulong bindingEpoch,
+        int resourceIndex,
+        out ResourceGenerationPin pin)
+    {
+        return this.slotGate.TryPin(setId, generationId, bindingEpoch, resourceIndex, out pin);
+    }
+
+    /// <inheritdoc/>
     void IComputeSharedSlot.MarkTerminalRetained()
     {
         _ = this.slotGate.TryMarkDeviceTerminal();
@@ -211,7 +222,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     {
         ThrowIfNotBound();
 
-        return this.slotGate.TryGetBinding(0, out ComputeResourceBinding<ReadWriteTexture2D<T, TPixel>> binding)
+        return this.slotGate.TryGetBinding(this, 0, out ComputeResourceBinding<ReadWriteTexture2D<T, TPixel>> binding)
             ? binding
             : default;
     }

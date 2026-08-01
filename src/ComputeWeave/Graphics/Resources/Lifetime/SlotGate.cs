@@ -660,7 +660,7 @@ internal struct SlotGate
         }
     }
 
-    public bool TryGetBinding<TResource>(int resourceIndex, out ComputeResourceBinding<TResource> binding)
+    public bool TryGetBinding<TResource>(IComputeGenerationPinSource slot, int resourceIndex, out ComputeResourceBinding<TResource> binding)
         where TResource : class, IGraphicsResource
     {
         bool taken = false;
@@ -682,6 +682,7 @@ internal struct SlotGate
 
             binding = new ComputeResourceBinding<TResource>(
                 resource,
+                slot,
                 this.control.ActiveSetId,
                 generationId,
                 this.control.BindingEpoch,

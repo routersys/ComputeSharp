@@ -1,4 +1,5 @@
 using ComputeWeave.Graphics.Pipelines;
+using ComputeWeave.Resources.Lifetime;
 
 namespace ComputeWeave;
 
@@ -13,6 +14,11 @@ public readonly struct ComputeResourceBinding<TResource>
     /// The bound resource, or <see langword="null"/> for an invalid binding.
     /// </summary>
     internal readonly TResource? Resource;
+
+    /// <summary>
+    /// The slot the binding was produced from, or <see langword="null"/> for an invalid binding.
+    /// </summary>
+    internal readonly IComputeGenerationPinSource? Slot;
 
     /// <summary>
     /// The id of the generation set the binding was produced from.
@@ -38,18 +44,21 @@ public readonly struct ComputeResourceBinding<TResource>
     /// Creates a new <see cref="ComputeResourceBinding{TResource}"/> instance with the specified parameters.
     /// </summary>
     /// <param name="resource">The bound resource.</param>
+    /// <param name="slot">The slot the binding was produced from.</param>
     /// <param name="setId">The id of the generation set the binding was produced from.</param>
     /// <param name="generationId">The id of the generation the binding was produced from.</param>
     /// <param name="bindingEpoch">The binding epoch of the slot the binding was produced from.</param>
     /// <param name="resourceIndex">The index of the resource within its generation set.</param>
     internal ComputeResourceBinding(
         TResource resource,
+        IComputeGenerationPinSource slot,
         ResourceGenerationSetId setId,
         ResourceGenerationId generationId,
         ulong bindingEpoch,
         int resourceIndex)
     {
         this.Resource = resource;
+        this.Slot = slot;
         this.SetId = setId;
         this.GenerationId = generationId;
         this.BindingEpoch = bindingEpoch;
