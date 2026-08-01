@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using ComputeWeave.Win32;
 
 namespace ComputeWeave.Graphics.Commands.Interop;
 
 internal sealed unsafe class PipelineCommandListPool(ID3D12Device* d3D12Device, D3D12_COMMAND_LIST_TYPE d3D12CommandListType) : IDisposable
 {
+    private readonly Lock gate = new();
+
     private readonly List<PipelineCommandListPartition> partitions = [];
 
     private readonly ID3D12Device* d3D12Device = d3D12Device;
@@ -17,7 +20,7 @@ internal sealed unsafe class PipelineCommandListPool(ID3D12Device* d3D12Device, 
     {
         get
         {
-            lock (this.partitions)
+            lock (this.gate)
             {
                 return this.partitions.Count;
             }
@@ -26,14 +29,14 @@ internal sealed unsafe class PipelineCommandListPool(ID3D12Device* d3D12Device, 
 
     public PipelineCommandListPartition CreatePartition(int entryCount)
     {
-        lock (this.partitions)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(this.isDisposed, "The command list pool has been disposed.");
         }
 
         PipelineCommandListPartition partition = new(this.d3D12Device, d3D12CommandListType, entryCount);
 
-        lock (this.partitions)
+        lock (this.gate)
         {
             if (this.isDisposed)
             {
@@ -52,7 +55,7 @@ internal sealed unsafe class PipelineCommandListPool(ID3D12Device* d3D12Device, 
     {
         default(ArgumentNullException).ThrowIfNull(partition);
 
-        lock (this.partitions)
+        lock (this.gate)
         {
             default(InvalidOperationException).ThrowIf(partition.HasRentedEntries, "The command list partition still has rented entries.");
             default(InvalidOperationException).ThrowIf(!this.partitions.Remove(partition), "The command list partition is not owned by the pool.");
@@ -65,7 +68,7 @@ internal sealed unsafe class PipelineCommandListPool(ID3D12Device* d3D12Device, 
     {
         PipelineCommandListPartition[] pendingPartitions;
 
-        lock (this.partitions)
+        lock (this.gate)
         {
             if (this.isDisposed)
             {
