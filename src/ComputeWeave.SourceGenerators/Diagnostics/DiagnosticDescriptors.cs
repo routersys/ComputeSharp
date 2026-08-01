@@ -1030,6 +1030,22 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a shared texture field with an invalid declaration.
+    /// <para>
+    /// Format: <c>"The shared texture field {0} has an invalid declaration (it must be a private readonly instance field of type SharedTextureSlot&lt;T, TPixel, TView&gt; without an initializer)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidComputeSharedTextureFieldDeclaration = new(
+        id: "CMPW0109",
+        title: "Invalid shared texture field declaration",
+        messageFormat: "The shared texture field {0} has an invalid declaration (it must be a private readonly instance field of type SharedTextureSlot<T, TPixel, TView> without an initializer)",
+        category: "ComputeWeave.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A field annotated with [ComputeSharedTexture] must be a private readonly instance field of type SharedTextureSlot<T, TPixel, TView> and must not have an initializer, as the runtime binds the slot to the interop resource set it publishes generations into.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a compute pipeline method with an invalid signature.
     /// <para>
     /// Format: <c>"The compute pipeline method {0} has an invalid signature (it must return void, take an 'in ComputeContext' as its first parameter, and only declare value or 'in' parameters otherwise)"</c>.

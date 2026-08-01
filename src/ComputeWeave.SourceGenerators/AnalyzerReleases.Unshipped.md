@@ -1,4 +1,4 @@
-; Unshipped analyzer release
+﻿; Unshipped analyzer release
 ; https://github.com/dotnet/roslyn-analyzers/blob/master/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 
 ### New Rules
@@ -33,3 +33,4 @@ CMPW0105 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/r
 CMPW0106 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0107 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0108 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0109 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
