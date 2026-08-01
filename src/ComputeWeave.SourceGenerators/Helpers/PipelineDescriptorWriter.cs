@@ -21,7 +21,7 @@ internal static class PipelineDescriptorWriter
     /// <returns>The canonical binary descriptor of <paramref name="host"/>.</returns>
     public static byte[] Write(PipelineHostContractInfo host)
     {
-        Csp1Writer writer = new();
+        Cwp1Writer writer = new();
 
         writer.WriteEnumByte(DescriptorKind.PipelineHost);
         writer.WriteString(host.HostTypeMetadataName);
@@ -53,7 +53,7 @@ internal static class PipelineDescriptorWriter
     /// <returns>The canonical binary descriptor of <paramref name="resourceSet"/>.</returns>
     public static byte[] Write(InteropResourceSetContractInfo resourceSet)
     {
-        Csp1Writer writer = new();
+        Cwp1Writer writer = new();
 
         writer.WriteEnumByte(DescriptorKind.InteropResourceSet);
         writer.WriteString(resourceSet.ResourceSetTypeMetadataName);
@@ -82,7 +82,7 @@ internal static class PipelineDescriptorWriter
     /// </summary>
     /// <param name="writer">The target writer.</param>
     /// <param name="pipeline">The pipeline contract to write.</param>
-    private static void WritePipeline(Csp1Writer writer, PipelineContractInfo pipeline)
+    private static void WritePipeline(Cwp1Writer writer, PipelineContractInfo pipeline)
     {
         writer.WriteUInt32(pipeline.Ordinal);
         writer.WriteString(pipeline.MethodMetadataName);
@@ -110,7 +110,7 @@ internal static class PipelineDescriptorWriter
     /// </summary>
     /// <param name="writer">The target writer.</param>
     /// <param name="resource">The resource contract to write.</param>
-    private static void WriteResource(Csp1Writer writer, ResourceContractInfo resource)
+    private static void WriteResource(Cwp1Writer writer, ResourceContractInfo resource)
     {
         writer.WriteUInt32(resource.Ordinal);
         writer.WriteString(resource.ResourceTypeMetadataName);
@@ -128,7 +128,7 @@ internal static class PipelineDescriptorWriter
     /// </summary>
     /// <param name="writer">The target writer.</param>
     /// <param name="slot">The owned slot contract to write.</param>
-    private static void WriteSlot(Csp1Writer writer, OwnedSlotContractInfo slot)
+    private static void WriteSlot(Cwp1Writer writer, OwnedSlotContractInfo slot)
     {
         writer.WriteUInt32(slot.Ordinal);
         writer.WriteString(slot.MemberMetadataName);
@@ -156,10 +156,10 @@ internal static class PipelineDescriptorWriter
     /// <returns>The complete descriptor of <paramref name="payload"/>.</returns>
     private static byte[] CreateDescriptor(byte[] payload)
     {
-        Csp1Writer schemaWriter = new();
+        Cwp1Writer schemaWriter = new();
 
         schemaWriter.WriteByte((byte)'C');
-        schemaWriter.WriteByte((byte)'S');
+        schemaWriter.WriteByte((byte)'W');
         schemaWriter.WriteByte((byte)'P');
         schemaWriter.WriteByte((byte)'1');
         schemaWriter.WriteUInt16(PipelineSchema.Major);
@@ -179,10 +179,10 @@ internal static class PipelineDescriptorWriter
             contractHash = sha256.ComputeHash(hashInput);
         }
 
-        Csp1Writer headerWriter = new();
+        Cwp1Writer headerWriter = new();
 
         headerWriter.WriteByte((byte)'C');
-        headerWriter.WriteByte((byte)'S');
+        headerWriter.WriteByte((byte)'W');
         headerWriter.WriteByte((byte)'P');
         headerWriter.WriteByte((byte)'1');
         headerWriter.WriteUInt16(PipelineSchema.Major);

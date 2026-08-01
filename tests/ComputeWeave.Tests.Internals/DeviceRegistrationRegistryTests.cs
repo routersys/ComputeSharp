@@ -97,7 +97,7 @@ public unsafe partial class DeviceRegistrationRegistryTests
     internal static byte[] CreateHostDescriptor(int slotCount, int parameterCount = 0)
     {
         byte[] payload = HostPayload(slotCount, parameterCount);
-        ReadOnlySpan<byte> header = [0x43, 0x53, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
+        ReadOnlySpan<byte> header = [0x43, 0x57, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
         byte[] hashInput = new byte[10 + payload.Length];
 
         header.CopyTo(hashInput);

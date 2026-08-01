@@ -75,7 +75,7 @@ public class PipelineDescriptorGeneratorTests
 
         Assert.IsTrue(source.Contains("partial class Host"), source);
         Assert.IsTrue(source.Contains("private static global::System.ReadOnlySpan<byte> CanonicalDescriptor => ["), source);
-        Assert.IsTrue(source.Contains("0x43, 0x53, 0x50, 0x31"), source);
+        Assert.IsTrue(source.Contains("0x43, 0x57, 0x50, 0x31"), source);
     }
 
     [TestMethod]

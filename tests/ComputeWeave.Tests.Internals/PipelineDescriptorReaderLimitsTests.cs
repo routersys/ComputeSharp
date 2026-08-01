@@ -70,7 +70,7 @@ public class PipelineDescriptorReaderLimitsTests
     private static byte[] Descriptor(byte[] payload, ushort major = 1, ushort minor = 0, ushort descriptorFormat = 1)
     {
         byte[] descriptor = new byte[48 + payload.Length];
-        ReadOnlySpan<byte> magic = [0x43, 0x53, 0x50, 0x31];
+        ReadOnlySpan<byte> magic = [0x43, 0x57, 0x50, 0x31];
 
         magic.CopyTo(descriptor);
         BinaryPrimitives.WriteUInt16LittleEndian(descriptor.AsSpan(4, 2), major);

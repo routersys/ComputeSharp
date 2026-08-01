@@ -24,7 +24,7 @@ internal static class PipelineDescriptorReader
             throw Invalid();
         }
 
-        if (!descriptor.Slice(0, 4).SequenceEqual("CSP1"u8))
+        if (!descriptor.Slice(0, 4).SequenceEqual("CWP1"u8))
         {
             throw Invalid();
         }
@@ -58,7 +58,7 @@ internal static class PipelineDescriptorReader
         PipelineSchemaVersion schema = new(major, minor, descriptorFormat);
         ContractHash256 hash = ReadContractHash256(contractHash);
 
-        Csp1Reader reader = new(payload);
+        Cwp1Reader reader = new(payload);
 
         DescriptorKind kind = (DescriptorKind)ReadEnumByte(ref reader, (byte)DescriptorKind.InteropResourceSet);
 
@@ -69,7 +69,7 @@ internal static class PipelineDescriptorReader
         };
     }
 
-    private static PipelineDescriptorSet ReadPipelineHost(ref Csp1Reader reader, PipelineSchemaVersion schema, ContractHash256 hash)
+    private static PipelineDescriptorSet ReadPipelineHost(ref Cwp1Reader reader, PipelineSchemaVersion schema, ContractHash256 hash)
     {
         string hostTypeMetadataName = ReadString(ref reader);
         int maximumConcurrentInvocations = ReadInt32(ref reader);
@@ -271,7 +271,7 @@ internal static class PipelineDescriptorReader
         return new PipelineDescriptorSet(DescriptorKind.PipelineHost, host, default);
     }
 
-    private static PipelineDescriptorSet ReadInteropResourceSet(ref Csp1Reader reader, PipelineSchemaVersion schema, ContractHash256 hash)
+    private static PipelineDescriptorSet ReadInteropResourceSet(ref Cwp1Reader reader, PipelineSchemaVersion schema, ContractHash256 hash)
     {
         string resourceSetTypeMetadataName = ReadString(ref reader);
         int sharedTextureSlotCount = ReadInt32(ref reader);
@@ -335,7 +335,7 @@ internal static class PipelineDescriptorReader
         return new PipelineDescriptorSet(DescriptorKind.InteropResourceSet, default, resourceSet);
     }
 
-    private static int ReadResourceContracts(ref Csp1Reader reader, List<ResourceContractDescriptor> resourceList, int ordinalBase, int maximumCount)
+    private static int ReadResourceContracts(ref Cwp1Reader reader, List<ResourceContractDescriptor> resourceList, int ordinalBase, int maximumCount)
     {
         int count = ReadCount(ref reader, maximumCount, PipelineDescriptorLimits.ResourceContractDescriptorMinimumByteLength);
 
@@ -370,7 +370,7 @@ internal static class PipelineDescriptorReader
         return count;
     }
 
-    private static int ReadPlanFields(ref Csp1Reader reader, List<ResourcePlanFieldDescriptor> planFieldList)
+    private static int ReadPlanFields(ref Cwp1Reader reader, List<ResourcePlanFieldDescriptor> planFieldList)
     {
         int count = ReadCount(
             ref reader,
@@ -589,7 +589,7 @@ internal static class PipelineDescriptorReader
             BinaryPrimitives.ReadUInt64LittleEndian(value.Slice(24, 8)));
     }
 
-    private static string ReadString(ref Csp1Reader reader)
+    private static string ReadString(ref Cwp1Reader reader)
     {
         uint length = reader.ReadUInt32();
 
@@ -619,7 +619,7 @@ internal static class PipelineDescriptorReader
         return value;
     }
 
-    private static int ReadCount(ref Csp1Reader reader, int maximumCount, int minimumElementByteLength)
+    private static int ReadCount(ref Cwp1Reader reader, int maximumCount, int minimumElementByteLength)
     {
         uint count = reader.ReadUInt32();
 
@@ -631,7 +631,7 @@ internal static class PipelineDescriptorReader
         return (int)count;
     }
 
-    private static int ReadInt32(ref Csp1Reader reader)
+    private static int ReadInt32(ref Cwp1Reader reader)
     {
         uint value = reader.ReadUInt32();
 
@@ -643,7 +643,7 @@ internal static class PipelineDescriptorReader
         return (int)value;
     }
 
-    private static bool ReadBoolean(ref Csp1Reader reader)
+    private static bool ReadBoolean(ref Cwp1Reader reader)
     {
         byte value = reader.ReadByte();
 
@@ -655,7 +655,7 @@ internal static class PipelineDescriptorReader
         };
     }
 
-    private static byte ReadEnumByte(ref Csp1Reader reader, byte maximumInclusive)
+    private static byte ReadEnumByte(ref Cwp1Reader reader, byte maximumInclusive)
     {
         byte value = reader.ReadByte();
 
@@ -667,7 +667,7 @@ internal static class PipelineDescriptorReader
         return value;
     }
 
-    private static PipelineFlags ReadPipelineFlags(ref Csp1Reader reader)
+    private static PipelineFlags ReadPipelineFlags(ref Cwp1Reader reader)
     {
         uint value = reader.ReadUInt32();
 

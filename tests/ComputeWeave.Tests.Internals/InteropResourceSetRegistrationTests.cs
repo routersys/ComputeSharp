@@ -64,7 +64,7 @@ public class InteropResourceSetRegistrationTests
 
     private static byte[] Assemble(byte[] payload)
     {
-        ReadOnlySpan<byte> header = [0x43, 0x53, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
+        ReadOnlySpan<byte> header = [0x43, 0x57, 0x50, 0x31, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00];
         byte[] hashInput = new byte[header.Length + payload.Length];
 
         header.CopyTo(hashInput);

@@ -7,7 +7,7 @@ namespace ComputeWeave.SourceGenerators.Helpers;
 /// <summary>
 /// A writer of the low level primitives of the canonical descriptor binary format.
 /// </summary>
-internal sealed class Csp1Writer
+internal sealed class Cwp1Writer
 {
     /// <summary>
     /// The marker written for a null string.

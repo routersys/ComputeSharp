@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ComputeWeave.Graphics.Pipelines;
 
-internal ref struct Csp1Reader(ReadOnlySpan<byte> data)
+internal ref struct Cwp1Reader(ReadOnlySpan<byte> data)
 {
     private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
