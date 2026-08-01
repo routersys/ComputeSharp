@@ -16,7 +16,7 @@ namespace ComputeWeave.Tests.DeviceLost;
 public partial class DeviceDisposalTests
 {
     [AssemblyInitialize]
-    public static void ConfigureImageSharp(TestContext _)
+    public static void ConfigureD3D12MemoryAllocator(TestContext _)
     {
 #if USE_D3D12MA
         // If requested by the test runner, configure D3D12MA
