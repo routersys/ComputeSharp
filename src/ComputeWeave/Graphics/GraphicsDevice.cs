@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using ComputeWeave.Graphics.Commands.Interop;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Graphics.Helpers;
@@ -49,9 +50,9 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     /// </summary>
     private ComPtr<ID3D12CommandQueue> d3D12CopyCommandQueue;
 
-    private readonly object d3D12ComputeCommandQueueLock = new();
+    private readonly Lock d3D12ComputeCommandQueueLock = new();
 
-    private readonly object d3D12CopyCommandQueueLock = new();
+    private readonly Lock d3D12CopyCommandQueueLock = new();
 
     /// <summary>
     /// The <see cref="ID3D12Fence"/> instance used for compute operations.

@@ -67,7 +67,7 @@ unsafe partial class GraphicsDevice
         ref readonly ID3D12CommandListPool commandListPool = ref Unsafe.NullRef<ID3D12CommandListPool>();
         ID3D12CommandQueue* d3D12CommandQueue;
         ID3D12Fence* d3D12Fence;
-        object d3D12CommandQueueLock;
+        Lock d3D12CommandQueueLock;
         ref ulong d3D12FenceValue = ref Unsafe.NullRef<ulong>();
 
         // Get the target command queue, fence and pool for the list type
@@ -441,7 +441,7 @@ unsafe partial class GraphicsDevice
         ID3D12CommandQueue* d3D12CommandQueue,
         ID3D12Fence* d3D12Fence,
         ref ulong d3D12FenceValue,
-        object d3D12CommandQueueLock)
+        Lock d3D12CommandQueueLock)
     {
         lock (d3D12CommandQueueLock)
         {
