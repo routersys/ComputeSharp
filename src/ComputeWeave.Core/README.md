@@ -1,7 +1,11 @@
 # ComputeWeave.Core
 
-ComputeWeave の各パッケージが共有する基本型と内部基盤を収めたパッケージです。他の全パッケージの推移的な依存先であり、開発者が直接参照することは想定していません。利用できる機能については各パッケージの説明を参照してください。
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/src/ComputeWeave.Core/README.ja.md)
 
-## 詳細
+The basic types and shared internal infrastructure every other ComputeWeave package builds on. This package is a transitive dependency of the other packages and is not meant to be referenced directly.
 
-その他の機能は [GitHub リポジトリ](https://github.com/routersys/ComputeWeave)を参照してください。
+Nothing in the declarative layer this fork adds lives here. Compute pipelines, resource slots, Direct3D 11 interoperation and the GPU memory budget are all in the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package.
+
+## More
+
+The complete API reference is in the [repository](https://github.com/routersys/ComputeWeave).

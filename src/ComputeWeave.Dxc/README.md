@@ -1,12 +1,10 @@
 # ComputeWeave.Dxc
 
-ComputeWeave の拡張パッケージです。DXC コンパイラーを同梱し、シェーダーのリフレクションを可能にします。
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/src/ComputeWeave.Dxc/README.ja.md)
 
-生成された HLSL のソースや、DirectX 12 のリフレクション API が公開する統計値を参照したい場合に、`ReflectionServices` 型からシェーダー型ごとの情報をまとめて取得できます。
+An extension package for [ComputeWeave](https://www.nuget.org/packages/ComputeWeave). It bundles the DXC compiler and enables shader reflection.
 
-## 使い方
-
-`MyShader` 型が定義済みであるとして、次のように調べます。
+When the generated HLSL source or the statistics exposed by the Direct3D 12 reflection APIs are needed, `ReflectionServices` gathers them for a shader type.
 
 ```csharp
 ShaderInfo shaderInfo = ReflectionServices.GetShaderInfo<MyShader>();
@@ -16,6 +14,10 @@ uint numberOfResources = shaderInfo.BoundResourceCount;
 uint instructionCount = shaderInfo.InstructionCount;
 ```
 
-## 詳細
+This package bundles `dxcompiler.dll` and `dxil.dll` and therefore runs only in x64 and Arm64 processes.
 
-その他の機能は [GitHub リポジトリ](https://github.com/routersys/ComputeWeave)を参照してください。
+The declarative layer this fork adds is in the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package; this package adds nothing to it.
+
+## More
+
+The complete API reference is in the [repository](https://github.com/routersys/ComputeWeave).

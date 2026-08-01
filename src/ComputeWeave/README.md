@@ -1,45 +1,89 @@
 # ComputeWeave
 
-DirectX 12 の計算シェーダーを C# だけで記述して GPU 上で実行するための .NET ライブラリです。GPU デバイスの取得、バッファとテクスチャの確保、メインメモリとの転送、シェーダー本体の記述までを C# で完結でき、HLSL はソースジェネレーターが生成します。
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/src/ComputeWeave/README.ja.md)
 
-公開 API の入口は `GraphicsDevice` 型です。`GraphicsDevice.GetDefault()` が現在の環境の主 GPU デバイスを返します。DirectX 12 に対応した GPU が無い環境では [WARP デバイス](https://learn.microsoft.com/windows/win32/direct3darticles/directx-warp)へ自動的に切り替わり、シェーダーは CPU 上のエミュレーションで動作します。フォールバック経路を自分で書く必要はありません。
+ComputeWeave is a fork of [ComputeSharp](https://github.com/Sergio0694/ComputeSharp), the library that lets DirectX 12 compute shaders be written entirely in C#. That base is unchanged: a shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches.
 
-## 使い方
+This package also contains everything the fork adds, which is a declarative layer. A compute pipeline and its resources are declared with attributes, a source generator turns the declaration into a canonical binary descriptor embedded in the assembly, and the runtime reads that descriptor to bind resources, record command lists and track completion. The same layer carries shared textures and shared fences across the Direct3D 11 and Direct3D 12 boundary, and adds a GPU memory budget.
 
-バッファの全要素を 2 倍にするシェーダーを例にします。まず GPU バッファを確保し、データを転送します。
+## Declarative compute pipelines
 
-```csharp
-int[] array = [.. Enumerable.Range(1, 100)];
-
-using ReadWriteBuffer<int> buffer = GraphicsDevice.GetDefault().AllocateReadWriteBuffer(array);
-```
-
-`AllocateReadWriteBuffer` は入力配列と同じ長さの `ReadWriteBuffer<T>` を確保し、内容を転送します。要素型や長さの異なるオーバーロードも用意しています。
-
-次にシェーダーを定義します。`IComputeShader` を実装する `partial struct` として宣言し、`[ThreadGroupSize]` でディスパッチ構成を、`[GeneratedComputeShaderDescriptor]` でコード生成の対象であることを指定します。`partial` はコード生成に必要なので省略できません。フィールドはそのまま GPU へ渡す値になります。
+A host is a `partial` type marked with `[ComputePipelineHost]`. The first argument names the field holding the device, the second is the number of concurrent invocations to reserve. A pipeline is a method marked `[ComputePipeline]` whose first parameter is `in ComputeContext`.
 
 ```csharp
-[ThreadGroupSize(DefaultThreadGroupSizes.X)]
-[GeneratedComputeShaderDescriptor]
-public readonly partial struct MultiplyByTwo(ReadWriteBuffer<int> buffer) : IComputeShader
+using ComputeWeave;
+
+[ComputePipelineHost("device", 1)]
+public sealed partial class Host
 {
-    public void Execute()
+    private readonly GraphicsDevice device = null!;
+
+    [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+    private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+    [ComputePipeline]
+    private void Run(in ComputeContext context)
     {
-        buffer[ThreadIds.X] *= 2;
     }
 }
 ```
 
-この例ではプライマリコンストラクターを使っていますが、フィールドを明示して通常のコンストラクターで設定しても構いません。`ThreadIds` はシェーダー本体からディスパッチ情報を参照するための特別な型で、ここでは `for` 文の添字に相当する値を返します。
-
-最後にシェーダーを実行し、結果を読み戻します。
+The generator emits into the same partial type a static `Create` factory, `Dispose`, `WaitForDisposal`, and for each pipeline an overload of the same name that takes the declared arguments without the context and returns `ComputeSubmission`.
 
 ```csharp
-GraphicsDevice.GetDefault().For(buffer.Length, new MultiplyByTwo(buffer));
+using Host host = Host.Create(GraphicsDevice.GetDefault(), maximumPendingSubmissions: 4);
 
-buffer.CopyTo(array);
+ComputeSubmission submission = host.Run();
+
+submission.Wait();
 ```
 
-## 詳細
+Waiting is explicit; a submission is not awaited implicitly at disposal.
 
-その他の機能は [GitHub リポジトリ](https://github.com/routersys/ComputeWeave)を参照してください。
+## Owned resource slots
+
+A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()`.
+
+Resources are not held directly; they live in slots that publish generations. A new generation is published only when the requested plan actually changes, and work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded. `ComputeResourceRecovery` selects what happens to the contents when a generation is replaced: `Discardable`, `RecreateFromHost`, `Recompute` or `CapacityOnly`.
+
+## Direct3D 11 interoperation
+
+An external API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it with `GraphicsDevice.RegisterExternalDomain`. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
+
+```csharp
+using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
+```
+
+Shared textures are declared in a `partial` type marked `[ComputeInteropResourceSet]`, as `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`.
+
+```csharp
+[ComputeInteropResourceSet]
+public sealed partial class ResourceSet
+{
+    [ComputeSharedTexture(
+        ComputeResourceResizePolicy.Exact,
+        ComputeResourceAccess.ReadWrite,
+        ExternalResourceAccess.Write,
+        ExternalTextureUsage.RenderTarget,
+        ComputeAlphaMode.Premultiplied,
+        ComputeSharedTextureInitialOwner.External,
+        ComputeResourceRecovery.RecreateFromHost)]
+    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+}
+```
+
+Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
+
+`InteropServices` additionally exposes the shared texture and shared fence primitives directly, for callers that manage the handles themselves.
+
+## GPU memory budget
+
+`GraphicsDevice.SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GraphicsDevice.GetMemoryStatistics` returns a snapshot and `GraphicsDevice.TrimMemory` releases what is retired and idle. Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`.
+
+## Compile-time validation
+
+The declarations above are checked by analyzers that report 92 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+
+## More
+
+The complete API reference is in the [repository](https://github.com/routersys/ComputeWeave).

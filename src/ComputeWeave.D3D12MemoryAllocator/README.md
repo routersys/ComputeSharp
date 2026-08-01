@@ -1,17 +1,19 @@
 # ComputeWeave.D3D12MemoryAllocator
 
-ComputeWeave の拡張パッケージです。グラフィックスリソースの確保に [D3D12MA](https://gpuopen.com/d3d12-memory-allocator/) を用いるようにします。
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/src/ComputeWeave.D3D12MemoryAllocator/README.ja.md)
 
-## 使い方
+An extension package for [ComputeWeave](https://www.nuget.org/packages/ComputeWeave). It makes graphics resources be allocated through [D3D12MA](https://gpuopen.com/d3d12-memory-allocator/).
 
-起動時に `AllocationServices` 型でアロケーターを設定します。
+Configure the allocator at startup with `AllocationServices`.
 
 ```csharp
 AllocationServices.ConfigureAllocatorFactory(new D3D12MemoryAllocatorFactory());
 ```
 
-これ以降のリソース確保が D3D12MA を経由するようになります。
+Every subsequent allocation then goes through D3D12MA.
 
-## 詳細
+This is independent of the GPU memory budget the fork adds. `GraphicsDevice.SetMemoryPolicy` and `GraphicsDevice.GetMemoryStatistics` are in the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package and apply whether or not this package is referenced.
 
-その他の機能は [GitHub リポジトリ](https://github.com/routersys/ComputeWeave)を参照してください。
+## More
+
+The complete API reference is in the [repository](https://github.com/routersys/ComputeWeave).
