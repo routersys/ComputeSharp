@@ -55,6 +55,54 @@ public readonly ref struct ComputePipelineBinder
     }
 
     /// <summary>
+    /// Pins the generation a given external binding refers to for the duration of the recording.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the bound graphics resource.</typeparam>
+    /// <param name="binding">The binding to pin the generation of.</param>
+    /// <param name="resource">The resource the binding refers to, if its generation could be pinned.</param>
+    /// <returns>Whether the generation <paramref name="binding"/> refers to could be pinned.</returns>
+    /// <exception cref="GraphicsDeviceMismatchException">Thrown if the bound resource belongs to another device.</exception>
+    /// <remarks>
+    /// Resources shared with an external queue are pinned through this overload. Their slot is owned by a compute
+    /// interop resource set rather than by the host, so the binding carries the slot it was produced from and the
+    /// generation is revalidated under that slot gate rather than under one of the slots of the host.
+    /// </remarks>
+    public bool TryPin<TResource>(in ComputeResourceBinding<TResource> binding, out TResource resource)
+        where TResource : class, IGraphicsResource
+    {
+        resource = null!;
+
+        if (!binding.IsValid || binding.Slot is not IComputeGenerationPinSource slot)
+        {
+            return false;
+        }
+
+        if (binding.Resource!.GraphicsDevice != this.host.Device)
+        {
+            GraphicsDeviceMismatchException.Throw(binding.Resource, this.host.Device);
+        }
+
+        if (!slot.TryPinGeneration(
+                binding.SetId,
+                binding.GenerationId,
+                binding.BindingEpoch,
+                binding.ResourceIndex,
+                out ResourceGenerationPin pin))
+        {
+            return false;
+        }
+
+        if (!ResourceGenerationPinTracker.TryAdd(this.host.Device, this.storage, ref this.bundle, in pin))
+        {
+            return false;
+        }
+
+        resource = binding.Resource;
+
+        return true;
+    }
+
+    /// <summary>
     /// Pins the generation a given binding refers to for the duration of the recording.
     /// </summary>
     /// <typeparam name="TResource">The type of the bound graphics resource.</typeparam>

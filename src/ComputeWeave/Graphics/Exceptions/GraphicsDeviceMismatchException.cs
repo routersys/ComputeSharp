@@ -1,5 +1,4 @@
 using System;
-using ComputeWeave.Interop;
 using ComputeWeave.Resources;
 
 namespace ComputeWeave;
@@ -21,15 +20,15 @@ public sealed class GraphicsDeviceMismatchException : InvalidOperationException
     /// <summary>
     /// Creates a new <see cref="GraphicsDeviceMismatchException"/> instance from the specified parameters.
     /// </summary>
-    /// <param name="resource">The input <see cref="IReferenceTrackedObject"/> that was used.</param>
+    /// <param name="resource">The input resource that was used.</param>
     /// <param name="sourceDevice">The source <see cref="GraphicsDevice"/> instance tied to <paramref name="resource"/>.</param>
     /// <param name="destinationDevice">The target <see cref="GraphicsDevice"/> instance that was used.</param>
     /// <returns>A new <see cref="GraphicsDeviceMismatchException"/> instance with a formatted error message.</returns>
     /// <remarks>
-    /// This method only takes a <see cref="IReferenceTrackedObject"/> instance and the associated <see cref="GraphicsDevice"/> instance as
+    /// This method only takes the resource instance and the associated <see cref="GraphicsDevice"/> instance as
     /// <see cref="object.GetType"/> will still be available, but without the unnecessary generic type specializations for the method.
     /// </remarks>
-    private static GraphicsDeviceMismatchException Create(IReferenceTrackedObject resource, GraphicsDevice sourceDevice, GraphicsDevice destinationDevice)
+    private static GraphicsDeviceMismatchException Create(object resource, GraphicsDevice sourceDevice, GraphicsDevice destinationDevice)
     {
         string message =
             $"""Invalid pairing of graphics devices used to run a compute shader and allocate memory buffers. """ +
@@ -38,6 +37,16 @@ public sealed class GraphicsDeviceMismatchException : InvalidOperationException
             $"""Make sure to always allocate buffers on the same device used to actually run the code that accesses them.""";
 
         return new(message);
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="GraphicsDeviceMismatchException"/> instance from the specified parameters.
+    /// </summary>
+    /// <param name="resource">The input <see cref="IGraphicsResource"/> that was used.</param>
+    /// <param name="device">The target <see cref="GraphicsDevice"/> instance that was used.</param>
+    internal static void Throw(IGraphicsResource resource, GraphicsDevice device)
+    {
+        throw Create(resource, resource.GraphicsDevice, device);
     }
 
     /// <summary>
