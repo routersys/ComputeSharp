@@ -1,30 +1,24 @@
-![ComputeWeave cover image](https://user-images.githubusercontent.com/10199417/108635546-3512ea00-7480-11eb-8172-99bc59f4eb6f.png)
+# ComputeWeave
 
-# Overview 📖
+DirectX 12 の計算シェーダーを C# だけで記述して GPU 上で実行するための .NET ライブラリです。GPU デバイスの取得、バッファとテクスチャの確保、メインメモリとの転送、シェーダー本体の記述までを C# で完結でき、HLSL はソースジェネレーターが生成します。
 
-**ComputeWeave** is a library to write DX12 compute shaders entirely with C# code. The available APIs let you access GPU devices, allocate GPU buffers and textures, move data between them and the RAM, write compute shaders entirely in C# and have them run on the GPU. The goal of this project is to make GPU computing easy to use for all .NET developers!
+公開 API の入口は `GraphicsDevice` 型です。`GraphicsDevice.GetDefault()` が現在の環境の主 GPU デバイスを返します。DirectX 12 に対応した GPU が無い環境では [WARP デバイス](https://learn.microsoft.com/windows/win32/direct3darticles/directx-warp)へ自動的に切り替わり、シェーダーは CPU 上のエミュレーションで動作します。フォールバック経路を自分で書く必要はありません。
 
-# Quick start 🚀
+## 使い方
 
-**ComputeWeave** exposes a `GraphicsDevice` class that acts as entry point for all public APIs. The available `GraphicsDevice.GetDefault()` method that lets you access the main GPU device on the current machine, which can be used to allocate buffers and perform operations. If your machine doesn't have a supported GPU (or if it doesn't have a GPU at all), **ComputeWeave** will automatically create a [WARP device](https://docs.microsoft.com/windows/win32/direct3darticles/directx-warp) instead, which will still let you use the library normally, with shaders running on the CPU instead through an emulation layer. This means that you don't need to manually write a fallback path in case no GPU is available: **ComputeWeave** will automatically handle this for you.
-
-Let's suppose we want to run a simple compute shader that multiplies all items in a target buffer by two. The first step is to create the GPU buffer and copy our data to it:
+バッファの全要素を 2 倍にするシェーダーを例にします。まず GPU バッファを確保し、データを転送します。
 
 ```csharp
-// Get some sample data
 int[] array = [.. Enumerable.Range(1, 100)];
 
-// Allocate a GPU buffer and copy the data to it.
-// We want the shader to modify the items in-place, so we
-// can allocate a single read-write buffer to work on.
 using ReadWriteBuffer<int> buffer = GraphicsDevice.GetDefault().AllocateReadWriteBuffer(array);
 ```
 
-The `AllocateReadWriteBuffer` extension takes care of creating a `ReadWriteBuffer<T>` instance with the same size as the input array and copying its contents to the allocated GPU buffer. There are a number of overloads available as well, to create buffers of different types and with custom length.
+`AllocateReadWriteBuffer` は入力配列と同じ長さの `ReadWriteBuffer<T>` を確保し、内容を転送します。要素型や長さの異なるオーバーロードも用意しています。
 
-Next, we need to define the GPU shader to run. To do this, we'll need to define a `partial struct` type implementing the `IComputeShader` interface (note that the `partial` modifier is necessary for **ComputeWeave** to generate additional code to run the shader). This type will contain the code we want to run on the GPU, as well as fields representing the values we want to capture and pass to the GPU (such as GPU resources, or arbitrary values we need). Next, we need to add the `[ThreadGroupSize]` attribute to configure the dispatching configuration for the shader. This shader only operates on a 1D buffer, so we can use `DefaultThreadGroupSizes.X` for this. Lastly, we also need to add the `[GeneratedComputeShaderDescriptor]` attribute, to let the source generator bundled with **ComputeWeave** do its magic. In this case, we only need to capture the buffer to work on, so the shader type will look like this:
+次にシェーダーを定義します。`IComputeShader` を実装する `partial struct` として宣言し、`[ThreadGroupSize]` でディスパッチ構成を、`[GeneratedComputeShaderDescriptor]` でコード生成の対象であることを指定します。`partial` はコード生成に必要なので省略できません。フィールドはそのまま GPU へ渡す値になります。
 
-```C#
+```csharp
 [ThreadGroupSize(DefaultThreadGroupSizes.X)]
 [GeneratedComputeShaderDescriptor]
 public readonly partial struct MultiplyByTwo(ReadWriteBuffer<int> buffer) : IComputeShader
@@ -36,17 +30,16 @@ public readonly partial struct MultiplyByTwo(ReadWriteBuffer<int> buffer) : ICom
 }
 ```
 
-In this example, we're using a primary constructor (but you can also explicitly declare fields and set them via a constructor). The shader body is also using a special `ThreadIds` class, which is one of the available special classes to access dispatch parameters from within a shader body. In this case, `ThreadIds` lets us access the current invocation index for the shader, just like if we were accessing the classic `i` variable from within a `for` loop.
+この例ではプライマリコンストラクターを使っていますが、フィールドを明示して通常のコンストラクターで設定しても構いません。`ThreadIds` はシェーダー本体からディスパッチ情報を参照するための特別な型で、ここでは `for` 文の添字に相当する値を返します。
 
-We can now finally run the GPU shader and copy the data back to our array:
+最後にシェーダーを実行し、結果を読み戻します。
 
 ```csharp
-// Launch the shader
 GraphicsDevice.GetDefault().For(buffer.Length, new MultiplyByTwo(buffer));
 
-// Get the data back
 buffer.CopyTo(array);
 ```
 
-# There's more!
-For a complete list of all features available in **ComputeWeave**, check the documentation in the [GitHub repo](https://github.com/routersys/ComputeWeave).
+## 詳細
+
+その他の機能は [GitHub リポジトリ](https://github.com/routersys/ComputeWeave)を参照してください。
