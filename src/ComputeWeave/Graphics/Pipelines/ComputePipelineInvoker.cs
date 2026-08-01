@@ -52,7 +52,7 @@ internal static unsafe class ComputePipelineInvoker
 
             try
             {
-                return SubmitRecording(registry, host, in pipeline, recordIndex, bundleIndex, in invocation);
+                return SubmitRecording(registry, host, in pipeline, recordIndex, bundleIndex, invocation);
             }
             finally
             {
@@ -76,7 +76,7 @@ internal static unsafe class ComputePipelineInvoker
         in PipelineDescriptor pipeline,
         int recordIndex,
         int bundleIndex,
-        in TInvocation invocation)
+        TInvocation invocation)
         where TInvocation : struct, IComputePipelineInvocation
     {
         ref PendingSubmissionRecord record = ref host.PendingRecords.GetRecord(recordIndex);
