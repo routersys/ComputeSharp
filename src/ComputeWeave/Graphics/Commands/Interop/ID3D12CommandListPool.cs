@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using ComputeWeave.Core.Extensions;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Win32;
@@ -15,6 +16,8 @@ namespace ComputeWeave.Graphics.Commands.Interop;
 /// <param name="maximumPendingCommandListCount">The maximum number of pending command lists.</param>
 internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3D12CommandListType, ID3D12Fence* d3D12Fence, int maximumPendingCommandListCount) : IDisposable
 {
+    private readonly Lock gate = new();
+
     /// <summary>
     /// The queue of <see cref="D3D12CommandListBundle"/> items with the available command lists.
     /// </summary>
@@ -31,7 +34,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
     /// <param name="d3D12CommandAllocator">The resulting <see cref="ID3D12CommandAllocator"/> value.</param>
     public void Rent(ID3D12Device* d3D12Device, ID3D12PipelineState* d3D12PipelineState, out ID3D12GraphicsCommandList* d3D12CommandList, out ID3D12CommandAllocator* d3D12CommandAllocator)
     {
-        lock (this.d3D12CommandListBundleQueue)
+        lock (this.gate)
         {
             ReclaimCompletedCommandLists();
 
@@ -68,7 +71,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
     /// <param name="d3D12CommandAllocator">The returned <see cref="ID3D12CommandAllocator"/> value.</param>
     public void Return(ID3D12GraphicsCommandList* d3D12CommandList, ID3D12CommandAllocator* d3D12CommandAllocator)
     {
-        lock (this.d3D12CommandListBundleQueue)
+        lock (this.gate)
         {
             this.d3D12CommandListBundleQueue.Enqueue(new D3D12CommandListBundle(d3D12CommandList, d3D12CommandAllocator));
         }
@@ -79,7 +82,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
         PendingD3D12CommandListBundle pendingD3D12CommandListBundle = default;
         bool hasPendingD3D12CommandListBundle = false;
 
-        lock (this.d3D12CommandListBundleQueue)
+        lock (this.gate)
         {
             ReclaimCompletedCommandLists();
 
@@ -101,7 +104,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
 
             pendingD3D12CommandListBundle.ResourceLeases?.Release();
 
-            lock (this.d3D12CommandListBundleQueue)
+            lock (this.gate)
             {
                 this.d3D12CommandListBundleQueue.Enqueue(pendingD3D12CommandListBundle.D3D12CommandListBundle);
             }
@@ -111,7 +114,7 @@ internal readonly unsafe struct ID3D12CommandListPool(D3D12_COMMAND_LIST_TYPE d3
     /// <inheritdoc/>
     public void Dispose()
     {
-        lock (this.d3D12CommandListBundleQueue)
+        lock (this.gate)
         {
             ulong pendingFenceValue = 0;
 
