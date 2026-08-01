@@ -13,7 +13,7 @@ namespace ComputeWeave;
 /// <typeparam name="T">The type of items stored on the buffer.</typeparam>
 [DebuggerTypeProxy(typeof(BufferDebugView<>))]
 [DebuggerDisplay("{ToString(),raw}")]
-public sealed class ReadWriteBuffer<T> : StructuredBuffer<T>
+public sealed partial class ReadWriteBuffer<T> : StructuredBuffer<T>
     where T : unmanaged
 {
     /// <summary>
