@@ -139,6 +139,19 @@ internal static class PipelineCollector
     }
 
     /// <summary>
+    /// Checks whether a given pipeline method parameter declares a resource shared with an external queue.
+    /// </summary>
+    /// <param name="parameterSymbol">The pipeline method parameter to check.</param>
+    /// <param name="resourceAttributeSymbol">The <c>[ComputeResource]</c> symbol.</param>
+    /// <returns>Whether <paramref name="parameterSymbol"/> declares an external resource contract.</returns>
+    public static bool IsExternalResource(IParameterSymbol parameterSymbol, INamedTypeSymbol resourceAttributeSymbol)
+    {
+        return parameterSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out AttributeData? attribute) &&
+            TryGetResourceContract(attribute, out _, out ComputeResourceSharing sharing, out _) &&
+            sharing is ComputeResourceSharing.External;
+    }
+
+    /// <summary>
     /// Tries to get the declared contract values of a <c>[ComputeResource]</c> attribute.
     /// </summary>
     /// <param name="attribute">The attribute data to read.</param>

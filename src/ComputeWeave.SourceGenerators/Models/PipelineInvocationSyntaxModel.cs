@@ -13,6 +13,11 @@ internal enum PipelineBindingKind
     Parameter,
 
     /// <summary>
+    /// The resource is a parameter of the pipeline method shared with an external queue.
+    /// </summary>
+    ExternalParameter,
+
+    /// <summary>
     /// The resource is a borrowed field of the host.
     /// </summary>
     BorrowedField,
@@ -44,10 +49,12 @@ internal sealed record PipelineBindingSyntaxInfo(
 /// <param name="TypeName">The fully qualified name of the parameter type.</param>
 /// <param name="ParameterName">The name of the parameter.</param>
 /// <param name="IsReadOnlyReference">Whether the parameter is passed by readonly reference.</param>
+/// <param name="BoundResourceTypeName">The fully qualified name of the resource an external binding parameter refers to, or <see langword="null"/>.</param>
 internal sealed record PipelineParameterSyntaxInfo(
     string TypeName,
     string ParameterName,
-    bool IsReadOnlyReference);
+    bool IsReadOnlyReference,
+    string? BoundResourceTypeName);
 
 /// <summary>
 /// A model representing the members generated for a single pipeline method of a compute pipeline host.

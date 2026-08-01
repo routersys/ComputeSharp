@@ -54,7 +54,9 @@ public class GeneratedInteropPipelineTests
             return this;
         }
 
-        public ReadWriteTexture2D<Bgra32, Float4> Target => Resources.GetSourceComputeBinding().Resource!;
+        public ComputeResourceBinding<ReadWriteTexture2D<Bgra32, Float4>> Binding => Resources.GetSourceComputeBinding();
+
+        public ReadWriteTexture2D<Bgra32, Float4> Target => Binding.Resource!;
 
         public ExternalOwnershipState Ownership => GetOwner(Target).GetResourceRecord(0).ReadOwnership();
 
@@ -89,7 +91,7 @@ public class GeneratedInteropPipelineTests
 
         Assert.AreEqual(ExternalOwnershipState.ExternalAvailable, fixture.Ownership);
 
-        ComputeSubmission submission = fixture.Host.Blit(fixture.Target);
+        ComputeSubmission submission = fixture.Host.Blit(fixture.Binding);
 
         Assert.AreEqual(1, fixture.Provider.SignalCount);
         Assert.AreEqual(1, fixture.Provider.FlushCount);
@@ -112,7 +114,7 @@ public class GeneratedInteropPipelineTests
 
         for (int i = 1; i <= 3; i++)
         {
-            ComputeSubmission submission = fixture.Host.Blit(fixture.Target);
+            ComputeSubmission submission = fixture.Host.Blit(fixture.Binding);
 
             submission.Wait();
 
@@ -133,7 +135,7 @@ public class GeneratedInteropPipelineTests
 
         target.CopyFrom(CreateOpaquePixels(target.Width * target.Height));
 
-        ComputeSubmission submission = fixture.Host.Blit(target);
+        ComputeSubmission submission = fixture.Host.Blit(fixture.Binding);
 
         submission.Wait();
 
@@ -145,6 +147,33 @@ public class GeneratedInteropPipelineTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void RejectsABindingWhoseGenerationWasReplaced(Device device)
+    {
+        using Fixture fixture = Create(device);
+
+        ComputeResourceBinding<ReadWriteTexture2D<Bgra32, Float4>> binding = fixture.Binding;
+
+        Assert.IsTrue(fixture.Resources.TryEnsureSource(32, 32, out bool changed));
+        Assert.IsTrue(changed);
+
+        int signalCount = fixture.Provider.SignalCount;
+        int waitCount = fixture.Provider.WaitCount;
+
+        _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(binding));
+
+        Assert.AreEqual(signalCount, fixture.Provider.SignalCount);
+        Assert.AreEqual(waitCount, fixture.Provider.WaitCount);
+        Assert.IsNull(fixture.Domain.PoisonReason);
+
+        ComputeSubmission submission = fixture.Host.Blit(fixture.Binding);
+
+        submission.Wait();
+
+        Assert.AreEqual(ComputeSubmissionStatus.Succeeded, submission.Status);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void TearsDownTheDomainWhenTheProviderCannotSignal(Device device)
     {
         Fixture fixture = Create(device);
@@ -152,12 +181,12 @@ public class GeneratedInteropPipelineTests
         try
         {
             FakeExternalView view = fixture.Provider.LastOpenedView!;
-            ReadWriteTexture2D<Bgra32, Float4> target = fixture.Target;
-            ResourceGenerationOwner owner = GetOwner(target);
+            ComputeResourceBinding<ReadWriteTexture2D<Bgra32, Float4>> binding = fixture.Binding;
+            ResourceGenerationOwner owner = GetOwner(binding.Resource!);
 
             fixture.Provider.ThrowOnSignal = true;
 
-            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(target));
+            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(binding));
 
             Assert.IsNotNull(fixture.Domain.PoisonReason);
             Assert.IsTrue(fixture.Domain.IsDisposeRequested);
@@ -190,12 +219,12 @@ public class GeneratedInteropPipelineTests
         try
         {
             FakeExternalView view = fixture.Provider.LastOpenedView!;
-            ReadWriteTexture2D<Bgra32, Float4> target = fixture.Target;
-            ResourceGenerationOwner owner = GetOwner(target);
+            ComputeResourceBinding<ReadWriteTexture2D<Bgra32, Float4>> binding = fixture.Binding;
+            ResourceGenerationOwner owner = GetOwner(binding.Resource!);
 
             fixture.Provider.ThrowOnWait = true;
 
-            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(target));
+            _ = Assert.ThrowsException<InvalidOperationException>(() => fixture.Host.Blit(binding));
 
             Assert.AreEqual(1, fixture.Provider.SignalCount);
             Assert.AreEqual(1, fixture.Provider.WaitCount);

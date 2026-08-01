@@ -139,11 +139,13 @@ internal static class PipelineInvocationSyntaxModelBuilder
         {
             IParameterSymbol parameterSymbol = methodSymbol.Parameters[i];
             string typeName = parameterSymbol.Type.GetFullyQualifiedName(includeGlobal: true);
+            bool isExternal = PipelineCollector.IsExternalResource(parameterSymbol, symbols.ResourceAttribute);
 
             parameterBuilder.Add(new PipelineParameterSyntaxInfo(
-                typeName,
+                isExternal ? $"global::ComputeWeave.ComputeResourceBinding<{typeName}>" : typeName,
                 parameterSymbol.Name,
-                parameterSymbol.RefKind is RefKind.In));
+                parameterSymbol.RefKind is RefKind.In,
+                isExternal ? typeName : null));
 
             if (GeneratedAccessibility.GetEffectiveAccessibility(parameterSymbol.Type) is Accessibility parameterAccessibility &&
                 parameterAccessibility < accessibility)
@@ -157,7 +159,7 @@ internal static class PipelineInvocationSyntaxModelBuilder
             }
 
             bindingBuilder.Add(new PipelineBindingSyntaxInfo(
-                PipelineBindingKind.Parameter,
+                isExternal ? PipelineBindingKind.ExternalParameter : PipelineBindingKind.Parameter,
                 parameterSymbol.Name,
                 typeName,
                 0,

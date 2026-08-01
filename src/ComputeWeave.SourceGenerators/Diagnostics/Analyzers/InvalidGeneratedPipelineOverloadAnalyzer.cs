@@ -30,6 +30,8 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
             // Get the symbols the pipeline methods of a host are declared with
             if (context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineHostAttribute") is not { } hostAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineAttribute") is not { } pipelineAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceAttribute") is not { } resourceAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceBinding`1") is not { } resourceBindingSymbol ||
                 context.Compilation.GetTypeByMetadataName("System.CodeDom.Compiler.GeneratedCodeAttribute") is not { } generatedCodeAttributeSymbol)
             {
                 return;
@@ -65,7 +67,13 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
                     if (!GeneratedIdentifier.TryCreateCanonicalName(methodSymbol.MetadataName, out string canonicalName) ||
                         invocationTypeNameCounts[GeneratedIdentifier.CreateInvocationTypeName(canonicalName)] > 1 ||
                         GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreateInvocationTypeName(canonicalName), generatedCodeAttributeSymbol) ||
-                        IsGeneratedOverloadDeclared(typeSymbol, methodSymbol, pipelineAttributeSymbol, generatedCodeAttributeSymbol))
+                        IsGeneratedOverloadDeclared(
+                            typeSymbol,
+                            methodSymbol,
+                            pipelineAttributeSymbol,
+                            resourceAttributeSymbol,
+                            resourceBindingSymbol,
+                            generatedCodeAttributeSymbol))
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             InvalidGeneratedPipelineOverload,
@@ -108,12 +116,16 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
     /// <param name="typeSymbol">The compute pipeline host type.</param>
     /// <param name="methodSymbol">The pipeline method the overload is generated for.</param>
     /// <param name="pipelineAttributeSymbol">The <c>[ComputePipeline]</c> symbol.</param>
+    /// <param name="resourceAttributeSymbol">The <c>[ComputeResource]</c> symbol.</param>
+    /// <param name="resourceBindingSymbol">The <c>ComputeResourceBinding&lt;TResource&gt;</c> symbol.</param>
     /// <param name="generatedCodeAttributeSymbol">The <see cref="System.CodeDom.Compiler.GeneratedCodeAttribute"/> symbol.</param>
     /// <returns>Whether the overload generated for <paramref name="methodSymbol"/> is already declared.</returns>
     private static bool IsGeneratedOverloadDeclared(
         INamedTypeSymbol typeSymbol,
         IMethodSymbol methodSymbol,
         INamedTypeSymbol pipelineAttributeSymbol,
+        INamedTypeSymbol resourceAttributeSymbol,
+        INamedTypeSymbol resourceBindingSymbol,
         INamedTypeSymbol generatedCodeAttributeSymbol)
     {
         foreach (ISymbol memberSymbol in typeSymbol.GetMembers(methodSymbol.Name))
@@ -127,7 +139,7 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
                 continue;
             }
 
-            if (HasGeneratedOverloadSignature(methodSymbol, candidateSymbol))
+            if (HasGeneratedOverloadSignature(methodSymbol, candidateSymbol, resourceAttributeSymbol, resourceBindingSymbol))
             {
                 return true;
             }
@@ -141,8 +153,14 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
     /// </summary>
     /// <param name="methodSymbol">The pipeline method the overload is generated for.</param>
     /// <param name="candidateSymbol">The declared method to compare against.</param>
+    /// <param name="resourceAttributeSymbol">The <c>[ComputeResource]</c> symbol.</param>
+    /// <param name="resourceBindingSymbol">The <c>ComputeResourceBinding&lt;TResource&gt;</c> symbol.</param>
     /// <returns>Whether <paramref name="candidateSymbol"/> has the signature of the generated overload.</returns>
-    private static bool HasGeneratedOverloadSignature(IMethodSymbol methodSymbol, IMethodSymbol candidateSymbol)
+    private static bool HasGeneratedOverloadSignature(
+        IMethodSymbol methodSymbol,
+        IMethodSymbol candidateSymbol,
+        INamedTypeSymbol resourceAttributeSymbol,
+        INamedTypeSymbol resourceBindingSymbol)
     {
         // The generated overload takes every parameter but the leading context one. Parameter modifiers are
         // not compared, as C# does not allow two overloads that differ only by them
@@ -153,7 +171,14 @@ public sealed class InvalidGeneratedPipelineOverloadAnalyzer : DiagnosticAnalyze
 
         for (int i = 0; i < candidateSymbol.Parameters.Length; i++)
         {
-            if (!SymbolEqualityComparer.Default.Equals(candidateSymbol.Parameters[i].Type, methodSymbol.Parameters[i + 1].Type))
+            IParameterSymbol parameterSymbol = methodSymbol.Parameters[i + 1];
+
+            // Resources shared with an external queue are taken as the binding they are pinned through
+            ITypeSymbol generatedTypeSymbol = PipelineCollector.IsExternalResource(parameterSymbol, resourceAttributeSymbol)
+                ? resourceBindingSymbol.Construct(parameterSymbol.Type)
+                : parameterSymbol.Type;
+
+            if (!SymbolEqualityComparer.Default.Equals(candidateSymbol.Parameters[i].Type, generatedTypeSymbol))
             {
                 return false;
             }

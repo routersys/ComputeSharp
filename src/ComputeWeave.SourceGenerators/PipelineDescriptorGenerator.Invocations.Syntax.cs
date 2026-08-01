@@ -8,6 +8,11 @@ namespace ComputeWeave.SourceGenerators;
 partial class PipelineDescriptorGenerator
 {
     /// <summary>
+    /// The suffix of the generated field holding the resource an external binding parameter was pinned to.
+    /// </summary>
+    private const string BoundResourceFieldSuffix = "BoundResource";
+
+    /// <summary>
     /// Writes the invocation members of every pipeline of a given compute pipeline host.
     /// </summary>
     /// <param name="item">The host to write the members for.</param>
@@ -82,7 +87,9 @@ partial class PipelineDescriptorGenerator
     {
         writer.WriteLine($"""/// <summary>The invocation of <c>{invocation.MethodName}</c>.</summary>""");
         writer.WriteGeneratedAttributes(GeneratorName);
-        writer.WriteLine($"private readonly struct {invocation.InvocationTypeName} : global::ComputeWeave.IComputePipelineInvocation");
+        writer.Write("private ");
+        writer.WriteIf(!HasExternalParameters(invocation), "readonly ");
+        writer.WriteLine($"struct {invocation.InvocationTypeName} : global::ComputeWeave.IComputePipelineInvocation");
 
         using (writer.WriteBlock())
         {
@@ -95,6 +102,13 @@ partial class PipelineDescriptorGenerator
                 writer.WriteLine($"""/// <summary>The <c>{parameter.ParameterName}</c> argument of the pipeline.</summary>""");
                 writer.WriteLine($"private readonly {parameter.TypeName} @{parameter.ParameterName};");
                 writer.WriteLine();
+
+                if (parameter.BoundResourceTypeName is string boundResourceTypeName)
+                {
+                    writer.WriteLine($"""/// <summary>The resource the <c>{parameter.ParameterName}</c> binding was pinned to.</summary>""");
+                    writer.WriteLine($"private {boundResourceTypeName} @{parameter.ParameterName}{BoundResourceFieldSuffix};");
+                    writer.WriteLine();
+                }
             }
 
             writer.WriteLine($"""/// <summary>Creates a new <see cref="{invocation.InvocationTypeName}"/> instance with the specified parameters.</summary>""");
@@ -121,6 +135,9 @@ partial class PipelineDescriptorGenerator
                 foreach (PipelineParameterSyntaxInfo parameter in invocation.Parameters)
                 {
                     writer.WriteLine($"this.@{parameter.ParameterName} = @{parameter.ParameterName};");
+                    writer.WriteLineIf(
+                        parameter.BoundResourceTypeName is not null,
+                        $"this.@{parameter.ParameterName}{BoundResourceFieldSuffix} = null!;");
                 }
             }
 
@@ -153,11 +170,30 @@ partial class PipelineDescriptorGenerator
                 {
                     writer.Write(parameter.IsReadOnlyReference ? ", in " : ", ");
                     writer.Write($"this.@{parameter.ParameterName}");
+                    writer.WriteIf(parameter.BoundResourceTypeName is not null, BoundResourceFieldSuffix);
                 }
 
                 writer.WriteLine(");");
             }
         }
+    }
+
+    /// <summary>
+    /// Checks whether a pipeline declares a resource parameter shared with an external queue.
+    /// </summary>
+    /// <param name="invocation">The pipeline to check the parameters of.</param>
+    /// <returns>Whether <paramref name="invocation"/> declares an external resource parameter.</returns>
+    private static bool HasExternalParameters(PipelineInvocationSyntaxInfo invocation)
+    {
+        foreach (PipelineParameterSyntaxInfo parameter in invocation.Parameters)
+        {
+            if (parameter.BoundResourceTypeName is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -178,6 +214,10 @@ partial class PipelineDescriptorGenerator
             writer.WriteLine();
 
             expression = $"binder.TryPin({binding.SlotOrdinal}, in binding{index})";
+        }
+        else if (binding.Kind is PipelineBindingKind.ExternalParameter)
+        {
+            expression = $"binder.TryPin(in this.@{binding.Name}, out this.@{binding.Name}{BoundResourceFieldSuffix})";
         }
         else if (binding.Kind is PipelineBindingKind.Parameter)
         {

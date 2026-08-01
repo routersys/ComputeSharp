@@ -326,11 +326,18 @@ public class PipelineHostEmissionTests
         Assert.IsTrue(
             source.Contains(
                 "public global::ComputeWeave.ComputeSubmission Blit(" +
-                "global::ComputeWeave.ReadWriteTexture2D<global::ComputeWeave.Bgra32, global::ComputeWeave.Float4> @target)"),
+                "global::ComputeWeave.ComputeResourceBinding<" +
+                "global::ComputeWeave.ReadWriteTexture2D<global::ComputeWeave.Bgra32, global::ComputeWeave.Float4>> @target)"),
             source);
         Assert.IsTrue(source.Contains("return this.computeHostRuntime.Submit(new BlitInvocation(this, @target));"), source);
-        Assert.IsTrue(source.Contains("if (!binder.TryPin(this.@target))"), source);
-        Assert.IsTrue(source.Contains("this.host.Blit(in context, this.@target);"), source);
+        Assert.IsTrue(source.Contains("private struct BlitInvocation : global::ComputeWeave.IComputePipelineInvocation"), source);
+        Assert.IsTrue(
+            source.Contains(
+                "private global::ComputeWeave.ReadWriteTexture2D<global::ComputeWeave.Bgra32, global::ComputeWeave.Float4> " +
+                "@targetBoundResource;"),
+            source);
+        Assert.IsTrue(source.Contains("if (!binder.TryPin(in this.@target, out this.@targetBoundResource))"), source);
+        Assert.IsTrue(source.Contains("this.host.Blit(in context, this.@targetBoundResource);"), source);
     }
 
     [TestMethod]
