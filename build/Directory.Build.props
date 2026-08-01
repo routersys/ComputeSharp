@@ -119,10 +119,10 @@
     <ProjectUrl>https://github.com/routersys/ComputeWeave/</ProjectUrl>
     <RepositoryBranch Condition="$(GITHUB_REF.Contains('refs/heads/'))">$(GITHUB_REF.Replace('refs/heads/', ''))</RepositoryBranch>
     <RepositoryBranch Condition="$(GITHUB_REF.Contains('refs/pull/'))">pr$(GITHUB_REF.Replace('refs/pull/', '').Replace('/merge', ''))</RepositoryBranch>
-    <Authors>Sergio Pedri</Authors>
-    <Owners>Sergio Pedri</Owners>
-    <Company>Sergio Pedri</Company>
-    <Copyright>Copyright (c) 2024 Sergio Pedri</Copyright>
+    <Authors>routersys</Authors>
+    <Owners>routersys</Owners>
+    <Company>routersys</Company>
+    <Copyright>Copyright (c) 2026 routersys</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>https://github.com/routersys/ComputeWeave/</PackageProjectUrl>
