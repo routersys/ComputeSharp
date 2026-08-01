@@ -67,45 +67,21 @@
   </PropertyGroup>
 
   <!--
-    The target version being built (this is referenced by all build steps).
-    This version will set the package version prefix and the assembly version.
-    As such, this needs to be changed before a new release as well.
+    The target version being built. Releases are driven by git tags of the form 'v<VersionPrefix>(-<VersionSuffix>)?',
+    and the release workflow overrides these two properties from the tag. The values below are the ones used for
+    local and continuous integration builds, so they need to be bumped when preparing the next release.
   -->
   <PropertyGroup>
-    <ComputeWeavePackageVersion>3.2.0</ComputeWeavePackageVersion>
-    <IsCommitOnReleaseBranch>false</IsCommitOnReleaseBranch>
-  </PropertyGroup>
-
-  <!--
-    Check if the current push is for a release build for NuGet, as that will create a package with a hardcoded version.
-    A release build is one that originates from a push to a branch with the format 'rel/<BUILD_VERSION>(.<SUFFIX>)?'.
-  -->
-  <PropertyGroup>
-    <ReleaseVersionParsingRegex>^rel/(\d{1,4}\.\d{1,4}\.\d{1,4})(?:-(\w+(?:\.\w+)?))?$</ReleaseVersionParsingRegex>
-    <IsBranchNameStartingWithRefPrefix>$([System.Text.RegularExpressions.Regex]::IsMatch($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)))</IsBranchNameStartingWithRefPrefix>
-  </PropertyGroup>
-
-  <!-- If the current branch and action match a release for NuGet, override the relative build properties -->
-  <PropertyGroup Condition="'$(GITHUB_EVENT_NAME)' == 'push' AND '$(GITHUB_REF_NAME)' != '' AND '$(IsBranchNameStartingWithRefPrefix)' == 'true'">
-    <IsCommitOnReleaseBranch>true</IsCommitOnReleaseBranch>
-    <ComputeWeavePackageVersionFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[1].Value)</ComputeWeavePackageVersionFromReleaseBranch>
-    <ComputeWeavePackageVersionSuffixFromReleaseBranch>$([System.Text.RegularExpressions.Regex]::Match($(GITHUB_REF_NAME), $(ReleaseVersionParsingRegex)).Groups[2].Value)</ComputeWeavePackageVersionSuffixFromReleaseBranch>
-    <ComputeWeavePackageVersion>$(ComputeWeavePackageVersionFromReleaseBranch)</ComputeWeavePackageVersion>
-    <VersionSuffix>$(ComputeWeavePackageVersionSuffixFromReleaseBranch)</VersionSuffix>
-  </PropertyGroup>
-
-  <!-- Configure the assembly version and suffix for both normal CI builds and release builds -->
-  <PropertyGroup>
-    <AssemblyVersion>$(ComputeWeavePackageVersion).0</AssemblyVersion>
-    <VersionPrefix>$(ComputeWeavePackageVersion)</VersionPrefix>
-    <VersionSuffix Condition="'$(EXCLUDE_SUFFIX_FROM_VERSION)' != 'true' AND '$(IsCommitOnReleaseBranch)' != 'true'">alpha</VersionSuffix>
-    <VersionSuffix Condition="'$(GITHUB_EVENT_NAME)' == 'pull_request' AND '$(IsCommitOnReleaseBranch)' != 'true'">pr</VersionSuffix>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
   </PropertyGroup>
 
   <!-- Source link and debug configuration -->
   <PropertyGroup>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <DebugType>embedded</DebugType>
+    <DebugType>portable</DebugType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <!-- NuGet info and basic configuration -->
@@ -113,6 +89,7 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_RUN_ID)' != ''">true</ContinuousIntegrationBuild>
     <PackageId>$(MSBuildProjectName)</PackageId>
     <Title>$(MSBuildProjectName)</Title>
+    <Product>$(MSBuildProjectName)</Product>
     <RepositoryUrl>https://github.com/routersys/ComputeWeave/</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -124,11 +101,12 @@
     <Company>routersys</Company>
     <Copyright>Copyright (c) 2026 routersys</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>https://github.com/routersys/ComputeWeave/</PackageProjectUrl>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>dotnet net netcore netstandard csharp library graphics directx shader hlsl compute gpu performance parallel windows</PackageTags>
+    <PackageReleaseNotes>https://github.com/routersys/ComputeWeave/releases</PackageReleaseNotes>
+    <PackageTags>dotnet;csharp;gpu;compute;compute-shader;directx;direct3d;d3d12;hlsl;shader;source-generator;interop;windows</PackageTags>
 
     <!--
       Generate documentation files. In theory this should only be abled for published, non source generator projects.
