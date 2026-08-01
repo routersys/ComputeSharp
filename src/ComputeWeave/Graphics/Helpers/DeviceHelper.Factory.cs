@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using ComputeWeave.Core.Extensions;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Interop.Allocation;
@@ -11,6 +12,8 @@ namespace ComputeWeave.Graphics.Helpers;
 /// <inheritdoc/>
 unsafe partial class DeviceHelper
 {
+    private static readonly Lock DevicesCacheGate = new();
+
     /// <summary>
     /// The local cache of <see cref="GraphicsDevice"/> instances that are currently usable.
     /// </summary>
@@ -37,7 +40,7 @@ unsafe partial class DeviceHelper
     /// <returns>The default <see cref="GraphicsDevice"/> instance.</returns>
     public static GraphicsDevice GetDefaultDeviceFromCacheOrCreateInstance()
     {
-        lock (DevicesCache)
+        lock (DevicesCacheGate)
         {
             do
             {
@@ -70,7 +73,7 @@ unsafe partial class DeviceHelper
     /// <param name="device">The <see cref="GraphicsDevice"/> instance to remove from the internal cache.</param>
     public static void NotifyDisposedDevice(GraphicsDevice device)
     {
-        lock (DevicesCache)
+        lock (DevicesCacheGate)
         {
             // Remove the default device from the cache, if it has been disposed
             if (device == defaultDevice)
@@ -95,7 +98,7 @@ unsafe partial class DeviceHelper
     /// <param name="allocatorFactory"></param>
     public static void ConfigureAllocatorFactory(ID3D12MemoryAllocatorFactory* allocatorFactory)
     {
-        lock (DevicesCache)
+        lock (DevicesCacheGate)
         {
             default(InvalidOperationException).ThrowIf(DevicesCache.Count != 0, "The allocator factory can only be configured before creating devices.");
             default(InvalidOperationException).ThrowIf(globalAllocatorFactory is not null, "The allocator factory can only be configured once.");
@@ -115,7 +118,7 @@ unsafe partial class DeviceHelper
     /// <returns>A <see cref="GraphicsDevice"/> instance for the input device.</returns>
     private static GraphicsDevice GetOrCreateDevice(ID3D12Device* d3D12Device, IDXGIAdapter* dxgiAdapter, DXGI_ADAPTER_DESC1* dxgiDescription1)
     {
-        lock (DevicesCache)
+        lock (DevicesCacheGate)
         {
             Luid luid = Luid.FromLUID(dxgiDescription1->AdapterLuid);
 

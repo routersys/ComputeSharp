@@ -27,7 +27,7 @@ partial class DeviceHelper
     {
         bool hasErrorsOrWarnings = false;
 
-        lock (DevicesCache)
+        lock (DevicesCacheGate)
         {
             StringBuilder builder = infoQueueMessageBuilder ??= new(1024);
 
