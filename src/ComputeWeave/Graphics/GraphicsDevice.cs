@@ -114,6 +114,8 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     /// </summary>
     private HRESULT deviceRemovedReason;
 
+    private readonly Lock cachedPipelineDataGate = new();
+
     /// <summary>
     /// The list of cached <see cref="PipelineData"/> objects for the current device.
     /// </summary>
@@ -382,7 +384,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         // This is only used when first initializing a pipeline data for a given shader.
         // Adding an item is very quick, so we can just use a lock and not a concurrent
         // list. That would've added more overhead given the low contention in this case.
-        lock (this.cachedPipelineData)
+        lock (this.cachedPipelineDataGate)
         {
             this.cachedPipelineData.Add(pipelineData);
         }
