@@ -10,6 +10,7 @@ namespace ComputeWeave.SourceGenerators.Helpers;
 /// <param name="pipelineAttribute">The <c>[ComputePipeline]</c> symbol.</param>
 /// <param name="interopAttribute">The <c>[ComputeInterop]</c> symbol.</param>
 /// <param name="resourceAttribute">The <c>[ComputeResource]</c> symbol.</param>
+/// <param name="ownedResourceAttribute">The <c>[ComputeOwnedResource]</c> symbol.</param>
 /// <param name="pipelineResourceAttribute">The <c>[ComputePipelineResource]</c> symbol.</param>
 /// <param name="resourceGroupAttribute">The <c>[ComputeResourceGroup]</c> symbol.</param>
 /// <param name="interopResourceSetAttribute">The <c>[ComputeInteropResourceSet]</c> symbol.</param>
@@ -24,6 +25,7 @@ internal sealed class PipelineWellKnownSymbols(
     INamedTypeSymbol pipelineAttribute,
     INamedTypeSymbol interopAttribute,
     INamedTypeSymbol resourceAttribute,
+    INamedTypeSymbol ownedResourceAttribute,
     INamedTypeSymbol pipelineResourceAttribute,
     INamedTypeSymbol resourceGroupAttribute,
     INamedTypeSymbol interopResourceSetAttribute,
@@ -53,6 +55,11 @@ internal sealed class PipelineWellKnownSymbols(
     /// Gets the <c>[ComputeResource]</c> symbol.
     /// </summary>
     public INamedTypeSymbol ResourceAttribute { get; } = resourceAttribute;
+
+    /// <summary>
+    /// Gets the <c>[ComputeOwnedResource]</c> symbol.
+    /// </summary>
+    public INamedTypeSymbol OwnedResourceAttribute { get; } = ownedResourceAttribute;
 
     /// <summary>
     /// Gets the <c>[ComputePipelineResource]</c> symbol.
@@ -111,6 +118,7 @@ internal sealed class PipelineWellKnownSymbols(
             compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineAttribute") is not { } pipelineAttribute ||
             compilation.GetTypeByMetadataName("ComputeWeave.ComputeInteropAttribute") is not { } interopAttribute ||
             compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceAttribute") is not { } resourceAttribute ||
+            compilation.GetTypeByMetadataName("ComputeWeave.ComputeOwnedResourceAttribute") is not { } ownedResourceAttribute ||
             compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineResourceAttribute") is not { } pipelineResourceAttribute ||
             compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceGroupAttribute") is not { } resourceGroupAttribute ||
             compilation.GetTypeByMetadataName("ComputeWeave.ComputeInteropResourceSetAttribute") is not { } interopResourceSetAttribute ||
@@ -131,6 +139,7 @@ internal sealed class PipelineWellKnownSymbols(
             pipelineAttribute,
             interopAttribute,
             resourceAttribute,
+            ownedResourceAttribute,
             pipelineResourceAttribute,
             resourceGroupAttribute,
             interopResourceSetAttribute,

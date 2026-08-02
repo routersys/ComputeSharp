@@ -64,6 +64,7 @@ internal static class PipelineHostSyntaxModelBuilder
             isResourceGroup ? slot.ResourceTypeAccessibility : "public",
             slot.ResourceTypeAccessibility,
             isResourceGroup ? null : slot.ResourceTypeName,
+            isResourceGroup ? slot.ResourceTypeName : null,
             requiresDoublePrecisionSupport,
             planFields,
             resources);

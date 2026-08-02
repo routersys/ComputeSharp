@@ -13,10 +13,10 @@ namespace ComputeWeave.Tests.Internals;
 internal sealed partial class GeneratedGridResources
 {
     [ComputePipelineResource(ComputeResourceAccess.ReadWrite)]
-    internal ReadWriteBuffer<int> Cells { get; } = null!;
+    internal ReadWriteBuffer<int> Cells { get; }
 
     [ComputePipelineResource(ComputeResourceAccess.Read)]
-    internal ReadOnlyTexture2D<float> Weights { get; } = null!;
+    internal ReadOnlyTexture2D<float> Weights { get; }
 }
 
 [ComputePipelineHost("device", 1)]
@@ -34,12 +34,17 @@ internal sealed partial class GeneratedPipelineHost
     private readonly ComputeResourceGroupSlot<GeneratedGridResources> grid = new();
 
     [ComputePipeline]
-    private void Run(in ComputeContext context)
+    private void Run(
+        in ComputeContext context,
+        [ComputeOwnedResource(nameof(values))] ReadWriteBuffer<int> values,
+        [ComputeOwnedResource(nameof(mask))] ReadWriteTexture2D<float> mask,
+        [ComputeOwnedResource(nameof(grid))] GeneratedGridResources grid)
     {
         _ = this.device;
 
-        context.Clear(GetValuesComputeBinding().Resource!);
-        context.Clear(GetMaskComputeBinding().Resource!);
+        context.Clear(values);
+        context.Clear(mask);
+        context.Clear(grid.Cells);
     }
 }
 

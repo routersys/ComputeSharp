@@ -2,6 +2,7 @@ using System;
 using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Helpers;
+using ComputeWeave.SourceGenerators.Helpers;
 using ComputeWeave.SourceGenerators.Models;
 
 namespace ComputeWeave.SourceGenerators;
@@ -100,6 +101,14 @@ partial class PipelineDescriptorGenerator
     /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
     private static void WriteHostSlot(OwnedSlotSyntaxInfo slot, IndentedTextWriter writer)
     {
+        if (slot.GroupTypeName is string groupTypeName)
+        {
+            writer.WriteLine($"""/// <summary>The resource group instance describing the last generation of <c>{slot.CanonicalName}</c> pinned by a pipeline.</summary>""");
+            writer.WriteGeneratedAttributes(GeneratorName, includeNonUserCodeAttributes: false);
+            writer.WriteLine($"private {groupTypeName}? @{GeneratedIdentifier.CreateGenerationFieldName(slot.CanonicalName)};");
+            writer.WriteLine();
+        }
+
         writer.WriteLine($"""/// <summary>Ensures the resources owned by <c>{slot.CanonicalName}</c> match a requested resource plan.</summary>""");
         writer.WriteLine("""/// <param name="plan">The requested resource plan.</param>""");
         writer.WriteLine("""/// <param name="changed">Whether a new resource generation was published.</param>""");

@@ -34,6 +34,7 @@ internal sealed record PipelineHostInfo(
 /// <param name="PlanAccessibility">The accessibility keyword of the generated typed plan method.</param>
 /// <param name="BindingAccessibility">The accessibility keyword of the generated binding accessor.</param>
 /// <param name="BindingResourceTypeName">The bound resource type, or <see langword="null"/> for a resource group slot.</param>
+/// <param name="GroupTypeName">The resource group type, or <see langword="null"/> for a single resource slot.</param>
 /// <param name="RequiresDoublePrecisionSupport">Whether any owned resource stores double precision floating point numbers.</param>
 /// <param name="PlanFields">The plan fields, in canonical field ordinal order.</param>
 /// <param name="Resources">The owned resources, in slot resource index order.</param>
@@ -46,6 +47,7 @@ internal sealed record OwnedSlotSyntaxInfo(
     string PlanAccessibility,
     string BindingAccessibility,
     string? BindingResourceTypeName,
+    string? GroupTypeName,
     bool RequiresDoublePrecisionSupport,
     EquatableArray<ResourcePlanFieldInfo> PlanFields,
     EquatableArray<SlotResourceSyntaxInfo> Resources);

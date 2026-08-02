@@ -27,6 +27,7 @@ public sealed class MissingComputeResourceAttributeAnalyzer : DiagnosticAnalyzer
             // Get the [ComputePipeline], [ComputeResource] and IGraphicsResource symbols
             if (context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineAttribute") is not { } pipelineAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceAttribute") is not { } resourceAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeOwnedResourceAttribute") is not { } ownedResourceAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.IGraphicsResource") is not { } graphicsResourceSymbol)
             {
                 return;
@@ -45,11 +46,12 @@ public sealed class MissingComputeResourceAttributeAnalyzer : DiagnosticAnalyzer
                     return;
                 }
 
-                // Each graphics resource parameter must be annotated with [ComputeResource]
+                // Each graphics resource parameter must be annotated with [ComputeResource], unless it receives an owned resource
                 foreach (IParameterSymbol parameterSymbol in methodSymbol.Parameters)
                 {
                     if (ImplementsGraphicsResource(parameterSymbol.Type, graphicsResourceSymbol) &&
-                        !parameterSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out _))
+                        !parameterSymbol.TryGetAttributeWithType(resourceAttributeSymbol, out _) &&
+                        !parameterSymbol.TryGetAttributeWithType(ownedResourceAttributeSymbol, out _))
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             MissingComputeResourceAttribute,

@@ -1,5 +1,6 @@
 using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Helpers;
+using ComputeWeave.SourceGenerators.Helpers;
 using ComputeWeave.SourceGenerators.Models;
 
 namespace ComputeWeave.SourceGenerators;
@@ -88,7 +89,7 @@ partial class PipelineDescriptorGenerator
         writer.WriteLine($"""/// <summary>The invocation of <c>{invocation.MethodName}</c>.</summary>""");
         writer.WriteGeneratedAttributes(GeneratorName);
         writer.Write("private ");
-        writer.WriteIf(!HasExternalParameters(invocation), "readonly ");
+        writer.WriteIf(!HasResolvedResources(invocation), "readonly ");
         writer.WriteLine($"struct {invocation.InvocationTypeName} : global::ComputeWeave.IComputePipelineInvocation");
 
         using (writer.WriteBlock())
@@ -109,6 +110,13 @@ partial class PipelineDescriptorGenerator
                     writer.WriteLine($"private {boundResourceTypeName} @{parameter.ParameterName}{BoundResourceFieldSuffix};");
                     writer.WriteLine();
                 }
+            }
+
+            foreach (PipelineOwnedResourceSyntaxInfo owned in invocation.OwnedResources)
+            {
+                writer.WriteLine($"""/// <summary>The owned resources the <c>{owned.ParameterName}</c> argument of the pipeline was pinned to.</summary>""");
+                writer.WriteLine($"private {owned.TypeName} @{owned.ParameterName};");
+                writer.WriteLine();
             }
 
             writer.WriteLine($"""/// <summary>Creates a new <see cref="{invocation.InvocationTypeName}"/> instance with the specified parameters.</summary>""");
@@ -139,6 +147,11 @@ partial class PipelineDescriptorGenerator
                         parameter.BoundResourceTypeName is not null,
                         $"this.@{parameter.ParameterName}{BoundResourceFieldSuffix} = null!;");
                 }
+
+                foreach (PipelineOwnedResourceSyntaxInfo owned in invocation.OwnedResources)
+                {
+                    writer.WriteLine($"this.@{owned.ParameterName} = null!;");
+                }
             }
 
             writer.WriteLine();
@@ -156,6 +169,12 @@ partial class PipelineDescriptorGenerator
 
                     WriteBinding(i, invocation.Bindings[i], writer);
                 }
+
+                foreach (PipelineOwnedResourceSyntaxInfo owned in invocation.OwnedResources)
+                {
+                    writer.WriteLine();
+                    WriteOwnedResource(owned, writer);
+                }
             }
 
             writer.WriteLine();
@@ -166,11 +185,11 @@ partial class PipelineDescriptorGenerator
             {
                 writer.Write($"this.host.{invocation.MethodName}(in context");
 
-                foreach (PipelineParameterSyntaxInfo parameter in invocation.Parameters)
+                foreach (PipelineArgumentSyntaxInfo argument in invocation.Arguments)
                 {
-                    writer.Write(parameter.IsReadOnlyReference ? ", in " : ", ");
-                    writer.Write($"this.@{parameter.ParameterName}");
-                    writer.WriteIf(parameter.BoundResourceTypeName is not null, BoundResourceFieldSuffix);
+                    writer.Write(argument.IsReadOnlyReference ? ", in " : ", ");
+                    writer.Write($"this.@{argument.Name}");
+                    writer.WriteIf(argument.Kind is PipelineArgumentKind.ExternalResource, BoundResourceFieldSuffix);
                 }
 
                 writer.WriteLine(");");
@@ -179,12 +198,17 @@ partial class PipelineDescriptorGenerator
     }
 
     /// <summary>
-    /// Checks whether a pipeline declares a resource parameter shared with an external queue.
+    /// Checks whether a pipeline resolves any pinned resource into the invocation.
     /// </summary>
     /// <param name="invocation">The pipeline to check the parameters of.</param>
-    /// <returns>Whether <paramref name="invocation"/> declares an external resource parameter.</returns>
-    private static bool HasExternalParameters(PipelineInvocationSyntaxInfo invocation)
+    /// <returns>Whether <paramref name="invocation"/> resolves any pinned resource.</returns>
+    private static bool HasResolvedResources(PipelineInvocationSyntaxInfo invocation)
     {
+        if (!invocation.OwnedResources.IsEmpty)
+        {
+            return true;
+        }
+
         foreach (PipelineParameterSyntaxInfo parameter in invocation.Parameters)
         {
             if (parameter.BoundResourceTypeName is not null)
@@ -194,6 +218,32 @@ partial class PipelineDescriptorGenerator
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Writes the resolution of a single owned resource parameter of a pipeline invocation.
+    /// </summary>
+    /// <param name="owned">The owned resource parameter to write the resolution of.</param>
+    /// <param name="writer">The target <see cref="IndentedTextWriter"/> instance.</param>
+    private static void WriteOwnedResource(PipelineOwnedResourceSyntaxInfo owned, IndentedTextWriter writer)
+    {
+        if (owned.GenerationFieldName is not string generationFieldName)
+        {
+            writer.WriteLine($"this.@{owned.ParameterName} = resource{owned.BindingIndices[0]};");
+
+            return;
+        }
+
+        writer.Write(
+            $"this.@{owned.ParameterName} = {owned.TypeName}.{GeneratedIdentifier.ResourceGroupGenerationFactoryName}(" +
+            $"ref this.host.@{generationFieldName}");
+
+        foreach (int index in owned.BindingIndices)
+        {
+            writer.Write($", resource{index}");
+        }
+
+        writer.WriteLine(");");
     }
 
     /// <summary>
@@ -213,7 +263,9 @@ partial class PipelineDescriptorGenerator
                 $"this.host.{RuntimeFieldName}.GetBinding<{binding.ResourceTypeName}>({binding.SlotOrdinal}, {binding.SlotResourceIndex});");
             writer.WriteLine();
 
-            expression = $"binder.TryPin({binding.SlotOrdinal}, in binding{index})";
+            expression = binding.IsResolved
+                ? $"binder.TryPin({binding.SlotOrdinal}, in binding{index}, out {binding.ResourceTypeName} resource{index})"
+                : $"binder.TryPin({binding.SlotOrdinal}, in binding{index})";
         }
         else if (binding.Kind is PipelineBindingKind.ExternalParameter)
         {
