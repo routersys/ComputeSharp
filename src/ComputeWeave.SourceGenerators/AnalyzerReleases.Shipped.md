@@ -1,4 +1,4 @@
-﻿; Shipped analyzer releases
+; Shipped analyzer releases
 ; https://github.com/dotnet/roslyn-analyzers/blob/master/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 
 ## Release 1.0
@@ -107,3 +107,12 @@ CMPW0106 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/r
 CMPW0107 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0108 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0109 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+
+## Release 1.1
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+CMPW0110 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0111 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
