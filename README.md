@@ -49,7 +49,7 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
 
 The base library is unchanged. A compute shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches. Nothing in this document replaces that.
 
-What the fork adds is 60 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
+What the fork adds is 61 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
 
 Resources are not held directly. They live in slots that publish generations: `TryEnsure` asks a slot to match a requested plan, and a new generation is published only when the plan actually changes. Work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded.
 
@@ -60,8 +60,8 @@ Every path that reaches the GPU through this library is tracked. Lifetime tracki
 | Path | Lifetime | Hazard |
 |---|---|---|
 | Generated pipelines, `ComputeContext`, resource copies, interop domains | Yes | Yes |
-| `InteropServices.AcquireNativeResource` | Yes | No |
-| `InteropServices.GetID3D12Resource` and the mapped views of transfer resources | No | No |
+| `InteropServices.AcquireNativeResource` and `AcquireNativeDevice` | Yes | No |
+| `InteropServices.GetID3D12Resource`, `GetID3D12Device` and the mapped views of transfer resources | No | No |
 
 A native reference holds the resource generation alive while an object outside the library uses it, and reports the completion points of the work already submitted so the holder can order its own work without blocking. It does not order that work for you. Interoperation that needs ordering uses an interop domain instead.
 
@@ -296,6 +296,8 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `NativeResourceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | Uses and releases a native reference. Must be disposed. |
 | `NativeResourceSynchronization.LastWrite` / `LastComputeRead` / `LastCopyRead` | Reports the completion points of the work already submitted for the generation. |
 | `InteropServices.GetID3D12Fence(GraphicsDevice, ComputeQueueKind, Guid*, void**)` | Gets the fence of a queue, so that external work can wait on those completion points. |
+| `InteropServices.AcquireNativeDevice(GraphicsDevice)` | Holds the device while an external object uses its native object. |
+| `NativeDeviceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | Uses and releases a device reference. Must be disposed. |
 
 ### Shared resources
 
@@ -364,6 +366,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 - `Dispose` requests the release of a registration; `WaitForDisposal` blocks until it has completed. Work still in flight keeps the generation it captured alive.
 - `GraphicsDevice.GetDefault()` caches the device for the process and returns the same instance until it is disposed.
 - The `DeviceLost` event on `GraphicsDevice` is raised at most once per instance. After the device is lost, the public APIs throw `InvalidOperationException`.
+- The `AppContext` switches are named `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`, `COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA` and `COMPUTEWEAVE_ENABLE_GPU_TIMEOUT` since 2.0.0. The `COMPUTESHARP_` names they had before are still honoured when the new ones are not set, so an application that set them keeps its behaviour. Setting them through the `ComputeWeaveEnableDebugOutput`, `ComputeWeaveEnableDeviceRemovedExtendedData` and `ComputeWeaveEnableGpuTimeout` MSBuild properties is unaffected.
 
 ---
 

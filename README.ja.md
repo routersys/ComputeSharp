@@ -49,7 +49,7 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 
 基盤部分は変更していません。計算シェーダーは `IComputeShader` を実装する `partial struct` で、`GraphicsDevice.GetDefault()` がデバイスを返し、`For` がディスパッチします。本書はそれを置き換えるものではありません。
 
-このフォークが追加したのは、公開型60件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
+このフォークが追加したのは、公開型61件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
 
 資源は直接保持しません。世代を発行するスロットに入ります。`TryEnsure` はスロットへ要求した計画への一致を求め、計画が実際に変わったときだけ新しい世代を発行します。実行中の処理は捕捉した世代を生かし続けるため、資源の再確保が記録済みの投入を無効にすることはありません。
 
@@ -60,8 +60,8 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 | 経路 | Lifetime | Hazard |
 |---|---|---|
 | 生成パイプライン、`ComputeContext`、資源のコピー、相互運用ドメイン | あり | あり |
-| `InteropServices.AcquireNativeResource` | あり | なし |
-| `InteropServices.GetID3D12Resource` と転送資源の写像ビュー | なし | なし |
+| `InteropServices.AcquireNativeResource` と `AcquireNativeDevice` | あり | なし |
+| `InteropServices.GetID3D12Resource`、`GetID3D12Device`、転送資源の写像ビュー | なし | なし |
 
 ネイティブ参照は、ライブラリの外側にある対象がその資源を使っている間、資源の世代を生かし続けます。併せて、投入済みの処理の完了点を返すため、保持側はCPUを止めずに自分の処理を順序付けられます。順序付けそのものは行いません。順序が要る相互運用には相互運用ドメインを使います。
 
@@ -296,6 +296,8 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `NativeResourceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | ネイティブ参照を使い、解放します。必ず破棄してください。 |
 | `NativeResourceSynchronization.LastWrite` / `LastComputeRead` / `LastCopyRead` | その世代へ投入済みの処理の完了点を返します。 |
 | `InteropServices.GetID3D12Fence(GraphicsDevice, ComputeQueueKind, Guid*, void**)` | キューのフェンスを取得します。外部の処理を上の完了点へ待たせるために使います。 |
+| `InteropServices.AcquireNativeDevice(GraphicsDevice)` | 外部の対象がデバイスのネイティブオブジェクトを使っている間、デバイスを生かします。 |
+| `NativeDeviceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | デバイス参照を使い、解放します。必ず破棄してください。 |
 
 ### 共有資源
 
@@ -364,6 +366,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 - `Dispose` は登録の解除を要求し、`WaitForDisposal` はそれが完了するまで待ちます。実行中の処理は捕捉した世代を生かし続けます。
 - `GraphicsDevice.GetDefault()` はプロセス内でデバイスをキャッシュし、破棄されるまで同じインスタンスを返します。
 - `GraphicsDevice` の `DeviceLost` イベントは、1つのインスタンスにつき最大1回だけ発火します。デバイスの消失後、公開APIは `InvalidOperationException` を送出します。
+- `AppContext` のスイッチ名は 2.0.0 から `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`、`COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA`、`COMPUTEWEAVE_ENABLE_GPU_TIMEOUT` です。それ以前の `COMPUTESHARP_` の名前は、新しい名前が設定されていない場合に限り引き続き読みます。設定済みのアプリケーションは挙動が変わりません。MSBuild プロパティ `ComputeWeaveEnableDebugOutput`、`ComputeWeaveEnableDeviceRemovedExtendedData`、`ComputeWeaveEnableGpuTimeout` から設定している場合は影響を受けません。
 
 ---
 
