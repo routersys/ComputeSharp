@@ -36,6 +36,8 @@ internal struct ResourceGenerationRecord
 
     public int CpuReferenceCount;
 
+    public int NativeReferenceCount;
+
     public int PersistentLeaseActive;
 
     public int ExternalObjectsReleased;
@@ -59,7 +61,8 @@ internal struct ResourceGenerationRecord
         Volatile.Read(in this.RecordingReferenceCount) != 0 ||
         Volatile.Read(in this.PendingSubmissionReferenceCount) != 0 ||
         Volatile.Read(in this.ExternalReferenceCount) != 0 ||
-        Volatile.Read(in this.CpuReferenceCount) != 0;
+        Volatile.Read(in this.CpuReferenceCount) != 0 ||
+        Volatile.Read(in this.NativeReferenceCount) != 0;
 
     public readonly bool IsIdle =>
         ReadLifecycle() is ResourceGenerationState.Active &&
@@ -67,6 +70,7 @@ internal struct ResourceGenerationRecord
         Volatile.Read(in this.PendingSubmissionReferenceCount) == 0 &&
         Volatile.Read(in this.ExternalReferenceCount) == 0 &&
         Volatile.Read(in this.CpuReferenceCount) == 0 &&
+        Volatile.Read(in this.NativeReferenceCount) == 0 &&
         Volatile.Read(in this.PersistentLeaseActive) == 0;
 
     public bool TryAcquireRecordingReference()
@@ -145,6 +149,23 @@ internal struct ResourceGenerationRecord
     public void ReleaseCpuReference()
     {
         Decrement(ref this.CpuReferenceCount);
+    }
+
+    public bool TryAcquireNativeReference()
+    {
+        if (ReadLifecycle() is not ResourceGenerationState.Active)
+        {
+            return false;
+        }
+
+        Increment(ref this.NativeReferenceCount);
+
+        return true;
+    }
+
+    public void ReleaseNativeReference()
+    {
+        Decrement(ref this.NativeReferenceCount);
     }
 
     public void ReleaseOwnerReference()
