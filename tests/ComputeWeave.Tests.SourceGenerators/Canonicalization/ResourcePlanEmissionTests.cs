@@ -101,6 +101,36 @@ public class ResourcePlanEmissionTests
     }
 
     [TestMethod]
+    public void EmitsGroupConstructorInCanonicalMemberOrder()
+    {
+        string source = RunAndGetSource([GroupSource], "GroupConstructorTests", "Ukiyoe.GridResources");
+
+        Assert.IsTrue(
+            source.Contains(
+                "private GridResources(global::ComputeWeave.ReadWriteBuffer<float> @colorIn, " +
+                "global::ComputeWeave.ReadWriteTexture2D<float> @mask)"),
+            source);
+        Assert.IsTrue(source.Contains("this.@ColorIn = @colorIn;"), source);
+        Assert.IsTrue(source.Contains("this.@Mask = @mask;"), source);
+    }
+
+    [TestMethod]
+    public void EmitsGroupGenerationFactoryComparingEveryMember()
+    {
+        string source = RunAndGetSource([GroupSource], "GroupGenerationTests", "Ukiyoe.GridResources");
+
+        Assert.IsTrue(
+            source.Contains(
+                "internal static GridResources GetComputeGeneration(ref GridResources? generation, " +
+                "global::ComputeWeave.ReadWriteBuffer<float> @colorIn, global::ComputeWeave.ReadWriteTexture2D<float> @mask)"),
+            source);
+        Assert.IsTrue(source.Contains("global::System.Object.ReferenceEquals(current.@ColorIn, @colorIn) &&"), source);
+        Assert.IsTrue(source.Contains("global::System.Object.ReferenceEquals(current.@Mask, @mask))"), source);
+        Assert.IsTrue(source.Contains("GridResources created = new(@colorIn, @mask);"), source);
+        Assert.IsTrue(source.Contains("generation = created;"), source);
+    }
+
+    [TestMethod]
     public void EmitsNothingForResourceGroupWithoutMembers()
     {
         const string EmptyGroupSource = """

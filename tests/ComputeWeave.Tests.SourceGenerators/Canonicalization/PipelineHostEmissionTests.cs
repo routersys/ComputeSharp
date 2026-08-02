@@ -71,6 +71,33 @@ public class PipelineHostEmissionTests
         }
         """;
 
+    private const string OwnedResourceHostSource = """
+        using ComputeWeave;
+
+        namespace Ukiyoe;
+
+        [ComputePipelineHost("device", 1)]
+        public sealed partial class Host
+        {
+            private readonly GraphicsDevice device;
+
+            [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+            private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
+
+            [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
+            private readonly ComputeResourceGroupSlot<GridResources> grid = new();
+
+            [ComputePipeline]
+            private void Run(
+                in ComputeContext context,
+                [ComputeOwnedResource(nameof(index))] ReadWriteBuffer<int> index,
+                [ComputeOwnedResource(nameof(grid))] GridResources grid,
+                int length)
+            {
+            }
+        }
+        """;
+
     private static string RunAndGetSource(string[] sources, string assemblyName, string hintNameFragment)
     {
         CSharpCompilation compilation = CompilationHelper.CreateCompilation(sources, assemblyName);
@@ -128,6 +155,30 @@ public class PipelineHostEmissionTests
             source);
         Assert.IsTrue(source.Contains("if (!binder.TryPin(0, in binding1))"), source);
         Assert.IsTrue(source.Contains("this.host.Run(in context, this.@source);"), source);
+    }
+
+    [TestMethod]
+    public void EmitsTheOwnedResourceArgumentsOutsideTheGeneratedOverload()
+    {
+        string source = RunAndGetSource([GroupSource, OwnedResourceHostSource], "HostOwnedResourceTests", "Ukiyoe.Host");
+
+        Assert.IsTrue(source.Contains("public global::ComputeWeave.ComputeSubmission Run(int @length)"), source);
+        Assert.IsTrue(source.Contains("return this.computeHostRuntime.Submit(new RunInvocation(this, @length));"), source);
+        Assert.IsTrue(source.Contains("private struct RunInvocation : global::ComputeWeave.IComputePipelineInvocation"), source);
+        Assert.IsTrue(source.Contains("private global::ComputeWeave.ReadWriteBuffer<int> @index;"), source);
+        Assert.IsTrue(source.Contains("private global::Ukiyoe.GridResources @grid;"), source);
+        Assert.IsTrue(source.Contains("private global::Ukiyoe.GridResources? @computeGenerationGrid;"), source);
+        Assert.IsTrue(
+            source.Contains(
+                "if (!binder.TryPin(0, in binding0, out global::ComputeWeave.ReadWriteBuffer<double> resource0))"),
+            source);
+        Assert.IsTrue(source.Contains("this.@index = resource2;"), source);
+        Assert.IsTrue(
+            source.Contains(
+                "this.@grid = global::Ukiyoe.GridResources.GetComputeGeneration(" +
+                "ref this.host.@computeGenerationGrid, resource0, resource1);"),
+            source);
+        Assert.IsTrue(source.Contains("this.host.Run(in context, this.@index, this.@grid, this.@length);"), source);
     }
 
     [TestMethod]
