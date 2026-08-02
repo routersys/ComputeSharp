@@ -118,8 +118,30 @@ public readonly ref struct ComputePipelineBinder
     public bool TryPin<TResource>(int slotOrdinal, in ComputeResourceBinding<TResource> binding)
         where TResource : class, IGraphicsResource
     {
+        return TryPin(slotOrdinal, in binding, out _);
+    }
+
+    /// <summary>
+    /// Pins the generation a given binding refers to for the duration of the recording, and resolves the resource it refers to.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the bound graphics resource.</typeparam>
+    /// <param name="slotOrdinal">The ordinal of the owned slot the binding was produced from.</param>
+    /// <param name="binding">The binding to pin the generation of.</param>
+    /// <param name="resource">The resource the binding refers to, if its generation could be pinned.</param>
+    /// <returns>Whether the generation <paramref name="binding"/> refers to could be pinned.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="slotOrdinal"/> is not a declared slot.</exception>
+    /// <remarks>
+    /// Pipeline methods declaring an owned resource parameter receive the resource resolved by this overload. Resolving
+    /// it from the pin rather than from the slot is what makes the parameter refer to the pinned generation for the whole
+    /// recording, as a concurrent resource plan replacement may publish another generation right after the pin is taken.
+    /// </remarks>
+    public bool TryPin<TResource>(int slotOrdinal, in ComputeResourceBinding<TResource> binding, out TResource resource)
+        where TResource : class, IGraphicsResource
+    {
         default(ArgumentOutOfRangeException).ThrowIfNegative(slotOrdinal);
         default(ArgumentOutOfRangeException).ThrowIfGreaterThanOrEqual(slotOrdinal, this.host.SlotCount);
+
+        resource = null!;
 
         if (!binding.IsValid ||
             !this.host.GetSlot(slotOrdinal).TryPinGeneration(
@@ -132,6 +154,13 @@ public readonly ref struct ComputePipelineBinder
             return false;
         }
 
-        return ResourceGenerationPinTracker.TryAdd(this.host.Device, this.storage, ref this.bundle, in pin);
+        if (!ResourceGenerationPinTracker.TryAdd(this.host.Device, this.storage, ref this.bundle, in pin))
+        {
+            return false;
+        }
+
+        resource = binding.Resource!;
+
+        return true;
     }
 }
