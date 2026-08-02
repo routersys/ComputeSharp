@@ -596,6 +596,22 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Gets the fence of a given queue of the current device.
+    /// </summary>
+    /// <param name="queue">The queue to get the fence of.</param>
+    /// <returns>The <see cref="ID3D12Fence"/> object of <paramref name="queue"/>.</returns>
+    internal ID3D12Fence* GetQueueFence(ComputeQueueKind queue)
+    {
+        default(ArgumentException).ThrowIf(
+            queue is not ComputeQueueKind.Compute and not ComputeQueueKind.Copy,
+            nameof(queue));
+
+        return queue is ComputeQueueKind.Compute
+            ? this.d3D12ComputeFence.Get()
+            : this.d3D12CopyFence.Get();
+    }
+
+    /// <summary>
     /// Gets the cached reader of the completed value of the compute queue fence.
     /// </summary>
     /// <remarks>

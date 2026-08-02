@@ -10,6 +10,7 @@ using ComputeWeave.Core.Extensions;
 using ComputeWeave.Graphics.Commands;
 using ComputeWeave.Graphics.Commands.Interop;
 using ComputeWeave.Graphics.Pipelines;
+using ComputeWeave.Interop;
 using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Win32;
 using static ComputeWeave.Win32.D3D12_COMMAND_LIST_TYPE;
@@ -19,6 +20,16 @@ namespace ComputeWeave;
 /// <inheritdoc/>
 unsafe partial class GraphicsDevice
 {
+    /// <summary>
+    /// The number of resource generations of the current device that are held by a native reference.
+    /// </summary>
+    private int nativeReferencedGenerationCount;
+
+    /// <summary>
+    /// Gets the number of resource generations of the current device that are held by a native reference.
+    /// </summary>
+    internal int NativeReferencedGenerationCount => Volatile.Read(ref this.nativeReferencedGenerationCount);
+
     /// <summary>
     /// Executes a given command list and waits for the operation to be completed.
     /// </summary>
@@ -421,18 +432,169 @@ unsafe partial class GraphicsDevice
         }
 
         return scope;
+    }
 
-        static void Accumulate(in FencePoint fence, ref ulong computeFenceWaitValue, ref ulong copyFenceWaitValue)
+    /// <summary>
+    /// Acquires a native reference on the resource generation currently bound to a given resource.
+    /// </summary>
+    /// <param name="resource">The resource to acquire the native reference of.</param>
+    /// <param name="acquisition">The synchronization to perform while acquiring the reference.</param>
+    /// <param name="synchronization">The completion points of the work already submitted for the generation.</param>
+    /// <returns>The resulting <see cref="NativeResourceReference"/> instance.</returns>
+    internal NativeResourceReference AcquireNativeResource(
+        IGraphicsResource resource,
+        NativeResourceAcquisition acquisition,
+        out NativeResourceSynchronization synchronization)
+    {
+        default(ArgumentNullException).ThrowIfNull(resource);
+        default(ArgumentException).ThrowIf(
+            acquisition is not NativeResourceAcquisition.Immediate and not NativeResourceAcquisition.AfterPendingWork,
+            nameof(acquisition));
+        default(ArgumentException).ThrowIf(resource is not IGenerationBoundResource, nameof(resource));
+        default(ArgumentException).ThrowIf(resource is not IReferenceTrackedObject, nameof(resource));
+
+        ThrowIfDeviceLost();
+
+        ReferenceTracker.Lease lease = ((IReferenceTrackedObject)resource).GetReferenceTracker().GetLease();
+        NativeResourceReference reference = default;
+
+        try
         {
-            switch (fence.Queue)
+            IGenerationBoundResource boundResource = (IGenerationBoundResource)resource;
+
+            default(InvalidOperationException).ThrowIf(
+                !boundResource.TryGetGenerationBinding(out ResourceUsageBinding binding),
+                "The bound resource carries no generation identity to track its native reference with.");
+
+            IResourceGenerationOwner owner = binding.Set.Owner;
+            int resourceIndex = checked((int)binding.ResourceIndex);
+
+            ID3D12Resource* d3D12Resource;
+            FencePoint lastWrite;
+            FencePoint lastComputeRead;
+            FencePoint lastCopyRead;
+
+            lock (this.HazardGate)
             {
-                case ComputeQueueKind.Compute:
-                    computeFenceWaitValue = Math.Max(computeFenceWaitValue, fence.Value);
-                    break;
-                case ComputeQueueKind.Copy:
-                    copyFenceWaitValue = Math.Max(copyFenceWaitValue, fence.Value);
-                    break;
+                ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
+
+                default(InvalidOperationException).ThrowIf(
+                    record.Id != binding.Generation,
+                    "The generation of the natively referenced resource no longer matches its binding.");
+
+                default(InvalidOperationException).ThrowIf(
+                    !record.TryAcquireNativeReference(),
+                    "The generation of the natively referenced resource is no longer available.");
+
+                if (record.NativeReferenceCount == 1)
+                {
+                    _ = Interlocked.Increment(ref this.nativeReferencedGenerationCount);
+                }
+
+                lastWrite = record.LastWrite;
+                lastComputeRead = record.LastComputeRead;
+                lastCopyRead = record.LastCopyRead;
+
+                d3D12Resource = owner.GetResourceNativePointer(resourceIndex);
             }
+
+            _ = d3D12Resource->AddRef();
+
+            reference = new NativeResourceReference(this, owner, resourceIndex, binding.Generation, d3D12Resource, lease);
+            lease = default;
+
+            synchronization = new NativeResourceSynchronization(lastWrite, lastComputeRead, lastCopyRead);
+
+            if (acquisition is NativeResourceAcquisition.AfterPendingWork)
+            {
+                WaitForNativeResourceWork(in synchronization);
+            }
+
+            ThrowIfDeviceTerminal();
+        }
+        catch
+        {
+            reference.Dispose();
+            lease.Dispose();
+
+            throw;
+        }
+
+        return reference;
+    }
+
+    /// <summary>
+    /// Releases a native reference previously acquired on a resource generation.
+    /// </summary>
+    /// <param name="owner">The owner of the referenced resource generation.</param>
+    /// <param name="resourceIndex">The ordinal of the referenced resource within <paramref name="owner"/>.</param>
+    /// <param name="generationId">The identifier of the referenced resource generation.</param>
+    /// <remarks>
+    /// A generation released by a device or domain teardown while the reference was outstanding no longer
+    /// matches <paramref name="generationId"/>. The reference is stale in that case and nothing is released.
+    /// </remarks>
+    internal void ReleaseNativeResource(IResourceGenerationOwner owner, int resourceIndex, ResourceGenerationId generationId)
+    {
+        lock (this.HazardGate)
+        {
+            ref ResourceGenerationRecord record = ref owner.GetResourceRecord(resourceIndex);
+
+            if (record.Id != generationId)
+            {
+                return;
+            }
+
+            record.ReleaseNativeReference();
+
+            if (record.NativeReferenceCount == 0)
+            {
+                _ = Interlocked.Decrement(ref this.nativeReferencedGenerationCount);
+            }
+        }
+
+        TryGetRegistrationRegistry()?.Coordinator.Wake();
+    }
+
+    /// <summary>
+    /// Waits for the work already submitted for a natively referenced resource generation to complete.
+    /// </summary>
+    /// <param name="synchronization">The completion points to wait for.</param>
+    private void WaitForNativeResourceWork(in NativeResourceSynchronization synchronization)
+    {
+        ulong computeFenceWaitValue = 0;
+        ulong copyFenceWaitValue = 0;
+
+        Accumulate(synchronization.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
+        Accumulate(synchronization.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+        Accumulate(synchronization.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+
+        if (computeFenceWaitValue > 0)
+        {
+            WaitForSubmission(new FencePoint(ComputeQueueKind.Compute, computeFenceWaitValue));
+        }
+
+        if (copyFenceWaitValue > 0)
+        {
+            WaitForSubmission(new FencePoint(ComputeQueueKind.Copy, copyFenceWaitValue));
+        }
+    }
+
+    /// <summary>
+    /// Accumulates the wait value of a completion point into the pending wait of its queue.
+    /// </summary>
+    /// <param name="fence">The completion point to accumulate.</param>
+    /// <param name="computeFenceWaitValue">The pending compute queue wait value.</param>
+    /// <param name="copyFenceWaitValue">The pending copy queue wait value.</param>
+    private static void Accumulate(in FencePoint fence, ref ulong computeFenceWaitValue, ref ulong copyFenceWaitValue)
+    {
+        switch (fence.Queue)
+        {
+            case ComputeQueueKind.Compute:
+                computeFenceWaitValue = Math.Max(computeFenceWaitValue, fence.Value);
+                break;
+            case ComputeQueueKind.Copy:
+                copyFenceWaitValue = Math.Max(copyFenceWaitValue, fence.Value);
+                break;
         }
     }
 

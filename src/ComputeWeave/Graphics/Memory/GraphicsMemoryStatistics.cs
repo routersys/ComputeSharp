@@ -14,13 +14,15 @@ public readonly struct GraphicsMemoryStatistics
     /// <param name="activeGenerationCount">The number of published resource generations.</param>
     /// <param name="retiredGenerationCount">The number of retired resource generations that have not been released.</param>
     /// <param name="managedPoolSurplusCount">The number of managed pool entries that exceed the current demand.</param>
+    /// <param name="nativeReferencedGenerationCount">The number of resource generations held by a native reference.</param>
     internal GraphicsMemoryStatistics(
         ulong epoch,
         GraphicsMemorySegmentStatistics local,
         GraphicsMemorySegmentStatistics nonLocal,
         int activeGenerationCount,
         int retiredGenerationCount,
-        int managedPoolSurplusCount)
+        int managedPoolSurplusCount,
+        int nativeReferencedGenerationCount)
     {
         Epoch = epoch;
         Local = local;
@@ -28,6 +30,7 @@ public readonly struct GraphicsMemoryStatistics
         ActiveGenerationCount = activeGenerationCount;
         RetiredGenerationCount = retiredGenerationCount;
         ManagedPoolSurplusCount = managedPoolSurplusCount;
+        NativeReferencedGenerationCount = nativeReferencedGenerationCount;
     }
 
     /// <summary>
@@ -59,4 +62,14 @@ public readonly struct GraphicsMemoryStatistics
     /// Gets the number of managed pool entries that exceed the current demand.
     /// </summary>
     public int ManagedPoolSurplusCount { get; }
+
+    /// <summary>
+    /// Gets the number of resource generations held by a native reference.
+    /// </summary>
+    /// <remarks>
+    /// A generation held this way is not released and is not a trim candidate, because an object outside
+    /// the runtime is using the native resource it owns. A non zero value explains retained memory that
+    /// the runtime would otherwise have reclaimed.
+    /// </remarks>
+    public int NativeReferencedGenerationCount { get; }
 }

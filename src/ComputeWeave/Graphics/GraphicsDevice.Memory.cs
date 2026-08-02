@@ -101,7 +101,8 @@ unsafe partial class GraphicsDevice
             nonLocal,
             activeGenerationCount,
             retiredGenerationCount,
-            GetManagedPoolSurplusCount());
+            GetManagedPoolSurplusCount(),
+            NativeReferencedGenerationCount);
     }
 
     /// <summary>
@@ -587,7 +588,8 @@ unsafe partial class GraphicsDevice
             CreateSegmentStatistics(MemoryPlacement.NonLocal, status, in nonLocal.LastDxgiObservation),
             activeGenerationCount: 0,
             retiredGenerationCount: 0,
-            managedPoolSurplusCount: 0);
+            managedPoolSurplusCount: 0,
+            NativeReferencedGenerationCount);
     }
 
     /// <summary>
