@@ -204,9 +204,11 @@ internal static class PipelineInvocationSyntaxModelBuilder
             return false;
         }
 
-        EquatableArray<PipelineOwnedResourceSyntaxInfo> ownedResources = OffsetBindingIndices(ownedBuilder.WrittenSpan, bindingBuilder.Count);
+        int internalBindingOffset = bindingBuilder.Count;
 
-        AddInternalBindings(in bindingBuilder, internalBindings, ownedResources);
+        EquatableArray<PipelineOwnedResourceSyntaxInfo> ownedResources = OffsetBindingIndices(ownedBuilder.WrittenSpan, internalBindingOffset);
+
+        AddInternalBindings(in bindingBuilder, internalBindings, ownedResources, internalBindingOffset);
 
         invocation = new PipelineInvocationSyntaxInfo(
             pipeline.Ordinal,
@@ -331,13 +333,13 @@ internal static class PipelineInvocationSyntaxModelBuilder
     /// <param name="bindingBuilder">The target pin builder.</param>
     /// <param name="internalBindings">The pins of the internal resources, in canonical member order.</param>
     /// <param name="ownedResources">The owned resource parameters of the pipeline.</param>
+    /// <param name="offset">The number of pins preceding the internal resources.</param>
     private static void AddInternalBindings(
         ref readonly ImmutableArrayBuilder<PipelineBindingSyntaxInfo> bindingBuilder,
         ReadOnlySpan<PipelineBindingSyntaxInfo> internalBindings,
-        EquatableArray<PipelineOwnedResourceSyntaxInfo> ownedResources)
+        EquatableArray<PipelineOwnedResourceSyntaxInfo> ownedResources,
+        int offset)
     {
-        int offset = bindingBuilder.Count;
-
         HashSet<int> resolvedIndices = [];
 
         foreach (PipelineOwnedResourceSyntaxInfo owned in ownedResources)
