@@ -118,6 +118,60 @@ public class ResourceGenerationStateMachineTests
     }
 
     [TestMethod]
+    public void AcquiresNativeReferenceOnlyWhenActive()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        Assert.IsTrue(record.TryAcquireNativeReference());
+        Assert.AreEqual(1, record.NativeReferenceCount);
+
+        Assert.IsTrue(record.TryRequestRetire());
+        Assert.IsFalse(record.TryAcquireNativeReference());
+        Assert.AreEqual(1, record.NativeReferenceCount);
+    }
+
+    [TestMethod]
+    public void BlocksPromotionWhileNativeReferenceRemains()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        Assert.IsTrue(record.TryAcquireNativeReference());
+
+        record.ReleaseOwnerReference();
+
+        Assert.IsTrue(record.TryRequestRetire());
+        Assert.IsFalse(record.TryPromoteRetiredReady(true));
+        Assert.AreEqual(ResourceGenerationState.RetiredPending, record.Lifecycle);
+
+        record.ReleaseNativeReference();
+
+        Assert.IsTrue(record.TryPromoteRetiredReady(true));
+        Assert.AreEqual(ResourceGenerationState.RetiredReady, record.Lifecycle);
+    }
+
+    [TestMethod]
+    public void ExcludesNativeReferencedGenerationsFromIdle()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        Assert.IsTrue(record.IsIdle);
+        Assert.IsTrue(record.TryAcquireNativeReference());
+        Assert.IsFalse(record.IsIdle);
+
+        record.ReleaseNativeReference();
+
+        Assert.IsTrue(record.IsIdle);
+    }
+
+    [TestMethod]
+    public void RejectsNativeReferenceDecrementBelowZero()
+    {
+        ResourceGenerationRecord record = ActiveRecord();
+
+        _ = Assert.ThrowsException<InvalidOperationException>(() => record.ReleaseNativeReference());
+    }
+
+    [TestMethod]
     public void EnforcesReleaseAuthority()
     {
         ResourceGenerationState[] lifecycles =
