@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using ComputeWeave.Graphics.Commands;
 using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Win32;
@@ -129,7 +130,7 @@ internal static unsafe class ComputePipelineInvoker
 
             ValidateContracts(host, in pipeline, recordIndex, bundleIndex);
 
-            if (pipeline.Flags.HasFlag(PipelineFlags.InteropRoundTrip))
+            if ((pipeline.Flags & PipelineFlags.InteropRoundTrip) != 0)
             {
                 return ComputeSubmissionExecutor.SubmitInterop(
                     host.Device,
@@ -208,9 +209,23 @@ internal static unsafe class ComputePipelineInvoker
             boundGenerations,
             ComputeSubmissionExecutor.GetUsages(host, host.GetUsageSetHandle(recordIndex)));
 
-        default(InvalidOperationException).ThrowIf(
-            status is not ResourceContractValidationStatus.Valid,
-            $"The recorded invocation does not match the declared resource contracts ({status}).");
+        if (status is not ResourceContractValidationStatus.Valid)
+        {
+            ThrowForInvalidContracts(status);
+        }
+    }
+
+    /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> for a recorded invocation that does not match its contracts.
+    /// </summary>
+    /// <param name="status">The validation status of the recorded invocation.</param>
+    /// <remarks>
+    /// The message is built here rather than at the call site so that a valid invocation allocates nothing.
+    /// </remarks>
+    [DoesNotReturn]
+    private static void ThrowForInvalidContracts(ResourceContractValidationStatus status)
+    {
+        throw new InvalidOperationException($"The recorded invocation does not match the declared resource contracts ({status}).");
     }
 
     private static void ReleaseFailedRecording(PipelineHostRuntime host, ref SubmissionRetention retention)

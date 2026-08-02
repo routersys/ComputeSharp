@@ -62,6 +62,11 @@ unsafe partial class GraphicsDevice
     private Exception? terminalException;
 
     /// <summary>
+    /// The cached reader of the completed value of the compute queue fence.
+    /// </summary>
+    private Func<ulong>? computeFenceCompletedValueReader;
+
+    /// <summary>
     /// Gets whether or not the current device allocates resources through an opaque custom allocator.
     /// </summary>
     internal bool HasOpaqueMemoryAllocator => this.allocator.Get() is not null;
@@ -589,6 +594,15 @@ unsafe partial class GraphicsDevice
     {
         return this.d3D12ComputeFence.Get()->GetCompletedValue();
     }
+
+    /// <summary>
+    /// Gets the cached reader of the completed value of the compute queue fence.
+    /// </summary>
+    /// <remarks>
+    /// Converting the method group at every submission would allocate a delegate on the submit path, which
+    /// Section 11.7.1 forbids. The delegate is immutable and stateless beyond the device, so it is cached.
+    /// </remarks>
+    internal Func<ulong> ComputeFenceCompletedValueReader => this.computeFenceCompletedValueReader ??= GetComputeFenceCompletedValue;
 
     /// <summary>
     /// Gets whether a given fence point has been reached by the queue it belongs to.

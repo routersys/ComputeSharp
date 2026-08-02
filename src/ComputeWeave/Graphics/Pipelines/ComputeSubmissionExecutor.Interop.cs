@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using ComputeWeave.Core.Extensions;
 using ComputeWeave.Interop;
 using ComputeWeave.Resources.Lifetime;
@@ -190,7 +191,7 @@ internal static unsafe partial class ComputeSubmissionExecutor
         in SubmissionRetention retention)
     {
         default(InvalidOperationException).ThrowIf(
-            !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.GetComputeFenceCompletedValue),
+            !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.ComputeFenceCompletedValueReader),
             "The submission could not be published.");
     }
 
@@ -337,14 +338,28 @@ internal static unsafe partial class ComputeSubmissionExecutor
         {
             ExternalOwnershipState ownership = GetExternalRecord(usages, externalUsages[i]).ReadOwnership();
 
-            default(InvalidOperationException).ThrowIf(
-                ownership is not (ExternalOwnershipState.ExternalAvailable or ExternalOwnershipState.ComputeAvailable),
-                $"A shared texture of the interop pipeline invocation is not available for a round-trip ({ownership}).");
+            if (ownership is not (ExternalOwnershipState.ExternalAvailable or ExternalOwnershipState.ComputeAvailable))
+            {
+                ThrowForUnavailableSharedTexture(ownership);
+            }
 
             isAcquireRequired |= ownership is ExternalOwnershipState.ExternalAvailable;
         }
 
         return isAcquireRequired;
+    }
+
+    /// <summary>
+    /// Throws an <see cref="InvalidOperationException"/> for a shared texture that cannot start a round-trip.
+    /// </summary>
+    /// <param name="ownership">The queue ownership state of the shared texture.</param>
+    /// <remarks>
+    /// The message is built here rather than at the call site so that an available shared texture allocates nothing.
+    /// </remarks>
+    [DoesNotReturn]
+    private static void ThrowForUnavailableSharedTexture(ExternalOwnershipState ownership)
+    {
+        throw new InvalidOperationException($"A shared texture of the interop pipeline invocation is not available for a round-trip ({ownership}).");
     }
 
     private static void MarkAcquireSignalEnqueued(Span<GraphicsResourceUsageEntry> usages, ReadOnlySpan<int> externalUsages)

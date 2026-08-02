@@ -53,7 +53,7 @@ internal static unsafe partial class ComputeSubmissionExecutor
                 usages);
 
             default(InvalidOperationException).ThrowIf(
-                !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.GetComputeFenceCompletedValue),
+                !completionRegistry.CommitAndPublish(host, recordIndex, completion, in retention, device.ComputeFenceCompletedValueReader),
                 "The submission could not be published.");
 
             return new ComputeSubmission(device, completion);
