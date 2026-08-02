@@ -96,7 +96,7 @@ using ComputeWeave;
 [ComputePipelineHost("device", 1)]
 public sealed partial class Host
 {
-    private readonly GraphicsDevice device = null!;
+    private readonly GraphicsDevice device;
 
     [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
     private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
@@ -122,7 +122,7 @@ submission.Wait();
 
 ### 2. Owned resource slots
 
-A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` or `[ComputeResourceGroup]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
+A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` and initialised with `new()`. The `TGroup` of a group slot is a `sealed partial class` marked with `[ComputeResourceGroup]`, whose members are get-only properties annotated with `[ComputePipelineResource]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
 
 `TryEnsure` reports whether the owned resources match the requested plan, and `changed` reports whether a new generation was published. `ComputeResourceRecovery` selects what happens to the contents when a generation is replaced: `Discardable`, `RecreateFromHost`, `Recompute` or `CapacityOnly`.
 
@@ -209,11 +209,11 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 |---|---|
 | `[ComputePipelineHost(string deviceFieldName, int maximumConcurrentInvocations)]` | Marks a partial type as a pipeline host. |
 | `[ComputePipeline]` | Marks a method as a pipeline. Its first parameter must be `in ComputeContext`. |
-| `[ComputePipelineResource(ComputeResourceAccess access)]` | Declares an owned resource slot. |
-| `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | Declares an owned resource slot with an explicit recovery. |
-| `[ComputeResource(ComputeResourceAccess access)]` | Declares a resource inside a group. `Sharing` and `Aliasing` are settable. |
+| `[ComputePipelineResource(ComputeResourceAccess access)]` | Declares a resource borrowed by a host, or a member of a resource group. |
+| `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | Declares an owned resource slot with its recovery class. |
+| `[ComputeResource(ComputeResourceAccess access)]` | Declares the access contract of a graphics resource parameter of a pipeline method. `Sharing` and `Aliasing` are settable. |
 | `[ComputeOwnedResource(string slotFieldName)]` | Binds a pipeline parameter to the resources of an owned slot. |
-| `[ComputeResourceGroup]` | Declares a resource group slot. |
+| `[ComputeResourceGroup]` | Marks a sealed partial class as a resource group. |
 | `[ComputeInterop]` | Marks a pipeline method as an external interop round-trip. |
 | `[ComputeInteropResourceSet]` | Marks a partial type as an interop resource set. |
 | `[ComputeSharedTexture(resizePolicy, computeAccess, externalAccess, externalUsage, alphaMode, initialOwner, recovery)]` | Declares a shared texture slot. |

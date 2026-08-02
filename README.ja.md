@@ -96,7 +96,7 @@ using ComputeWeave;
 [ComputePipelineHost("device", 1)]
 public sealed partial class Host
 {
-    private readonly GraphicsDevice device = null!;
+    private readonly GraphicsDevice device;
 
     [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
     private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
@@ -122,7 +122,7 @@ submission.Wait();
 
 ### 2. 所有資源スロット
 
-ホストが所有する資源は、`ComputeResourceSlot<TResource>` または `ComputeResourceGroupSlot<TGroup>` のフィールドとして宣言し、`[ComputePipelineResource]` または `[ComputeResourceGroup]` を付けます。ジェネレーターは `TryEnsure<スロット名>(in <計画> plan, out bool changed)` を出力し、資源が単一のスロットについては `ComputeResourceBinding<TResource>` を返す `Get<スロット名>ComputeBinding()` も出力します。
+ホストが所有する資源は、`ComputeResourceSlot<TResource>` または `ComputeResourceGroupSlot<TGroup>` のフィールドとして宣言し、`[ComputePipelineResource]` を付けて `new()` で初期化します。グループスロットの `TGroup` は `[ComputeResourceGroup]` を付けた `sealed partial class` であり、そのメンバーは `[ComputePipelineResource]` を付けた取得専用のプロパティです。ジェネレーターは `TryEnsure<スロット名>(in <計画> plan, out bool changed)` を出力し、資源が単一のスロットについては `ComputeResourceBinding<TResource>` を返す `Get<スロット名>ComputeBinding()` も出力します。
 
 `TryEnsure` は所有資源が要求した計画に一致するかを返し、`changed` は新しい世代を発行したかを返します。世代を差し替えたときの内容の扱いは `ComputeResourceRecovery` が決め、`Discardable`、`RecreateFromHost`、`Recompute`、`CapacityOnly` から選びます。
 
@@ -209,11 +209,11 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 |---|---|
 | `[ComputePipelineHost(string deviceFieldName, int maximumConcurrentInvocations)]` | partial な型をパイプラインホストとして印付けます。 |
 | `[ComputePipeline]` | メソッドをパイプラインとして印付けます。第1引数は `in ComputeContext` でなければなりません。 |
-| `[ComputePipelineResource(ComputeResourceAccess access)]` | 所有資源スロットを宣言します。 |
-| `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | 復帰の方法を明示して所有資源スロットを宣言します。 |
-| `[ComputeResource(ComputeResourceAccess access)]` | グループ内の資源を宣言します。`Sharing` と `Aliasing` を設定できます。 |
+| `[ComputePipelineResource(ComputeResourceAccess access)]` | ホストが借りる資源、または資源グループのメンバーを宣言します。 |
+| `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | 復帰の方法とともに所有資源スロットを宣言します。 |
+| `[ComputeResource(ComputeResourceAccess access)]` | パイプラインメソッドの資源引数の参照契約を宣言します。`Sharing` と `Aliasing` を設定できます。 |
 | `[ComputeOwnedResource(string slotFieldName)]` | パイプラインの引数を所有スロットの資源へ束ねます。 |
-| `[ComputeResourceGroup]` | 資源グループのスロットを宣言します。 |
+| `[ComputeResourceGroup]` | `sealed partial class` を資源グループとして印付けます。 |
 | `[ComputeInterop]` | パイプラインメソッドを外部との往復として印付けます。 |
 | `[ComputeInteropResourceSet]` | partial な型を相互運用の資源集合として印付けます。 |
 | `[ComputeSharedTexture(resizePolicy, computeAccess, externalAccess, externalUsage, alphaMode, initialOwner, recovery)]` | 共有テクスチャのスロットを宣言します。 |

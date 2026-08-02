@@ -16,7 +16,7 @@ using ComputeWeave;
 [ComputePipelineHost("device", 1)]
 public sealed partial class Host
 {
-    private readonly GraphicsDevice device = null!;
+    private readonly GraphicsDevice device;
 
     [ComputePipelineResource(ComputeResourceAccess.ReadWrite, ComputeResourceRecovery.Recompute)]
     private readonly ComputeResourceSlot<ReadWriteBuffer<int>> index = new();
