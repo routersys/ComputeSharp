@@ -86,6 +86,52 @@ public unsafe partial class InteropServicesTests
         Assert.AreEqual(0, graphicsDevice.GetMemoryStatistics().NativeReferencedGenerationCount);
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceDefersTheReleaseOfATransferResource(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        ulong before = GetOwnedBytes(graphicsDevice);
+
+        ReadBackBuffer<float> buffer = graphicsDevice.AllocateReadBackBuffer<float>(1 << 16);
+        NativeResourceReference reference = InteropServices.AcquireNativeResource(buffer, out NativeResourceSynchronization synchronization);
+
+        ulong allocated = GetOwnedBytes(graphicsDevice);
+
+        Assert.IsTrue(allocated > before);
+        Assert.IsTrue(synchronization.LastWrite.IsNone);
+
+        buffer.Dispose();
+
+        Assert.AreEqual(allocated, GetOwnedBytes(graphicsDevice));
+
+        using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+        reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
+
+        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Width, (1ul << 16) * sizeof(float));
+
+        reference.Dispose();
+
+        Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceFromTransferTexture(Device device)
+    {
+        using UploadTexture2D<float> texture = device.Get().AllocateUploadTexture2D<float>(32, 32);
+
+        using NativeResourceReference reference = InteropServices.AcquireNativeResource(texture, out _);
+
+        using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+        reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
+
+        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Dimension, D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER);
+        Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+
     private static ulong GetOwnedBytes(GraphicsDevice device)
     {
         GraphicsMemoryStatistics statistics = device.GetMemoryStatistics();
