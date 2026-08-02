@@ -525,6 +525,30 @@ unsafe partial class GraphicsDevice
     }
 
     /// <summary>
+    /// Acquires a native reference on the current device.
+    /// </summary>
+    /// <returns>The resulting <see cref="NativeDeviceReference"/> instance.</returns>
+    internal NativeDeviceReference AcquireNativeDevice()
+    {
+        ReferenceTracker.Lease lease = GetReferenceTracker().GetLease();
+
+        try
+        {
+            ID3D12Device* d3D12Device = D3D12Device;
+
+            _ = d3D12Device->AddRef();
+
+            return new NativeDeviceReference(this, d3D12Device, lease);
+        }
+        catch
+        {
+            lease.Dispose();
+
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Releases a native reference previously acquired on a resource generation.
     /// </summary>
     /// <param name="owner">The owner of the referenced resource generation.</param>

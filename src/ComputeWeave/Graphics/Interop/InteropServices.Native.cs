@@ -224,6 +224,25 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
+    /// Acquires a native reference on a given device.
+    /// </summary>
+    /// <param name="device">The <see cref="GraphicsDevice"/> instance to reference.</param>
+    /// <returns>The resulting <see cref="NativeDeviceReference"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if <paramref name="device"/> has already been disposed.</exception>
+    /// <remarks>
+    /// The returned reference defers the release of the native objects the device owns until it is disposed.
+    /// Disposing the device is still accepted while the reference is held, and the device rejects new work
+    /// from that point on, but the object obtained from the reference stays valid.
+    /// </remarks>
+    public static NativeDeviceReference AcquireNativeDevice(GraphicsDevice device)
+    {
+        default(ArgumentNullException).ThrowIfNull(device);
+
+        return device.AcquireNativeDevice();
+    }
+
+    /// <summary>
     /// Gets the fence of a given queue of a device, as a specified interface.
     /// </summary>
     /// <param name="device">The <see cref="GraphicsDevice"/> instance in use.</param>
