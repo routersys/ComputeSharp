@@ -1,0 +1,155 @@
+using System;
+using ComputeWeave.Interop;
+using ComputeWeave.Tests.Attributes;
+using ComputeWeave.Tests.Extensions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
+
+namespace ComputeWeave.Tests;
+
+public unsafe partial class InteropServicesTests
+{
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceFromBuffer(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+
+        Assert.AreEqual(0, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+
+        NativeResourceReference reference = InteropServices.AcquireNativeResource(buffer, out _);
+
+        try
+        {
+            Assert.IsTrue(reference.IsValid);
+            Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+
+            using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+            reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
+
+            Assert.IsTrue(d3D12Resource.Get() != null);
+            Assert.AreEqual(d3D12Resource.Get()->GetDesc().Dimension, D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_BUFFER);
+        }
+        finally
+        {
+            reference.Dispose();
+        }
+
+        Assert.IsFalse(reference.IsValid);
+        Assert.AreEqual(0, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceIgnoresRedundantDisposal(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+
+        NativeResourceReference reference = InteropServices.AcquireNativeResource(buffer, out _);
+
+        reference.Dispose();
+        reference.Dispose();
+
+        Assert.AreEqual(0, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceOutlivesTheDisposalOfItsResource(Device device)
+    {
+        ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+
+        NativeResourceReference reference = InteropServices.AcquireNativeResource(buffer, out _);
+
+        using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+        reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
+
+        buffer.Dispose();
+
+        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Width, 128ul * sizeof(float));
+        Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+
+        reference.Dispose();
+
+        Assert.AreEqual(0, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceReportsTheCompletionOfSubmittedWork(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+
+        using (ComputeContext context = device.Get().CreateComputeContext())
+        {
+            context.Clear(buffer);
+            context.Submit();
+        }
+
+        using NativeResourceReference reference = InteropServices.AcquireNativeResource(
+            buffer,
+            out NativeResourceSynchronization synchronization,
+            NativeResourceAcquisition.AfterPendingWork);
+
+        Assert.IsFalse(synchronization.LastWrite.IsNone);
+        Assert.AreEqual(ComputeQueueKind.Compute, synchronization.LastWrite.Queue);
+
+        using ComPtr<ID3D12Fence> d3D12Fence = default;
+
+        InteropServices.GetID3D12Fence(
+            device.Get(),
+            synchronization.LastWrite.Queue,
+            Windows.__uuidof<ID3D12Fence>(),
+            (void**)d3D12Fence.GetAddressOf());
+
+        Assert.IsTrue(d3D12Fence.Get()->GetCompletedValue() >= synchronization.LastWrite.Value);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceDoesNotAllocateManagedMemory(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+
+        for (int i = 0; i < 4; i++)
+        {
+            InteropServices.AcquireNativeResource(buffer, out _).Dispose();
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        long minimum = long.MaxValue;
+
+        for (int i = 0; i < 16; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            InteropServices.AcquireNativeResource(buffer, out _).Dispose();
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        Assert.AreEqual(0, minimum);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeResourceFromTexture(Device device)
+    {
+        using ReadWriteTexture2D<float> texture = device.Get().AllocateReadWriteTexture2D<float>(32, 32);
+
+        using NativeResourceReference reference = InteropServices.AcquireNativeResource(texture, out _);
+
+        using ComPtr<ID3D12Resource> d3D12Resource = default;
+
+        reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
+
+        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Dimension, D3D12_RESOURCE_DIMENSION.D3D12_RESOURCE_DIMENSION_TEXTURE2D);
+        Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+}
