@@ -1,3 +1,4 @@
+using System;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -89,6 +90,51 @@ public partial class OwnedResourcePipelineTests
             {
                 Assert.AreEqual(seed[i] * (seed[i] + 1), results[i]);
             }
+        }
+        finally
+        {
+            host.Dispose();
+            host.WaitForDisposal();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Dispatch_SubmittingAPipelineDoesNotAllocateManagedMemory(Device device)
+    {
+        const int length = 64;
+
+        GraphicsDevice graphicsDevice = device.Get();
+        OwnedResourcePipelineHost host = OwnedResourcePipelineHost.Create(graphicsDevice, 3);
+
+        try
+        {
+            using ReadWriteBuffer<int> seedBuffer = graphicsDevice.AllocateReadWriteBuffer<int>(length);
+
+            Assert.IsTrue(host.TryEnsureDestination(new OwnedResourcePipelineHost.DestinationPlan(length), out _));
+            Assert.IsTrue(host.TryEnsureOperands(new OwnedOperandResources.Plan(length, length), out _));
+
+            for (int i = 0; i < 4; i++)
+            {
+                host.Prepare(seedBuffer, length).Wait();
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            long minimum = long.MaxValue;
+
+            for (int i = 0; i < 16; i++)
+            {
+                long before = GC.GetAllocatedBytesForCurrentThread();
+
+                host.Prepare(seedBuffer, length).Wait();
+
+                minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+            }
+
+            Assert.AreEqual(0, minimum);
         }
         finally
         {
