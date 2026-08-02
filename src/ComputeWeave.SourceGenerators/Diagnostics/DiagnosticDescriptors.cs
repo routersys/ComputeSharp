@@ -1396,4 +1396,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "The generated disposal of a compute pipeline host only releases its owned slots, so the host must not declare any other owned disposable field.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned resource parameter with an invalid declaration.
+    /// <para>
+    /// Format: <c>"The parameter {0} does not declare a valid owned resource contract"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOwnedResourceParameterDeclaration = new(
+        id: "CMPW0110",
+        title: "Invalid owned resource parameter declaration",
+        messageFormat: "The parameter {0} does not declare a valid owned resource contract",
+        category: "ComputeWeave.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A parameter annotated with [ComputeOwnedResource] must belong to a method annotated with [ComputePipeline], must not declare another resource contract, and must name an owned resource slot field declared by the host.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an owned resource parameter that does not declare the type of its slot.
+    /// <para>
+    /// Format: <c>"The parameter {0} declares the type {1}, but the owned resource slot {2} provides {3}"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOwnedResourceParameterType = new(
+        id: "CMPW0111",
+        title: "Invalid owned resource parameter type",
+        messageFormat: "The parameter {0} declares the type {1}, but the owned resource slot {2} provides {3}",
+        category: "ComputeWeave.Pipelines",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A parameter annotated with [ComputeOwnedResource] receives the resource owned by a ComputeResourceSlot<T>, or the resource group owned by a ComputeResourceGroupSlot<TGroup>, so it must declare that type argument.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
