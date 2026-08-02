@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -553,6 +554,31 @@ unsafe partial class GraphicsDevice
         }
 
         TryGetRegistrationRegistry()?.Coordinator.Wake();
+    }
+
+    /// <summary>
+    /// Records the resource generations of the current device that are still held by a native reference.
+    /// </summary>
+    /// <remarks>
+    /// A device teardown releases a generation without waiting for the native references taken on it, so a
+    /// non zero count explains resources the device leaves behind. This never prevents the disposal.
+    /// </remarks>
+    private void TraceOutstandingNativeReferences()
+    {
+        if (!Configuration.IsDebugOutputEnabled)
+        {
+            return;
+        }
+
+        int outstandingCount = NativeReferencedGenerationCount;
+
+        if (outstandingCount == 0)
+        {
+            return;
+        }
+
+        Trace.WriteLine(
+            $"""The device "{this}" is being disposed while {outstandingCount} resource generation(s) are still held by a native reference.""");
     }
 
     /// <summary>

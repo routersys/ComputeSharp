@@ -461,6 +461,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         DeviceHelper.NotifyDisposedDevice(this);
 
         DisposeRegistrationRegistry();
+        TraceOutstandingNativeReferences();
         SaveFinalFenceCompletedValues();
 
         this.memoryBudgetObserver?.Dispose();
