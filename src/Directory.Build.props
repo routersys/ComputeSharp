@@ -1,11 +1,21 @@
-<Project>
+﻿<Project>
   <Import Project="..\build\Directory.Build.props" />
 
-  <PropertyGroup Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props')">
-    <CustomAfterDirectoryBuildProps>$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.after.props</CustomAfterDirectoryBuildProps>
+  <!--
+    Solution builds cannot pass per project properties the way a project reference can, so a consumer that
+    embeds this repository as a submodule places its own ComputeWeave.Build.props next to the solution, in a
+    folder named after the solution. The consumer name is not hardcoded here.
+  -->
+  <PropertyGroup>
+    <ComputeWeaveConsumerBuildProps Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' != '' and '$(CustomBeforeDirectoryBuildProps)' == ''">$(SolutionDir)$(SolutionName)\ComputeWeave.Build.props</ComputeWeaveConsumerBuildProps>
+    <ComputeWeaveConsumerBuildProps Condition="!Exists('$(ComputeWeaveConsumerBuildProps)')"></ComputeWeaveConsumerBuildProps>
   </PropertyGroup>
 
-  <Import Project="$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props" Condition="'$(BuildingSolutionFile)' == 'true' and '$(SolutionName)' == 'TopologicalMaterialField' and '$(CustomBeforeDirectoryBuildProps)' == '' and Exists('$(SolutionDir)TopologicalMaterialField\ComputeWeave.Build.props')" />
+  <PropertyGroup Condition="'$(ComputeWeaveConsumerBuildProps)' != ''">
+    <CustomAfterDirectoryBuildProps>$(SolutionDir)$(SolutionName)\ComputeWeave.Build.after.props</CustomAfterDirectoryBuildProps>
+  </PropertyGroup>
+
+  <Import Project="$(ComputeWeaveConsumerBuildProps)" Condition="'$(ComputeWeaveConsumerBuildProps)' != ''" />
 
   <!-- Centralized packaging metadata for published projects -->
   <PropertyGroup Condition="$(IsPackagedProject)">
