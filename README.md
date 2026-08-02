@@ -49,7 +49,7 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
 
 The base library is unchanged. A compute shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches. Nothing in this document replaces that.
 
-What the fork adds is 56 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
+What the fork adds is 57 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
 
 Resources are not held directly. They live in slots that publish generations: `TryEnsure` asks a slot to match a requested plan, and a new generation is published only when the plan actually changes. Work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded.
 
@@ -126,6 +126,19 @@ A resource owned by a host is declared as a field of `ComputeResourceSlot<TResou
 
 `TryEnsure` reports whether the owned resources match the requested plan, and `changed` reports whether a new generation was published. `ComputeResourceRecovery` selects what happens to the contents when a generation is replaced: `Discardable`, `RecreateFromHost`, `Recompute` or `CapacityOnly`.
 
+A pipeline reaches the owned resources through a parameter marked with `[ComputeOwnedResource]`, naming the slot field. A `ComputeResourceSlot<TResource>` provides its `TResource`, a `ComputeResourceGroupSlot<TGroup>` provides its `TGroup` with every member assigned. Such a parameter is removed from the generated overload, as the caller does not supply it, and it refers to the generation pinned for that invocation rather than to whichever generation is active while the body runs.
+
+```csharp
+[ComputePipeline]
+private void Run(
+    in ComputeContext context,
+    [ComputeOwnedResource(nameof(index))] ReadWriteBuffer<int> index,
+    [ComputeOwnedResource(nameof(grid))] GridResources grid)
+{
+    context.For(index.Length, new Shader(index, grid.Cells));
+}
+```
+
 ### 3. Direct3D 11 interoperation
 
 An external API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
@@ -184,7 +197,7 @@ Allocation failures caused by the budget surface as `GraphicsMemoryAllocationExc
 
 ### 7. Compile-time validation
 
-The declarations above are checked by analyzers that report 93 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
 ---
 
@@ -199,6 +212,7 @@ The declarations above are checked by analyzers that report 93 diagnostics with 
 | `[ComputePipelineResource(ComputeResourceAccess access)]` | Declares an owned resource slot. |
 | `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | Declares an owned resource slot with an explicit recovery. |
 | `[ComputeResource(ComputeResourceAccess access)]` | Declares a resource inside a group. `Sharing` and `Aliasing` are settable. |
+| `[ComputeOwnedResource(string slotFieldName)]` | Binds a pipeline parameter to the resources of an owned slot. |
 | `[ComputeResourceGroup]` | Declares a resource group slot. |
 | `[ComputeInterop]` | Marks a pipeline method as an external interop round-trip. |
 | `[ComputeInteropResourceSet]` | Marks a partial type as an interop resource set. |

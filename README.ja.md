@@ -49,7 +49,7 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 
 基盤部分は変更していません。計算シェーダーは `IComputeShader` を実装する `partial struct` で、`GraphicsDevice.GetDefault()` がデバイスを返し、`For` がディスパッチします。本書はそれを置き換えるものではありません。
 
-このフォークが追加したのは、公開型56件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
+このフォークが追加したのは、公開型57件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
 
 資源は直接保持しません。世代を発行するスロットに入ります。`TryEnsure` はスロットへ要求した計画への一致を求め、計画が実際に変わったときだけ新しい世代を発行します。実行中の処理は捕捉した世代を生かし続けるため、資源の再確保が記録済みの投入を無効にすることはありません。
 
@@ -126,6 +126,19 @@ submission.Wait();
 
 `TryEnsure` は所有資源が要求した計画に一致するかを返し、`changed` は新しい世代を発行したかを返します。世代を差し替えたときの内容の扱いは `ComputeResourceRecovery` が決め、`Discardable`、`RecreateFromHost`、`Recompute`、`CapacityOnly` から選びます。
 
+パイプラインは、スロットのフィールド名を指定した `[ComputeOwnedResource]` を付けた引数で所有資源を受け取ります。`ComputeResourceSlot<TResource>` は `TResource` を、`ComputeResourceGroupSlot<TGroup>` は全メンバーを代入済みの `TGroup` を渡します。この引数は呼び出し側が与えるものではないため生成オーバーロードからは除かれ、本体の実行中に活性である世代ではなく、その呼び出しのために固定した世代を指します。
+
+```csharp
+[ComputePipeline]
+private void Run(
+    in ComputeContext context,
+    [ComputeOwnedResource(nameof(index))] ReadWriteBuffer<int> index,
+    [ComputeOwnedResource(nameof(grid))] GridResources grid)
+{
+    context.For(index.Length, new Shader(index, grid.Cells));
+}
+```
+
 ### 3. Direct3D 11との相互運用
 
 外部のAPIは `IComputeExternalInteropProvider<TView>` を実装して登録します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
@@ -184,7 +197,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 ### 7. コンパイル時の検証
 
-以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断93種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
+以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断95種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
 
 ---
 
@@ -199,6 +212,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `[ComputePipelineResource(ComputeResourceAccess access)]` | 所有資源スロットを宣言します。 |
 | `[ComputePipelineResource(ComputeResourceAccess access, ComputeResourceRecovery recovery)]` | 復帰の方法を明示して所有資源スロットを宣言します。 |
 | `[ComputeResource(ComputeResourceAccess access)]` | グループ内の資源を宣言します。`Sharing` と `Aliasing` を設定できます。 |
+| `[ComputeOwnedResource(string slotFieldName)]` | パイプラインの引数を所有スロットの資源へ束ねます。 |
 | `[ComputeResourceGroup]` | 資源グループのスロットを宣言します。 |
 | `[ComputeInterop]` | パイプラインメソッドを外部との往復として印付けます。 |
 | `[ComputeInteropResourceSet]` | partial な型を相互運用の資源集合として印付けます。 |
