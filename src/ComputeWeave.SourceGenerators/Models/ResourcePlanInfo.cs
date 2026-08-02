@@ -18,8 +18,20 @@ internal sealed record ResourcePlanInfo(string TypeName, EquatableArray<Resource
 internal sealed record ResourcePlanFieldInfo(string ParameterName, string PropertyName);
 
 /// <summary>
+/// A model representing a single member of a generated resource group generation.
+/// </summary>
+/// <param name="ParameterName">The name of the generated constructor parameter.</param>
+/// <param name="PropertyName">The name of the declared group member.</param>
+/// <param name="TypeName">The fully qualified name of the member resource type.</param>
+internal sealed record ResourceGroupMemberInfo(string ParameterName, string PropertyName, string TypeName);
+
+/// <summary>
 /// A model representing all necessary info for a full generation pass for a resource group plan.
 /// </summary>
 /// <param name="Hierarchy">The hierarchy info for the annotated type.</param>
 /// <param name="Plan">The exact resource plan of the annotated type.</param>
-internal sealed record ResourceGroupPlanInfo(HierarchyInfo Hierarchy, ResourcePlanInfo Plan);
+/// <param name="Members">The group members, in canonical member order.</param>
+internal sealed record ResourceGroupPlanInfo(
+    HierarchyInfo Hierarchy,
+    ResourcePlanInfo Plan,
+    EquatableArray<ResourceGroupMemberInfo> Members);

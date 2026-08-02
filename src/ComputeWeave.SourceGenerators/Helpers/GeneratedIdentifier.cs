@@ -15,6 +15,11 @@ internal static class GeneratedIdentifier
     public const string ResourceGroupPlanTypeName = "Plan";
 
     /// <summary>
+    /// The name of the factory resolving the generation of a resource group.
+    /// </summary>
+    public const string ResourceGroupGenerationFactoryName = "GetComputeGeneration";
+
+    /// <summary>
     /// Tries to create the generated canonical name for a given owned member name.
     /// </summary>
     /// <param name="sourceName">The source name of the owned member.</param>
@@ -59,11 +64,20 @@ internal static class GeneratedIdentifier
     /// <returns>The generated plan parameter name.</returns>
     public static string CreatePlanParameterName(string canonicalMemberName, ResourcePlanDimensionKind dimensionKind)
     {
+        return CreateParameterName(canonicalMemberName) + GetDimensionName(dimensionKind);
+    }
+
+    /// <summary>
+    /// Creates the generated parameter name for a given canonical member name.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the owned member.</param>
+    /// <returns>The generated parameter name.</returns>
+    public static string CreateParameterName(string canonicalMemberName)
+    {
         using ImmutableArrayBuilder<char> builder = new();
 
         builder.Add(char.ToLowerInvariant(canonicalMemberName[0]));
         builder.AddRange(canonicalMemberName.AsSpan(1));
-        builder.AddRange(GetDimensionName(dimensionKind).AsSpan());
 
         return builder.ToString();
     }
@@ -97,6 +111,16 @@ internal static class GeneratedIdentifier
     public static string CreateMaterializerTypeName(string canonicalMemberName)
     {
         return canonicalMemberName + "Materializer";
+    }
+
+    /// <summary>
+    /// Creates the generated name of the field caching the resolved generation of a resource group slot.
+    /// </summary>
+    /// <param name="canonicalMemberName">The generated canonical name of the owned member.</param>
+    /// <returns>The generated field name.</returns>
+    public static string CreateGenerationFieldName(string canonicalMemberName)
+    {
+        return "computeGeneration" + canonicalMemberName;
     }
 
     /// <summary>

@@ -54,6 +54,36 @@ internal static class ResourcePlanModelBuilder
     }
 
     /// <summary>
+    /// Tries to build the generation members of a given resource group.
+    /// </summary>
+    /// <param name="group">The resource group contract model to build the members of.</param>
+    /// <param name="members">The resulting members, in canonical member order.</param>
+    /// <returns>Whether the members of <paramref name="group"/> could be built.</returns>
+    public static bool TryBuildGroupMembers(ResourceGroupContractInfo group, out EquatableArray<ResourceGroupMemberInfo> members)
+    {
+        using ImmutableArrayBuilder<ResourceGroupMemberInfo> builder = new();
+
+        foreach (ResourceGroupMemberContractInfo member in group.Members)
+        {
+            if (!GeneratedIdentifier.TryCreateCanonicalName(member.MemberMetadataName, out string canonicalName))
+            {
+                members = default;
+
+                return false;
+            }
+
+            builder.Add(new ResourceGroupMemberInfo(
+                GeneratedIdentifier.CreateParameterName(canonicalName),
+                member.MemberMetadataName,
+                member.ResourceTypeName));
+        }
+
+        members = builder.ToImmutable();
+
+        return true;
+    }
+
+    /// <summary>
     /// Tries to build a single exact resource plan type.
     /// </summary>
     /// <param name="typeName">The name of the plan type.</param>

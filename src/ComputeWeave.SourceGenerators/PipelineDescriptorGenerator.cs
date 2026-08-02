@@ -132,14 +132,15 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
         if (context.TargetSymbol is not INamedTypeSymbol typeSymbol ||
             !PipelineWellKnownSymbols.TryCreate(context.SemanticModel.Compilation, out PipelineWellKnownSymbols? symbols) ||
             !ResourceGroupContractModelBuilder.TryBuild(typeSymbol, symbols, out ResourceGroupContractInfo group) ||
-            !ResourcePlanModelBuilder.TryBuildGroupPlan(group, out ResourcePlanInfo plan))
+            !ResourcePlanModelBuilder.TryBuildGroupPlan(group, out ResourcePlanInfo plan) ||
+            !ResourcePlanModelBuilder.TryBuildGroupMembers(group, out EquatableArray<ResourceGroupMemberInfo> members))
         {
             return null;
         }
 
         token.ThrowIfCancellationRequested();
 
-        return new ResourceGroupPlanInfo(HierarchyInfo.From(typeSymbol), plan);
+        return new ResourceGroupPlanInfo(HierarchyInfo.From(typeSymbol), plan, members);
     }
 
     /// <summary>
@@ -206,7 +207,15 @@ public sealed partial class PipelineDescriptorGenerator : IIncrementalGenerator
     {
         using IndentedTextWriter writer = new();
 
-        item.Hierarchy.WriteSyntax(item, writer, [], [static (item, writer) => WriteResourcePlan(item.Plan, writer)]);
+        item.Hierarchy.WriteSyntax(
+            item,
+            writer,
+            [],
+            [
+                static (item, writer) => WriteResourceGroupConstructor(item, writer),
+                static (item, writer) => WriteResourceGroupGenerationFactory(item, writer),
+                static (item, writer) => WriteResourcePlan(item.Plan, writer)
+            ]);
 
         context.AddSource($"{item.Hierarchy.FullyQualifiedMetadataName}.g.cs", writer.ToString());
     }
