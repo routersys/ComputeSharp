@@ -60,21 +60,21 @@
   <!-- Automatically set the configuration switches -->
   <ItemGroup>
 
-    <!-- COMPUTESHARP_ENABLE_DEBUG_OUTPUT switch -->
+    <!-- COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT switch -->
     <RuntimeHostConfigurationOption Condition="'$(ComputeWeaveEnableDebugOutput)' != ''"
-                                    Include="COMPUTESHARP_ENABLE_DEBUG_OUTPUT"
+                                    Include="COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT"
                                     Value="$(ComputeWeaveEnableDebugOutput)"
                                     Trim="true" />
 
-    <!-- COMPUTESHARP_ENABLE_DEVICE_REMOVED_EXTENDED_DATA switch -->
+    <!-- COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA switch -->
     <RuntimeHostConfigurationOption Condition="'$(ComputeWeaveEnableDeviceRemovedExtendedData)' != ''"
-                                    Include="COMPUTESHARP_ENABLE_DEVICE_REMOVED_EXTENDED_DATA"
+                                    Include="COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA"
                                     Value="$(ComputeWeaveEnableDeviceRemovedExtendedData)"
                                     Trim="true" />
 
-    <!-- COMPUTESHARP_ENABLE_GPU_TIMEOUT switch -->
+    <!-- COMPUTEWEAVE_ENABLE_GPU_TIMEOUT switch -->
     <RuntimeHostConfigurationOption Condition="'$(ComputeWeaveEnableGpuTimeout)' != ''"
-                                    Include="COMPUTESHARP_ENABLE_GPU_TIMEOUT"
+                                    Include="COMPUTEWEAVE_ENABLE_GPU_TIMEOUT"
                                     Value="$(ComputeWeaveEnableGpuTimeout)"
                                     Trim="true" />
   </ItemGroup>

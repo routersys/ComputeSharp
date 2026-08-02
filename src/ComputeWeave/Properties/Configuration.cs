@@ -22,17 +22,32 @@ internal static class Configuration
     /// <summary>
     /// The configuration property name for <see cref="IsDebugOutputEnabled"/>.
     /// </summary>
-    private const string IsDebugOutputEnabledPropertyName = "COMPUTESHARP_ENABLE_DEBUG_OUTPUT";
+    private const string IsDebugOutputEnabledPropertyName = "COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT";
 
     /// <summary>
     /// The configuration property name for <see cref="IsDeviceRemovedExtendedDataEnabled"/>.
     /// </summary>
-    private const string IsDeviceRemovedExtendedDataEnabledPropertyName = "COMPUTESHARP_ENABLE_DEVICE_REMOVED_EXTENDED_DATA";
+    private const string IsDeviceRemovedExtendedDataEnabledPropertyName = "COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA";
 
     /// <summary>
     /// The configuration property name for <see cref="IsGpuTimeoutEnabled"/>.
     /// </summary>
-    private const string IsGpuTimeoutEnabledPropertyName = "COMPUTESHARP_ENABLE_GPU_TIMEOUT";
+    private const string IsGpuTimeoutEnabledPropertyName = "COMPUTEWEAVE_ENABLE_GPU_TIMEOUT";
+
+    /// <summary>
+    /// The configuration property name <see cref="IsDebugOutputEnabled"/> had before the library was renamed.
+    /// </summary>
+    private const string IsDebugOutputEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_DEBUG_OUTPUT";
+
+    /// <summary>
+    /// The configuration property name <see cref="IsDeviceRemovedExtendedDataEnabled"/> had before the library was renamed.
+    /// </summary>
+    private const string IsDeviceRemovedExtendedDataEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_DEVICE_REMOVED_EXTENDED_DATA";
+
+    /// <summary>
+    /// The configuration property name <see cref="IsGpuTimeoutEnabled"/> had before the library was renamed.
+    /// </summary>
+    private const string IsGpuTimeoutEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_GPU_TIMEOUT";
 
     /// <summary>
     /// The backing field for <see cref="IsDebugOutputEnabled"/>.
@@ -55,7 +70,10 @@ internal static class Configuration
     public static bool IsDebugOutputEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(IsDebugOutputEnabledPropertyName, ref isDebugOutputEnabledConfigurationValue);
+        get => GetConfigurationValue(
+            IsDebugOutputEnabledPropertyName,
+            IsDebugOutputEnabledLegacyPropertyName,
+            ref isDebugOutputEnabledConfigurationValue);
     }
 
     /// <summary>
@@ -64,7 +82,10 @@ internal static class Configuration
     public static bool IsDeviceRemovedExtendedDataEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(IsDeviceRemovedExtendedDataEnabledPropertyName, ref isDeviceRemovedExtendedDataEnabledConfigurationValue);
+        get => GetConfigurationValue(
+            IsDeviceRemovedExtendedDataEnabledPropertyName,
+            IsDeviceRemovedExtendedDataEnabledLegacyPropertyName,
+            ref isDeviceRemovedExtendedDataEnabledConfigurationValue);
     }
 
     /// <summary>
@@ -73,16 +94,24 @@ internal static class Configuration
     public static bool IsGpuTimeoutEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(IsGpuTimeoutEnabledPropertyName, ref isGpuTimeoutEnabledConfigurationValue);
+        get => GetConfigurationValue(
+            IsGpuTimeoutEnabledPropertyName,
+            IsGpuTimeoutEnabledLegacyPropertyName,
+            ref isGpuTimeoutEnabledConfigurationValue);
     }
 
     /// <summary>
     /// Gets a configuration value for a specified property.
     /// </summary>
     /// <param name="propertyName">The property name to retrieve the value for.</param>
+    /// <param name="legacyPropertyName">The property name the switch had before the library was renamed.</param>
     /// <param name="cachedResult">The cached result for the target configuration value.</param>
     /// <returns>The value of the specified configuration setting.</returns>
-    private static bool GetConfigurationValue(string propertyName, ref int cachedResult)
+    /// <remarks>
+    /// The current name wins over the legacy one. An application that only sets the legacy name keeps the
+    /// behaviour it had before the rename, so that upgrading never silently changes a switch it relies on.
+    /// </remarks>
+    private static bool GetConfigurationValue(string propertyName, string legacyPropertyName, ref int cachedResult)
     {
         // The cached switch value has 3 states:
         //   0: unknown.
@@ -101,8 +130,9 @@ internal static class Configuration
             return true;
         }
 
-        // Get the configuration switch value, or its default
-        if (!AppContext.TryGetSwitch(propertyName, out bool isEnabled))
+        // Get the configuration switch value, the value of the legacy name, or its default
+        if (!AppContext.TryGetSwitch(propertyName, out bool isEnabled) &&
+            !AppContext.TryGetSwitch(legacyPropertyName, out isEnabled))
         {
             isEnabled = GetDefaultConfigurationValue(propertyName);
         }
