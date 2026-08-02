@@ -49,9 +49,23 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 
 基盤部分は変更していません。計算シェーダーは `IComputeShader` を実装する `partial struct` で、`GraphicsDevice.GetDefault()` がデバイスを返し、`For` がディスパッチします。本書はそれを置き換えるものではありません。
 
-このフォークが追加したのは、公開型57件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
+このフォークが追加したのは、公開型60件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
 
 資源は直接保持しません。世代を発行するスロットに入ります。`TryEnsure` はスロットへ要求した計画への一致を求め、計画が実際に変わったときだけ新しい世代を発行します。実行中の処理は捕捉した世代を生かし続けるため、資源の再確保が記録済みの投入を無効にすることはありません。
+
+### 何を保証するか
+
+このライブラリを通ってGPUへ到達する経路は全て追跡します。Lifetimeの追跡は「そのネイティブ資源を解放してよいか」に答え、Hazardの追跡は「その資源への参照がキュー間で順序付くか」に答えます。両者は別の性質であり、どちらを提供するかを経路ごとに明示します。
+
+| 経路 | Lifetime | Hazard |
+|---|---|---|
+| 生成パイプライン、`ComputeContext`、資源のコピー、相互運用ドメイン | あり | あり |
+| `InteropServices.AcquireNativeResource` | あり | なし |
+| `InteropServices.GetID3D12Resource` と転送資源の写像ビュー | なし | なし |
+
+ネイティブ参照は、ライブラリの外側にある対象がその資源を使っている間、資源の世代を生かし続けます。併せて、投入済みの処理の完了点を返すため、保持側はCPUを止めずに自分の処理を順序付けられます。順序付けそのものは行いません。順序が要る相互運用には相互運用ドメインを使います。
+
+最後の行は基盤ライブラリから引き継いだ逃げ道です。互換性のために残しており、追跡の対象外です。
 
 ---
 
@@ -278,6 +292,10 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | 貸与した外部ビューを使います。 |
 | `ExternalTextureDescriptor` | `Width`、`Height`、`Format`、`ExternalUsage`、`AlphaMode`。 |
 | `ExternalAdapterIdentity(long adapterLuid)` / `ExternalDomainId` | アダプターとドメインを識別します。 |
+| `InteropServices.AcquireNativeResource(resource, out NativeResourceSynchronization, NativeResourceAcquisition)` | バッファ、テクスチャ、転送資源の世代を、外部の対象が使っている間だけ生かします。 |
+| `NativeResourceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | ネイティブ参照を使い、解放します。必ず破棄してください。 |
+| `NativeResourceSynchronization.LastWrite` / `LastComputeRead` / `LastCopyRead` | その世代へ投入済みの処理の完了点を返します。 |
+| `InteropServices.GetID3D12Fence(GraphicsDevice, ComputeQueueKind, Guid*, void**)` | キューのフェンスを取得します。外部の処理を上の完了点へ待たせるために使います。 |
 
 ### 共有資源
 
@@ -303,7 +321,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `GraphicsDevice.GetMemoryStatistics()` | メモリ状態の断面を返します。 |
 | `GraphicsDevice.TrimMemory()` | 退役して待機中のメモリを解放します。 |
 | `GraphicsMemoryPolicy` | `BudgetBroker`、`LocalOwnedHardLimitBytes`、`NonLocalOwnedHardLimitBytes`。 |
-| `GraphicsMemoryStatistics` | `Epoch`、`Local`、`NonLocal`、`ActiveGenerationCount`、`RetiredGenerationCount`、`ManagedPoolSurplusCount`。 |
+| `GraphicsMemoryStatistics` | `Epoch`、`Local`、`NonLocal`、`ActiveGenerationCount`、`RetiredGenerationCount`、`ManagedPoolSurplusCount`、`NativeReferencedGenerationCount`。 |
 | `IGraphicsMemoryBudgetBroker.RegisterClient(in GraphicsMemoryClientDescriptor)` | 予算の利用者を登録します。 |
 | `IGraphicsMemoryBudgetClient.TryGetGrant(GraphicsMemorySegment, out GraphicsMemoryGrant)` | 区分に対する割り当てを要求します。 |
 | `GraphicsMemoryAllocationException` | 予算が確保を拒んだときに送出されます。 |

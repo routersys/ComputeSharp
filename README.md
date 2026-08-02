@@ -49,9 +49,23 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
 
 The base library is unchanged. A compute shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches. Nothing in this document replaces that.
 
-What the fork adds is 57 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
+What the fork adds is 60 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
 
 Resources are not held directly. They live in slots that publish generations: `TryEnsure` asks a slot to match a requested plan, and a new generation is published only when the plan actually changes. Work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded.
+
+### What is guaranteed
+
+Every path that reaches the GPU through this library is tracked. Lifetime tracking answers whether a native resource may be released. Hazard tracking answers whether accesses to it are ordered across queues. They are separate properties, and the library states which of them it provides.
+
+| Path | Lifetime | Hazard |
+|---|---|---|
+| Generated pipelines, `ComputeContext`, resource copies, interop domains | Yes | Yes |
+| `InteropServices.AcquireNativeResource` | Yes | No |
+| `InteropServices.GetID3D12Resource` and the mapped views of transfer resources | No | No |
+
+A native reference holds the resource generation alive while an object outside the library uses it, and reports the completion points of the work already submitted so the holder can order its own work without blocking. It does not order that work for you. Interoperation that needs ordering uses an interop domain instead.
+
+The last row is the escape hatch inherited from the base library. It is kept for compatibility and stays untracked.
 
 ---
 
@@ -278,6 +292,10 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | Uses the leased external view. |
 | `ExternalTextureDescriptor` | `Width`, `Height`, `Format`, `ExternalUsage`, `AlphaMode`. |
 | `ExternalAdapterIdentity(long adapterLuid)` / `ExternalDomainId` | Identifies the adapter and the domain. |
+| `InteropServices.AcquireNativeResource(resource, out NativeResourceSynchronization, NativeResourceAcquisition)` | Holds the resource generation of a buffer, a texture or a transfer resource while an external object uses it. |
+| `NativeResourceReference.QueryInterface(Guid*, void**)` / `TryQueryInterface(Guid*, void**)` / `IsValid` / `Dispose()` | Uses and releases a native reference. Must be disposed. |
+| `NativeResourceSynchronization.LastWrite` / `LastComputeRead` / `LastCopyRead` | Reports the completion points of the work already submitted for the generation. |
+| `InteropServices.GetID3D12Fence(GraphicsDevice, ComputeQueueKind, Guid*, void**)` | Gets the fence of a queue, so that external work can wait on those completion points. |
 
 ### Shared resources
 
@@ -303,7 +321,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `GraphicsDevice.GetMemoryStatistics()` | Returns a snapshot of the memory state. |
 | `GraphicsDevice.TrimMemory()` | Releases retired and idle memory. |
 | `GraphicsMemoryPolicy` | `BudgetBroker`, `LocalOwnedHardLimitBytes`, `NonLocalOwnedHardLimitBytes`. |
-| `GraphicsMemoryStatistics` | `Epoch`, `Local`, `NonLocal`, `ActiveGenerationCount`, `RetiredGenerationCount`, `ManagedPoolSurplusCount`. |
+| `GraphicsMemoryStatistics` | `Epoch`, `Local`, `NonLocal`, `ActiveGenerationCount`, `RetiredGenerationCount`, `ManagedPoolSurplusCount`, `NativeReferencedGenerationCount`. |
 | `IGraphicsMemoryBudgetBroker.RegisterClient(in GraphicsMemoryClientDescriptor)` | Registers a budget client. |
 | `IGraphicsMemoryBudgetClient.TryGetGrant(GraphicsMemorySegment, out GraphicsMemoryGrant)` | Requests a grant for a segment. |
 | `GraphicsMemoryAllocationException` | Thrown when the budget refuses an allocation. |
