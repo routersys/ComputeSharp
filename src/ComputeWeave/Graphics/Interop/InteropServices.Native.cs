@@ -116,6 +116,114 @@ public static unsafe partial class InteropServices
     }
 
     /// <summary>
+    /// Acquires a native reference on the resource generation currently backing a given transfer buffer.
+    /// </summary>
+    /// <typeparam name="T">The type of items stored on the buffer.</typeparam>
+    /// <param name="buffer">The <see cref="TransferBuffer{T}"/> instance to reference.</param>
+    /// <param name="synchronization">The completion points of the work already submitted for the generation.</param>
+    /// <param name="acquisition">The synchronization to perform while acquiring the reference.</param>
+    /// <returns>The resulting <see cref="NativeResourceReference"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="buffer"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the buffer has no available resource generation.</exception>
+    /// <remarks>
+    /// The runtime never leaves work pending on a transfer resource, so the reported completion points are
+    /// always empty. The reference defers the release of the mapped memory until it is disposed.
+    /// </remarks>
+    public static NativeResourceReference AcquireNativeResource<T>(
+        TransferBuffer<T> buffer,
+        out NativeResourceSynchronization synchronization,
+        NativeResourceAcquisition acquisition = NativeResourceAcquisition.Immediate)
+        where T : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(buffer);
+
+        using ReferenceTracker.Lease _0 = buffer.GraphicsDevice.GetReferenceTracker().GetLease();
+
+        return buffer.GraphicsDevice.AcquireNativeResource(buffer, acquisition, out synchronization);
+    }
+
+    /// <summary>
+    /// Acquires a native reference on the resource generation currently backing a given transfer texture.
+    /// </summary>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="texture">The <see cref="TransferTexture1D{T}"/> instance to reference.</param>
+    /// <param name="synchronization">The completion points of the work already submitted for the generation.</param>
+    /// <param name="acquisition">The synchronization to perform while acquiring the reference.</param>
+    /// <returns>The resulting <see cref="NativeResourceReference"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="texture"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the texture has no available resource generation.</exception>
+    /// <remarks>
+    /// The runtime never leaves work pending on a transfer resource, so the reported completion points are
+    /// always empty. The reference defers the release of the mapped memory until it is disposed.
+    /// </remarks>
+    public static NativeResourceReference AcquireNativeResource<T>(
+        TransferTexture1D<T> texture,
+        out NativeResourceSynchronization synchronization,
+        NativeResourceAcquisition acquisition = NativeResourceAcquisition.Immediate)
+        where T : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(texture);
+
+        using ReferenceTracker.Lease _0 = texture.GraphicsDevice.GetReferenceTracker().GetLease();
+
+        return texture.GraphicsDevice.AcquireNativeResource(texture, acquisition, out synchronization);
+    }
+
+    /// <summary>
+    /// Acquires a native reference on the resource generation currently backing a given transfer texture.
+    /// </summary>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="texture">The <see cref="TransferTexture2D{T}"/> instance to reference.</param>
+    /// <param name="synchronization">The completion points of the work already submitted for the generation.</param>
+    /// <param name="acquisition">The synchronization to perform while acquiring the reference.</param>
+    /// <returns>The resulting <see cref="NativeResourceReference"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="texture"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the texture has no available resource generation.</exception>
+    /// <remarks>
+    /// The runtime never leaves work pending on a transfer resource, so the reported completion points are
+    /// always empty. The reference defers the release of the mapped memory until it is disposed.
+    /// </remarks>
+    public static NativeResourceReference AcquireNativeResource<T>(
+        TransferTexture2D<T> texture,
+        out NativeResourceSynchronization synchronization,
+        NativeResourceAcquisition acquisition = NativeResourceAcquisition.Immediate)
+        where T : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(texture);
+
+        using ReferenceTracker.Lease _0 = texture.GraphicsDevice.GetReferenceTracker().GetLease();
+
+        return texture.GraphicsDevice.AcquireNativeResource(texture, acquisition, out synchronization);
+    }
+
+    /// <summary>
+    /// Acquires a native reference on the resource generation currently backing a given transfer texture.
+    /// </summary>
+    /// <typeparam name="T">The type of items stored on the texture.</typeparam>
+    /// <param name="texture">The <see cref="TransferTexture3D{T}"/> instance to reference.</param>
+    /// <param name="synchronization">The completion points of the work already submitted for the generation.</param>
+    /// <param name="acquisition">The synchronization to perform while acquiring the reference.</param>
+    /// <returns>The resulting <see cref="NativeResourceReference"/> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="texture"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the texture has no available resource generation.</exception>
+    /// <remarks>
+    /// The runtime never leaves work pending on a transfer resource, so the reported completion points are
+    /// always empty. The reference defers the release of the mapped memory until it is disposed.
+    /// </remarks>
+    public static NativeResourceReference AcquireNativeResource<T>(
+        TransferTexture3D<T> texture,
+        out NativeResourceSynchronization synchronization,
+        NativeResourceAcquisition acquisition = NativeResourceAcquisition.Immediate)
+        where T : unmanaged
+    {
+        default(ArgumentNullException).ThrowIfNull(texture);
+
+        using ReferenceTracker.Lease _0 = texture.GraphicsDevice.GetReferenceTracker().GetLease();
+
+        return texture.GraphicsDevice.AcquireNativeResource(texture, acquisition, out synchronization);
+    }
+
+    /// <summary>
     /// Gets the fence of a given queue of a device, as a specified interface.
     /// </summary>
     /// <param name="device">The <see cref="GraphicsDevice"/> instance in use.</param>

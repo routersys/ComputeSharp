@@ -57,6 +57,26 @@ internal static unsafe class ComputeGenerationDescriber
         };
     }
 
+    public static ComputeResourceAccess GetTransferObservedAccess(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.Upload => ComputeResourceAccess.Read,
+            ResourceType.ReadBack => ComputeResourceAccess.Write,
+            _ => default(ArgumentException).Throw<ComputeResourceAccess>(nameof(resourceType))
+        };
+    }
+
+    public static TrackedResourceState GetTransferResidentState(ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.Upload => TrackedResourceState.GenericRead,
+            ResourceType.ReadBack => TrackedResourceState.ReadbackCopyDestination,
+            _ => default(ArgumentException).Throw<TrackedResourceState>(nameof(resourceType))
+        };
+    }
+
     public static D3D12_RESOURCE_STATES GetD3D12ResourceStates(TrackedResourceState trackedState)
     {
         return trackedState switch

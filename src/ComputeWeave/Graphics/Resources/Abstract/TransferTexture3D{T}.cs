@@ -2,9 +2,12 @@ using System;
 using System.Runtime.CompilerServices;
 using ComputeWeave.Graphics.Extensions;
 using ComputeWeave.Graphics.Helpers;
+using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.Interop;
 using ComputeWeave.Interop.Allocation;
 using ComputeWeave.Memory;
+using ComputeWeave.Resources.Lifetime;
+using ComputeWeave.Resources.Plans;
 using ComputeWeave.Win32;
 using static ComputeWeave.Win32.D3D12_FORMAT_SUPPORT1;
 using ResourceType = ComputeWeave.Graphics.Resources.Enums.ResourceType;
@@ -17,13 +20,27 @@ namespace ComputeWeave.Resources;
 /// A <see langword="class"/> representing a typed 3D texture stored on on CPU memory, that can be used to transfer data to/from the GPU.
 /// </summary>
 /// <typeparam name="T">The type of items stored on the texture.</typeparam>
-public abstract unsafe partial class TransferTexture3D<T> : IReferenceTrackedObject, IGraphicsResource
+public abstract unsafe partial class TransferTexture3D<T> : IReferenceTrackedObject, IGraphicsResource, IResourceGenerationOwner, IGenerationBoundResource
     where T : unmanaged
 {
     /// <summary>
     /// The <see cref="ReferenceTracker"/> value for the current instance.
     /// </summary>
     private ReferenceTracker referenceTracker;
+
+    /// <summary>
+    /// The generation identity of the current texture.
+    /// </summary>
+    /// <remarks>
+    /// A transfer texture never exchanges generations and never produces usage entries, so the record only
+    /// carries its identity and the native references taken on it.
+    /// </remarks>
+    private ResourceGenerationBinding generationBinding;
+
+    /// <summary>
+    /// The resident state of the heap the current texture lives in.
+    /// </summary>
+    private readonly TrackedResourceState residentState;
 
     /// <summary>
     /// The memory accounting of <see cref="d3D12Resource"/>, if it is tracked by the memory coordinator.
@@ -96,11 +113,56 @@ public abstract unsafe partial class TransferTexture3D<T> : IReferenceTrackedObj
 
         this.mappedData = (T*)this.d3D12Resource.Get()->Map().Pointer;
 
+        this.residentState = ComputeGenerationDescriber.GetTransferResidentState(resourceType);
+
+        this.generationBinding.InitializeObservedAccess(ComputeGenerationDescriber.GetTransferObservedAccess(resourceType));
+
+        this.generationBinding.InitializeSelfOwned(
+            this,
+            device.ResourceIdentities,
+            this.residentState,
+            this.memoryAllocation.Placement,
+            this.memoryAllocation.Bytes);
+
         this.d3D12Resource.Get()->SetName(this);
     }
 
     /// <inheritdoc/>
     public GraphicsDevice GraphicsDevice { get; }
+
+    /// <inheritdoc/>
+    ResourceGenerationSetId IResourceGenerationOwner.SetId => this.generationBinding.SetId;
+
+    /// <inheritdoc/>
+    int IResourceGenerationOwner.ResourceCount => 1;
+
+    /// <inheritdoc/>
+    ref ResourceGenerationRecord IResourceGenerationOwner.GetResourceRecord(int resourceOrdinal)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
+        return ref this.generationBinding.Record;
+    }
+
+    /// <inheritdoc/>
+    ID3D12Resource* IResourceGenerationOwner.GetResourceNativePointer(int resourceOrdinal)
+    {
+        default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
+        return D3D12Resource;
+    }
+
+    /// <inheritdoc/>
+    void IGenerationBoundResource.BindGeneration(IResourceGenerationOwner owner, int resourceIndex)
+    {
+        this.generationBinding.BindToOwner(owner, resourceIndex);
+    }
+
+    /// <inheritdoc/>
+    bool IGenerationBoundResource.TryGetGenerationBinding(out ResourceUsageBinding binding)
+    {
+        return this.generationBinding.TryGetBinding(this.residentState, out binding);
+    }
 
     /// <summary>
     /// Gets the width of the current texture.
