@@ -57,24 +57,40 @@ public unsafe partial class InteropServicesTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void AcquireNativeResourceOutlivesTheDisposalOfItsResource(Device device)
+    public void AcquireNativeResourceDefersTheReleaseOfItsResource(Device device)
     {
-        ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(128);
+        GraphicsDevice graphicsDevice = device.Get();
+        ulong before = GetOwnedBytes(graphicsDevice);
 
+        ReadWriteBuffer<float> buffer = graphicsDevice.AllocateReadWriteBuffer<float>(1 << 16);
         NativeResourceReference reference = InteropServices.AcquireNativeResource(buffer, out _);
+
+        ulong allocated = GetOwnedBytes(graphicsDevice);
+
+        Assert.IsTrue(allocated > before);
+
+        buffer.Dispose();
+
+        Assert.AreEqual(allocated, GetOwnedBytes(graphicsDevice));
+        Assert.AreEqual(1, graphicsDevice.GetMemoryStatistics().NativeReferencedGenerationCount);
 
         using ComPtr<ID3D12Resource> d3D12Resource = default;
 
         reference.QueryInterface(Windows.__uuidof<ID3D12Resource>(), (void**)d3D12Resource.GetAddressOf());
 
-        buffer.Dispose();
-
-        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Width, 128ul * sizeof(float));
-        Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+        Assert.AreEqual(d3D12Resource.Get()->GetDesc().Width, (1ul << 16) * sizeof(float));
 
         reference.Dispose();
 
-        Assert.AreEqual(0, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
+        Assert.AreEqual(before, GetOwnedBytes(graphicsDevice));
+        Assert.AreEqual(0, graphicsDevice.GetMemoryStatistics().NativeReferencedGenerationCount);
+    }
+
+    private static ulong GetOwnedBytes(GraphicsDevice device)
+    {
+        GraphicsMemoryStatistics statistics = device.GetMemoryStatistics();
+
+        return statistics.Local.ComputeWeaveOwnedBytes + statistics.NonLocal.ComputeWeaveOwnedBytes;
     }
 
     [CombinatorialTestMethod]
