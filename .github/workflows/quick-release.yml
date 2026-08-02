@@ -101,19 +101,19 @@ jobs:
         run: |
           dotnet test tests/ComputeWeave.Tests.SourceGenerators/ComputeWeave.Tests.SourceGenerators.csproj \
             -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~PipelineHostEmissionTests"
+            --filter "FullyQualifiedName~PipelineHostEmissionTests|FullyQualifiedName~ResourcePlanEmissionTests|FullyQualifiedName~OwnedResourceParameterAnalyzerTests"
 
-      - name: 外部束縛のテストを実行
+      - name: 所有資源のテストを実行
         run: |
           dotnet test tests/ComputeWeave.Tests.Internals/ComputeWeave.Tests.Internals.csproj \
             -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~GeneratedInteropPipelineTests"
+            --filter "FullyQualifiedName~GeneratedPipelineHostTests"
 
-      - name: バッファの読み取り専用ビューのテストを実行
+      - name: 外部アセンブリからの利用のテストを実行
         run: |
           dotnet test tests/ComputeWeave.Tests/ComputeWeave.Tests.csproj \
             -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~BufferTests.Dispatch_ReadWriteBufferAsReadOnly|FullyQualifiedName~BufferTests.Dispatch_ReadOnlyBufferAsReadOnlyView"
+            --filter "FullyQualifiedName~OwnedResourcePipelineTests"
 
   pack:
     name: NuGet パッケージの作成
