@@ -193,6 +193,11 @@ public abstract unsafe partial class TransferTexture3D<T> : IReferenceTrackedObj
     /// Gets a <see cref="TextureView3D{T}"/> representing a view over the mapped contents of the current <see cref="TransferTexture3D{T}"/> instance.
     /// </summary>
     /// <remarks>The returned view is only valid while the current <see cref="TransferTexture3D{T}"/> instance is not disposed.</remarks>
+    /// <remarks>
+    /// The returned view is untracked. It stops being valid once the current instance is disposed, and the
+    /// runtime does not know it is in use. Hold a native reference with <c>AcquireNativeResource</c> to defer
+    /// the release of the mapped memory for the duration of the use.
+    /// </remarks>
     public TextureView3D<T> View
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

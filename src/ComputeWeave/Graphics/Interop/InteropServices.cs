@@ -32,6 +32,10 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="device"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the device can
+    /// be disposed while the object is still referenced.
+    /// </remarks>
     public static void GetID3D12Device(GraphicsDevice device, Guid* riid, void** ppvObject)
     {
         using ReferenceTracker.Lease _0 = device.GetReferenceTracker().GetLease();
@@ -49,6 +53,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="buffer"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(Buffer<T> buffer, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -67,6 +76,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(Texture1D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -85,6 +99,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(Texture2D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -103,6 +122,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(Texture3D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -121,6 +145,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="buffer"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(TransferBuffer<T> buffer, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -139,6 +168,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(TransferTexture2D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -157,6 +191,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvObject">The address of a pointer to an interface with the IID specified in <paramref name="riid"/>.</param>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
     /// <exception cref="Win32Exception">Thrown if the <c>IUnknown::QueryInterface</c> call doesn't return <c>S_OK</c>.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static void GetID3D12Resource<T>(TransferTexture3D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -177,6 +216,10 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="device"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the device can
+    /// be disposed while the object is still referenced.
+    /// </remarks>
     public static int TryGetID3D12Device(GraphicsDevice device, Guid* riid, void** ppvObject)
     {
         using ReferenceTracker.Lease _0 = device.GetReferenceTracker().GetLease();
@@ -197,6 +240,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="buffer"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(Buffer<T> buffer, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -218,6 +266,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(Texture1D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -239,6 +292,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(Texture2D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -260,6 +318,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(Texture3D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -281,6 +344,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="buffer"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(TransferBuffer<T> buffer, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -302,6 +370,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(TransferTexture2D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {
@@ -323,6 +396,11 @@ public static unsafe partial class InteropServices
     /// If <paramref name="ppvObject"/> (the address) is <see langword="null"/>, then this method returns <c>E_POINTER</c>.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The <paramref name="texture"/> instance has been disposed.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the returned object is in use, so the resource
+    /// generation backing it can be released while the object is still referenced. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </remarks>
     public static int TryGetID3D12Resource<T>(TransferTexture3D<T> texture, Guid* riid, void** ppvObject)
         where T : unmanaged
     {

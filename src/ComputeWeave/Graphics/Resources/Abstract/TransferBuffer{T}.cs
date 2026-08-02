@@ -169,6 +169,11 @@ public abstract unsafe partial class TransferBuffer<T> : IReferenceTrackedObject
     internal T* MappedData => this.mappedData;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The returned view is untracked. It stops being valid once the current instance is disposed, and the
+    /// runtime does not know it is in use. Hold a native reference with <c>AcquireNativeResource</c> to defer
+    /// the release of the mapped memory for the duration of the use.
+    /// </remarks>
     public Memory<T> Memory
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -181,6 +186,11 @@ public abstract unsafe partial class TransferBuffer<T> : IReferenceTrackedObject
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The returned view is untracked. It stops being valid once the current instance is disposed, and the
+    /// runtime does not know it is in use. Hold a native reference with <c>AcquireNativeResource</c> to defer
+    /// the release of the mapped memory for the duration of the use.
+    /// </remarks>
     public Span<T> Span
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
