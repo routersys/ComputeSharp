@@ -132,6 +132,41 @@ public unsafe partial class InteropServicesTests
         Assert.AreEqual(1, device.Get().GetMemoryStatistics().NativeReferencedGenerationCount);
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeDeviceKeepsTheNativeObjectValid(Device device)
+    {
+        using NativeDeviceReference reference = InteropServices.AcquireNativeDevice(device.Get());
+
+        Assert.IsTrue(reference.IsValid);
+
+        using ComPtr<ID3D12Device> d3D12Device = default;
+
+        reference.QueryInterface(Windows.__uuidof<ID3D12Device>(), (void**)d3D12Device.GetAddressOf());
+
+        Assert.IsTrue(d3D12Device.Get() != null);
+
+        LUID luid = d3D12Device.Get()->GetAdapterLuid();
+
+        Assert.IsTrue(*(ulong*)&luid != 0);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AcquireNativeDeviceIgnoresRedundantDisposal(Device device)
+    {
+        NativeDeviceReference reference = InteropServices.AcquireNativeDevice(device.Get());
+
+        reference.Dispose();
+        reference.Dispose();
+
+        Assert.IsFalse(reference.IsValid);
+
+        using ComPtr<ID3D12Device> d3D12Device = default;
+
+        Assert.AreEqual(E.E_FAIL, reference.TryQueryInterface(Windows.__uuidof<ID3D12Device>(), (void**)d3D12Device.GetAddressOf()));
+    }
+
     private static ulong GetOwnedBytes(GraphicsDevice device)
     {
         GraphicsMemoryStatistics statistics = device.GetMemoryStatistics();
