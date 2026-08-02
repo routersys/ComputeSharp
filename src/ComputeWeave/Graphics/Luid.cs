@@ -58,8 +58,12 @@ public readonly struct Luid : IEquatable<Luid>, ISpanFormattable
     /// Gets the raw value of the current luid.
     /// </summary>
     /// <returns>The raw value of the current luid.</returns>
+    /// <remarks>
+    /// An external interop provider reports the adapter it runs on as an <see cref="ExternalAdapterIdentity"/>,
+    /// which carries this value, so it has to be reachable from outside the library.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal long ToInt64()
+    public long ToInt64()
     {
         return (((long)this.highPart) << 32) | this.lowPart;
     }
