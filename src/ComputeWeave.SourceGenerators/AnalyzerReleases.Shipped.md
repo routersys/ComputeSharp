@@ -108,7 +108,7 @@ CMPW0107 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/r
 CMPW0108 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0109 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 
-## Release 1.1
+## Release 1.2
 
 ### New Rules
 
