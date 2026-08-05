@@ -22,16 +22,16 @@
 
     <!-- Package descriptions-->
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave'">
-<![CDATA[DirectX 12 と動的に生成される HLSL 計算シェーダーを通じて、C# のコードを GPU 上で並列に実行するライブラリです。]]>
+<![CDATA[A library for executing C# code in parallel on the GPU through DirectX 12 and dynamically generated HLSL compute shaders.]]>
     </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Core'">
-<![CDATA[ComputeWeave を支える基本型を収めたライブラリです。開発者が直接参照することは想定していません。]]>
+<![CDATA[A library containing the fundamental types that support ComputeWeave. It is not intended to be referenced directly by developers.]]>
     </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D3D12MemoryAllocator'">
-<![CDATA[グラフィックスリソースの確保に D3D12MA を用いるようにする、ComputeWeave の拡張ライブラリです。]]>
+<![CDATA[An extension library for ComputeWeave that uses D3D12MA to allocate graphics resources.]]>
     </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Dxc'">
-<![CDATA[DXC コンパイラーを同梱し、シェーダーのリフレクションを可能にする ComputeWeave の拡張ライブラリです。]]>
+<![CDATA[An extension library for ComputeWeave that bundles the DXC compiler and enables shader reflection.]]>
     </Description>
   </PropertyGroup>
 
