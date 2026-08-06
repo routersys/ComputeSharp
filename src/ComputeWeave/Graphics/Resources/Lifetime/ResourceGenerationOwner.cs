@@ -22,13 +22,17 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 {
     private readonly GraphicsDevice device;
 
-    private readonly ResourceGenerationRecord[] records;
+    private ResourceGenerationRecord record0;
+    private readonly ResourceGenerationRecord[]? records;
 
-    private readonly IReferenceTrackedObject?[] resources;
+    private IReferenceTrackedObject? resource0;
+    private readonly IReferenceTrackedObject?[]? resources;
 
-    private readonly ComPtr<ID3D12Resource>[] nativeResources;
+    private ComPtr<ID3D12Resource> nativeResource0;
+    private readonly ComPtr<ID3D12Resource>[]? nativeResources;
 
-    private readonly IDisposable?[] externalObjects;
+    private IDisposable? externalObject0;
+    private readonly IDisposable?[]? externalObjects;
 
     private readonly Lock accountingGate = new();
 
@@ -60,16 +64,21 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         this.device = device;
         this.reservation = reservation;
         Domain = domain;
-        this.records = new ResourceGenerationRecord[resourceCount];
-        this.resources = new IReferenceTrackedObject?[resourceCount];
-        this.nativeResources = new ComPtr<ID3D12Resource>[resourceCount];
-        this.externalObjects = new IDisposable?[resourceCount];
+        this.ResourceCount = resourceCount;
+
+        if (resourceCount > 1)
+        {
+            this.records = new ResourceGenerationRecord[resourceCount];
+            this.resources = new IReferenceTrackedObject?[resourceCount];
+            this.nativeResources = new ComPtr<ID3D12Resource>[resourceCount];
+            this.externalObjects = new IDisposable?[resourceCount];
+        }
 
         SetId = identities.CreateGenerationSetId();
 
         for (int i = 0; i < resourceCount; i++)
         {
-            ref ResourceGenerationRecord record = ref this.records[i];
+            ref ResourceGenerationRecord record = ref GetResourceRecord(i);
 
             record.ResourceId = identities.CreateResourceId();
             record.Id = identities.CreateGenerationId();
@@ -83,7 +92,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public ComputeInteropDomain? Domain { get; }
 
-    public int ResourceCount => this.records.Length;
+    public int ResourceCount { get; }
 
     public int AttachedCount => this.attachedCount;
 
@@ -93,26 +102,30 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
     {
+        if (this.records is null) return ref this.record0;
         return ref this.records[resourceOrdinal];
     }
 
     public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
     {
+        if (this.nativeResources is null) return this.nativeResource0.Get();
         return this.nativeResources[resourceOrdinal].Get();
     }
 
     public TResource? TryGetResource<TResource>(int resourceOrdinal)
         where TResource : class, IGraphicsResource
     {
-        return (uint)resourceOrdinal < (uint)this.records.Length ? this.resources[resourceOrdinal] as TResource : null;
+        if ((uint)resourceOrdinal >= (uint)ResourceCount) return null;
+        if (this.resources is null) return this.resource0 as TResource;
+        return this.resources[resourceOrdinal] as TResource;
     }
 
     public TView? TryGetExternalObject<TView>(int resourceOrdinal)
         where TView : class
     {
-        return (uint)resourceOrdinal < (uint)this.records.Length
-            ? Volatile.Read(ref this.externalObjects[resourceOrdinal]) as TView
-            : null;
+        if ((uint)resourceOrdinal >= (uint)ResourceCount) return null;
+        if (this.externalObjects is null) return Volatile.Read(ref this.externalObject0) as TView;
+        return Volatile.Read(ref this.externalObjects[resourceOrdinal]) as TView;
     }
 
     public void AttachResource(
@@ -127,32 +140,58 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         int resourceOrdinal = this.attachedCount;
 
         default(InvalidOperationException).ThrowIf(
-            resourceOrdinal >= this.records.Length,
+            resourceOrdinal >= ResourceCount,
             "The resource generation owner has no member left to attach.");
 
         default(ArgumentException).ThrowIf(resource is not IGenerationBoundResource, nameof(resource));
 
         ((IGenerationBoundResource)resource).BindGeneration(this, resourceOrdinal);
 
-        this.resources[resourceOrdinal] = resource;
-        this.nativeResources[resourceOrdinal] = new ComPtr<ID3D12Resource>(d3D12Resource);
-        this.records[resourceOrdinal].D3D12State = d3D12State;
-        this.records[resourceOrdinal].ReclaimableBytes = allocationByteLength;
+        if (this.records is null)
+        {
+            this.resource0 = resource;
+            this.nativeResource0 = new ComPtr<ID3D12Resource>(d3D12Resource);
+            this.record0.D3D12State = d3D12State;
+            this.record0.ReclaimableBytes = allocationByteLength;
+        }
+        else
+        {
+            this.resources![resourceOrdinal] = resource;
+            this.nativeResources![resourceOrdinal] = new ComPtr<ID3D12Resource>(d3D12Resource);
+            this.records[resourceOrdinal].D3D12State = d3D12State;
+            this.records[resourceOrdinal].ReclaimableBytes = allocationByteLength;
+        }
+
         this.attachedCount = resourceOrdinal + 1;
     }
 
     public void AttachExternalObject(int resourceOrdinal, IDisposable externalObject)
     {
         default(ArgumentNullException).ThrowIfNull(externalObject);
-        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, this.externalObjects.Length);
-        default(InvalidOperationException).ThrowIf(
-            this.records[resourceOrdinal].IsExternalObjectsReleased,
-            "The resource generation declares no external object to attach.");
-        default(InvalidOperationException).ThrowIf(
-            this.externalObjects[resourceOrdinal] is not null,
-            "The resource generation already owns an external object for that resource.");
+        if (this.externalObjects is null)
+        {
+            default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, 1);
+            default(InvalidOperationException).ThrowIf(
+                this.record0.IsExternalObjectsReleased,
+                "The resource generation declares no external object to attach.");
+            default(InvalidOperationException).ThrowIf(
+                this.externalObject0 is not null,
+                "The resource generation already owns an external object for that resource.");
 
-        this.externalObjects[resourceOrdinal] = externalObject;
+            this.externalObject0 = externalObject;
+        }
+        else
+        {
+            default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, this.externalObjects.Length);
+            default(InvalidOperationException).ThrowIf(
+                this.records![resourceOrdinal].IsExternalObjectsReleased,
+                "The resource generation declares no external object to attach.");
+            default(InvalidOperationException).ThrowIf(
+                this.externalObjects[resourceOrdinal] is not null,
+                "The resource generation already owns an external object for that resource.");
+
+            this.externalObjects[resourceOrdinal] = externalObject;
+        }
     }
 
     public bool TryReleaseExternalObjects()
@@ -162,14 +201,14 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
             return false;
         }
 
-        for (int i = this.externalObjects.Length - 1; i >= 0; i--)
+        for (int i = ResourceCount - 1; i >= 0; i--)
         {
             ReleaseExternalObject(i);
         }
 
-        for (int i = 0; i < this.records.Length; i++)
+        for (int i = 0; i < ResourceCount; i++)
         {
-            this.records[i].MarkExternalObjectsReleased();
+            GetResourceRecord(i).MarkExternalObjectsReleased();
         }
 
         return true;
@@ -178,22 +217,22 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
     public void CompleteConstruction()
     {
         default(InvalidOperationException).ThrowIf(
-            this.attachedCount != this.records.Length,
+            this.attachedCount != ResourceCount,
             "The resource generation owner has members left to attach.");
 
-        for (int i = 0; i < this.records.Length; i++)
+        for (int i = 0; i < ResourceCount; i++)
         {
             default(InvalidOperationException).ThrowIf(
-                !this.records[i].TryCompleteConstruction(),
+                !GetResourceRecord(i).TryCompleteConstruction(),
                 "The resource generation is no longer being constructed.");
         }
     }
 
     public void ReleaseUnpublished()
     {
-        for (int i = this.records.Length - 1; i >= 0; i--)
+        for (int i = ResourceCount - 1; i >= 0; i--)
         {
-            ref ResourceGenerationRecord record = ref this.records[i];
+            ref ResourceGenerationRecord record = ref GetResourceRecord(i);
 
             if (record.TryFailConstruction())
             {
@@ -222,9 +261,9 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
     {
         bool isFullyReleased = true;
 
-        for (int i = 0; i < this.records.Length; i++)
+        for (int i = 0; i < ResourceCount; i++)
         {
-            ref ResourceGenerationRecord record = ref this.records[i];
+            ref ResourceGenerationRecord record = ref GetResourceRecord(i);
 
             if (record.ReadLifecycle() is ResourceGenerationState.Released)
             {
@@ -268,15 +307,23 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
     {
         ReleaseExternalObject(resourceOrdinal);
 
-        IReferenceTrackedObject? resource = this.resources[resourceOrdinal];
-
-        this.resources[resourceOrdinal] = null;
+        IReferenceTrackedObject? resource;
+        if (this.resources is null)
+        {
+            resource = this.resource0;
+            this.resource0 = null;
+            this.nativeResource0.Dispose();
+        }
+        else
+        {
+            resource = this.resources[resourceOrdinal];
+            this.resources[resourceOrdinal] = null;
+            this.nativeResources![resourceOrdinal].Dispose();
+        }
 
         resource?.Dispose();
 
-        this.nativeResources[resourceOrdinal].Dispose();
-
-        if (Interlocked.Increment(ref this.releasedCount) == this.records.Length)
+        if (Interlocked.Increment(ref this.releasedCount) == ResourceCount)
         {
             SettleAccounting();
         }
@@ -284,7 +331,14 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     private void ReleaseExternalObject(int resourceOrdinal)
     {
-        Interlocked.Exchange(ref this.externalObjects[resourceOrdinal], null)?.Dispose();
+        if (this.externalObjects is null)
+        {
+            Interlocked.Exchange(ref this.externalObject0, null)?.Dispose();
+        }
+        else
+        {
+            Interlocked.Exchange(ref this.externalObjects[resourceOrdinal], null)?.Dispose();
+        }
     }
 
     private void SettleAccounting()
