@@ -137,77 +137,77 @@ internal sealed unsafe class DxcShaderCompiler
                     args->AddArguments(&argument, 1).Assert();
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.AllResourcesBound))
+                if ((compileOptions & CompileOptions.AllResourcesBound) == CompileOptions.AllResourcesBound)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pAllResourcesBound);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.DisableValidation))
+                if ((compileOptions & CompileOptions.DisableValidation) == CompileOptions.DisableValidation)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pDisableValidation);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.DisableOptimization))
+                if ((compileOptions & CompileOptions.DisableOptimization) == CompileOptions.DisableOptimization)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pDisableOptimization);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.AvoidFlowControl))
+                if ((compileOptions & CompileOptions.AvoidFlowControl) == CompileOptions.AvoidFlowControl)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pAvoidFlowControl);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.PreferFlowControl))
+                if ((compileOptions & CompileOptions.PreferFlowControl) == CompileOptions.PreferFlowControl)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pPreferFlowControl);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.EnableStrictness))
+                if ((compileOptions & CompileOptions.EnableStrictness) == CompileOptions.EnableStrictness)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pEnableStrictness);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.IeeeStrictness))
+                if ((compileOptions & CompileOptions.IeeeStrictness) == CompileOptions.IeeeStrictness)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pIeeeStrictness);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.EnableBackwardsCompatibility))
+                if ((compileOptions & CompileOptions.EnableBackwardsCompatibility) == CompileOptions.EnableBackwardsCompatibility)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pEnableBackwardsCompatibility);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.OptimizationLevel0))
+                if ((compileOptions & CompileOptions.OptimizationLevel0) == CompileOptions.OptimizationLevel0)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pOptimizationLevel0);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.OptimizationLevel1))
+                if ((compileOptions & CompileOptions.OptimizationLevel1) == CompileOptions.OptimizationLevel1)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pOptimizationLevel1);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.OptimizationLevel2))
+                if ((compileOptions & CompileOptions.OptimizationLevel2) == CompileOptions.OptimizationLevel2)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pOptimizationLevel2);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.OptimizationLevel3))
+                if ((compileOptions & CompileOptions.OptimizationLevel3) == CompileOptions.OptimizationLevel3)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pOptimizationLevel3);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.WarningsAreErrors))
+                if ((compileOptions & CompileOptions.WarningsAreErrors) == CompileOptions.WarningsAreErrors)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pWarningsAreErrors);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.ResourcesMayAlias))
+                if ((compileOptions & CompileOptions.ResourcesMayAlias) == CompileOptions.ResourcesMayAlias)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pResourcesMayAlias);
                 }
 
-                if (compileOptions.HasFlag(CompileOptions.StripReflectionData))
+                if ((compileOptions & CompileOptions.StripReflectionData) == CompileOptions.StripReflectionData)
                 {
                     AddArgument(dxcCompilerArgs.Get(), pStripReflectionData);
                 }

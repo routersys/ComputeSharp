@@ -368,7 +368,7 @@ internal static unsafe partial class IWICStreamExtensions
             {
                 Stream stream = @this->GetStream();
 
-                if (!statFlag.HasFlag(STATFLAG_NONAME))
+                if ((statFlag & STATFLAG_NONAME) != STATFLAG_NONAME)
                 {
                     if (stream is FileStream asFileStream)
                     {
