@@ -465,12 +465,23 @@ internal struct ResourceGenerationRecord
 
     public bool TryMarkComputeExecutionIssued()
     {
-        if (ReadOwnership() is not (ExternalOwnershipState.ComputeAvailable or ExternalOwnershipState.AcquireSignalEnqueued))
-        {
-            return false;
-        }
+        int current;
+        int computeAvailableBits = (int)ExternalOwnershipState.ComputeAvailable << OwnershipShift;
+        int acquireSignalBits = (int)ExternalOwnershipState.AcquireSignalEnqueued << OwnershipShift;
+        int executionIssuedBits = (int)ExternalOwnershipState.ComputeExecutionIssued << OwnershipShift;
 
-        WriteOwnership(ExternalOwnershipState.ComputeExecutionIssued);
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            int ownershipBits = current & OwnershipMask;
+
+            if (ownershipBits != computeAvailableBits && ownershipBits != acquireSignalBits)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~OwnershipMask) | executionIssuedBits, current) != current);
 
         return true;
     }
@@ -487,12 +498,19 @@ internal struct ResourceGenerationRecord
 
     public bool TryMarkOwnershipFaulted()
     {
-        if (ReadOwnership() is ExternalOwnershipState.Faulted)
-        {
-            return false;
-        }
+        int faultedBits = (int)ExternalOwnershipState.Faulted << OwnershipShift;
+        int current;
 
-        WriteOwnership(ExternalOwnershipState.Faulted);
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & OwnershipMask) == faultedBits)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~OwnershipMask) | faultedBits, current) != current);
 
         return true;
     }
@@ -525,11 +543,6 @@ internal struct ResourceGenerationRecord
         while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~OwnershipMask) | nextBits, current) != current);
 
         return true;
-    }
-
-    private void WriteOwnership(ExternalOwnershipState value)
-    {
-        SetStateBits(OwnershipMask, OwnershipShift, (int)value);
     }
 
     private bool TryTransitionLifecycle(ResourceGenerationState expected, ResourceGenerationState next)
