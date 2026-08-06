@@ -589,7 +589,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         ref ResourceGenerationRecord record = ref owner.GetResourceRecord(0);
 
-        if (Volatile.Read(ref record.ExternalObjectsReleased) != 0)
+        if (record.IsExternalObjectsReleased)
         {
             return null;
         }

@@ -21,9 +21,9 @@ public unsafe class SlotGateTests
                 new ResourceGenerationRecord
                 {
                     Id = new ResourceGenerationId(generationId),
+                    StateFlags = ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit,
                     Lifecycle = ResourceGenerationState.Active,
-                    OwnerReferenceCount = 1,
-                    ExternalObjectsReleased = 1
+                    OwnerReferenceCount = 1
                 }
             ];
         }

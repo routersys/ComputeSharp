@@ -96,9 +96,9 @@ internal struct ResourceGenerationBinding
         this.setId = identities.CreateGenerationSetId();
         this.record.ResourceId = identities.CreateResourceId();
         this.record.Id = identities.CreateGenerationId();
+        this.record.StateFlags = ResourceGenerationRecord.ExternalObjectsReleasedBit;
         this.record.Lifecycle = ResourceGenerationState.Active;
         this.record.D3D12State = d3D12State;
-        this.record.ExternalObjectsReleased = 1;
         this.owner = self;
         this.resourceIndex = 0;
     }
@@ -115,11 +115,11 @@ internal struct ResourceGenerationBinding
         this.setId = identities.CreateGenerationSetId();
         this.record.ResourceId = identities.CreateResourceId();
         this.record.Id = identities.CreateGenerationId();
+        this.record.StateFlags = ResourceGenerationRecord.ExternalObjectsReleasedBit;
         this.record.Lifecycle = ResourceGenerationState.Active;
         this.record.D3D12State = d3D12State;
         this.record.Placement = placement;
         this.record.ReclaimableBytes = reclaimableBytes;
-        this.record.ExternalObjectsReleased = 1;
         this.owner = self;
         this.resourceIndex = 0;
     }

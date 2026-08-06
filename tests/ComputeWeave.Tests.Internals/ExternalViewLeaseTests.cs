@@ -209,14 +209,14 @@ public class ExternalViewLeaseTests
         Assert.IsFalse(lease.IsDisposed);
         Assert.AreSame(view, lease.DangerousGetView());
         Assert.AreEqual(reservations, fixture.Scheduler.EnterCount);
-        Assert.AreEqual(1, fixture.Record.PersistentLeaseActive);
+        Assert.AreNotEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
         Assert.AreEqual(1, fixture.Record.ExternalReferenceCount);
 
         lease.Dispose();
         lease.Dispose();
 
         Assert.IsTrue(lease.IsDisposed);
-        Assert.AreEqual(0, fixture.Record.PersistentLeaseActive);
+        Assert.AreEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
         Assert.AreEqual(0, fixture.Record.ExternalReferenceCount);
 
         _ = Assert.ThrowsException<ObjectDisposedException>(lease.DangerousGetView);
@@ -235,7 +235,7 @@ public class ExternalViewLeaseTests
 
         _ = Assert.ThrowsException<InvalidOperationException>(fixture.Slot.AcquireExternalViewLease);
 
-        Assert.AreEqual(1, fixture.Record.PersistentLeaseActive);
+        Assert.AreNotEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
         Assert.AreEqual(1, fixture.Record.ExternalReferenceCount);
     }
 
@@ -249,7 +249,7 @@ public class ExternalViewLeaseTests
 
         _ = Assert.ThrowsException<InvalidOperationException>(fixture.Slot.AcquireExternalViewLease);
 
-        Assert.AreEqual(0, fixture.Record.PersistentLeaseActive);
+        Assert.AreEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
         Assert.AreEqual(0, fixture.Record.ExternalReferenceCount);
     }
 
@@ -366,6 +366,6 @@ public class ExternalViewLeaseTests
         lease.Dispose();
 
         Assert.AreEqual(0, owner.GetResourceRecord(0).ExternalReferenceCount);
-        Assert.AreEqual(0, owner.GetResourceRecord(0).PersistentLeaseActive);
+        Assert.AreEqual(0, owner.GetResourceRecord(0).StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
     }
 }

@@ -10,13 +10,15 @@ public class ResourceGenerationStateMachineTests
 {
     private static ResourceGenerationRecord ActiveRecord()
     {
-        return new ResourceGenerationRecord
+        ResourceGenerationRecord record = new()
         {
             Id = new ResourceGenerationId(1),
+            StateFlags = ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit,
             Lifecycle = ResourceGenerationState.Active,
-            OwnerReferenceCount = 1,
-            ExternalObjectsReleased = 1
+            OwnerReferenceCount = 1
         };
+
+        return record;
     }
 
     [TestMethod]
@@ -82,7 +84,7 @@ public class ResourceGenerationStateMachineTests
     {
         ResourceGenerationRecord record = ActiveRecord();
 
-        record.ExternalObjectsReleased = 0;
+        record.StateFlags &= ~ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit;
 
         Assert.IsTrue(record.TryRequestRetire());
 
@@ -90,7 +92,7 @@ public class ResourceGenerationStateMachineTests
 
         Assert.IsFalse(record.TryPromoteRetiredReady(true));
 
-        record.ExternalObjectsReleased = 1;
+        record.StateFlags |= ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit;
 
         Assert.IsTrue(record.TryPromoteRetiredReady(true));
     }

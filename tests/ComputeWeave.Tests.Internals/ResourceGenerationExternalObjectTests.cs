@@ -46,7 +46,7 @@ public class ResourceGenerationExternalObjectTests
     {
         ResourceGenerationOwner owner = CreateOwner(device.Get(), domain: null);
 
-        Assert.AreEqual(1, owner.GetResourceRecord(0).ExternalObjectsReleased);
+        Assert.IsTrue(owner.GetResourceRecord(0).IsExternalObjectsReleased);
 
         _ = Assert.ThrowsException<InvalidOperationException>(() => owner.AttachExternalObject(0, new TrackedExternalObject()));
 
@@ -67,13 +67,13 @@ public class ResourceGenerationExternalObjectTests
 
         owner.AttachExternalObject(0, externalObject);
 
-        Assert.AreEqual(0, owner.GetResourceRecord(0).ExternalObjectsReleased);
+        Assert.IsFalse(owner.GetResourceRecord(0).IsExternalObjectsReleased);
         Assert.AreEqual(0, externalObject.DisposeCount);
 
         Assert.IsTrue(owner.TryReleaseExternalObjects());
 
         Assert.AreEqual(1, externalObject.DisposeCount);
-        Assert.AreEqual(1, owner.GetResourceRecord(0).ExternalObjectsReleased);
+        Assert.IsTrue(owner.GetResourceRecord(0).IsExternalObjectsReleased);
 
         Assert.IsFalse(owner.TryReleaseExternalObjects());
         Assert.AreEqual(1, externalObject.DisposeCount);

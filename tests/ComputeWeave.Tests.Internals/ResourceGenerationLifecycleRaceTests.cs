@@ -17,8 +17,8 @@ public unsafe class ResourceGenerationLifecycleRaceTests
         private ResourceGenerationRecord record = new()
         {
             Id = new ResourceGenerationId(1),
-            Lifecycle = ResourceGenerationState.RetireRequested,
-            ExternalObjectsReleased = 1
+            StateFlags = ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit,
+            Lifecycle = ResourceGenerationState.RetireRequested
         };
 
         public ResourceGenerationSetId SetId => new(1);

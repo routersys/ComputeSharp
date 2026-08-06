@@ -1,5 +1,5 @@
 using System;
-using System.Runtime.CompilerServices;
+
 using System.Threading;
 using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.Memory;
@@ -8,23 +8,54 @@ namespace ComputeWeave.Resources.Lifetime;
 
 internal struct ResourceGenerationRecord
 {
+    internal const int PersistentLeaseActiveBit = 1 << 0;
+    internal const int ExternalObjectsReleasedBit = 1 << 1;
+
+    internal const int LifecycleShift = 2;
+    internal const int LifecycleMask = 0xF << LifecycleShift;
+
+    internal const int OwnershipShift = 6;
+    internal const int OwnershipMask = 0x7 << OwnershipShift;
+
+    internal const int D3D12StateShift = 9;
+    internal const int D3D12StateMask = 0x7 << D3D12StateShift;
+
+    internal const int PlacementShift = 12;
+    internal const int PlacementMask = 0x1 << PlacementShift;
+
+    internal const int RecoveryShift = 13;
+    internal const int RecoveryMask = 0x3 << RecoveryShift;
+
+    internal const int ReleaseAuthorityShift = 15;
+    internal const int ReleaseAuthorityMask = 0x3 << ReleaseAuthorityShift;
+
+    internal const int LastComputeReadQueueShift = 17;
+    internal const int LastComputeReadQueueMask = 0x3 << LastComputeReadQueueShift;
+
+    internal const int LastCopyReadQueueShift = 19;
+    internal const int LastCopyReadQueueMask = 0x3 << LastCopyReadQueueShift;
+
+    internal const int LastWriteQueueShift = 21;
+    internal const int LastWriteQueueMask = 0x3 << LastWriteQueueShift;
+
+    internal const int RetirementFenceQueueShift = 23;
+    internal const int RetirementFenceQueueMask = 0x3 << RetirementFenceQueueShift;
+
+    public ulong LastUseSequence;
+
+    public ulong ReclaimableBytes;
+
     public ResourceId ResourceId;
 
     public ResourceGenerationId Id;
 
-    public ResourceGenerationState Lifecycle;
+    public ulong LastComputeReadValue;
 
-    public ExternalOwnershipState Ownership;
+    public ulong LastCopyReadValue;
 
-    public TrackedResourceState D3D12State;
+    public ulong LastWriteValue;
 
-    public FencePoint LastComputeRead;
-
-    public FencePoint LastCopyRead;
-
-    public FencePoint LastWrite;
-
-    public FencePoint RetirementFence;
+    public ulong RetirementFenceValue;
 
     public int OwnerReferenceCount;
 
@@ -38,19 +69,94 @@ internal struct ResourceGenerationRecord
 
     public int NativeReferenceCount;
 
-    public int PersistentLeaseActive;
+    public int StateFlags;
 
-    public int ExternalObjectsReleased;
+    public ResourceGenerationState Lifecycle
+    {
+        readonly get => (ResourceGenerationState)((Volatile.Read(in this.StateFlags) & LifecycleMask) >> LifecycleShift);
+        set => SetStateBits(LifecycleMask, LifecycleShift, (int)value);
+    }
 
-    public MemoryPlacement Placement;
+    public ExternalOwnershipState Ownership
+    {
+        readonly get => (ExternalOwnershipState)((Volatile.Read(in this.StateFlags) & OwnershipMask) >> OwnershipShift);
+        set => SetStateBits(OwnershipMask, OwnershipShift, (int)value);
+    }
 
-    public ComputeResourceRecovery Recovery;
+    public TrackedResourceState D3D12State
+    {
+        readonly get => (TrackedResourceState)((Volatile.Read(in this.StateFlags) & D3D12StateMask) >> D3D12StateShift);
+        set => SetStateBits(D3D12StateMask, D3D12StateShift, (int)value);
+    }
 
-    public ResourceReleaseAuthority ReleaseAuthority;
+    public MemoryPlacement Placement
+    {
+        readonly get => (MemoryPlacement)((Volatile.Read(in this.StateFlags) & PlacementMask) >> PlacementShift);
+        set => SetStateBits(PlacementMask, PlacementShift, (int)value);
+    }
 
-    public ulong LastUseSequence;
+    public ComputeResourceRecovery Recovery
+    {
+        readonly get => (ComputeResourceRecovery)((Volatile.Read(in this.StateFlags) & RecoveryMask) >> RecoveryShift);
+        set => SetStateBits(RecoveryMask, RecoveryShift, (int)value);
+    }
 
-    public ulong ReclaimableBytes;
+    public ResourceReleaseAuthority ReleaseAuthority
+    {
+        readonly get => (ResourceReleaseAuthority)((Volatile.Read(in this.StateFlags) & ReleaseAuthorityMask) >> ReleaseAuthorityShift);
+        set => SetStateBits(ReleaseAuthorityMask, ReleaseAuthorityShift, (int)value);
+    }
+
+    public FencePoint LastComputeRead
+    {
+        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastComputeReadQueueMask) >> LastComputeReadQueueShift), this.LastComputeReadValue);
+        set
+        {
+            this.LastComputeReadValue = value.Value;
+            SetStateBits(LastComputeReadQueueMask, LastComputeReadQueueShift, (int)value.Queue);
+        }
+    }
+
+    public FencePoint LastCopyRead
+    {
+        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastCopyReadQueueMask) >> LastCopyReadQueueShift), this.LastCopyReadValue);
+        set
+        {
+            this.LastCopyReadValue = value.Value;
+            SetStateBits(LastCopyReadQueueMask, LastCopyReadQueueShift, (int)value.Queue);
+        }
+    }
+
+    public FencePoint LastWrite
+    {
+        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastWriteQueueMask) >> LastWriteQueueShift), this.LastWriteValue);
+        set
+        {
+            this.LastWriteValue = value.Value;
+            SetStateBits(LastWriteQueueMask, LastWriteQueueShift, (int)value.Queue);
+        }
+    }
+
+    public FencePoint RetirementFence
+    {
+        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & RetirementFenceQueueMask) >> RetirementFenceQueueShift), this.RetirementFenceValue);
+        set
+        {
+            this.RetirementFenceValue = value.Value;
+            SetStateBits(RetirementFenceQueueMask, RetirementFenceQueueShift, (int)value.Queue);
+        }
+    }
+
+    private void SetStateBits(int mask, int shift, int value)
+    {
+        int current;
+
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~mask) | (value << shift), current) != current);
+    }
 
     public readonly bool HasQueueReferences =>
         Volatile.Read(in this.RecordingReferenceCount) != 0 ||
@@ -71,7 +177,10 @@ internal struct ResourceGenerationRecord
         Volatile.Read(in this.ExternalReferenceCount) == 0 &&
         Volatile.Read(in this.CpuReferenceCount) == 0 &&
         Volatile.Read(in this.NativeReferenceCount) == 0 &&
-        Volatile.Read(in this.PersistentLeaseActive) == 0;
+        (Volatile.Read(in this.StateFlags) & PersistentLeaseActiveBit) == 0;
+
+    public readonly bool IsExternalObjectsReleased =>
+        (Volatile.Read(in this.StateFlags) & ExternalObjectsReleasedBit) != 0;
 
     public bool TryAcquireRecordingReference()
     {
@@ -124,14 +233,35 @@ internal struct ResourceGenerationRecord
 
     public bool TryAcquirePersistentLease()
     {
-        return Interlocked.CompareExchange(ref this.PersistentLeaseActive, 1, 0) == 0;
+        int current;
+
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & PersistentLeaseActiveBit) != 0)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, current | PersistentLeaseActiveBit, current) != current);
+
+        return true;
     }
 
     public void ReleasePersistentLease()
     {
-        default(InvalidOperationException).ThrowIf(
-            Interlocked.CompareExchange(ref this.PersistentLeaseActive, 0, 1) != 1,
-            "The resource generation holds no persistent lease.");
+        int current;
+
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            default(InvalidOperationException).ThrowIf(
+                (current & PersistentLeaseActiveBit) == 0,
+                "The resource generation holds no persistent lease.");
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, current & ~PersistentLeaseActiveBit, current) != current);
     }
 
     public bool TryAcquireCpuReference()
@@ -166,6 +296,22 @@ internal struct ResourceGenerationRecord
     public void ReleaseNativeReference()
     {
         Decrement(ref this.NativeReferenceCount);
+    }
+
+    public void MarkExternalObjectsReleased()
+    {
+        int current;
+
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & ExternalObjectsReleasedBit) != 0)
+            {
+                return;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, current | ExternalObjectsReleasedBit, current) != current);
     }
 
     public void ReleaseOwnerReference()
@@ -213,7 +359,7 @@ internal struct ResourceGenerationRecord
                 return false;
             }
 
-            if (HasReferences || !isRetirementFenceCompleted || Volatile.Read(in this.ExternalObjectsReleased) == 0)
+            if (HasReferences || !isRetirementFenceCompleted || !IsExternalObjectsReleased)
             {
                 _ = TryTransitionLifecycle(ResourceGenerationState.RetireRequested, ResourceGenerationState.RetiredPending);
 
@@ -239,7 +385,7 @@ internal struct ResourceGenerationRecord
                 ResourceGenerationState.Faulted =>
                     authority is ResourceReleaseAuthority.DomainTeardown &&
                     !HasQueueReferences &&
-                    Volatile.Read(in this.ExternalObjectsReleased) != 0,
+                    IsExternalObjectsReleased,
                 ResourceGenerationState.TerminalRetained => authority is ResourceReleaseAuthority.DeviceTeardown,
                 _ => false
             };
@@ -333,37 +479,57 @@ internal struct ResourceGenerationRecord
 
     public readonly ResourceGenerationState ReadLifecycle()
     {
-        return (ResourceGenerationState)Volatile.Read(in Unsafe.As<ResourceGenerationState, int>(ref Unsafe.AsRef(in this.Lifecycle)));
+        return (ResourceGenerationState)((Volatile.Read(in this.StateFlags) & LifecycleMask) >> LifecycleShift);
     }
 
     public readonly ExternalOwnershipState ReadOwnership()
     {
-        return (ExternalOwnershipState)Volatile.Read(in Unsafe.As<ExternalOwnershipState, byte>(ref Unsafe.AsRef(in this.Ownership)));
+        return (ExternalOwnershipState)((Volatile.Read(in this.StateFlags) & OwnershipMask) >> OwnershipShift);
     }
 
     private bool TryTransitionOwnership(ExternalOwnershipState expected, ExternalOwnershipState next)
     {
-        if (ReadOwnership() != expected)
-        {
-            return false;
-        }
+        int current;
+        int expectedBits = (int)expected << OwnershipShift;
+        int nextBits = (int)next << OwnershipShift;
 
-        WriteOwnership(next);
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & OwnershipMask) != expectedBits)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~OwnershipMask) | nextBits, current) != current);
 
         return true;
     }
 
     private void WriteOwnership(ExternalOwnershipState value)
     {
-        Volatile.Write(ref Unsafe.As<ExternalOwnershipState, byte>(ref this.Ownership), (byte)value);
+        SetStateBits(OwnershipMask, OwnershipShift, (int)value);
     }
 
     private bool TryTransitionLifecycle(ResourceGenerationState expected, ResourceGenerationState next)
     {
-        return Interlocked.CompareExchange(
-            ref Unsafe.As<ResourceGenerationState, int>(ref this.Lifecycle),
-            (int)next,
-            (int)expected) == (int)expected;
+        int current;
+        int expectedBits = (int)expected << LifecycleShift;
+        int nextBits = (int)next << LifecycleShift;
+
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & LifecycleMask) != expectedBits)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~LifecycleMask) | nextBits, current) != current);
+
+        return true;
     }
 
     private static void Increment(ref int count)
@@ -392,3 +558,4 @@ internal struct ResourceGenerationRecord
         while (Interlocked.CompareExchange(ref count, current - 1, current) != current);
     }
 }
+

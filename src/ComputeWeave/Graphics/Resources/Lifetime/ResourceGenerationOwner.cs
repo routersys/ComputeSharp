@@ -73,9 +73,9 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
             record.ResourceId = identities.CreateResourceId();
             record.Id = identities.CreateGenerationId();
+            record.StateFlags = domain is null ? ResourceGenerationRecord.ExternalObjectsReleasedBit : 0;
             record.Placement = reservation.Placement;
             record.Recovery = recovery;
-            record.ExternalObjectsReleased = domain is null ? 1 : 0;
         }
     }
 
@@ -146,7 +146,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         default(ArgumentNullException).ThrowIfNull(externalObject);
         default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, this.externalObjects.Length);
         default(InvalidOperationException).ThrowIf(
-            this.records[resourceOrdinal].ExternalObjectsReleased != 0,
+            this.records[resourceOrdinal].IsExternalObjectsReleased,
             "The resource generation declares no external object to attach.");
         default(InvalidOperationException).ThrowIf(
             this.externalObjects[resourceOrdinal] is not null,
@@ -169,7 +169,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
         for (int i = 0; i < this.records.Length; i++)
         {
-            Volatile.Write(ref this.records[i].ExternalObjectsReleased, 1);
+            this.records[i].MarkExternalObjectsReleased();
         }
 
         return true;
@@ -207,7 +207,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
                 record.ReleaseOwnerReference();
             }
 
-            _ = record.TryPromoteRetiredReady(this.device.IsFenceCompleted(in record.RetirementFence));
+            _ = record.TryPromoteRetiredReady(this.device.IsFenceCompleted(record.RetirementFence));
 
             if (record.TryBeginRelease(ResourceReleaseAuthority.NormalCompletion))
             {
@@ -231,7 +231,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
                 continue;
             }
 
-            _ = record.TryPromoteRetiredReady(this.device.IsFenceCompleted(in record.RetirementFence));
+            _ = record.TryPromoteRetiredReady(this.device.IsFenceCompleted(record.RetirementFence));
 
             if (record.TryBeginRelease(authority))
             {
@@ -358,3 +358,4 @@ internal readonly struct ResourceBindingRecord(
 
     public int ResourceIndex { get; } = resourceIndex;
 }
+

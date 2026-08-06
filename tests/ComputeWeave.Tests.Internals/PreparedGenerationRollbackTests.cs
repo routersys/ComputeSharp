@@ -22,9 +22,9 @@ public unsafe class PreparedGenerationRollbackTests
                 this.records[i] = new ResourceGenerationRecord
                 {
                     Id = new ResourceGenerationId((ulong)i + 1),
+                    StateFlags = externalObjectsReleased == 1 ? ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.ExternalObjectsReleasedBit : 0,
                     Lifecycle = ResourceGenerationState.Active,
-                    OwnerReferenceCount = 1,
-                    ExternalObjectsReleased = externalObjectsReleased
+                    OwnerReferenceCount = 1
                 };
             }
         }
