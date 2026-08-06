@@ -109,40 +109,60 @@ internal struct ResourceGenerationRecord
 
     public FencePoint LastComputeRead
     {
-        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastComputeReadQueueMask) >> LastComputeReadQueueShift), this.LastComputeReadValue);
+        readonly get
+        {
+            int flags = Volatile.Read(in this.StateFlags);
+            ulong fenceValue = Volatile.Read(in this.LastComputeReadValue);
+            return new((ComputeQueueKind)((flags & LastComputeReadQueueMask) >> LastComputeReadQueueShift), fenceValue);
+        }
         set
         {
-            this.LastComputeReadValue = value.Value;
+            Volatile.Write(ref this.LastComputeReadValue, value.Value);
             SetStateBits(LastComputeReadQueueMask, LastComputeReadQueueShift, (int)value.Queue);
         }
     }
 
     public FencePoint LastCopyRead
     {
-        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastCopyReadQueueMask) >> LastCopyReadQueueShift), this.LastCopyReadValue);
+        readonly get
+        {
+            int flags = Volatile.Read(in this.StateFlags);
+            ulong fenceValue = Volatile.Read(in this.LastCopyReadValue);
+            return new((ComputeQueueKind)((flags & LastCopyReadQueueMask) >> LastCopyReadQueueShift), fenceValue);
+        }
         set
         {
-            this.LastCopyReadValue = value.Value;
+            Volatile.Write(ref this.LastCopyReadValue, value.Value);
             SetStateBits(LastCopyReadQueueMask, LastCopyReadQueueShift, (int)value.Queue);
         }
     }
 
     public FencePoint LastWrite
     {
-        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & LastWriteQueueMask) >> LastWriteQueueShift), this.LastWriteValue);
+        readonly get
+        {
+            int flags = Volatile.Read(in this.StateFlags);
+            ulong fenceValue = Volatile.Read(in this.LastWriteValue);
+            return new((ComputeQueueKind)((flags & LastWriteQueueMask) >> LastWriteQueueShift), fenceValue);
+        }
         set
         {
-            this.LastWriteValue = value.Value;
+            Volatile.Write(ref this.LastWriteValue, value.Value);
             SetStateBits(LastWriteQueueMask, LastWriteQueueShift, (int)value.Queue);
         }
     }
 
     public FencePoint RetirementFence
     {
-        readonly get => new((ComputeQueueKind)((Volatile.Read(in this.StateFlags) & RetirementFenceQueueMask) >> RetirementFenceQueueShift), this.RetirementFenceValue);
+        readonly get
+        {
+            int flags = Volatile.Read(in this.StateFlags);
+            ulong fenceValue = Volatile.Read(in this.RetirementFenceValue);
+            return new((ComputeQueueKind)((flags & RetirementFenceQueueMask) >> RetirementFenceQueueShift), fenceValue);
+        }
         set
         {
-            this.RetirementFenceValue = value.Value;
+            Volatile.Write(ref this.RetirementFenceValue, value.Value);
             SetStateBits(RetirementFenceQueueMask, RetirementFenceQueueShift, (int)value.Queue);
         }
     }
