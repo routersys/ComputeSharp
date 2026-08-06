@@ -561,7 +561,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// <returns>Whether the drain completed.</returns>
     private bool TryCompleteFinalDrain(InteropResourceSetRuntime runtime, ResourceGenerationOwner owner)
     {
-        if (!runtime.Device.IsFenceCompleted(in owner.GetResourceRecord(0).RetirementFence))
+        if (!runtime.Device.IsFenceCompleted(owner.GetResourceRecord(0).RetirementFence))
         {
             return false;
         }

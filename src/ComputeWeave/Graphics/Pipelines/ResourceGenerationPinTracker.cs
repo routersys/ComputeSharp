@@ -114,7 +114,7 @@ internal static unsafe class ResourceGenerationPinTracker
                 record.ReleaseRecordingReference();
             }
 
-            _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
+            _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(record.RetirementFence));
         }
 
         pins.Clear();
@@ -163,7 +163,7 @@ internal static unsafe class ResourceGenerationPinTracker
 
         record.ReleaseRecordingReference();
 
-        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
+        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(record.RetirementFence));
     }
 
     private static ref ResourceGenerationRecord GetPinnedRecord(in ResourceGenerationPin pin)

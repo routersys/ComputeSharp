@@ -167,7 +167,7 @@ internal struct SlotControlRecord
 
         record.ReleaseExternalReference();
 
-        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
+        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(record.RetirementFence));
     }
 
     public static void ReleasePersistentLeasePin(GraphicsDevice device, in ResourceGenerationPin pin)
@@ -177,7 +177,7 @@ internal struct SlotControlRecord
         record.ReleaseExternalReference();
         record.ReleasePersistentLease();
 
-        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(in record.RetirementFence));
+        _ = record.TryPromoteRetiredReady(device.IsFenceCompleted(record.RetirementFence));
     }
 
     public readonly bool CanApplyLogicalUpdate(ResourceGenerationSetId expectedActiveSetId, ulong expectedBindingEpoch)

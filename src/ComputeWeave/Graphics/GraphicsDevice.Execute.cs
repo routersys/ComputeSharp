@@ -400,12 +400,12 @@ unsafe partial class GraphicsDevice
                 !record.TryAcquireCpuReference(),
                 "The generation of the CPU-accessed resource is no longer available.");
 
-            Accumulate(in record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
+            Accumulate(record.LastWrite, ref computeFenceWaitValue, ref copyFenceWaitValue);
 
             if (access is not ComputeResourceAccess.Read)
             {
-                Accumulate(in record.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
-                Accumulate(in record.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+                Accumulate(record.LastComputeRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
+                Accumulate(record.LastCopyRead, ref computeFenceWaitValue, ref copyFenceWaitValue);
             }
         }
 

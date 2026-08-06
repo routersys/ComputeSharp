@@ -194,7 +194,7 @@ internal static unsafe partial class ComputeSubmissionExecutor
 
             record.ReleasePendingSubmissionReference();
 
-            if (!record.TryPromoteRetiredReady(host.Device.IsFenceCompleted(in record.RetirementFence)))
+            if (!record.TryPromoteRetiredReady(host.Device.IsFenceCompleted(record.RetirementFence)))
             {
                 continue;
             }
