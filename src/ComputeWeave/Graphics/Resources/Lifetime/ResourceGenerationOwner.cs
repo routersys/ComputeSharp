@@ -424,21 +424,3 @@ internal readonly struct ResourceGenerationPin(ResourceGenerationSetHandle handl
 
     public int ResourceIndex { get; } = resourceIndex;
 }
-
-internal readonly struct ResourceBindingRecord(
-    SlotOrdinal slot,
-    ResourceGenerationSetId setId,
-    ResourceGenerationId generationId,
-    ulong bindingEpoch,
-    int resourceIndex)
-{
-    public SlotOrdinal Slot { get; } = slot;
-
-    public ResourceGenerationSetId SetId { get; } = setId;
-
-    public ResourceGenerationId GenerationId { get; } = generationId;
-
-    public ulong BindingEpoch { get; } = bindingEpoch;
-
-    public int ResourceIndex { get; } = resourceIndex;
-}
