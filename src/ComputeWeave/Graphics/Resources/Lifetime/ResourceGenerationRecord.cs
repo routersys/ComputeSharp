@@ -395,17 +395,23 @@ internal struct ResourceGenerationRecord
 
     public bool TryBeginRelease(ResourceReleaseAuthority authority)
     {
-        while (true)
-        {
-            ResourceGenerationState current = ReadLifecycle();
+        int current;
+        int releasingBits = (int)ResourceGenerationState.Releasing << LifecycleShift;
+        int authorityBits = ((int)authority << ReleaseAuthorityShift) & ReleaseAuthorityMask;
 
-            bool isAuthorized = current switch
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            ResourceGenerationState lifecycle = (ResourceGenerationState)((current & LifecycleMask) >> LifecycleShift);
+
+            bool isAuthorized = lifecycle switch
             {
                 ResourceGenerationState.RetiredReady => authority is ResourceReleaseAuthority.NormalCompletion,
                 ResourceGenerationState.Faulted =>
                     authority is ResourceReleaseAuthority.DomainTeardown &&
                     !HasQueueReferences &&
-                    IsExternalObjectsReleased,
+                    (current & ExternalObjectsReleasedBit) != 0,
                 ResourceGenerationState.TerminalRetained => authority is ResourceReleaseAuthority.DeviceTeardown,
                 _ => false
             };
@@ -414,24 +420,35 @@ internal struct ResourceGenerationRecord
             {
                 return false;
             }
-
-            if (TryTransitionLifecycle(current, ResourceGenerationState.Releasing))
-            {
-                this.ReleaseAuthority = authority;
-
-                return true;
-            }
         }
+        while (Interlocked.CompareExchange(
+            ref this.StateFlags,
+            (current & ~(LifecycleMask | ReleaseAuthorityMask)) | releasingBits | authorityBits,
+            current) != current);
+
+        return true;
     }
 
     public bool TryCompleteRelease(ResourceReleaseAuthority authority)
     {
-        if (this.ReleaseAuthority != authority)
-        {
-            return false;
-        }
+        int current;
+        int expectedBits =
+            ((int)ResourceGenerationState.Releasing << LifecycleShift) |
+            (((int)authority << ReleaseAuthorityShift) & ReleaseAuthorityMask);
+        int releasedBits = (int)ResourceGenerationState.Released << LifecycleShift;
 
-        return TryTransitionLifecycle(ResourceGenerationState.Releasing, ResourceGenerationState.Released);
+        do
+        {
+            current = Volatile.Read(ref this.StateFlags);
+
+            if ((current & (LifecycleMask | ReleaseAuthorityMask)) != expectedBits)
+            {
+                return false;
+            }
+        }
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~LifecycleMask) | releasedBits, current) != current);
+
+        return true;
     }
 
     public bool TryMarkFaulted()
