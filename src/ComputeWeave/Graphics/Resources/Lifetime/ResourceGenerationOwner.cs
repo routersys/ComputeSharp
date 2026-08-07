@@ -442,4 +442,3 @@ internal readonly struct ResourceBindingRecord(
 
     public int ResourceIndex { get; } = resourceIndex;
 }
-

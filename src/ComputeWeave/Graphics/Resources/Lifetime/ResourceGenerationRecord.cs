@@ -1,5 +1,4 @@
 using System;
-
 using System.Threading;
 using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.Memory;
@@ -592,4 +591,3 @@ internal struct ResourceGenerationRecord
         while (Interlocked.CompareExchange(ref count, current - 1, current) != current);
     }
 }
-
