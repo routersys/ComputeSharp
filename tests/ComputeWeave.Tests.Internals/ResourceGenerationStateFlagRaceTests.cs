@@ -194,6 +194,47 @@ public unsafe class ResourceGenerationStateFlagRaceTests
     }
 
     [TestMethod]
+    public void NeverCompletesAReleaseWithAnAuthorityThatDidNotBeginIt()
+    {
+        for (int round = 0; round < RoundCount; round++)
+        {
+            GenerationOwner owner = new();
+
+            owner.GetResourceRecord(0).Lifecycle = ResourceGenerationState.TerminalRetained;
+            owner.GetResourceRecord(0).ReleaseAuthority = ResourceReleaseAuthority.NormalCompletion;
+
+            int begunCount = 0;
+            int completedCount = 0;
+
+            _ = RunSimultaneously(index =>
+            {
+                if (index == 0)
+                {
+                    if (owner.GetResourceRecord(0).TryBeginRelease(ResourceReleaseAuthority.DeviceTeardown))
+                    {
+                        _ = Interlocked.Increment(ref begunCount);
+                    }
+                }
+                else if (owner.GetResourceRecord(0).TryCompleteRelease(ResourceReleaseAuthority.NormalCompletion))
+                {
+                    _ = Interlocked.Increment(ref completedCount);
+                }
+
+                return false;
+            });
+
+            ref ResourceGenerationRecord record = ref owner.GetResourceRecord(0);
+
+            Assert.AreEqual(1, begunCount);
+            Assert.AreEqual(0, completedCount);
+            Assert.AreEqual(ResourceGenerationState.Releasing, record.ReadLifecycle());
+            Assert.AreEqual(ResourceReleaseAuthority.DeviceTeardown, record.ReleaseAuthority);
+            Assert.IsTrue(record.TryCompleteRelease(ResourceReleaseAuthority.DeviceTeardown));
+            Assert.AreEqual(ResourceGenerationState.Released, record.ReadLifecycle());
+        }
+    }
+
+    [TestMethod]
     public void KeepsEveryFenceQueueInItsOwnBitRange()
     {
         GenerationOwner owner = new();
