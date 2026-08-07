@@ -102,29 +102,57 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
     {
-        if (this.records is null) return ref this.record0;
+        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, ResourceCount);
+
+        if (this.records is null)
+        {
+            return ref this.record0;
+        }
+
         return ref this.records[resourceOrdinal];
     }
 
     public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
     {
-        if (this.nativeResources is null) return this.nativeResource0.Get();
+        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, ResourceCount);
+
+        if (this.nativeResources is null)
+        {
+            return this.nativeResource0.Get();
+        }
+
         return this.nativeResources[resourceOrdinal].Get();
     }
 
     public TResource? TryGetResource<TResource>(int resourceOrdinal)
         where TResource : class, IGraphicsResource
     {
-        if ((uint)resourceOrdinal >= (uint)ResourceCount) return null;
-        if (this.resources is null) return this.resource0 as TResource;
+        if ((uint)resourceOrdinal >= (uint)ResourceCount)
+        {
+            return null;
+        }
+
+        if (this.resources is null)
+        {
+            return this.resource0 as TResource;
+        }
+
         return this.resources[resourceOrdinal] as TResource;
     }
 
     public TView? TryGetExternalObject<TView>(int resourceOrdinal)
         where TView : class
     {
-        if ((uint)resourceOrdinal >= (uint)ResourceCount) return null;
-        if (this.externalObjects is null) return Volatile.Read(ref this.externalObject0) as TView;
+        if ((uint)resourceOrdinal >= (uint)ResourceCount)
+        {
+            return null;
+        }
+
+        if (this.externalObjects is null)
+        {
+            return Volatile.Read(ref this.externalObject0) as TView;
+        }
+
         return Volatile.Read(ref this.externalObjects[resourceOrdinal]) as TView;
     }
 
@@ -168,6 +196,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
     public void AttachExternalObject(int resourceOrdinal, IDisposable externalObject)
     {
         default(ArgumentNullException).ThrowIfNull(externalObject);
+
         if (this.externalObjects is null)
         {
             default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, 1);
@@ -308,6 +337,7 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
         ReleaseExternalObject(resourceOrdinal);
 
         IReferenceTrackedObject? resource;
+
         if (this.resources is null)
         {
             resource = this.resource0;
