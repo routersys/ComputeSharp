@@ -24,6 +24,20 @@ public class ResourceGenerationReferenceCallSiteTests
         UnsynchronizedPoisonPath
     }
 
+    private const string RecordType = nameof(ResourceGenerationRecord);
+
+    private const string SlotGateType = "SlotGate";
+
+    private const string SpinLockEntry = "SpinLock.Enter";
+
+    private const string HazardGateEntry = "Lock.EnterScope";
+
+    private static readonly string[] LeaseEntries =
+    [
+        "ID3D12ReadOnlyResource.ValidateAndGetID3D12Resource",
+        "ReferenceTracker.GetLease"
+    ];
+
     private static readonly string[] AcquisitionPrimitives =
     [
         "TryAcquireCpuReference",
@@ -83,31 +97,53 @@ public class ResourceGenerationReferenceCallSiteTests
         };
     }
 
-    private static string? TryGetTargetName(MetadataReader reader, int token)
+    private static string? TryGetQualifiedName(MetadataReader reader, int token)
     {
         EntityHandle handle = MetadataTokens.EntityHandle(token);
 
-        if (handle.Kind is not HandleKind.MethodDefinition)
+        if (handle.Kind is HandleKind.MethodDefinition)
         {
-            return null;
+            MethodDefinition definition = reader.GetMethodDefinition((MethodDefinitionHandle)handle);
+            TypeDefinition owner = reader.GetTypeDefinition(definition.GetDeclaringType());
+
+            return $"{reader.GetString(owner.Name)}.{reader.GetString(definition.Name)}";
         }
 
-        MethodDefinition definition = reader.GetMethodDefinition((MethodDefinitionHandle)handle);
-        TypeDefinition owner = reader.GetTypeDefinition(definition.GetDeclaringType());
-
-        if (reader.GetString(owner.Name) is not nameof(ResourceGenerationRecord))
+        if (handle.Kind is HandleKind.MemberReference)
         {
-            return null;
+            MemberReference reference = reader.GetMemberReference((MemberReferenceHandle)handle);
+
+            string owner = reference.Parent.Kind switch
+            {
+                HandleKind.TypeReference => reader.GetString(reader.GetTypeReference((TypeReferenceHandle)reference.Parent).Name),
+                HandleKind.TypeDefinition => reader.GetString(reader.GetTypeDefinition((TypeDefinitionHandle)reference.Parent).Name),
+                _ => null!
+            };
+
+            return owner is null ? null : $"{owner}.{reader.GetString(reference.Name)}";
         }
 
-        return reader.GetString(definition.Name);
+        return null;
     }
 
-    private static SortedSet<string> ScanCallSites()
+    private static HashSet<string> BuildWatchedTargets()
     {
-        SortedSet<string> callSites = [];
+        HashSet<string> watched = [SpinLockEntry, HazardGateEntry, .. LeaseEntries];
+
+        foreach (string primitive in AcquisitionPrimitives.Concat(ActiveExitPrimitives))
+        {
+            _ = watched.Add($"{RecordType}.{primitive}");
+        }
+
+        return watched;
+    }
+
+    private static (Dictionary<string, SortedSet<string>> Calls, SortedSet<string> PublicSlotGateMembers) Scan()
+    {
+        Dictionary<string, SortedSet<string>> calls = [];
+        SortedSet<string> publicSlotGateMembers = [];
         Dictionary<short, OpCode> table = BuildOpCodeTable();
-        HashSet<string> watched = [.. AcquisitionPrimitives, .. ActiveExitPrimitives];
+        HashSet<string> watched = BuildWatchedTargets();
 
         using FileStream stream = File.OpenRead(typeof(ResourceGenerationRecord).Assembly.Location);
         using PEReader peReader = new(stream);
@@ -121,6 +157,16 @@ public class ResourceGenerationReferenceCallSiteTests
             if (method.RelativeVirtualAddress == 0)
             {
                 continue;
+            }
+
+            TypeDefinition owner = reader.GetTypeDefinition(method.GetDeclaringType());
+            string caller = $"{reader.GetString(owner.Name)}.{reader.GetString(method.Name)}";
+
+            if (reader.GetString(owner.Name) is SlotGateType &&
+                !method.Attributes.HasFlag(MethodAttributes.Static) &&
+                (method.Attributes & MethodAttributes.MemberAccessMask) is MethodAttributes.Public)
+            {
+                _ = publicSlotGateMembers.Add(caller);
             }
 
             byte[]? il = peReader.GetMethodBody(method.RelativeVirtualAddress).GetILBytes();
@@ -148,7 +194,7 @@ public class ResourceGenerationReferenceCallSiteTests
 
                 if (!table.TryGetValue(value, out OpCode opCode))
                 {
-                    Assert.Fail($"The instruction stream of {reader.GetString(method.Name)} carries an unknown opcode.");
+                    Assert.Fail($"The instruction stream of {caller} carries an unknown opcode.");
                 }
 
                 if (opCode.OperandType is OperandType.InlineSwitch)
@@ -159,15 +205,34 @@ public class ResourceGenerationReferenceCallSiteTests
                 }
 
                 if (opCode.OperandType is OperandType.InlineMethod &&
-                    TryGetTargetName(reader, BitConverter.ToInt32(il, offset)) is string target &&
+                    TryGetQualifiedName(reader, BitConverter.ToInt32(il, offset)) is string target &&
                     watched.Contains(target))
                 {
-                    TypeDefinition caller = reader.GetTypeDefinition(method.GetDeclaringType());
+                    if (!calls.TryGetValue(caller, out SortedSet<string>? targets))
+                    {
+                        targets = [];
+                        calls[caller] = targets;
+                    }
 
-                    _ = callSites.Add($"{reader.GetString(caller.Name)}.{reader.GetString(method.Name)} -> {target}");
+                    _ = targets.Add(target);
                 }
 
                 offset += GetOperandByteLength(opCode.OperandType);
+            }
+        }
+
+        return (calls, publicSlotGateMembers);
+    }
+
+    private static SortedSet<string> CollectCallSites(Dictionary<string, SortedSet<string>> calls)
+    {
+        SortedSet<string> callSites = [];
+
+        foreach ((string caller, SortedSet<string> targets) in calls)
+        {
+            foreach (string target in targets.Where(static target => target.StartsWith($"{RecordType}.", StringComparison.Ordinal)))
+            {
+                _ = callSites.Add($"{caller} -> {target[(RecordType.Length + 1)..]}");
             }
         }
 
@@ -177,14 +242,18 @@ public class ResourceGenerationReferenceCallSiteTests
     [TestMethod]
     public void KeepsEveryGenerationReferenceCallSiteApproved()
     {
-        SortedSet<string> observed = ScanCallSites();
+        SortedSet<string> observed = CollectCallSites(Scan().Calls);
         SortedSet<string> approved = [.. ApprovedCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}")];
 
-        string added = string.Join(", ", observed.Except(approved));
-        string removed = string.Join(", ", approved.Except(observed));
+        Assert.AreEqual(
+            string.Empty,
+            string.Join(", ", observed.Except(approved)),
+            "An unapproved call site mutates a generation reference.");
 
-        Assert.AreEqual(string.Empty, added, "An unapproved call site mutates a generation reference.");
-        Assert.AreEqual(string.Empty, removed, "An approved call site no longer exists.");
+        Assert.AreEqual(
+            string.Empty,
+            string.Join(", ", approved.Except(observed)),
+            "An approved call site no longer exists.");
     }
 
     [TestMethod]
@@ -223,5 +292,41 @@ public class ResourceGenerationReferenceCallSiteTests
         Assert.AreEqual(
             ApprovedCallSites.Length,
             ApprovedCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}").Distinct().Count());
+    }
+
+    [TestMethod]
+    public void EntersTheDeclaredExclusionAtEveryGatedCallSite()
+    {
+        Dictionary<string, SortedSet<string>> calls = Scan().Calls;
+
+        foreach ((string caller, string target, Exclusion exclusion) in ApprovedCallSites)
+        {
+            if (exclusion is not (Exclusion.HazardGate or Exclusion.ReferenceTrackerLease))
+            {
+                continue;
+            }
+
+            SortedSet<string> targets = calls[caller];
+
+            bool isEntered = exclusion is Exclusion.HazardGate
+                ? targets.Contains(HazardGateEntry)
+                : LeaseEntries.Any(targets.Contains);
+
+            Assert.IsTrue(isEntered, $"{caller} -> {target} declares {exclusion} but its body never enters it.");
+        }
+    }
+
+    [TestMethod]
+    public void EntersTheExclusionOnEveryPublicSlotGateMember()
+    {
+        (Dictionary<string, SortedSet<string>> calls, SortedSet<string> members) = Scan();
+
+        Assert.IsTrue(members.Count > 0);
+
+        string ungated = string.Join(
+            ", ",
+            members.Where(member => !calls.TryGetValue(member, out SortedSet<string>? targets) || !targets.Contains(SpinLockEntry)));
+
+        Assert.AreEqual(string.Empty, ungated, "A public slot gate member reaches the slot control record without entering the exclusion.");
     }
 }
