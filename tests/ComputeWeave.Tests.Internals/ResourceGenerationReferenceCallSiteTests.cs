@@ -20,7 +20,8 @@ public class ResourceGenerationReferenceCallSiteTests
         SlotGate,
         HazardGate,
         ReferenceTrackerLease,
-        UnpublishedGeneration
+        UnpublishedGeneration,
+        UnsynchronizedPoisonPath
     }
 
     private static readonly string[] AcquisitionPrimitives =
@@ -41,7 +42,7 @@ public class ResourceGenerationReferenceCallSiteTests
 
     private static readonly (string Caller, string Target, Exclusion Exclusion)[] ApprovedCallSites =
     [
-        ("ComputeSubmissionExecutor.FaultExternalGenerations", "TryMarkFaulted", Exclusion.HazardGate),
+        ("ComputeSubmissionExecutor.FaultExternalGenerations", "TryMarkFaulted", Exclusion.UnsynchronizedPoisonPath),
         ("GraphicsDevice.AcquireNativeResource", "TryAcquireNativeReference", Exclusion.HazardGate),
         ("GraphicsDevice.BeginCpuAccess", "TryAcquireCpuReference", Exclusion.HazardGate),
         ("PreparedGenerationRollback.RollbackUnpublished", "TryRequestRetire", Exclusion.UnpublishedGeneration),
