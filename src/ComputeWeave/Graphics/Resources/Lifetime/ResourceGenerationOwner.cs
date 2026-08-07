@@ -102,10 +102,10 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public ref ResourceGenerationRecord GetResourceRecord(int resourceOrdinal)
     {
-        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, ResourceCount);
-
         if (this.records is null)
         {
+            default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
             return ref this.record0;
         }
 
@@ -114,10 +114,10 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public ID3D12Resource* GetResourceNativePointer(int resourceOrdinal)
     {
-        default(ArgumentOutOfRangeException).ThrowIfNotInRange(resourceOrdinal, 0, ResourceCount);
-
         if (this.nativeResources is null)
         {
+            default(ArgumentOutOfRangeException).ThrowIfNotEqual(resourceOrdinal, 0);
+
             return this.nativeResource0.Get();
         }
 
