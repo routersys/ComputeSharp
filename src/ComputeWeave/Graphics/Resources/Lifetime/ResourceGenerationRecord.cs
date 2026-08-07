@@ -169,13 +169,14 @@ internal struct ResourceGenerationRecord
 
     private void SetStateBits(int mask, int shift, int value)
     {
+        int bits = (value << shift) & mask;
         int current;
 
         do
         {
             current = Volatile.Read(ref this.StateFlags);
         }
-        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~mask) | (value << shift), current) != current);
+        while (Interlocked.CompareExchange(ref this.StateFlags, (current & ~mask) | bits, current) != current);
     }
 
     public readonly bool HasQueueReferences =>
