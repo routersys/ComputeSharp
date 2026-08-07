@@ -54,6 +54,22 @@ public class ResourceGenerationReferenceCallSiteTests
         "TryRequestRetire"
     ];
 
+    private static readonly string[] ReleasePrimitives =
+    [
+        "ConvertRecordingToPendingSubmission",
+        "MarkExternalObjectsReleased",
+        "ReleaseCpuReference",
+        "ReleaseExternalReference",
+        "ReleaseNativeReference",
+        "ReleaseOwnerReference",
+        "ReleasePendingSubmissionReference",
+        "ReleasePersistentLease",
+        "ReleaseRecordingReference",
+        "TryBeginRelease",
+        "TryCompleteRelease",
+        "TryPromoteRetiredReady"
+    ];
+
     private static readonly (string Caller, string Target, Exclusion Exclusion)[] ApprovedCallSites =
     [
         ("ComputeSubmissionExecutor.FaultExternalGenerations", "TryMarkFaulted", Exclusion.UnsynchronizedPoisonPath),
@@ -68,6 +84,38 @@ public class ResourceGenerationReferenceCallSiteTests
         ("SlotControlRecord.TryAcquirePersistentLease", "TryAcquirePersistentLease", Exclusion.SlotGate),
         ("SlotControlRecord.TryPin", "TryAcquireRecordingReference", Exclusion.SlotGate),
         ("SlotControlRecord.TryPinActiveExternal", "TryAcquireExternalReference", Exclusion.SlotGate)
+    ];
+
+    private static readonly (string Caller, string Target)[] ApprovedReleaseCallSites =
+    [
+        ("ComputeSubmissionExecutor.ReleasePendingSubmissionReferences", "ReleasePendingSubmissionReference"),
+        ("ComputeSubmissionExecutor.ReleasePendingSubmissionReferences", "TryPromoteRetiredReady"),
+        ("GraphicsDevice.ReleaseNativeResource", "ReleaseNativeReference"),
+        ("PreparedGenerationRollback.RollbackUnpublished", "ReleaseOwnerReference"),
+        ("PreparedGenerationRollback.RollbackUnpublished", "TryPromoteRetiredReady"),
+        ("ResourceCpuAccessScope.Dispose", "ReleaseCpuReference"),
+        ("ResourceGenerationOwner.ReleaseUnpublished", "ReleaseOwnerReference"),
+        ("ResourceGenerationOwner.ReleaseUnpublished", "TryBeginRelease"),
+        ("ResourceGenerationOwner.ReleaseUnpublished", "TryCompleteRelease"),
+        ("ResourceGenerationOwner.ReleaseUnpublished", "TryPromoteRetiredReady"),
+        ("ResourceGenerationOwner.TryReleaseExternalObjects", "MarkExternalObjectsReleased"),
+        ("ResourceGenerationOwner.TryReleaseRetired", "TryBeginRelease"),
+        ("ResourceGenerationOwner.TryReleaseRetired", "TryCompleteRelease"),
+        ("ResourceGenerationOwner.TryReleaseRetired", "TryPromoteRetiredReady"),
+        ("ResourceGenerationPinTracker.ConvertToPendingSubmission", "ConvertRecordingToPendingSubmission"),
+        ("ResourceGenerationPinTracker.ConvertToPendingSubmission", "ReleaseRecordingReference"),
+        ("ResourceGenerationPinTracker.ConvertToPendingSubmission", "TryPromoteRetiredReady"),
+        ("ResourceGenerationPinTracker.Release", "ReleaseRecordingReference"),
+        ("ResourceGenerationPinTracker.Release", "TryPromoteRetiredReady"),
+        ("SlotControlRecord.ReleaseExternalPin", "ReleaseExternalReference"),
+        ("SlotControlRecord.ReleaseExternalPin", "TryPromoteRetiredReady"),
+        ("SlotControlRecord.ReleasePersistentLeasePin", "ReleaseExternalReference"),
+        ("SlotControlRecord.ReleasePersistentLeasePin", "ReleasePersistentLease"),
+        ("SlotControlRecord.ReleasePersistentLeasePin", "TryPromoteRetiredReady"),
+        ("SlotControlRecord.ReleasePin", "ReleaseRecordingReference"),
+        ("SlotControlRecord.RetireAndReleaseOwnership", "ReleaseOwnerReference"),
+        ("SlotControlRecord.TryAcquirePersistentLease", "ReleaseExternalReference"),
+        ("SlotControlRecord.TryAcquirePersistentLease", "ReleasePersistentLease")
     ];
 
     private static Dictionary<short, OpCode> BuildOpCodeTable()
@@ -130,7 +178,7 @@ public class ResourceGenerationReferenceCallSiteTests
     {
         HashSet<string> watched = [SpinLockEntry, HazardGateEntry, .. LeaseEntries];
 
-        foreach (string primitive in AcquisitionPrimitives.Concat(ActiveExitPrimitives))
+        foreach (string primitive in AcquisitionPrimitives.Concat(ActiveExitPrimitives).Concat(ReleasePrimitives))
         {
             _ = watched.Add($"{RecordType}.{primitive}");
         }
@@ -243,7 +291,11 @@ public class ResourceGenerationReferenceCallSiteTests
     public void KeepsEveryGenerationReferenceCallSiteApproved()
     {
         SortedSet<string> observed = CollectCallSites(Scan().Calls);
-        SortedSet<string> approved = [.. ApprovedCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}")];
+        SortedSet<string> approved =
+        [
+            .. ApprovedCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}"),
+            .. ApprovedReleaseCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}")
+        ];
 
         Assert.AreEqual(
             string.Empty,
@@ -264,18 +316,22 @@ public class ResourceGenerationReferenceCallSiteTests
             .. typeof(ResourceGenerationRecord)
                 .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Select(static method => method.Name)
-                .Where(static name => name.StartsWith("TryAcquire", StringComparison.Ordinal))
+                .Where(static name =>
+                    name.StartsWith("TryAcquire", StringComparison.Ordinal) ||
+                    name.StartsWith("Release", StringComparison.Ordinal))
         ];
 
-        Assert.AreEqual(
-            string.Empty,
-            string.Join(", ", declared.Except(AcquisitionPrimitives)),
-            "An untracked acquisition primitive was added to the record.");
+        string[] tracked = [.. AcquisitionPrimitives, .. ReleasePrimitives.Where(static name => name.StartsWith("Release", StringComparison.Ordinal))];
 
         Assert.AreEqual(
             string.Empty,
-            string.Join(", ", AcquisitionPrimitives.Except(declared)),
-            "A tracked acquisition primitive no longer exists.");
+            string.Join(", ", declared.Except(tracked)),
+            "An untracked reference primitive was added to the record.");
+
+        Assert.AreEqual(
+            string.Empty,
+            string.Join(", ", tracked.Except(declared)),
+            "A tracked reference primitive no longer exists.");
     }
 
     [TestMethod]
@@ -292,6 +348,15 @@ public class ResourceGenerationReferenceCallSiteTests
         Assert.AreEqual(
             ApprovedCallSites.Length,
             ApprovedCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}").Distinct().Count());
+
+        foreach ((string caller, string target) in ApprovedReleaseCallSites)
+        {
+            Assert.IsTrue(Array.IndexOf(ReleasePrimitives, target) >= 0, $"{caller} -> {target}");
+        }
+
+        Assert.AreEqual(
+            ApprovedReleaseCallSites.Length,
+            ApprovedReleaseCallSites.Select(static entry => $"{entry.Caller} -> {entry.Target}").Distinct().Count());
     }
 
     [TestMethod]
