@@ -306,7 +306,12 @@ public class ResourceGenerationReferenceCallSiteTests
                 continue;
             }
 
-            SortedSet<string> targets = calls[caller];
+            if (!calls.TryGetValue(caller, out SortedSet<string>? targets))
+            {
+                Assert.Fail($"{caller} -> {target} is approved but the caller no longer exists.");
+
+                return;
+            }
 
             bool isEntered = exclusion is Exclusion.HazardGate
                 ? targets.Contains(HazardGateEntry)
