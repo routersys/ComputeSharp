@@ -30,14 +30,15 @@ public unsafe class ResourceGenerationOwnerOrdinalTests
         return owner.GetResourceNativePointer(resourceOrdinal) is null;
     }
 
-    private static void AssertRejectsOrdinal(ResourceGenerationOwner owner, int resourceOrdinal)
+    private static void AssertRejectsOrdinal<TException>(ResourceGenerationOwner owner, int resourceOrdinal)
+        where TException : Exception
     {
-        _ = Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+        _ = Assert.ThrowsException<TException>(() =>
         {
             _ = owner.GetResourceRecord(resourceOrdinal).Id;
         });
 
-        _ = Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+        _ = Assert.ThrowsException<TException>(() =>
         {
             _ = IsNativePointerNull(owner, resourceOrdinal);
         });
@@ -51,10 +52,10 @@ public unsafe class ResourceGenerationOwnerOrdinalTests
     {
         ResourceGenerationOwner owner = CreateOwner(device.Get(), 1);
 
-        AssertRejectsOrdinal(owner, -1);
-        AssertRejectsOrdinal(owner, 1);
-        AssertRejectsOrdinal(owner, int.MaxValue);
-        AssertRejectsOrdinal(owner, int.MinValue);
+        AssertRejectsOrdinal<ArgumentOutOfRangeException>(owner, -1);
+        AssertRejectsOrdinal<ArgumentOutOfRangeException>(owner, 1);
+        AssertRejectsOrdinal<ArgumentOutOfRangeException>(owner, int.MaxValue);
+        AssertRejectsOrdinal<ArgumentOutOfRangeException>(owner, int.MinValue);
 
         Assert.AreEqual(ResourceGenerationState.Constructing, owner.GetResourceRecord(0).ReadLifecycle());
         Assert.IsTrue(IsNativePointerNull(owner, 0));
@@ -68,10 +69,10 @@ public unsafe class ResourceGenerationOwnerOrdinalTests
     {
         ResourceGenerationOwner owner = CreateOwner(device.Get(), 2);
 
-        AssertRejectsOrdinal(owner, -1);
-        AssertRejectsOrdinal(owner, 2);
-        AssertRejectsOrdinal(owner, int.MaxValue);
-        AssertRejectsOrdinal(owner, int.MinValue);
+        AssertRejectsOrdinal<IndexOutOfRangeException>(owner, -1);
+        AssertRejectsOrdinal<IndexOutOfRangeException>(owner, 2);
+        AssertRejectsOrdinal<IndexOutOfRangeException>(owner, int.MaxValue);
+        AssertRejectsOrdinal<IndexOutOfRangeException>(owner, int.MinValue);
 
         Assert.AreNotEqual(owner.GetResourceRecord(0).Id, owner.GetResourceRecord(1).Id);
         Assert.IsTrue(IsNativePointerNull(owner, 0));
