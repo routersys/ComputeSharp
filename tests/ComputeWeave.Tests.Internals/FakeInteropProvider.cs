@@ -188,9 +188,11 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
         if (this.signalGate is null && this.SignalDelayInMilliseconds <= 0)
         {
-            Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
-
+            // Counted before the fence advances. Advancing it first lets the drain observe the completion and
+            // release the external view while this counter still reads the value from before the signal.
             _ = Interlocked.Increment(ref this.completedSignalCount);
+
+            Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
 
             return;
         }
@@ -212,9 +214,9 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
                 Thread.Sleep(delay);
             }
 
-            Assert.IsTrue(((ID3D12Fence*)d3D12Fence)->Signal(value) >= 0);
-
             _ = Interlocked.Increment(ref this.completedSignalCount);
+
+            Assert.IsTrue(((ID3D12Fence*)d3D12Fence)->Signal(value) >= 0);
         });
     }
 
