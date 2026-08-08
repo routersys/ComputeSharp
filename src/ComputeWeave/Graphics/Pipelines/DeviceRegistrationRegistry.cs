@@ -439,6 +439,15 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Runs the external drain of every registered resource set.
+    /// </summary>
+    /// <remarks>
+    /// This is the entry the completion coordinator thread uses. Section 4.1 of the external drain maintenance
+    /// specification reserves the execution of a drain phase to that thread, so nothing else calls here while
+    /// the coordinator is running. The teardown of the registry is the one documented exception and uses
+    /// <see cref="RunExternalMaintenanceForTeardown"/>.
+    /// </remarks>
     public void RunExternalMaintenance()
     {
         RunExternalMaintenance(GetOrderedResourceSets());
@@ -650,13 +659,13 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         }
         else
         {
-            RunExternalMaintenance(pendingResourceSets);
+            RunExternalMaintenanceForTeardown(pendingResourceSets);
 
             while (TryGetMinimumDrainFence(out ulong fenceValue))
             {
                 this.device.WaitForComputeFenceValue(fenceValue);
 
-                RunExternalMaintenance(pendingResourceSets);
+                RunExternalMaintenanceForTeardown(pendingResourceSets);
             }
         }
 
@@ -669,6 +678,21 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         {
             this.resourceSets.Clear();
         }
+    }
+
+    /// <summary>
+    /// Runs the external drain of the resource sets a teardown is releasing.
+    /// </summary>
+    /// <param name="resourceSets">The resource sets being released.</param>
+    /// <remarks>
+    /// This is the exception section 4.2 of the external drain maintenance specification allows. The teardown
+    /// has to converge even once the completion coordinator has stopped, so the disposing thread becomes the
+    /// executor. The coordinator may still be running while the teardown starts, and the phase claim of each
+    /// maintenance record is what keeps the two from issuing the same drain twice.
+    /// </remarks>
+    private static void RunExternalMaintenanceForTeardown(InteropResourceSetRuntime[] resourceSets)
+    {
+        RunExternalMaintenance(resourceSets);
     }
 
     private static void RunExternalMaintenance(InteropResourceSetRuntime[] resourceSets)
