@@ -152,9 +152,16 @@ public class GeneratedInteropPipelineTests
         using Fixture fixture = Create(device);
 
         ComputeResourceBinding<ReadWriteTexture2D<Bgra32, Float4>> binding = fixture.Binding;
+        FakeExternalView replaced = fixture.Provider.LastOpenedView!;
 
         Assert.IsTrue(fixture.Resources.TryEnsureSource(32, 32, out bool changed));
         Assert.IsTrue(changed);
+
+        // The coordinator drains the replaced generation, so the counts below only settle once it has run.
+        ExternalMaintenanceWait.WaitFor(
+            device.Get(),
+            () => replaced.DisposeCount == 1,
+            "the replaced generation was released");
 
         int signalCount = fixture.Provider.SignalCount;
         int waitCount = fixture.Provider.WaitCount;

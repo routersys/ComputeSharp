@@ -69,6 +69,12 @@ public class ExternalFinalDrainTests
 
         fixture.Slot.Dispose();
 
+        // The drain runs on the coordinator, so the request above only wakes it.
+        ExternalMaintenanceWait.WaitFor(
+            device.Get(),
+            () => fixture.Provider.FlushCount == 1,
+            "the external queue was signalled and flushed");
+
         Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
         Assert.AreEqual(1, fixture.Provider.FlushCount, "flush count");
         Assert.IsTrue(fixture.Provider.WasReservedWhileSignaling);
@@ -94,11 +100,10 @@ public class ExternalFinalDrainTests
         FakeExternalView view = fixture.Provider.LastOpenedView!;
 
         fixture.Slot.Dispose();
+        fixture.Slot.WaitForDisposal();
 
         Assert.AreEqual(0, fixture.Provider.SignalCount);
         Assert.AreEqual(1, view.DisposeCount);
-
-        fixture.Slot.WaitForDisposal();
     }
 
     [CombinatorialTestMethod]
@@ -113,7 +118,11 @@ public class ExternalFinalDrainTests
 
         Assert.IsTrue(fixture.Slot.TryEnsure(32, 16, out _));
 
-        Assert.AreEqual(1, fixture.Provider.SignalCount);
+        // Replacing a generation retires the old one, and the coordinator drains it.
+        ExternalMaintenanceWait.WaitFor(
+            device.Get(),
+            () => fixture.Provider.SignalCount == 1,
+            "the replaced generation was drained");
 
         FakeExternalView second = fixture.Provider.LastOpenedView!;
 

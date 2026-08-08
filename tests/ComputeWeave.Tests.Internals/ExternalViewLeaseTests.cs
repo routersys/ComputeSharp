@@ -357,6 +357,12 @@ public class ExternalViewLeaseTests
 
         fixture.Domain.MarkPoisoned(reason);
 
+        // A poisoned domain converges through the coordinator like every other external release.
+        ExternalMaintenanceWait.WaitFor(
+            device.Get(),
+            () => view.DisposeCount == 1,
+            "the external view of the poisoned domain was released");
+
         Assert.AreEqual(1, view.DisposeCount);
         Assert.AreSame(reason, Assert.ThrowsException<InvalidOperationException>(lease.DangerousGetView));
         Assert.AreSame(
