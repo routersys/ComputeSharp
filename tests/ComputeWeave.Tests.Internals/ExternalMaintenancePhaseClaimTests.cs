@@ -19,7 +19,7 @@ namespace ComputeWeave.Tests.Internals;
 [TestClass]
 public class ExternalMaintenancePhaseClaimTests
 {
-    private sealed class Fixture(GraphicsDevice device) : IDisposable
+    private sealed class Fixture(GraphicsDevice device, ComputeSharedTextureInitialOwner initialOwner) : IDisposable
     {
         public FakeInteropScheduler Scheduler { get; } = new();
 
@@ -38,7 +38,7 @@ public class ExternalMaintenancePhaseClaimTests
             Resources = ComputeInteropResourceSetRuntime.Create(
                 device,
                 Domain,
-                InteropResourceSetRegistrationTests.ResourceSetDescriptor(1, ComputeSharedTextureInitialOwner.External),
+                InteropResourceSetRegistrationTests.ResourceSetDescriptor(1, initialOwner),
                 [Slot]);
 
             return this;
@@ -74,7 +74,7 @@ public class ExternalMaintenancePhaseClaimTests
     [AllDevices]
     public void RunsOneFinalDrainWhenASecondPassOverlapsTheFirst(Device device)
     {
-        using Fixture fixture = new Fixture(device.Get()).Register();
+        using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.External).Register();
 
         Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
 
@@ -108,7 +108,7 @@ public class ExternalMaintenancePhaseClaimTests
     [AllDevices]
     public void ReleasesThePhaseClaimAfterAPassThatIssuedNoDrain(Device device)
     {
-        using Fixture fixture = new Fixture(device.Get()).Register();
+        using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.External).Register();
 
         Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
 
@@ -124,5 +124,26 @@ public class ExternalMaintenancePhaseClaimTests
 
         Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
         Assert.AreEqual(1, fixture.Provider.LastOpenedView!.DisposeCount, "view dispose count");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ClaimsThePhaseOfAGenerationThatNeedsNoFinalDrain(Device device)
+    {
+        using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.Compute).Register();
+
+        Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
+
+        FakeExternalView view = fixture.Provider.LastOpenedView!;
+
+        // The external queue never owned this generation, so the pass skips the final drain and goes straight
+        // to the external release. That path takes the claim through a different branch of the entry, and a
+        // branch that returns without claiming would release a claim it never held.
+        fixture.Slot.Dispose();
+        fixture.Slot.WaitForDisposal();
+
+        Assert.AreEqual(0, fixture.Provider.SignalCount, "signal count");
+        Assert.AreEqual(1, view.DisposeCount, "view dispose count");
+        Assert.IsFalse(fixture.Scheduler.IsReserved);
     }
 }
