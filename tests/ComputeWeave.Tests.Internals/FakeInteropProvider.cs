@@ -86,6 +86,10 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     private ManualResetEventSlim? signalGate;
 
+    private ManualResetEventSlim? enqueueGate;
+
+    private ManualResetEventSlim? enqueueEntered;
+
     private int completedSignalCount;
 
     public ExternalAdapterIdentity AdapterIdentity { get; set; } = new ExternalAdapterIdentity(device.Luid.ToInt64());
@@ -174,12 +178,47 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         this.signalGate?.Set();
     }
 
+    /// <summary>
+    /// Blocks the next signal inside the call, so a test can hold a maintenance pass inside its phase and
+    /// observe what a pass running beside it does.
+    /// </summary>
+    public void BlockNextEnqueue()
+    {
+        this.enqueueEntered = new ManualResetEventSlim(false);
+        this.enqueueGate = new ManualResetEventSlim(false);
+    }
+
+    /// <summary>
+    /// Waits until a signal has entered the block set up by <see cref="BlockNextEnqueue"/>.
+    /// </summary>
+    /// <returns>Whether a signal entered the block.</returns>
+    public bool WaitForBlockedEnqueue()
+    {
+        return this.enqueueEntered?.Wait(TimeSpan.FromSeconds(30)) is true;
+    }
+
+    /// <summary>
+    /// Lets the blocked signal leave the call.
+    /// </summary>
+    public void ReleaseBlockedEnqueue()
+    {
+        this.enqueueGate?.Set();
+    }
+
     public void EnqueueSignal(ulong value)
     {
         ObservedSignalValue = value;
         this.wasReservedWhileSignaling = this.scheduler.IsReserved;
 
         _ = Interlocked.Increment(ref this.signalCount);
+
+        if (this.enqueueGate is ManualResetEventSlim blocked)
+        {
+            this.enqueueEntered!.Set();
+
+            // The bound is a safety valve for a test that fails before it releases the block.
+            Assert.IsTrue(blocked.Wait(TimeSpan.FromSeconds(30)), "A blocked enqueue was never released.");
+        }
 
         if (this.ThrowOnSignal)
         {
@@ -285,8 +324,11 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         DisposeCount++;
 
         this.signalGate?.Set();
+        this.enqueueGate?.Set();
         this.pendingSignal?.Wait();
         this.signalGate?.Dispose();
+        this.enqueueGate?.Dispose();
+        this.enqueueEntered?.Dispose();
         this.d3D12SharedFence.Dispose();
     }
 }
