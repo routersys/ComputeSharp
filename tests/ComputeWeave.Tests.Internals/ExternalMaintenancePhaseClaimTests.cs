@@ -211,6 +211,46 @@ public class ExternalMaintenancePhaseClaimTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void ReleasesThePhaseClaimWhenAPhaseThrows(Device device)
+    {
+        using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.External).Register();
+
+        Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
+
+        FakeExternalView view = fixture.Provider.LastOpenedView!;
+        bool hasThrown = false;
+
+        // Fails the first drain only. The failure poisons the domain, which starts its teardown, and the
+        // record faults. A later pass then takes the faulted record through its release, which it can only
+        // claim if the pass that threw gave the claim back.
+        fixture.Provider.OnEnqueueSignal = () =>
+        {
+            if (hasThrown)
+            {
+                return;
+            }
+
+            hasThrown = true;
+
+            throw new InvalidOperationException("The external queue could not signal the shared timeline.");
+        };
+
+        fixture.Slot.Dispose();
+
+        // The executor runs on the coordinator, so every observation below has to wait for it. Reading right
+        // after the request races the unwinding of the pass that threw.
+        ExternalMaintenanceWait.WaitFor(
+            device.Get(),
+            () => view.DisposeCount == 1,
+            "the faulted generation released its external view");
+
+        Assert.IsTrue(hasThrown, "the drain never failed");
+        Assert.IsNotNull(fixture.Domain.PoisonReason, "the failed drain did not poison the domain");
+        Assert.AreEqual(1, view.DisposeCount, "view dispose count");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void ClaimsThePhaseOfAGenerationThatNeedsNoFinalDrain(Device device)
     {
         using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.Compute).Register();
