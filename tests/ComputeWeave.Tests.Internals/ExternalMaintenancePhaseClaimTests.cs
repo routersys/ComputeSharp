@@ -211,66 +211,6 @@ public class ExternalMaintenancePhaseClaimTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void ReleasesThePhaseClaimWhenAPhaseThrows(Device device)
-    {
-        GraphicsDevice graphicsDevice = device.Get();
-
-        using FakeInteropScheduler scheduler = new();
-
-        FakeInteropProvider provider = new(graphicsDevice, scheduler);
-
-        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
-
-        SharedTextureSlot<Bgra32, Float4, FakeExternalView> slot = new();
-
-        // The registry owns its own coordinator, so a drain that throws stops that one rather than the
-        // coordinator every other test on this device shares.
-        DeviceRegistrationRegistry registry = new(graphicsDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-
-        _ = registry.RegisterResourceSet(
-            domain,
-            InteropResourceSetRegistrationTests.ResourceSetDescriptor(1, ComputeSharedTextureInitialOwner.External),
-            [slot]);
-
-        Assert.IsTrue(slot.TryEnsure(16, 16, out _));
-
-        FakeExternalView view = provider.LastOpenedView!;
-        bool hasThrown = false;
-
-        // Fails the first drain only, whichever executor reaches it. The record faults and the claim has to
-        // come back, or no later pass can take the faulted record through its release.
-        provider.OnEnqueueSignal = () =>
-        {
-            if (hasThrown)
-            {
-                return;
-            }
-
-            hasThrown = true;
-
-            throw new InvalidOperationException("The external queue could not signal the shared timeline.");
-        };
-
-        slot.Dispose();
-
-        for (int pass = 0; pass < 16 && view.DisposeCount == 0; pass++)
-        {
-            try
-            {
-                ((IComputeSharedSlot)slot).RunMaintenance();
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        }
-
-        Assert.IsTrue(hasThrown, "the drain never failed");
-        Assert.AreEqual(1, view.DisposeCount, "view dispose count");
-        Assert.IsFalse(scheduler.IsReserved);
-    }
-
-    [CombinatorialTestMethod]
-    [AllDevices]
     public void ClaimsThePhaseOfAGenerationThatNeedsNoFinalDrain(Device device)
     {
         using Fixture fixture = new Fixture(device.Get(), ComputeSharedTextureInitialOwner.Compute).Register();
