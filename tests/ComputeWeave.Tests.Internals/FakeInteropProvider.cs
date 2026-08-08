@@ -205,12 +205,19 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         this.enqueueGate?.Set();
     }
 
+    /// <summary>
+    /// Runs inside the signal, on the thread that is executing the drain phase.
+    /// </summary>
+    public Action? OnEnqueueSignal { get; set; }
+
     public void EnqueueSignal(ulong value)
     {
         ObservedSignalValue = value;
         this.wasReservedWhileSignaling = this.scheduler.IsReserved;
 
         _ = Interlocked.Increment(ref this.signalCount);
+
+        this.OnEnqueueSignal?.Invoke();
 
         if (this.enqueueGate is ManualResetEventSlim blocked)
         {
