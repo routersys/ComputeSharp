@@ -47,7 +47,11 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     public DeviceRegistrationRegistry(GraphicsDevice device, D3D12_COMMAND_LIST_TYPE d3D12CommandListType)
     {
         default(ArgumentNullException).ThrowIfNull(device);
-        default(NotSupportedException).ThrowIf(device.HasOpaqueMemoryAllocator);
+        default(NotSupportedException).ThrowIf(
+            device.HasOpaqueMemoryAllocator,
+            """
+            The declarative layer cannot run on a device that allocates through an allocator configured with AllocationServices.ConfigureAllocatorFactory. Generations, trimming and the memory budget are all founded on the device owning its allocations, and an opaque allocator owns them instead. Use either the allocator or the declarative layer, not both.
+            """);
 
         this.device = device;
         this.identities = device.ResourceIdentities;

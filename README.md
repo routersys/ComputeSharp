@@ -215,6 +215,8 @@ Allocation failures caused by the budget surface as `GraphicsMemoryAllocationExc
 
 The budget covers the resources the device creates itself. A device using an allocator configured through `AllocationServices.ConfigureAllocatorFactory`, such as the one in the `ComputeWeave.D3D12MemoryAllocator` package, creates its resources through that allocator instead. Those resources are not admitted against the policy, are not counted in the statistics and are not reclaimed by `TrimMemory`. Budget them in the allocator.
 
+**A configured allocator and the declarative layer are mutually exclusive.** Generations, trimming and the budget all rest on the device owning its allocations, so a device that allocates through an external allocator cannot host them: `ComputeHostRuntime.Create`, `ComputeInteropResourceSetRuntime.Create` and the generated `Create` factories throw `NotSupportedException` on it. The base library, `ComputeContext`, resource copies and `InteropServices` are unaffected. Pick one of the two.
+
 ### 7. Compile-time validation
 
 The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.

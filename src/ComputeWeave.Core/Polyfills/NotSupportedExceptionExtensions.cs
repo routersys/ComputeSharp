@@ -47,6 +47,21 @@ internal static class NotSupportedExceptionExtensions
     }
 
     /// <summary>
+    /// Throws an <see cref="NotSupportedException"/> with a given message if <paramref name="condition"/> is <see langword="true"/>.
+    /// </summary>
+    /// <param name="_">Dummy value to invoke the extension upon (always pass <see langword="null"/>.</param>
+    /// <param name="condition">The condition to decide whether to throw the exception.</param>
+    /// <param name="message">The message to throw the exception with.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ThrowIf(this NotSupportedException? _, [DoesNotReturnIf(true)] bool condition, string message)
+    {
+        if (condition)
+        {
+            Throw(message);
+        }
+    }
+
+    /// <summary>
     /// Throws an <see cref="NotSupportedException"/> for a given parameter name.
     /// </summary>
     /// <exception cref="NotSupportedException">Always thrown with no parameters.</exception>
@@ -54,5 +69,16 @@ internal static class NotSupportedExceptionExtensions
     private static void Throw()
     {
         throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// Throws an <see cref="NotSupportedException"/> with a given message.
+    /// </summary>
+    /// <param name="message">The message to throw the exception with.</param>
+    /// <exception cref="NotSupportedException">Always thrown with the given message.</exception>
+    [DoesNotReturn]
+    private static void Throw(string message)
+    {
+        throw new NotSupportedException(message);
     }
 }

@@ -215,6 +215,8 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 予算の対象はデバイス自身が作成した資源です。`AllocationServices.ConfigureAllocatorFactory` で設定したアロケーター、たとえば `ComputeWeave.D3D12MemoryAllocator` パッケージのものを使うデバイスは、資源をそのアロケーター経由で作成します。それらは方針による審査を受けず、統計にも計上されず、`TrimMemory` の回収対象にもなりません。予算はアロケーター側で管理してください。
 
+**外部アロケーターと宣言的な層は併用できません。** 世代、整理、予算のいずれもデバイスが確保を所有していることが前提であり、外部アロケーターで確保するデバイスはそれらを載せられません。`ComputeHostRuntime.Create`、`ComputeInteropResourceSetRuntime.Create`、および生成された `Create` は `NotSupportedException` を投げます。基盤部分、`ComputeContext`、資源のコピー、`InteropServices` は影響を受けません。どちらか一方を選んでください。
+
 ### 7. コンパイル時の検証
 
 以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断95種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
