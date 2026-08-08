@@ -189,8 +189,8 @@ public class ExternalViewLeaseTests
 
         fixture.Slot.WaitForDisposal();
 
-        Assert.AreEqual(1, fixture.Provider.SignalCount);
-        Assert.AreEqual(1, view.DisposeCount);
+        Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
+        Assert.AreEqual(1, view.DisposeCount, "view dispose count");
     }
 
     [CombinatorialTestMethod]

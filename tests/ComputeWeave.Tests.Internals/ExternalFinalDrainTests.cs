@@ -37,6 +37,10 @@ public class ExternalFinalDrainTests
 
         public void Dispose()
         {
+            // A failed assertion can leave a held signal behind, and the disposal below drains the external
+            // queue, so the gate has to open before anything waits on it.
+            Provider.ReleaseHeldSignals();
+
             Resources.Dispose();
             Resources.WaitForDisposal();
             Domain.Dispose();

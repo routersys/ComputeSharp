@@ -178,7 +178,9 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         {
             if (gate is not null)
             {
-                gate.Wait();
+                // The bound is a safety valve for a test that fails before it opens the gate. It never runs on
+                // a passing path, where the gate decides the ordering.
+                Assert.IsTrue(gate.Wait(TimeSpan.FromSeconds(30)), "A held signal was never released.");
             }
             else
             {
