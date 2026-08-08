@@ -171,6 +171,12 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// <returns>Whether the shared texture matches the requested logical dimensions.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the slot is not bound, or if its resource set no longer accepts work.</exception>
     /// <exception cref="GraphicsMemoryAllocationException">Thrown if the native allocation fails for a reason other than memory pressure.</exception>
+    /// <remarks>
+    /// Replacing the published generation retires the previous one, and the maintenance coordinator of the
+    /// device drains and releases it afterwards. The memory of the retired generation is therefore still
+    /// accounted for when this returns, and a caller that resizes repeatedly holds more than one generation
+    /// for a short while.
+    /// </remarks>
     public bool TryEnsure(int width, int height, out bool changed)
     {
         default(ArgumentOutOfRangeException).ThrowIfNegativeOrZero(width);
@@ -309,6 +315,11 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// This requests the disposal rather than completing it. The external queue of the published generation is
+    /// drained by the maintenance coordinator of the device, so call <see cref="WaitForDisposal"/> to wait for
+    /// the external objects of the slot to be released.
+    /// </remarks>
     public void Dispose()
     {
         PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
