@@ -612,8 +612,14 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
                 return MarkFinalDrainIssued(retirementFence);
             }
         }
-        catch
+        catch (Exception e)
         {
+            // Section 15.5 poisons the domain when a provider signal or flush fails. The submission path does
+            // that already, and the drain reaches the same provider calls, so it has to as well. Without the
+            // poison the holders of the domain never learn it broke, and the faulted record below never
+            // reaches the teardown that section 15.4 makes its release wait for.
+            runtime.Domain.MarkPoisoned(e);
+
             MarkExternalReleaseFaulted();
 
             throw;
@@ -697,8 +703,12 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
                 _ = owner.TryReleaseExternalObjects();
             }
         }
-        catch
+        catch (Exception e)
         {
+            // A provider that fails while releasing its own objects is in the same state section 15.5 poisons
+            // the domain for, and the holders of the domain observe the failure there.
+            runtime.Domain.MarkPoisoned(e);
+
             MarkExternalReleaseFaulted();
 
             throw;

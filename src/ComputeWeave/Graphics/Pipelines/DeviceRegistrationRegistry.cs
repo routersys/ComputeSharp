@@ -700,11 +700,18 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
     /// </summary>
     /// <param name="resourceSets">The resource sets to run the maintenance of.</param>
     /// <remarks>
-    /// A provider that fails records the failure on its own domain before it throws, and the holders of that
-    /// domain observe it there. Section 4.1 of the external drain maintenance specification leaves the
-    /// coordinator as the only executor of a drain, so letting the failure out of this loop would stop the
-    /// maintenance of every other resource set on the device as well. A failure the domain did not record is
-    /// not one this loop knows how to contain, so it still leaves.
+    /// <para>
+    /// A provider that fails poisons its own domain before it throws, and the holders of that domain observe
+    /// it there. Section 4.1 of the external drain maintenance specification leaves the coordinator as the
+    /// only executor of a drain, so letting the failure out of this loop would stop the maintenance of every
+    /// other resource set on the device as well.
+    /// </para>
+    /// <para>
+    /// Only a poisoned domain is contained. Poison is the state the holders of a domain observe through
+    /// <c>ThrowIfPoisonedOrDeviceTerminal</c>, so swallowing the exception here loses nothing they would
+    /// otherwise see. A failure that left the domain unpoisoned has no such reader, and swallowing it would
+    /// make it silent, so it still leaves.
+    /// </para>
     /// </remarks>
     private static void RunExternalMaintenance(InteropResourceSetRuntime[] resourceSets)
     {
@@ -714,7 +721,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
             {
                 runtime.RunSharedSlotMaintenance();
             }
-            catch (Exception) when (runtime.Domain.ProviderDiagnostic is not null || runtime.Domain.PoisonReason is not null)
+            catch (Exception) when (runtime.Domain.PoisonReason is not null)
             {
             }
         }
