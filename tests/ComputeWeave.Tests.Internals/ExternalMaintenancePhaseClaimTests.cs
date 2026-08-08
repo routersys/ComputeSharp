@@ -1,10 +1,12 @@
 using System;
 using System.Threading.Tasks;
+using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.Resources.Interop;
 using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static ComputeWeave.Win32.D3D12_COMMAND_LIST_TYPE;
 
 namespace ComputeWeave.Tests.Internals;
 
@@ -124,6 +126,54 @@ public class ExternalMaintenancePhaseClaimTests
 
         Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
         Assert.AreEqual(1, fixture.Provider.LastOpenedView!.DisposeCount, "view dispose count");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RunsOneFinalDrainWhenATeardownOverlapsTheCoordinator(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        SharedTextureSlot<Bgra32, Float4, FakeExternalView> slot = new();
+        DeviceRegistrationRegistry registry = new(graphicsDevice, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+
+        _ = registry.RegisterResourceSet(
+            domain,
+            InteropResourceSetRegistrationTests.ResourceSetDescriptor(1, ComputeSharedTextureInitialOwner.External),
+            [slot]);
+
+        Assert.IsTrue(slot.TryEnsure(16, 16, out _));
+
+        FakeExternalView view = provider.LastOpenedView!;
+
+        provider.BlockNextEnqueue();
+
+        // The teardown becomes the executor while its own coordinator is still running. Only the phase claim
+        // keeps the two from issuing the same final drain.
+        Task teardown = Task.Run(registry.Dispose);
+
+        Assert.IsTrue(provider.WaitForBlockedEnqueue(), "the teardown never entered the phase");
+
+        for (int i = 0; i < 32; i++)
+        {
+            registry.Coordinator.Wake();
+        }
+
+        Assert.AreEqual(1, provider.SignalCount, "signal count while the teardown holds the claim");
+
+        provider.ReleaseBlockedEnqueue();
+
+        teardown.Wait();
+
+        Assert.AreEqual(1, provider.SignalCount, "signal count after the teardown finished");
+        Assert.AreEqual(1, view.DisposeCount, "view dispose count");
+        Assert.AreEqual(1, view.CompletedSignalsAtDispose, "completed signals at dispose");
     }
 
     [CombinatorialTestMethod]
