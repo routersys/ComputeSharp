@@ -73,6 +73,14 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
     }
 }
 
+/// <remarks>
+/// An assertion this double makes can run on the completion coordinator thread, because that thread executes
+/// the external drain. A drain that throws poisons its domain, and the coordinator contains the failures of a
+/// poisoned domain rather than stopping, so such an assertion does not reach the test as its own message. It
+/// surfaces as whatever the test observes afterwards instead. The library cannot reference the test framework,
+/// so the containment cannot single assertions out. Keep the assertions here to conditions a passing test
+/// never reaches, and read a confusing interop failure as a possible assertion from this class.
+/// </remarks>
 internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInteropScheduler scheduler)
     : IComputeExternalInteropProvider<FakeExternalView>
 {
