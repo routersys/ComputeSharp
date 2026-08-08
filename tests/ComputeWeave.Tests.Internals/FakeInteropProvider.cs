@@ -8,16 +8,25 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.Tests.Internals;
 
+/// <remarks>
+/// The completion coordinator thread runs the release of a retired generation, so every counter a test reads
+/// is written by a thread other than the one asserting on it and has to be published atomically.
+/// </remarks>
 internal sealed class FakeExternalView(FakeInteropProvider? provider = null) : IDisposable
 {
-    public int DisposeCount { get; private set; }
+    private int disposeCount;
 
-    public int CompletedSignalsAtDispose { get; private set; }
+    private int completedSignalsAtDispose;
+
+    public int DisposeCount => Volatile.Read(ref this.disposeCount);
+
+    public int CompletedSignalsAtDispose => Volatile.Read(ref this.completedSignalsAtDispose);
 
     public void Dispose()
     {
-        DisposeCount++;
-        CompletedSignalsAtDispose = provider?.CompletedSignalCount ?? 0;
+        Volatile.Write(ref this.completedSignalsAtDispose, provider?.CompletedSignalCount ?? 0);
+
+        _ = Interlocked.Increment(ref this.disposeCount);
     }
 }
 
@@ -113,19 +122,34 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         }
     }
 
-    public int SignalCount { get; private set; }
+    private int signalCount;
 
-    public int FlushCount { get; private set; }
+    private int flushCount;
 
-    public int WaitCount { get; private set; }
+    private int waitCount;
+
+    private volatile bool wasReservedWhileSignaling;
+
+    private volatile bool wasReservedWhileWaiting;
+
+    /// <remarks>
+    /// External maintenance can run on the completion coordinator thread, so a test asserting on these reads
+    /// them from a thread other than the one that wrote them. Without atomic publication a test can observe a
+    /// signal without the flush that follows it.
+    /// </remarks>
+    public int SignalCount => Volatile.Read(ref this.signalCount);
+
+    public int FlushCount => Volatile.Read(ref this.flushCount);
+
+    public int WaitCount => Volatile.Read(ref this.waitCount);
 
     public ulong ObservedSignalValue { get; private set; }
 
     public ulong ObservedWaitValue { get; private set; }
 
-    public bool WasReservedWhileSignaling { get; private set; }
+    public bool WasReservedWhileSignaling => this.wasReservedWhileSignaling;
 
-    public bool WasReservedWhileWaiting { get; private set; }
+    public bool WasReservedWhileWaiting => this.wasReservedWhileWaiting;
 
     public bool ThrowOnSignal { get; set; }
 
@@ -152,9 +176,10 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public void EnqueueSignal(ulong value)
     {
-        SignalCount++;
         ObservedSignalValue = value;
-        WasReservedWhileSignaling = this.scheduler.IsReserved;
+        this.wasReservedWhileSignaling = this.scheduler.IsReserved;
+
+        _ = Interlocked.Increment(ref this.signalCount);
 
         if (this.ThrowOnSignal)
         {
@@ -195,16 +220,17 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public void FlushAfterSignal()
     {
-        FlushCount++;
+        _ = Interlocked.Increment(ref this.flushCount);
     }
 
     public bool ThrowOnWait { get; set; }
 
     public void EnqueueWait(ulong value)
     {
-        WaitCount++;
         ObservedWaitValue = value;
-        WasReservedWhileWaiting = this.scheduler.IsReserved;
+        this.wasReservedWhileWaiting = this.scheduler.IsReserved;
+
+        _ = Interlocked.Increment(ref this.waitCount);
 
         if (this.ThrowOnWait)
         {
@@ -212,7 +238,11 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
         }
     }
 
-    public int OpenSharedTextureCount { get; private set; }
+    private int openSharedTextureCount;
+
+    private volatile FakeExternalView? lastOpenedView;
+
+    public int OpenSharedTextureCount => Volatile.Read(ref this.openSharedTextureCount);
 
     public bool WasReservedWhileOpeningTexture { get; private set; }
 
@@ -220,11 +250,10 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public ExternalTextureDescriptor ObservedTextureDescriptor { get; private set; }
 
-    public FakeExternalView? LastOpenedView { get; private set; }
+    public FakeExternalView? LastOpenedView => this.lastOpenedView;
 
     public FakeExternalView OpenSharedTexture(BorrowedSharedHandle resourceHandle, in ExternalTextureDescriptor descriptor)
     {
-        OpenSharedTextureCount++;
         WasReservedWhileOpeningTexture = this.scheduler.IsReserved;
         ObservedTextureHandle = resourceHandle.DangerousGetHandle();
         ObservedTextureDescriptor = descriptor;
@@ -236,9 +265,13 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
             throw new InvalidOperationException("The shared texture could not be opened.");
         }
 
-        LastOpenedView = new FakeExternalView(this);
+        FakeExternalView view = new(this);
 
-        return LastOpenedView;
+        this.lastOpenedView = view;
+
+        _ = Interlocked.Increment(ref this.openSharedTextureCount);
+
+        return view;
     }
 
     public void OnDeviceTerminal(Exception reason)

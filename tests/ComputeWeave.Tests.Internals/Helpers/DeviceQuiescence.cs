@@ -3,51 +3,40 @@ using ComputeWeave.Graphics.Pipelines;
 namespace ComputeWeave.Tests.Internals;
 
 /// <summary>
-/// Waits for the asynchronous completion processing of a device to settle.
+/// Releases the submissions a device has already completed.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Waiting for a submission only waits for its GPU fence. The pending submission references the submission
-/// held are released by the completion coordinator thread, so a test that observes device wide generation
-/// counts right after <c>Wait</c> races that thread.
+/// held are released afterwards, so a test that observes device wide generation counts right after
+/// <c>Wait</c> sees them only once that release has run.
 /// </para>
 /// <para>
 /// Section 26.11 of the pipeline interop specification makes <c>PendingSubmissionReference == 0</c> part of the
-/// idle condition, so a generation whose references the coordinator has not released yet is not a trim
-/// candidate. Waiting here is therefore required by the contract rather than a workaround for it.
+/// idle condition, so a generation whose references nothing has released yet is not a trim candidate. Draining
+/// here is therefore required by the contract rather than a workaround for it.
 /// </para>
 /// </remarks>
 internal static class DeviceQuiescence
 {
     /// <summary>
-    /// Waits until the completion coordinator of a device has run a full drain pass started after the call.
+    /// Releases every submission of a device whose fence has completed.
     /// </summary>
-    /// <param name="device">The device to wait for.</param>
+    /// <param name="device">The device to drain.</param>
     /// <remarks>
-    /// Two passes are awaited rather than one. The first may already have been running when the call started,
-    /// so only the second is guaranteed to observe everything the caller completed. The wait never depends on
-    /// the registry becoming empty, because other tests on the same device hold committed submissions on
-    /// purpose and their records would never drain.
+    /// The caller thread runs the drain, which is the same claim the completion coordinator thread makes and is
+    /// safe to run beside it. The coordinator is deliberately left alone. Waking it would run device wide
+    /// external maintenance that the caller never asked for.
     /// </remarks>
-    public static void WaitForCompletionQuiescence(this GraphicsDevice device)
+    public static void DrainCompletedSubmissions(this GraphicsDevice device)
     {
         if (device.TryGetRegistrationRegistry() is not DeviceRegistrationRegistry registry)
         {
             return;
         }
 
-        CompletionCoordinator coordinator = registry.Coordinator;
-
-        for (int pass = 0; pass < 2; pass++)
+        while (ComputeSubmissionExecutor.TryReleaseCompleted(device, registry.Completions))
         {
-            ulong progress = coordinator.ProgressVersion;
-
-            coordinator.Wake();
-
-            if (!coordinator.TryWaitForProgress(progress))
-            {
-                return;
-            }
         }
     }
 }

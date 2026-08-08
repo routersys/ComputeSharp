@@ -69,17 +69,17 @@ public class ExternalFinalDrainTests
 
         fixture.Slot.Dispose();
 
-        Assert.AreEqual(1, fixture.Provider.SignalCount);
-        Assert.AreEqual(1, fixture.Provider.FlushCount);
+        Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
+        Assert.AreEqual(1, fixture.Provider.FlushCount, "flush count");
         Assert.IsTrue(fixture.Provider.WasReservedWhileSignaling);
-        Assert.AreEqual(0, view.DisposeCount);
+        Assert.AreEqual(0, view.DisposeCount, "view dispose count before release");
 
         fixture.Provider.ReleaseHeldSignals();
 
         fixture.Slot.WaitForDisposal();
 
-        Assert.AreEqual(1, view.DisposeCount);
-        Assert.AreEqual(1, view.CompletedSignalsAtDispose);
+        Assert.AreEqual(1, view.DisposeCount, "view dispose count after release");
+        Assert.AreEqual(1, view.CompletedSignalsAtDispose, "completed signals at dispose");
         Assert.IsFalse(fixture.Scheduler.IsReserved);
     }
 

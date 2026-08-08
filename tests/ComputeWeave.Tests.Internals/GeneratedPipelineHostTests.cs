@@ -267,7 +267,7 @@ public class GeneratedPipelineHostTests
 
             host.Run().Wait();
 
-            graphicsDevice.WaitForCompletionQuiescence();
+            graphicsDevice.DrainCompletedSubmissions();
             graphicsDevice.TrimMemory();
 
             GraphicsMemoryStatistics trimmed = graphicsDevice.GetMemoryStatistics();
