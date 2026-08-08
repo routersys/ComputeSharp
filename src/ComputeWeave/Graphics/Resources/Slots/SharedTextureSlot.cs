@@ -193,7 +193,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         ref readonly SharedTextureContractDescriptor descriptor = ref runtime.Descriptor.SharedTextures.Span[(int)this.ordinal.Value];
 
-        RunMaintenance();
+        RequestMaintenance();
 
         ResourcePlanDecision decision = this.slotGate.EvaluateSharedTexture(in descriptor, width, height);
 
@@ -313,7 +313,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     {
         PreparedGenerationRollback.RollbackUnpublished(this.slotGate.RequestDispose());
 
-        RunMaintenance();
+        RequestMaintenance();
     }
 
     /// <summary>
@@ -338,7 +338,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
             ulong progress = boundRuntime.Registry.Coordinator.ProgressVersion;
 
-            RunMaintenance();
+            RequestMaintenance();
 
             if (this.slotGate.IsDisposalComplete)
             {
@@ -356,6 +356,12 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// <summary>
     /// Runs the external drain and the generation maintenance of the current slot.
     /// </summary>
+    /// <remarks>
+    /// This is the executor path. Section 15.4 of the pipeline interop specification reserves the execution of
+    /// a final drain to the maintenance coordinator, so only <see cref="IComputeSharedSlot.RunMaintenance"/>
+    /// reaches here, and its callers are the completion coordinator thread and the registry teardown that
+    /// takes over once that thread has stopped. Every other caller uses <see cref="RequestMaintenance"/>.
+    /// </remarks>
     private void RunMaintenance()
     {
         if (this.runtime is InteropResourceSetRuntime boundRuntime)
@@ -366,6 +372,23 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         }
 
         SlotGenerationMaintenance.Run(ref this.slotGate);
+    }
+
+    /// <summary>
+    /// Asks the maintenance coordinator to run the external drain of the current slot.
+    /// </summary>
+    /// <remarks>
+    /// This is the requester path. It advances the generation maintenance of the slot, which touches no
+    /// external queue, and then wakes the coordinator. It never runs an external drain phase itself.
+    /// </remarks>
+    private void RequestMaintenance()
+    {
+        SlotGenerationMaintenance.Run(ref this.slotGate);
+
+        if (this.runtime is InteropResourceSetRuntime boundRuntime)
+        {
+            boundRuntime.Registry.Coordinator.Wake();
+        }
     }
 
     /// <summary>
@@ -905,7 +928,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         owner.CommitAccounting();
 
-        RunMaintenance();
+        RequestMaintenance();
 
         changed = true;
 
