@@ -695,11 +695,28 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         RunExternalMaintenance(resourceSets);
     }
 
+    /// <summary>
+    /// Runs the external drain of a set of resource sets, keeping one failing domain to itself.
+    /// </summary>
+    /// <param name="resourceSets">The resource sets to run the maintenance of.</param>
+    /// <remarks>
+    /// A provider that fails records the failure on its own domain before it throws, and the holders of that
+    /// domain observe it there. Section 4.1 of the external drain maintenance specification leaves the
+    /// coordinator as the only executor of a drain, so letting the failure out of this loop would stop the
+    /// maintenance of every other resource set on the device as well. A failure the domain did not record is
+    /// not one this loop knows how to contain, so it still leaves.
+    /// </remarks>
     private static void RunExternalMaintenance(InteropResourceSetRuntime[] resourceSets)
     {
         foreach (InteropResourceSetRuntime runtime in resourceSets)
         {
-            runtime.RunSharedSlotMaintenance();
+            try
+            {
+                runtime.RunSharedSlotMaintenance();
+            }
+            catch (Exception) when (runtime.Domain.ProviderDiagnostic is not null || runtime.Domain.PoisonReason is not null)
+            {
+            }
         }
     }
 
