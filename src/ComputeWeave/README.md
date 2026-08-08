@@ -74,15 +74,17 @@ public sealed partial class ResourceSet
 
 Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
+Retiring a shared texture generation drains the external queue before the external view is released, and that drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A provider that throws poisons its domain, and every later operation on that domain reports the failure.
+
 `InteropServices` additionally exposes the shared texture and shared fence primitives directly, for callers that manage the handles themselves.
 
 ## GPU memory budget
 
-`GraphicsDevice.SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GraphicsDevice.GetMemoryStatistics` returns a snapshot and `GraphicsDevice.TrimMemory` releases what is retired and idle. Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`.
+`GraphicsDevice.SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GraphicsDevice.GetMemoryStatistics` returns a snapshot and `GraphicsDevice.TrimMemory` releases what is retired and idle. A generation is idle only once the work and the external queue that held it are done with it, so trimming right after the call that retired it reclaims nothing. Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`.
 
 ## Compile-time validation
 
-The declarations above are checked by analyzers that report 92 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
 ## More
 

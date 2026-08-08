@@ -163,6 +163,8 @@ using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
 
 `ComputeInteropDomain` は `Device`、`Id`、`Capabilities` と、`Dispose` および `WaitForDisposal` の対を公開します。`ExternalInteropCapabilities` は `SharedFence`、`SharedTexture2D`、`SingleImmediateContextOrdering`、`PersistentExternalViewOrdering` を報告します。操作のたびにキューへの出入りが必要な実装は `ComputeExternalQueueScheduler` を継承します。
 
+実装側が例外を投げると、外部キューの状態を実行時が判断できなくなるため、そのドメインは汚染されます。以後そのドメインへの操作と、そこから取得した貸し出しや貸与はすべて、実装側が投げた例外を報告します。同じデバイス上の他のドメインは影響を受けません。
+
 ### 4. 共有テクスチャスロット
 
 資源集合は `[ComputeInteropResourceSet]` を付けた `partial` な型で、`[ComputeSharedTexture]` を付けた `SharedTextureSlot<T, TPixel, TView>` のフィールドを持ちます。属性が、再確保の方針、両側それぞれの参照権、外部側の用途、アルファの扱い、最初の所有者、復帰の方法を固定します。
@@ -188,6 +190,8 @@ public sealed partial class ResourceSet
 
 ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
+共有テクスチャの世代を退役させるとき、大きさの変更でもスロットの破棄でも、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。待つには `WaitForDisposal` を使います。
+
 ### 5. バッファの読み取り専用ビュー
 
 `ReadWriteBuffer<T>.AsReadOnly()` が `IReadOnlyBuffer<T>` を返します。同じ資源をSRVとして束縛するビューで、これを受けるシェーダーは書き込めません。
@@ -205,7 +209,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 ### 6. GPUメモリの予算管理
 
-`GraphicsDevice` へ3つのメンバーが加わります。`SetMemoryPolicy` はメモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GetMemoryStatistics` は、世代番号、区分ごとの統計、世代数を持つ `GraphicsMemoryStatistics` の断面を返します。`TrimMemory` は退役して待機中の資源を解放します。
+`GraphicsDevice` へ3つのメンバーが加わります。`SetMemoryPolicy` はメモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GetMemoryStatistics` は、世代番号、区分ごとの統計、世代数を持つ `GraphicsMemoryStatistics` の断面を返します。`TrimMemory` は退役して待機中の資源を解放します。世代が待機中になるのは、それを保持していた処理と外部キューが用済みになった後なので、退役させた直後に整理しても何も回収されません。
 
 予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。これは `InvalidOperationException` を継承します。
 

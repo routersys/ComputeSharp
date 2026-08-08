@@ -74,15 +74,17 @@ public sealed partial class ResourceSet
 
 所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
+共有テクスチャの世代を退役させると、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。実装側が例外を投げるとそのドメインは汚染され、以後そのドメインへの操作はすべて失敗を報告します。
+
 ハンドルを自分で管理する場合のために、`InteropServices` が共有テクスチャと共有フェンスの基本操作を直接公開しています。
 
 ## GPUメモリの予算管理
 
-`GraphicsDevice.SetMemoryPolicy` は、メモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GraphicsDevice.GetMemoryStatistics` は状態の断面を返し、`GraphicsDevice.TrimMemory` は退役して待機中の資源を解放します。予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。
+`GraphicsDevice.SetMemoryPolicy` は、メモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GraphicsDevice.GetMemoryStatistics` は状態の断面を返し、`GraphicsDevice.TrimMemory` は退役して待機中の資源を解放します。世代が待機中になるのは、それを保持していた処理と外部キューが用済みになった後なので、退役させた直後に整理しても何も回収されません。予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。
 
 ## コンパイル時の検証
 
-以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断92種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
+以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断95種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
 
 ## 詳細
 

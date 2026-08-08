@@ -163,6 +163,8 @@ using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
 
 `ComputeInteropDomain` exposes `Device`, `Id`, `Capabilities` and the disposal pair `Dispose` / `WaitForDisposal`. `ExternalInteropCapabilities` reports `SharedFence`, `SharedTexture2D`, `SingleImmediateContextOrdering` and `PersistentExternalViewOrdering`. Providers whose queue must be entered and left around each operation derive a `ComputeExternalQueueScheduler`.
 
+A provider that throws leaves its external queue in a state the runtime cannot reason about, so the domain is poisoned. Every subsequent operation on that domain, and every borrow or lease taken from it, reports the failure the provider raised. Other domains on the same device are unaffected.
+
 ### 4. Shared texture slots
 
 A resource set is a `partial` type marked `[ComputeInteropResourceSet]` holding `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`. The attribute fixes the resize policy, the access on each side, the external usage, the alpha mode, the initial owner and the recovery.
@@ -188,6 +190,8 @@ public sealed partial class ResourceSet
 
 The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)` and, per slot, `TryEnsure<Slot>(int width, int height, out bool changed)`. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
+Retiring a shared texture generation, whether by resizing it or by disposing its slot, drains the external queue before the external view is released. That drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. `WaitForDisposal` waits for it.
+
 ### 5. Read-only buffer views
 
 `ReadWriteBuffer<T>.AsReadOnly()` returns an `IReadOnlyBuffer<T>`. The view binds the same resource through its SRV, so a shader taking it cannot write to it.
@@ -205,7 +209,7 @@ Unlike the texture counterparts, no state transition is involved: a buffer resid
 
 ### 6. GPU memory budget
 
-`GraphicsDevice` gains three members. `SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GetMemoryStatistics` returns a `GraphicsMemoryStatistics` snapshot carrying an epoch, per-segment statistics and generation counts. `TrimMemory` releases what is retired and idle.
+`GraphicsDevice` gains three members. `SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GetMemoryStatistics` returns a `GraphicsMemoryStatistics` snapshot carrying an epoch, per-segment statistics and generation counts. `TrimMemory` releases what is retired and idle. A generation is idle only once the work and the external queue that held it are done with it, so trimming right after the call that retired it reclaims nothing.
 
 Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`, which derives from `InvalidOperationException`.
 
