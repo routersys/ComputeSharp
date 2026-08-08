@@ -12,6 +12,18 @@ internal struct ExternalMaintenanceRecord(
 
     public int Queued;
 
+    /// <summary>
+    /// Whether a maintenance pass holds the right to run a phase of the current record.
+    /// </summary>
+    /// <remarks>
+    /// The phase a pass has to run is decided under the maintenance exclusion of the slot, but the phase itself
+    /// runs outside it, and the record only advances once the phase has already signalled the external queue.
+    /// Two passes that decide at the same time would therefore both issue the final drain of one generation.
+    /// Section 15.4 of the pipeline interop specification forbids that duplicate, so a pass claims the record
+    /// before it leaves the exclusion. The exclusion serialises every access, so no interlocked access is used.
+    /// </remarks>
+    public int Executing;
+
     public ExternalDomainId Domain = domain;
 
     public ResourceSetRegistrationId ResourceSet = resourceSet;
@@ -27,6 +39,38 @@ internal struct ExternalMaintenanceRecord(
     public readonly bool IsCompleted => this.State is ExternalDrainState.Completed;
 
     public readonly bool IsFaulted => this.State is ExternalDrainState.Faulted;
+
+    /// <summary>
+    /// Claims the right to run a phase of the current record.
+    /// </summary>
+    /// <returns>Whether the claim was taken.</returns>
+    public bool TryBeginPhase()
+    {
+        if (this.Executing != 0)
+        {
+            return false;
+        }
+
+        this.Executing = 1;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Releases the claim a pass took with <see cref="TryBeginPhase"/>.
+    /// </summary>
+    /// <returns>Whether a claim was held.</returns>
+    public bool TryEndPhase()
+    {
+        if (this.Executing == 0)
+        {
+            return false;
+        }
+
+        this.Executing = 0;
+
+        return true;
+    }
 
     public bool TryRequest(ResourceGenerationId generation)
     {

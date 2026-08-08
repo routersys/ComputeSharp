@@ -405,12 +405,25 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             return false;
         }
 
-        return phase switch
+        bool isPhaseCompleted = false;
+
+        try
         {
-            ExternalDrainPhase.FinalDrain => TryIssueFinalDrain(runtime, owner),
-            ExternalDrainPhase.RetirementFence => TryCompleteFinalDrain(runtime, owner),
-            _ => TryReleaseExternalObjects(runtime, owner)
-        };
+            bool released = phase switch
+            {
+                ExternalDrainPhase.FinalDrain => TryIssueFinalDrain(runtime, owner),
+                ExternalDrainPhase.RetirementFence => TryCompleteFinalDrain(runtime, owner),
+                _ => TryReleaseExternalObjects(runtime, owner)
+            };
+
+            isPhaseCompleted = true;
+
+            return released;
+        }
+        finally
+        {
+            LeaveExternalMaintenance(isPhaseCompleted);
+        }
     }
 
     /// <summary>
@@ -470,7 +483,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
                 if (!isDrainRequired)
                 {
-                    return this.maintenance.TrySkipFinalDrain();
+                    return this.maintenance.TrySkipFinalDrain() && this.maintenance.TryBeginPhase();
                 }
             }
             else if (this.maintenance.Generation.Value != generation.Value)
@@ -480,7 +493,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
             if (this.maintenance.IsFaulted)
             {
-                return true;
+                return this.maintenance.TryBeginPhase();
             }
 
             phase = this.maintenance.State switch
@@ -492,7 +505,38 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
                 _ => ExternalDrainPhase.None
             };
 
-            return phase is not ExternalDrainPhase.None;
+            return phase is not ExternalDrainPhase.None && this.maintenance.TryBeginPhase();
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.maintenanceExclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Releases the phase claim <see cref="TryEnterExternalMaintenance"/> took on the maintenance record.
+    /// </summary>
+    /// <param name="isPhaseCompleted">Whether the phase ran to completion rather than throwing.</param>
+    /// <remarks>
+    /// The claim is released even when the phase throws, but the invariant is only checked when it did not.
+    /// Throwing while an exception is already unwinding would replace the failure the caller has to see.
+    /// </remarks>
+    private void LeaveExternalMaintenance(bool isPhaseCompleted)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.maintenanceExclusion.Enter(ref taken);
+
+            bool wasHeld = this.maintenance.TryEndPhase();
+
+            default(InvalidOperationException).ThrowIf(
+                isPhaseCompleted && !wasHeld,
+                "The maintenance pass released a phase claim it does not hold.");
         }
         finally
         {
