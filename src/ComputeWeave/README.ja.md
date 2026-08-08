@@ -80,7 +80,7 @@ public sealed partial class ResourceSet
 
 ## GPUメモリの予算管理
 
-`GraphicsDevice.SetMemoryPolicy` は、メモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GraphicsDevice.GetMemoryStatistics` は状態の断面を返し、`GraphicsDevice.TrimMemory` は退役して待機中の資源を解放します。世代が待機中になるのは、それを保持していた処理と外部キューが用済みになった後なので、退役させた直後に整理しても何も回収されません。予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。
+`GraphicsDevice.SetMemoryPolicy` は、メモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GraphicsDevice.GetMemoryStatistics` は状態の断面を返し、`GraphicsDevice.TrimMemory` は退役して待機中の資源を解放します。世代が待機中になるのは、それを保持していた処理と外部キューが用済みになった後なので、退役させた直後に整理しても何も回収されません。予算による確保の失敗は `GraphicsMemoryAllocationException` として現れます。予算の対象はデバイス自身が作成した資源です。`AllocationServices.ConfigureAllocatorFactory` で設定したアロケーターを使うデバイスは資源をそちら経由で作成し、それらは方針による審査も統計への計上も受けません。
 
 ## コンパイル時の検証
 

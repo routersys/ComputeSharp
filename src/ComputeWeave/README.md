@@ -80,7 +80,7 @@ Retiring a shared texture generation drains the external queue before the extern
 
 ## GPU memory budget
 
-`GraphicsDevice.SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GraphicsDevice.GetMemoryStatistics` returns a snapshot and `GraphicsDevice.TrimMemory` releases what is retired and idle. A generation is idle only once the work and the external queue that held it are done with it, so trimming right after the call that retired it reclaims nothing. Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`.
+`GraphicsDevice.SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GraphicsDevice.GetMemoryStatistics` returns a snapshot and `GraphicsDevice.TrimMemory` releases what is retired and idle. A generation is idle only once the work and the external queue that held it are done with it, so trimming right after the call that retired it reclaims nothing. Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`. The budget covers the resources the device creates itself; a device using an allocator configured through `AllocationServices.ConfigureAllocatorFactory` creates its resources through that allocator, and those are neither admitted against the policy nor counted in the statistics.
 
 ## Compile-time validation
 

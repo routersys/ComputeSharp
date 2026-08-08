@@ -56,6 +56,12 @@ namespace ComputeWeave.Interop;
 /// <para>
 /// The implementation of these types can be done in any language, as long as the COM interfaces defined above are correctly supported.
 /// </para>
+/// <para>
+/// A configured allocator owns the memory it hands out, so resources created through it do not go through the memory
+/// budget of the device. The hard limits installed by <c>GraphicsDevice.SetMemoryPolicy</c> are not applied to them,
+/// they are not counted in the owned bytes reported by <c>GraphicsDevice.GetMemoryStatistics</c>, and
+/// <c>GraphicsDevice.TrimMemory</c> reclaims nothing from them. Budget the memory in the allocator instead.
+/// </para>
 /// </remarks>
 public static class AllocationServices
 {

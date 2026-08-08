@@ -54,6 +54,11 @@ unsafe partial class GraphicsDevice
     /// </summary>
     /// <param name="policy">The memory policy to apply.</param>
     /// <exception cref="InvalidOperationException">Thrown if the previous policy is still in use, or if the broker fails.</exception>
+    /// <remarks>
+    /// A device using an allocator configured through <c>AllocationServices.ConfigureAllocatorFactory</c> creates its
+    /// resources through that allocator, which owns the memory it hands out. Those resources are not admitted against
+    /// this policy and are not counted in the statistics of the device.
+    /// </remarks>
     public void SetMemoryPolicy(in GraphicsMemoryPolicy policy)
     {
         using ReferenceTracker.Lease _0 = GetReferenceTracker().GetLease();

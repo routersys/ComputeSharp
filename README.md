@@ -213,6 +213,8 @@ Unlike the texture counterparts, no state transition is involved: a buffer resid
 
 Allocation failures caused by the budget surface as `GraphicsMemoryAllocationException`, which derives from `InvalidOperationException`.
 
+The budget covers the resources the device creates itself. A device using an allocator configured through `AllocationServices.ConfigureAllocatorFactory`, such as the one in the `ComputeWeave.D3D12MemoryAllocator` package, creates its resources through that allocator instead. Those resources are not admitted against the policy, are not counted in the statistics and are not reclaimed by `TrimMemory`. Budget them in the allocator.
+
 ### 7. Compile-time validation
 
 The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
