@@ -61,7 +61,7 @@ public class ExternalFinalDrainTests
 
         Assert.AreEqual(0, fixture.Provider.SignalCount);
 
-        fixture.Provider.SignalDelayInMilliseconds = 50;
+        fixture.Provider.HoldSignals();
 
         fixture.Slot.Dispose();
 
@@ -69,6 +69,8 @@ public class ExternalFinalDrainTests
         Assert.AreEqual(1, fixture.Provider.FlushCount);
         Assert.IsTrue(fixture.Provider.WasReservedWhileSignaling);
         Assert.AreEqual(0, view.DisposeCount);
+
+        fixture.Provider.ReleaseHeldSignals();
 
         fixture.Slot.WaitForDisposal();
 

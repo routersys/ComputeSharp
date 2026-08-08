@@ -49,19 +49,25 @@ public unsafe class SharedTextureGenerationTests
         return new Fixture(device.Get()).Register();
     }
 
+    /// <remarks>
+    /// The completion coordinator thread can run the release, so the view is observed as disposed before that
+    /// thread leaves the external queue reservation. Waiting for the disposal alone leaves the caller racing
+    /// the matching exit, so the reservation has to be part of the condition.
+    /// </remarks>
     private static void WaitForExternalRelease(Fixture fixture, FakeExternalView view)
     {
-        for (int i = 0; i < 5000 && view.DisposeCount == 0; i++)
+        for (int i = 0; i < 5000 && (view.DisposeCount == 0 || fixture.Scheduler.IsReserved); i++)
         {
             ((IComputeSharedSlot)fixture.Slot).RunMaintenance();
 
-            if (view.DisposeCount == 0)
+            if (view.DisposeCount == 0 || fixture.Scheduler.IsReserved)
             {
                 Thread.Sleep(1);
             }
         }
 
         Assert.AreEqual(1, view.DisposeCount);
+        Assert.IsFalse(fixture.Scheduler.IsReserved);
     }
 
     [CombinatorialTestMethod]

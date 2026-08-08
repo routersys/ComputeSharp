@@ -23,14 +23,24 @@ internal sealed class FakeExternalView(FakeInteropProvider? provider = null) : I
 
 internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
 {
-    public int EnterCount { get; private set; }
+    private int enterCount;
 
-    public int ExitCount { get; private set; }
+    private int exitCount;
 
-    public int DisposeCount { get; private set; }
+    private int disposeCount;
+
+    public int EnterCount => Volatile.Read(ref this.enterCount);
+
+    public int ExitCount => Volatile.Read(ref this.exitCount);
+
+    public int DisposeCount => Volatile.Read(ref this.disposeCount);
 
     public bool ThrowOnEnter { get; set; }
 
+    /// <remarks>
+    /// The completion coordinator thread runs the release of a retired generation, so a test thread observes
+    /// these counters across threads and they have to be read and written atomically.
+    /// </remarks>
     public bool IsReserved => EnterCount != ExitCount;
 
     protected override void EnterCore()
@@ -40,17 +50,17 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
             throw new InvalidOperationException("External queue scheduler is busy or reentered.");
         }
 
-        EnterCount++;
+        _ = Interlocked.Increment(ref this.enterCount);
     }
 
     protected override void ExitCore()
     {
-        ExitCount++;
+        _ = Interlocked.Increment(ref this.exitCount);
     }
 
     protected override void DisposeCore()
     {
-        DisposeCount++;
+        _ = Interlocked.Increment(ref this.disposeCount);
     }
 }
 
@@ -64,6 +74,8 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     private ComPtr<ID3D12Fence> d3D12SharedFence;
 
     private Task? pendingSignal;
+
+    private ManualResetEventSlim? signalGate;
 
     private int completedSignalCount;
 
@@ -121,6 +133,23 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public int CompletedSignalCount => Volatile.Read(ref this.completedSignalCount);
 
+    /// <summary>
+    /// Holds every subsequent signal until <see cref="ReleaseHeldSignals"/> runs, so a test can observe the
+    /// state of a drain that cannot complete yet without depending on wall clock time.
+    /// </summary>
+    public void HoldSignals()
+    {
+        this.signalGate = new ManualResetEventSlim(false);
+    }
+
+    /// <summary>
+    /// Lets every signal held by <see cref="HoldSignals"/> reach the shared timeline.
+    /// </summary>
+    public void ReleaseHeldSignals()
+    {
+        this.signalGate?.Set();
+    }
+
     public void EnqueueSignal(ulong value)
     {
         SignalCount++;
@@ -132,7 +161,7 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
             throw new InvalidOperationException("The external queue could not signal the shared timeline.");
         }
 
-        if (this.SignalDelayInMilliseconds <= 0)
+        if (this.signalGate is null && this.SignalDelayInMilliseconds <= 0)
         {
             Assert.IsTrue(this.d3D12SharedFence.Get()->Signal(value) >= 0);
 
@@ -143,10 +172,18 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
         nint d3D12Fence = (nint)this.d3D12SharedFence.Get();
         int delay = this.SignalDelayInMilliseconds;
+        ManualResetEventSlim? gate = this.signalGate;
 
         this.pendingSignal = Task.Run(() =>
         {
-            Thread.Sleep(delay);
+            if (gate is not null)
+            {
+                gate.Wait();
+            }
+            else
+            {
+                Thread.Sleep(delay);
+            }
 
             Assert.IsTrue(((ID3D12Fence*)d3D12Fence)->Signal(value) >= 0);
 
@@ -210,7 +247,9 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
     {
         DisposeCount++;
 
+        this.signalGate?.Set();
         this.pendingSignal?.Wait();
+        this.signalGate?.Dispose();
         this.d3D12SharedFence.Dispose();
     }
 }
