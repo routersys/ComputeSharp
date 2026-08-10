@@ -419,6 +419,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         DomainOperationStatus status;
         ulong token = 0;
+        bool hasWaitedForMaintenance = false;
+        bool shouldReleaseNative = false;
 
         lock (this.gate)
         {
@@ -430,10 +432,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             {
                 while (true)
                 {
-                    if (this.record.State is not ComputeInteropDomainState.Active)
+                    if (hasWaitedForMaintenance && this.record.State is not ComputeInteropDomainState.Active)
                     {
                         _ = this.record.TryRelease(reference);
                         status = DomainOperationStatus.DomainUnavailable;
+                        shouldReleaseNative = true;
 
                         break;
                     }
@@ -454,6 +457,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                         break;
                     }
 
+                    hasWaitedForMaintenance = true;
                     _ = Monitor.Wait(this.gate);
                 }
             }
@@ -467,7 +471,10 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         if (status is not DomainOperationStatus.Acquired)
         {
-            TryReleaseNative();
+            if (shouldReleaseNative)
+            {
+                TryReleaseNative();
+            }
 
             return status;
         }
