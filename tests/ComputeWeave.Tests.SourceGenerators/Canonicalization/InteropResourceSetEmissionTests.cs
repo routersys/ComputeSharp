@@ -115,6 +115,17 @@ public class InteropResourceSetEmissionTests
     }
 
     [TestMethod]
+    public void EmitsPhysicalExtentAccessorsForEverySharedSlot()
+    {
+        string source = RunAndGetSource("ResourceSetPhysicalExtentTests");
+
+        Assert.IsTrue(source.Contains("public bool TryGetSourcePhysicalExtent(out int width, out int height)"), source);
+        Assert.IsTrue(source.Contains("return this.@_source.TryGetPhysicalExtent(out width, out height);"), source);
+        Assert.IsTrue(source.Contains("public bool TryGetOutputPhysicalExtent(out int width, out int height)"), source);
+        Assert.IsTrue(source.Contains("return this.@_output.TryGetPhysicalExtent(out width, out height);"), source);
+    }
+
+    [TestMethod]
     public void EmitsComputeBindingAccessorsForEverySharedSlot()
     {
         string source = RunAndGetSource("ResourceSetBindingTests");
