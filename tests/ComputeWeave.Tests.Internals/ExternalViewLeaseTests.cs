@@ -245,6 +245,37 @@ public class ExternalViewLeaseTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void GetsTheLeasedDimensionsWithoutManagedAllocation(Device device)
+    {
+        using Fixture fixture = Create(device, ComputeSharedTextureInitialOwner.External);
+
+        Assert.IsTrue(fixture.Slot.TryEnsure(16, 8, out _));
+
+        ExternalTextureLease<FakeExternalView> lease = fixture.AcquireLease();
+        long minimum = long.MaxValue;
+        int width = 0;
+        int height = 0;
+
+        for (int i = 0; i < 10; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int j = 0; j < 1000; j++)
+            {
+                width = lease.Width;
+                height = lease.Height;
+            }
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        Assert.AreEqual(16, width);
+        Assert.AreEqual(8, height);
+        Assert.AreEqual(0, minimum);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void RejectsALeaseOfAGenerationTheComputeQueueOwns(Device device)
     {
         using Fixture fixture = Create(device, ComputeSharedTextureInitialOwner.Compute);
