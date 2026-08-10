@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ComputeWeave.Interop;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
@@ -162,6 +164,53 @@ public class InteropDomainOperationTests
         Assert.AreEqual(DomainOperationStatus.Acquired, Acquire(domain, out DomainOperationLease next));
 
         next.Dispose();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AForegroundOperationWaitsForMaintenance(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
+
+        DomainOperationStatus maintenanceStatus = domain.TryAcquireOperation(
+            ExternalDomainReference.Maintenance,
+            default,
+            releaseExternalReferenceOnDispose: false,
+            out DomainOperationLease maintenance,
+            out _);
+
+        Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
+
+        using ManualResetEventSlim started = new();
+
+        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
+        {
+            started.Set();
+
+            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+            return (status, lease);
+        });
+
+        try
+        {
+            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+            Assert.IsFalse(attempt.Wait(TimeSpan.FromMilliseconds(100)));
+        }
+        finally
+        {
+            maintenance.Dispose();
+        }
+
+        Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
+        Assert.IsTrue(attempt.Result.Lease.IsValid);
+
+        attempt.Result.Lease.Dispose();
     }
 
     [CombinatorialTestMethod]
