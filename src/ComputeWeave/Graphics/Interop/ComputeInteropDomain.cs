@@ -48,7 +48,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     /// <summary>
     /// The gate protecting <see cref="record"/>.
     /// </summary>
-    private readonly Lock gate = new();
+    private readonly object gate = new();
 
     /// <summary>
     /// The shared fence backing the timeline of the current domain.
@@ -428,11 +428,25 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             }
             else
             {
-                status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
-
-                if (status is not DomainOperationStatus.Acquired)
+                while (true)
                 {
-                    _ = this.record.TryRelease(reference);
+                    status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
+
+                    if (status is DomainOperationStatus.Acquired)
+                    {
+                        break;
+                    }
+
+                    if (status is not DomainOperationStatus.PermitBusy ||
+                        reference is ExternalDomainReference.Maintenance ||
+                        this.record.References.Maintenance == 0)
+                    {
+                        _ = this.record.TryRelease(reference);
+
+                        break;
+                    }
+
+                    _ = Monitor.Wait(this.gate);
                 }
             }
         }
@@ -460,6 +474,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             {
                 _ = this.operation.TryRelease(token);
                 _ = this.record.TryRelease(reference);
+
+                Monitor.PulseAll(this.gate);
             }
 
             return DomainOperationStatus.SchedulerBusy;
@@ -525,6 +541,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 this.operation.CompleteRelease();
 
                 _ = this.record.TryRelease(reference);
+
+                Monitor.PulseAll(this.gate);
             }
 
             if (isExternalReferenceHeld)
