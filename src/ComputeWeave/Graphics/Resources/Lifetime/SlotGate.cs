@@ -188,7 +188,9 @@ internal struct SlotGate
         InteropResourceSetRuntime runtime,
         int resourceIndex,
         out ResourceGenerationPin pin,
-        out TView view)
+        out TView view,
+        out int width,
+        out int height)
         where TView : class
     {
         bool taken = false;
@@ -197,7 +199,28 @@ internal struct SlotGate
         {
             this.exclusion.Enter(ref taken);
 
-            return this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view);
+            width = 0;
+            height = 0;
+
+            if (!this.control.IsAllocated || this.planState.FieldCount < 2)
+            {
+                pin = default;
+                view = null!;
+
+                return false;
+            }
+
+            Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(this.PlanStorage, in this.planState);
+
+            if (!this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view))
+            {
+                return false;
+            }
+
+            width = activePhysicalCapacity[0];
+            height = activePhysicalCapacity[1];
+
+            return true;
         }
         finally
         {

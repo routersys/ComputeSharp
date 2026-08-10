@@ -34,6 +34,16 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     private readonly TView view;
 
     /// <summary>
+    /// The width of the leased texture generation.
+    /// </summary>
+    private readonly int width;
+
+    /// <summary>
+    /// The height of the leased texture generation.
+    /// </summary>
+    private readonly int height;
+
+    /// <summary>
     /// Whether the current lease has been disposed.
     /// </summary>
     private int isDisposed;
@@ -44,17 +54,54 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     /// <param name="runtime">The resource set the leased generation belongs to.</param>
     /// <param name="pin">The generation the lease holds an external reference of.</param>
     /// <param name="view">The leased external view.</param>
-    internal ExternalTextureLease(InteropResourceSetRuntime runtime, in ResourceGenerationPin pin, TView view)
+    /// <param name="width">The width of the leased texture generation.</param>
+    /// <param name="height">The height of the leased texture generation.</param>
+    internal ExternalTextureLease(
+        InteropResourceSetRuntime runtime,
+        in ResourceGenerationPin pin,
+        TView view,
+        int width,
+        int height)
     {
         this.runtime = runtime;
         this.pin = pin;
         this.view = view;
+        this.width = width;
+        this.height = height;
     }
 
     /// <summary>
     /// Gets whether the current lease has been disposed.
     /// </summary>
     public bool IsDisposed => Volatile.Read(ref this.isDisposed) != 0;
+
+    /// <summary>
+    /// Gets the width of the leased texture generation.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown if the current lease has been disposed.</exception>
+    public int Width
+    {
+        get
+        {
+            default(ObjectDisposedException).ThrowIf(IsDisposed, this);
+
+            return this.width;
+        }
+    }
+
+    /// <summary>
+    /// Gets the height of the leased texture generation.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown if the current lease has been disposed.</exception>
+    public int Height
+    {
+        get
+        {
+            default(ObjectDisposedException).ThrowIf(IsDisposed, this);
+
+            return this.height;
+        }
+    }
 
     /// <summary>
     /// Gets the leased external view.

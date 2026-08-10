@@ -324,10 +324,16 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             runtime.State is not RegistrationState.Active,
             "The compute interop resource set no longer accepts work.");
         default(InvalidOperationException).ThrowIf(
-            !this.slotGate.TryAcquirePersistentLease(runtime, 0, out ResourceGenerationPin pin, out TView view),
+            !this.slotGate.TryAcquirePersistentLease(
+                runtime,
+                0,
+                out ResourceGenerationPin pin,
+                out TView view,
+                out int width,
+                out int height),
             "The shared texture slot cannot lease the external view of its published texture generation.");
 
-        return new ExternalTextureLease<TView>(runtime, in pin, view);
+        return new ExternalTextureLease<TView>(runtime, in pin, view, width, height);
     }
 
     /// <inheritdoc/>
