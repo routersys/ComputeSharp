@@ -467,6 +467,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         if (status is not DomainOperationStatus.Acquired)
         {
+            TryReleaseNative();
+
             return status;
         }
 
