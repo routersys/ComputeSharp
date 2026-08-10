@@ -1,4 +1,5 @@
 using System.Threading;
+using ComputeWeave.Interop;
 using ComputeWeave.Memory;
 using ComputeWeave.Resources.Lifetime;
 
@@ -118,6 +119,13 @@ internal sealed class InteropResourceSetRuntime
         {
             this.registration.ReleasePersistentLease();
         }
+    }
+
+    public void ReleasePersistentLease(in ResourceGenerationPin pin)
+    {
+        ReleasePersistentLease();
+        Domain.ReleaseReference(ExternalDomainReference.PersistentLease);
+        Domain.ReleaseGenerationPersistentLease(in pin);
     }
 
     public void RequestDispose()

@@ -168,8 +168,6 @@ public sealed class ExternalTextureLease<TView> : IDisposable
             return;
         }
 
-        this.runtime.ReleasePersistentLease();
-        this.runtime.Domain.ReleaseReference(ExternalDomainReference.PersistentLease);
-        this.runtime.Domain.ReleaseGenerationPersistentLease(in this.pin);
+        this.runtime.ReleasePersistentLease(in this.pin);
     }
 }
