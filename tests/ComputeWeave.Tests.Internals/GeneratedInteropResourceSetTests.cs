@@ -97,11 +97,11 @@ public class GeneratedInteropResourceSetTests
 
     [CombinatorialTestMethod]
     [AllDevices]
-    public void ReportsThePhysicalExtentOfAGrowOnlySharedTexture(Device device)
+    public void ReportsTheAllocatedSizeOfAGrowOnlySharedTexture(Device device)
     {
         using Fixture fixture = Create(device);
 
-        Assert.IsFalse(fixture.Resources.TryGetOutputPhysicalExtent(out int width, out int height));
+        Assert.IsFalse(fixture.Resources.TryGetOutputAllocatedSize(out int width, out int height));
         Assert.AreEqual(0, width);
         Assert.AreEqual(0, height);
 
@@ -111,7 +111,7 @@ public class GeneratedInteropResourceSetTests
         Assert.IsTrue(fixture.Resources.TryEnsureOutput(32, 16, out changed));
         Assert.IsFalse(changed);
 
-        Assert.IsTrue(fixture.Resources.TryGetOutputPhysicalExtent(out width, out height));
+        Assert.IsTrue(fixture.Resources.TryGetOutputAllocatedSize(out width, out height));
         Assert.AreEqual(64, width);
         Assert.AreEqual(32, height);
     }
