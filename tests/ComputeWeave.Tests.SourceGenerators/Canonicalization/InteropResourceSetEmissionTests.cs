@@ -115,14 +115,14 @@ public class InteropResourceSetEmissionTests
     }
 
     [TestMethod]
-    public void EmitsPhysicalExtentAccessorsForEverySharedSlot()
+    public void EmitsAllocatedSizeAccessorsForEverySharedSlot()
     {
-        string source = RunAndGetSource("ResourceSetPhysicalExtentTests");
+        string source = RunAndGetSource("ResourceSetAllocatedSizeTests");
 
-        Assert.IsTrue(source.Contains("public bool TryGetSourcePhysicalExtent(out int width, out int height)"), source);
-        Assert.IsTrue(source.Contains("return this.@_source.TryGetPhysicalExtent(out width, out height);"), source);
-        Assert.IsTrue(source.Contains("public bool TryGetOutputPhysicalExtent(out int width, out int height)"), source);
-        Assert.IsTrue(source.Contains("return this.@_output.TryGetPhysicalExtent(out width, out height);"), source);
+        Assert.IsTrue(source.Contains("public bool TryGetSourceAllocatedSize(out int width, out int height)"), source);
+        Assert.IsTrue(source.Contains("return this.@_source.TryGetAllocatedSize(out width, out height);"), source);
+        Assert.IsTrue(source.Contains("public bool TryGetOutputAllocatedSize(out int width, out int height)"), source);
+        Assert.IsTrue(source.Contains("return this.@_output.TryGetAllocatedSize(out width, out height);"), source);
     }
 
     [TestMethod]
