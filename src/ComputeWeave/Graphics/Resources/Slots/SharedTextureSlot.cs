@@ -309,6 +309,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// Acquires a persistent lease over the external view of the currently published texture generation.
     /// </summary>
     /// <returns>A persistent lease over the external view.</returns>
+    /// <remarks>The width and height of the returned lease describe the generation held by that lease.</remarks>
     /// <exception cref="InvalidOperationException">Thrown if the slot, its resource set or its domain cannot lease the external view.</exception>
     public ExternalTextureLease<TView> AcquireExternalViewLease()
     {

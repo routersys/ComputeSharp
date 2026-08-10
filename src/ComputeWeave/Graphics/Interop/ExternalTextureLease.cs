@@ -13,7 +13,8 @@ namespace ComputeWeave;
 /// <remarks>
 /// A lease holds an external reference over its generation and a reference over its domain, but no external
 /// queue ownership, so every external queue work over the leased view runs inside the scope of one of the
-/// operations the lease hands out.
+/// operations the lease hands out. Its <see cref="Width"/> and <see cref="Height"/> are captured together with
+/// the leased generation and remain unchanged when the slot publishes another generation.
 /// </remarks>
 public sealed class ExternalTextureLease<TView> : IDisposable
     where TView : class
