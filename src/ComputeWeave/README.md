@@ -72,7 +72,7 @@ public sealed partial class ResourceSet
 }
 ```
 
-Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
+`TryGet<Slot>PhysicalExtent` reports the dimensions of the published texture, which can remain larger than the logical dimensions under `GrowOnly`. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
 Retiring a shared texture generation drains the external queue before the external view is released, and that drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A provider that throws poisons its domain, and every later operation on that domain reports the failure.
 
