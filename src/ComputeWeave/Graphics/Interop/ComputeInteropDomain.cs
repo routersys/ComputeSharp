@@ -430,6 +430,14 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             {
                 while (true)
                 {
+                    if (this.record.State is not ComputeInteropDomainState.Active)
+                    {
+                        _ = this.record.TryRelease(reference);
+                        status = DomainOperationStatus.DomainUnavailable;
+
+                        break;
+                    }
+
                     status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
 
                     if (status is DomainOperationStatus.Acquired)
