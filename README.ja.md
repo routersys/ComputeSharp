@@ -188,7 +188,7 @@ public sealed partial class ResourceSet
 }
 ```
 
-ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。`TryGet<スロット名>AllocatedSize` は公開中のテクスチャに確保されている幅と高さを返します。`GrowOnly` では確保サイズが論理寸法より大きい場合があります。結果は世代を固定しないスナップショットです。世代交換が並行しうる場合は、別に取得した束縛や貸し出しや貸与のサイズを表しません。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
+ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。`TryGet<スロット名>AllocatedSize` は公開中のテクスチャに確保されている幅と高さを返します。`GrowOnly` では確保サイズが論理寸法より大きい場合があります。結果は世代を固定しないスナップショットです。世代交換が並行しうる場合は、別に取得した束縛や貸し出しや貸与のサイズを表しません。`ExternalTextureLease<TView>` の `Width` と `Height` は、その貸与が保持する世代の寸法を表します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
 共有テクスチャの世代を退役させるとき、大きさの変更でもスロットの破棄でも、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。待つには `WaitForDisposal` を使います。
 
