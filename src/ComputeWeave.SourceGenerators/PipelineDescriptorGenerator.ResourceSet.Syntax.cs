@@ -118,6 +118,19 @@ partial class PipelineDescriptorGenerator
         }
 
         writer.WriteLine();
+        writer.WriteLine($"""/// <summary>Tries to get the physical dimensions of the shared texture owned by <c>{slot.CanonicalName}</c>.</summary>""");
+        writer.WriteLine("""/// <param name="width">The physical width, or zero if no texture generation is published.</param>""");
+        writer.WriteLine("""/// <param name="height">The physical height, or zero if no texture generation is published.</param>""");
+        writer.WriteLine("""/// <returns>Whether a texture generation is currently published.</returns>""");
+        writer.WriteGeneratedAttributes(GeneratorName);
+        writer.WriteLine($"public bool TryGet{slot.CanonicalName}PhysicalExtent(out int width, out int height)");
+
+        using (writer.WriteBlock())
+        {
+            writer.WriteLine($"return this.@{slot.FieldName}.TryGetPhysicalExtent(out width, out height);");
+        }
+
+        writer.WriteLine();
         writer.WriteLine($"""/// <summary>Gets the binding of the shared texture owned by <c>{slot.CanonicalName}</c>.</summary>""");
         writer.WriteLine("""/// <returns>The binding of the shared texture, or an invalid binding if none is published.</returns>""");
         writer.WriteGeneratedAttributes(GeneratorName);
