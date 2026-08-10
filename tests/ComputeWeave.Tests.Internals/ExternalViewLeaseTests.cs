@@ -207,6 +207,8 @@ public class ExternalViewLeaseTests
         ExternalTextureLease<FakeExternalView> lease = fixture.AcquireLease();
 
         Assert.IsFalse(lease.IsDisposed);
+        Assert.AreEqual(16, lease.Width);
+        Assert.AreEqual(16, lease.Height);
         Assert.AreSame(view, lease.DangerousGetView());
         Assert.AreEqual(reservations, fixture.Scheduler.EnterCount);
         Assert.AreNotEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
@@ -219,6 +221,8 @@ public class ExternalViewLeaseTests
         Assert.AreEqual(0, fixture.Record.StateFlags & ComputeWeave.Resources.Lifetime.ResourceGenerationRecord.PersistentLeaseActiveBit);
         Assert.AreEqual(0, fixture.Record.ExternalReferenceCount);
 
+        _ = Assert.ThrowsException<ObjectDisposedException>(() => _ = lease.Width);
+        _ = Assert.ThrowsException<ObjectDisposedException>(() => _ = lease.Height);
         _ = Assert.ThrowsException<ObjectDisposedException>(lease.DangerousGetView);
         _ = Assert.ThrowsException<ObjectDisposedException>(() => { _ = lease.BeginExternalQueueOperation().IsValid; });
     }
@@ -271,6 +275,10 @@ public class ExternalViewLeaseTests
         ExternalTextureLease<FakeExternalView> secondLease = fixture.AcquireLease();
 
         Assert.AreNotSame(first, second);
+        Assert.AreEqual(16, firstLease.Width);
+        Assert.AreEqual(16, firstLease.Height);
+        Assert.AreEqual(32, secondLease.Width);
+        Assert.AreEqual(16, secondLease.Height);
         Assert.AreSame(first, firstLease.DangerousGetView());
         Assert.AreSame(second, secondLease.DangerousGetView());
         Assert.AreEqual(0, fixture.Provider.SignalCount);

@@ -181,6 +181,8 @@ public class GeneratedInteropResourceSetTests
 
         using ExternalTextureLease<FakeExternalView> lease = fixture.Resources.AcquireSourceExternalViewLease();
 
+        Assert.AreEqual(8, lease.Width);
+        Assert.AreEqual(8, lease.Height);
         Assert.AreSame(source, lease.DangerousGetView());
 
         Assert.IsTrue(fixture.Resources.TryEnsureOutput(8, 8, out _));
