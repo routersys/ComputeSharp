@@ -118,16 +118,17 @@ partial class PipelineDescriptorGenerator
         }
 
         writer.WriteLine();
-        writer.WriteLine($"""/// <summary>Tries to get the physical dimensions of the shared texture owned by <c>{slot.CanonicalName}</c>.</summary>""");
-        writer.WriteLine("""/// <param name="width">The physical width, or zero if no texture generation is published.</param>""");
-        writer.WriteLine("""/// <param name="height">The physical height, or zero if no texture generation is published.</param>""");
+        writer.WriteLine($"""/// <summary>Tries to get the allocated size of the shared texture owned by <c>{slot.CanonicalName}</c>.</summary>""");
+        writer.WriteLine("""/// <param name="width">The allocated width, or zero if no texture generation is published.</param>""");
+        writer.WriteLine("""/// <param name="height">The allocated height, or zero if no texture generation is published.</param>""");
         writer.WriteLine("""/// <returns>Whether a texture generation is currently published.</returns>""");
+        writer.WriteLine("""/// <remarks>The returned size is an unpinned snapshot of the generation published while the slot is inspected.</remarks>""");
         writer.WriteGeneratedAttributes(GeneratorName);
-        writer.WriteLine($"public bool TryGet{slot.CanonicalName}PhysicalExtent(out int width, out int height)");
+        writer.WriteLine($"public bool TryGet{slot.CanonicalName}AllocatedSize(out int width, out int height)");
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine($"return this.@{slot.FieldName}.TryGetPhysicalExtent(out width, out height);");
+            writer.WriteLine($"return this.@{slot.FieldName}.TryGetAllocatedSize(out width, out height);");
         }
 
         writer.WriteLine();
