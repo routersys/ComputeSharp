@@ -118,6 +118,38 @@ public class GeneratedInteropResourceSetTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void GetsTheAllocatedSizeWithoutManagedAllocation(Device device)
+    {
+        using Fixture fixture = Create(device);
+
+        Assert.IsTrue(fixture.Resources.TryEnsureOutput(64, 32, out _));
+        Assert.IsTrue(fixture.Resources.TryGetOutputAllocatedSize(out _, out _));
+
+        long minimum = long.MaxValue;
+        bool result = false;
+        int width = 0;
+        int height = 0;
+
+        for (int i = 0; i < 10; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int j = 0; j < 1000; j++)
+            {
+                result = fixture.Resources.TryGetOutputAllocatedSize(out width, out height);
+            }
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        Assert.IsTrue(result);
+        Assert.AreEqual(64, width);
+        Assert.AreEqual(32, height);
+        Assert.AreEqual(0, minimum);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void BindsEachSharedTextureToTheContractOfItsOwnField(Device device)
     {
         using Fixture fixture = Create(device);
