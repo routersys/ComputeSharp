@@ -595,7 +595,7 @@ internal struct SlotGate
         }
     }
 
-    public bool TryGetActivePhysicalExtent(out int width, out int height)
+    public bool TryGetActiveAllocatedSize(out int width, out int height)
     {
         bool taken = false;
 

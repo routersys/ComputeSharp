@@ -86,14 +86,19 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     public bool IsAllocated => this.slotGate.IsAllocated;
 
     /// <summary>
-    /// Tries to get the physical dimensions of the currently published texture generation.
+    /// Tries to get the allocated size of the currently published texture generation.
     /// </summary>
-    /// <param name="width">The physical width, or zero if no texture generation is published.</param>
-    /// <param name="height">The physical height, or zero if no texture generation is published.</param>
+    /// <param name="width">The allocated width, or zero if no texture generation is published.</param>
+    /// <param name="height">The allocated height, or zero if no texture generation is published.</param>
     /// <returns>Whether the current slot owns a published texture generation.</returns>
-    public bool TryGetPhysicalExtent(out int width, out int height)
+    /// <remarks>
+    /// The returned size is a snapshot of the generation published while the slot is inspected. This method
+    /// does not pin that generation, so the size does not describe a binding, borrow or lease acquired before
+    /// or after the call when generation replacement can run concurrently.
+    /// </remarks>
+    public bool TryGetAllocatedSize(out int width, out int height)
     {
-        return this.slotGate.TryGetActivePhysicalExtent(out width, out height);
+        return this.slotGate.TryGetActiveAllocatedSize(out width, out height);
     }
 
     /// <summary>
