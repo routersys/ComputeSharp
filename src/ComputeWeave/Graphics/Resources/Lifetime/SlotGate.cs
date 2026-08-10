@@ -595,6 +595,38 @@ internal struct SlotGate
         }
     }
 
+    public bool TryGetActivePhysicalExtent(out int width, out int height)
+    {
+        bool taken = false;
+
+        try
+        {
+            this.exclusion.Enter(ref taken);
+
+            if (!this.control.IsAllocated || this.planState.FieldCount < 2)
+            {
+                width = 0;
+                height = 0;
+
+                return false;
+            }
+
+            Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(this.PlanStorage, in this.planState);
+
+            width = activePhysicalCapacity[0];
+            height = activePhysicalCapacity[1];
+
+            return true;
+        }
+        finally
+        {
+            if (taken)
+            {
+                this.exclusion.Exit(useMemoryBarrier: true);
+            }
+        }
+    }
+
     public ulong GetBindingEpoch()
     {
         bool taken = false;
