@@ -336,6 +336,131 @@ public class InteropDomainOperationTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void OneOfTwoForegroundWaitersAcquiresTheReleasedMaintenancePermit(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
+
+        DomainOperationStatus maintenanceStatus = domain.TryAcquireOperation(
+            ExternalDomainReference.Maintenance,
+            default,
+            releaseExternalReferenceOnDispose: false,
+            out DomainOperationLease maintenance,
+            out _);
+
+        Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
+
+        using CountdownEvent started = new(2);
+
+        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> first = Task.Run(() =>
+        {
+            _ = started.Signal();
+
+            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+            return (status, lease);
+        });
+        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> second = Task.Run(() =>
+        {
+            _ = started.Signal();
+
+            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+            return (status, lease);
+        });
+
+        try
+        {
+            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            maintenance.Dispose();
+        }
+
+        Assert.IsTrue(Task.WaitAll([first, second], TimeSpan.FromSeconds(5)));
+
+        int acquiredCount =
+            (first.Result.Status is DomainOperationStatus.Acquired ? 1 : 0) +
+            (second.Result.Status is DomainOperationStatus.Acquired ? 1 : 0);
+        int busyCount =
+            (first.Result.Status is DomainOperationStatus.PermitBusy ? 1 : 0) +
+            (second.Result.Status is DomainOperationStatus.PermitBusy ? 1 : 0);
+
+        Assert.AreEqual(1, acquiredCount);
+        Assert.AreEqual(1, busyCount);
+
+        first.Result.Lease.Dispose();
+        second.Result.Lease.Dispose();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void OperationsAfterAMaintenanceWaitAllocateNoManagedMemory(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
+
+        DomainOperationStatus maintenanceStatus = domain.TryAcquireOperation(
+            ExternalDomainReference.Maintenance,
+            default,
+            releaseExternalReferenceOnDispose: false,
+            out DomainOperationLease maintenance,
+            out _);
+
+        Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
+
+        using ManualResetEventSlim started = new();
+
+        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
+        {
+            started.Set();
+
+            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+            return (status, lease);
+        });
+
+        try
+        {
+            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            maintenance.Dispose();
+        }
+
+        Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
+
+        attempt.Result.Lease.Dispose();
+
+        long minimum = long.MaxValue;
+
+        for (int i = 0; i < 10; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+            lease.Dispose();
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+
+            Assert.AreEqual(DomainOperationStatus.Acquired, status);
+        }
+
+        Assert.AreEqual(0, minimum);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void AFailedSchedulerReservationLeavesNoReferenceBehind(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
