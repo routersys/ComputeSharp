@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 #pragma warning disable RS1035
 
@@ -38,19 +39,47 @@ internal sealed unsafe class DxcLibraryLoader
 
             _ = Directory.CreateDirectory(Path.GetDirectoryName(targetFilename));
 
-            using Stream sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(sourceFilename);
-
-            try
+            if (!File.Exists(targetFilename))
             {
-                using Stream destinationStream = File.Open(targetFilename, FileMode.CreateNew, FileAccess.Write);
+                string temporaryFilename = Path.Combine(Path.GetDirectoryName(targetFilename), Path.GetRandomFileName());
 
-                sourceStream.CopyTo(destinationStream);
-            }
-            catch (IOException)
-            {
+                try
+                {
+                    using (Stream sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(sourceFilename))
+                    using (Stream destinationStream = File.Open(temporaryFilename, FileMode.CreateNew, FileAccess.Write))
+                    {
+                        sourceStream.CopyTo(destinationStream);
+                    }
+
+                    try
+                    {
+                        File.Move(temporaryFilename, targetFilename);
+                    }
+                    catch (IOException) when (File.Exists(targetFilename))
+                    {
+                    }
+                }
+                finally
+                {
+                    File.Delete(temporaryFilename);
+                }
             }
 
             return targetFilename;
+        }
+
+        static string GetCacheKey(string rid)
+        {
+            byte[] resourceHashes = new byte[64];
+
+            using SHA256 hashAlgorithm = SHA256.Create();
+            using Stream dxilStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxil.dll");
+            using Stream dxcompilerStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxcompiler.dll");
+
+            Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxilStream), 0, resourceHashes, 0, 32);
+            Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxcompilerStream), 0, resourceHashes, 32, 32);
+
+            return BitConverter.ToString(hashAlgorithm.ComputeHash(resourceHashes)).Replace("-", string.Empty);
         }
 
         // Loads a target native library
@@ -89,7 +118,7 @@ internal sealed unsafe class DxcLibraryLoader
                 _ => throw new NotSupportedException("Invalid process architecture")
             };
 
-            string folder = Path.Combine(Path.GetTempPath(), "ComputeWeave.SourceGenerators", Path.GetRandomFileName());
+            string folder = Path.Combine(Path.GetTempPath(), "ComputeWeave.SourceGenerators", "Dxc", GetCacheKey(rid));
 
             LoadLibrary(ExtractLibrary(folder, rid, "dxil"));
             LoadLibrary(ExtractLibrary(folder, rid, "dxcompiler"));
