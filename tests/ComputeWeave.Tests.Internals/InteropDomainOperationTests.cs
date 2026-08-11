@@ -266,6 +266,76 @@ public class InteropDomainOperationTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void AnInterruptedForegroundWaitReleasesItsDomainReference(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        DomainOperationStatus maintenanceStatus = domain.TryAcquireOperation(
+            ExternalDomainReference.Maintenance,
+            default,
+            releaseExternalReferenceOnDispose: false,
+            out DomainOperationLease maintenance,
+            out _);
+
+        Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
+
+        using ManualResetEventSlim started = new();
+
+        Exception? failure = null;
+
+        Thread attempt = new(() =>
+        {
+            started.Set();
+
+            try
+            {
+                _ = Acquire(domain, out _);
+            }
+            catch (Exception e)
+            {
+                failure = e;
+            }
+        });
+
+        attempt.Start();
+
+        try
+        {
+            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+
+            attempt.Interrupt();
+
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+            Assert.IsInstanceOfType<ThreadInterruptedException>(failure);
+        }
+        finally
+        {
+            maintenance.Dispose();
+
+            if (attempt.IsAlive)
+            {
+                attempt.Interrupt();
+                _ = attempt.Join(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        Assert.AreEqual(DomainOperationStatus.Acquired, Acquire(domain, out DomainOperationLease next));
+
+        next.Dispose();
+
+        domain.Dispose();
+
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void AFailedSchedulerReservationLeavesNoReferenceBehind(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
