@@ -461,6 +461,55 @@ public class InteropDomainOperationTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void TheReleaseSignalIsReusedAcrossMaintenanceOperations(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(new FakeInteropProvider(graphicsDevice, scheduler));
+
+        for (int i = 0; i < 2; i++)
+        {
+            DomainOperationStatus maintenanceStatus = domain.TryAcquireOperation(
+                ExternalDomainReference.Maintenance,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out DomainOperationLease maintenance,
+                out _);
+
+            Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
+
+            using ManualResetEventSlim started = new();
+
+            Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
+            {
+                started.Set();
+
+                DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
+
+                return (status, lease);
+            });
+
+            try
+            {
+                Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+                Assert.IsFalse(attempt.Wait(TimeSpan.FromMilliseconds(100)));
+            }
+            finally
+            {
+                maintenance.Dispose();
+            }
+
+            Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
+            Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
+
+            attempt.Result.Lease.Dispose();
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void AFailedSchedulerReservationLeavesNoReferenceBehind(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
