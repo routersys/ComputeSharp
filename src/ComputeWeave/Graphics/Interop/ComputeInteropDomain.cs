@@ -67,7 +67,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
     private ManualResetEventSlim? operationReleaseSignal;
 
-    private int operationWaiterCount;
+    private int operationReleaseWaiterCount;
 
     /// <summary>
     /// The first exception a provider call of the current domain failed with, if any.
@@ -470,7 +470,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 }
 
                 signal = this.operationReleaseSignal ??= new(initialState: false, spinCount: 0);
-                this.operationWaiterCount++;
+                this.operationReleaseWaiterCount++;
                 signal.Reset();
             }
 
@@ -482,7 +482,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             {
                 lock (this.gate)
                 {
-                    this.operationWaiterCount--;
+                    this.operationReleaseWaiterCount--;
                     _ = this.record.TryRelease(reference);
                     shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
                     acquisitionFailure = e;
@@ -493,7 +493,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
             lock (this.gate)
             {
-                this.operationWaiterCount--;
+                this.operationReleaseWaiterCount--;
             }
 
             hasWaitedForMaintenance = true;
@@ -533,7 +533,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 _ = this.operation.TryRelease(token);
                 _ = this.record.TryRelease(reference);
 
-                if (this.operationWaiterCount != 0)
+                if (this.operationReleaseWaiterCount != 0)
                 {
                     this.operationReleaseSignal!.Set();
                 }
@@ -603,7 +603,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
                 _ = this.record.TryRelease(reference);
 
-                if (this.operationWaiterCount != 0)
+                if (this.operationReleaseWaiterCount != 0)
                 {
                     this.operationReleaseSignal!.Set();
                 }
