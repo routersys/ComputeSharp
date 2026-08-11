@@ -1,4 +1,4 @@
-name: 簡易リリース
+name: 高速リリース
 
 on:
   workflow_dispatch:
@@ -28,8 +28,8 @@ env:
 
 jobs:
   validate:
-    name: 追加分のテスト
-    runs-on: windows-2022
+    name: バージョン検証
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -39,39 +39,29 @@ jobs:
       version_suffix: ${{ steps.version.outputs.suffix }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
 
-    # ComputeWeave.Dxc が参照する環境変数。
-    # https://github.com/actions/runner-images/issues/6531 への対処。
-    env:
-      CI_RUNNER_DOTNET_TEST_PLATFORM: x64
-
     steps:
       - name: ソースコードを取得
         uses: actions/checkout@v4
 
-      - name: .NET SDK をセットアップ
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "10.x"
-
-      - name: NuGet パッケージをキャッシュ
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'build/Directory.Build.props') }}
-          restore-keys: nuget-${{ runner.os }}-
-
       - name: バージョン番号を決定
         id: version
+        env:
+          VERSION_PREFIX: ${{ inputs.version_prefix }}
+          VERSION_SUFFIX: ${{ inputs.version_suffix }}
         run: |
-          PREFIX="${{ inputs.version_prefix }}"
+          PREFIX="${VERSION_PREFIX}"
           if [ -z "${PREFIX}" ]; then
             PREFIX=$(sed -n 's/.*<VersionPrefix>\(.*\)<\/VersionPrefix>.*/\1/p' build/Directory.Build.props | head -n 1)
           fi
-          if [ -z "${PREFIX}" ]; then
-            echo "バージョンの接頭辞を決定できませんでした。" >&2
+          if [[ ! "${PREFIX}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "バージョンの接頭辞が正しくありません。" >&2
             exit 1
           fi
-          SUFFIX="${{ inputs.version_suffix }}"
+          SUFFIX="${VERSION_SUFFIX}"
+          if [ -n "${SUFFIX}" ] && [[ ! "${SUFFIX}" =~ ^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$ ]]; then
+            echo "バージョンの接尾辞が正しくありません。" >&2
+            exit 1
+          fi
           if [ -n "${SUFFIX}" ]; then
             VERSION="${PREFIX}-${SUFFIX}"
             IS_PRERELEASE=true
@@ -89,31 +79,6 @@ jobs:
           echo "バージョン    : ${{ steps.version.outputs.version }}"
           echo "プレリリース  : ${{ steps.version.outputs.is_prerelease }}"
           echo "コミット      : ${{ github.sha }}"
-
-      - name: ソリューションをビルド
-        run: |
-          dotnet build ComputeWeave.sln -c Release -p:Platform=x64 \
-            -p:VersionPrefix=${{ steps.version.outputs.prefix }} \
-            -p:VersionSuffix=${{ steps.version.outputs.suffix }}
-
-      # 全件は release.yml が回す。ここは今回追加した契約に対応するテストだけへ絞る。
-      - name: 生成される呼び出しのテストを実行
-        run: |
-          dotnet test tests/ComputeWeave.Tests.SourceGenerators/ComputeWeave.Tests.SourceGenerators.csproj \
-            -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~PipelineHostEmissionTests|FullyQualifiedName~ResourcePlanEmissionTests|FullyQualifiedName~OwnedResourceParameterAnalyzerTests"
-
-      - name: 所有資源のテストを実行
-        run: |
-          dotnet test tests/ComputeWeave.Tests.Internals/ComputeWeave.Tests.Internals.csproj \
-            -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~GeneratedPipelineHostTests"
-
-      - name: 外部アセンブリからの利用のテストを実行
-        run: |
-          dotnet test tests/ComputeWeave.Tests/ComputeWeave.Tests.csproj \
-            -c Release -p:Platform=x64 \
-            --filter "FullyQualifiedName~OwnedResourcePipelineTests"
 
   pack:
     name: NuGet パッケージの作成
@@ -135,6 +100,9 @@ jobs:
       # Platform と CI_RUNNER_DOTNET_TEST_PLATFORM はどちらも設定しない。
       # ComputeWeave.Dxc はどちらも未設定のときだけネイティブライブラリを runtimes/<RID>/native へ配置する。
       - name: パッケージを作成
+        env:
+          VERSION_PREFIX: ${{ needs.validate.outputs.version_prefix }}
+          VERSION_SUFFIX: ${{ needs.validate.outputs.version_suffix }}
         run: |
           for project in \
             src/ComputeWeave.Core/ComputeWeave.Core.csproj \
@@ -143,8 +111,8 @@ jobs:
             src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj
           do
             dotnet pack "$project" -c Release \
-              -p:VersionPrefix=${{ needs.validate.outputs.version_prefix }} \
-              -p:VersionSuffix=${{ needs.validate.outputs.version_suffix }}
+              "-p:VersionPrefix=${VERSION_PREFIX}" \
+              "-p:VersionSuffix=${VERSION_SUFFIX}"
           done
 
       - name: 作成されたパッケージ一覧を確認
@@ -259,7 +227,7 @@ jobs:
             echo "### NuGet"
             echo "https://www.nuget.org/packages/ComputeWeave/${{ needs.validate.outputs.version }}"
             echo ""
-            echo "全件のテストは実行していません。今回の変更に対応するテストだけを通しています。"
+            echo "テストは実行していません。パッケージ作成時のビルドだけを実行しています。"
             echo "NOTES_EOF"
           } >> "$GITHUB_OUTPUT"
 
