@@ -417,30 +417,23 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         lease = default;
         schedulerFailure = null;
 
-        DomainOperationStatus status;
+        DomainOperationStatus status = DomainOperationStatus.DomainUnavailable;
         ulong token = 0;
         bool hasWaitedForMaintenance = false;
-        bool isReferenceHeld = false;
         bool shouldReleaseNative = false;
+        Exception? acquisitionFailure = null;
 
-        try
+        lock (this.gate)
         {
-            lock (this.gate)
+            if (this.record.TryAcquire(reference))
             {
-                if (!this.record.TryAcquire(reference))
+                try
                 {
-                    status = DomainOperationStatus.DomainUnavailable;
-                }
-                else
-                {
-                    isReferenceHeld = true;
-
                     while (true)
                     {
                         if (hasWaitedForMaintenance && this.record.State is not ComputeInteropDomainState.Active)
                         {
                             _ = this.record.TryRelease(reference);
-                            isReferenceHeld = false;
                             status = DomainOperationStatus.DomainUnavailable;
                             shouldReleaseNative = true;
 
@@ -459,7 +452,6 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                             this.record.References.Maintenance == 0)
                         {
                             _ = this.record.TryRelease(reference);
-                            isReferenceHeld = false;
 
                             break;
                         }
@@ -468,25 +460,23 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                         _ = Monitor.Wait(this.gate);
                     }
                 }
-            }
-        }
-        catch
-        {
-            if (isReferenceHeld)
-            {
-                lock (this.gate)
+                catch (Exception e)
                 {
                     _ = this.record.TryRelease(reference);
                     shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
+                    acquisitionFailure = e;
                 }
             }
+        }
 
-            if (shouldReleaseNative)
-            {
-                TryReleaseNative();
-            }
+        if (shouldReleaseNative)
+        {
+            TryReleaseNative();
+        }
 
-            throw;
+        if (acquisitionFailure is not null)
+        {
+            ExceptionDispatchInfo.Throw(acquisitionFailure);
         }
 
         if (status is DomainOperationStatus.TokenExhausted)
@@ -497,11 +487,6 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         if (status is not DomainOperationStatus.Acquired)
         {
-            if (shouldReleaseNative)
-            {
-                TryReleaseNative();
-            }
-
             return status;
         }
 
