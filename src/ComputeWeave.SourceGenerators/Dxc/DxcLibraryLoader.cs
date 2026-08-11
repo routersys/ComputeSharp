@@ -37,49 +37,19 @@ internal sealed unsafe class DxcLibraryLoader
             string sourceFilename = $"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.{name}.dll";
             string targetFilename = Path.Combine(folder, rid, $"{name}.dll");
 
-            _ = Directory.CreateDirectory(Path.GetDirectoryName(targetFilename));
+            using Stream sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(sourceFilename);
 
-            if (!File.Exists(targetFilename))
-            {
-                string temporaryFilename = Path.Combine(Path.GetDirectoryName(targetFilename), Path.GetRandomFileName());
-
-                try
-                {
-                    using (Stream sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(sourceFilename))
-                    using (Stream destinationStream = File.Open(temporaryFilename, FileMode.CreateNew, FileAccess.Write))
-                    {
-                        sourceStream.CopyTo(destinationStream);
-                    }
-
-                    try
-                    {
-                        File.Move(temporaryFilename, targetFilename);
-                    }
-                    catch (IOException) when (File.Exists(targetFilename))
-                    {
-                    }
-                }
-                finally
-                {
-                    File.Delete(temporaryFilename);
-                }
-            }
+            ExtractLibraryAtomically(sourceStream, targetFilename);
 
             return targetFilename;
         }
 
         static string GetCacheKey(string rid)
         {
-            byte[] resourceHashes = new byte[64];
-
-            using SHA256 hashAlgorithm = SHA256.Create();
             using Stream dxilStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxil.dll");
             using Stream dxcompilerStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxcompiler.dll");
 
-            Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxilStream), 0, resourceHashes, 0, 32);
-            Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxcompilerStream), 0, resourceHashes, 32, 32);
-
-            return BitConverter.ToString(hashAlgorithm.ComputeHash(resourceHashes)).Replace("-", string.Empty);
+            return DxcLibraryLoader.GetCacheKey(dxilStream, dxcompilerStream);
         }
 
         // Loads a target native library
@@ -125,5 +95,55 @@ internal sealed unsafe class DxcLibraryLoader
 
             areDxcLibrariesLoaded = true;
         }
+    }
+
+    internal static void ExtractLibraryAtomically(Stream sourceStream, string targetFilename)
+    {
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(targetFilename));
+
+        if (File.Exists(targetFilename))
+        {
+            return;
+        }
+
+        string temporaryFilename = Path.Combine(Path.GetDirectoryName(targetFilename), Path.GetRandomFileName());
+        bool isTemporaryFileCreated = false;
+
+        try
+        {
+            using (Stream destinationStream = File.Open(temporaryFilename, FileMode.CreateNew, FileAccess.Write))
+            {
+                isTemporaryFileCreated = true;
+
+                sourceStream.CopyTo(destinationStream);
+            }
+
+            try
+            {
+                File.Move(temporaryFilename, targetFilename);
+            }
+            catch (IOException) when (File.Exists(targetFilename))
+            {
+            }
+        }
+        finally
+        {
+            if (isTemporaryFileCreated)
+            {
+                File.Delete(temporaryFilename);
+            }
+        }
+    }
+
+    internal static string GetCacheKey(Stream dxilStream, Stream dxcompilerStream)
+    {
+        byte[] resourceHashes = new byte[64];
+
+        using SHA256 hashAlgorithm = SHA256.Create();
+
+        Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxilStream), 0, resourceHashes, 0, 32);
+        Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxcompilerStream), 0, resourceHashes, 32, 32);
+
+        return BitConverter.ToString(hashAlgorithm.ComputeHash(resourceHashes)).Replace("-", string.Empty);
     }
 }
