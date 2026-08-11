@@ -420,47 +420,73 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         DomainOperationStatus status;
         ulong token = 0;
         bool hasWaitedForMaintenance = false;
+        bool isReferenceHeld = false;
         bool shouldReleaseNative = false;
 
-        lock (this.gate)
+        try
         {
-            if (!this.record.TryAcquire(reference))
+            lock (this.gate)
             {
-                status = DomainOperationStatus.DomainUnavailable;
-            }
-            else
-            {
-                while (true)
+                if (!this.record.TryAcquire(reference))
                 {
-                    if (hasWaitedForMaintenance && this.record.State is not ComputeInteropDomainState.Active)
+                    status = DomainOperationStatus.DomainUnavailable;
+                }
+                else
+                {
+                    isReferenceHeld = true;
+
+                    while (true)
                     {
-                        _ = this.record.TryRelease(reference);
-                        status = DomainOperationStatus.DomainUnavailable;
-                        shouldReleaseNative = true;
+                        if (hasWaitedForMaintenance && this.record.State is not ComputeInteropDomainState.Active)
+                        {
+                            _ = this.record.TryRelease(reference);
+                            isReferenceHeld = false;
+                            status = DomainOperationStatus.DomainUnavailable;
+                            shouldReleaseNative = true;
 
-                        break;
+                            break;
+                        }
+
+                        status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
+
+                        if (status is DomainOperationStatus.Acquired)
+                        {
+                            break;
+                        }
+
+                        if (status is not DomainOperationStatus.PermitBusy ||
+                            reference is ExternalDomainReference.Maintenance ||
+                            this.record.References.Maintenance == 0)
+                        {
+                            _ = this.record.TryRelease(reference);
+                            isReferenceHeld = false;
+
+                            break;
+                        }
+
+                        hasWaitedForMaintenance = true;
+                        _ = Monitor.Wait(this.gate);
                     }
-
-                    status = this.operation.TryAcquire(boundGeneration, releaseExternalReferenceOnDispose, out token);
-
-                    if (status is DomainOperationStatus.Acquired)
-                    {
-                        break;
-                    }
-
-                    if (status is not DomainOperationStatus.PermitBusy ||
-                        reference is ExternalDomainReference.Maintenance ||
-                        this.record.References.Maintenance == 0)
-                    {
-                        _ = this.record.TryRelease(reference);
-
-                        break;
-                    }
-
-                    hasWaitedForMaintenance = true;
-                    _ = Monitor.Wait(this.gate);
                 }
             }
+        }
+        catch
+        {
+            if (isReferenceHeld)
+            {
+                lock (this.gate)
+                {
+                    _ = this.record.TryRelease(reference);
+                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
+                }
+            }
+
+            if (shouldReleaseNative)
+            {
+                TryReleaseNative();
+            }
+
+            throw;
         }
 
         if (status is DomainOperationStatus.TokenExhausted)
