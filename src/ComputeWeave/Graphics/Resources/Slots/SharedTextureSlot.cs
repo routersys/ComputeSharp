@@ -276,13 +276,25 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             "The shared texture slot has no published texture generation to borrow.");
 
         ComputeInteropDomain domain = runtime.Domain;
+        DomainOperationStatus status;
+        DomainOperationLease lease;
+        Exception? schedulerFailure;
 
-        DomainOperationStatus status = domain.TryAcquireOperation(
-            ExternalDomainReference.TransientOperation,
-            pin.GenerationId,
-            releaseExternalReferenceOnDispose: true,
-            out DomainOperationLease lease,
-            out Exception? schedulerFailure);
+        try
+        {
+            status = domain.TryAcquireOperation(
+                ExternalDomainReference.TransientOperation,
+                pin.GenerationId,
+                releaseExternalReferenceOnDispose: true,
+                out lease,
+                out schedulerFailure);
+        }
+        catch
+        {
+            domain.ReleaseGenerationExternalReference(in pin);
+
+            throw;
+        }
 
         if (status is not DomainOperationStatus.Acquired)
         {
@@ -644,15 +656,24 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         {
             using (lease)
             {
-                ulong drainValue = runtime.Domain.ReserveTimelineValue();
+                try
+                {
+                    ulong drainValue = runtime.Domain.ReserveTimelineValue();
 
-                runtime.Domain.EnqueueExternalSignal(drainValue);
+                    runtime.Domain.EnqueueExternalSignal(drainValue);
 
-                FencePoint retirementFence = runtime.Device.EnqueueInteropFinalDrain(runtime.Domain.SharedFence, drainValue);
+                    FencePoint retirementFence = runtime.Device.EnqueueInteropFinalDrain(runtime.Domain.SharedFence, drainValue);
 
-                owner.GetResourceRecord(0).RetirementFence = retirementFence;
+                    owner.GetResourceRecord(0).RetirementFence = retirementFence;
 
-                return MarkFinalDrainIssued(retirementFence);
+                    return MarkFinalDrainIssued(retirementFence);
+                }
+                catch (Exception e)
+                {
+                    runtime.Domain.MarkPoisoned(e);
+
+                    throw;
+                }
             }
         }
         catch (Exception e)
@@ -743,7 +764,16 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         {
             using (lease)
             {
-                _ = owner.TryReleaseExternalObjects();
+                try
+                {
+                    _ = owner.TryReleaseExternalObjects();
+                }
+                catch (Exception e)
+                {
+                    runtime.Domain.MarkPoisoned(e);
+
+                    throw;
+                }
             }
         }
         catch (Exception e)

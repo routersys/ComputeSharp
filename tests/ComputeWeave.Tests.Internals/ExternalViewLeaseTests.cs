@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using ComputeWeave.Interop;
 using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
@@ -191,6 +193,63 @@ public class ExternalViewLeaseTests
 
         Assert.AreEqual(1, fixture.Provider.SignalCount, "signal count");
         Assert.AreEqual(1, view.DisposeCount, "view dispose count");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AnInterruptedBorrowWaitReleasesItsGenerationReference(Device device)
+    {
+        using Fixture fixture = Create(device, ComputeSharedTextureInitialOwner.External);
+
+        Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
+        Assert.AreEqual(
+            DomainOperationStatus.Acquired,
+            fixture.Domain.TryAcquireOperation(
+                ExternalDomainReference.Maintenance,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out DomainOperationLease maintenance,
+                out _));
+
+        Exception? failure = null;
+        Thread attempt = new(() =>
+        {
+            try
+            {
+                using BorrowedExternalTextureView<FakeExternalView> borrow = fixture.Slot.BeginExternalOperation();
+            }
+            catch (Exception e)
+            {
+                failure = e;
+            }
+        });
+
+        attempt.Start();
+
+        try
+        {
+            Assert.IsTrue(SpinWait.SpinUntil(
+                () => (attempt.ThreadState & ThreadState.WaitSleepJoin) != 0,
+                TimeSpan.FromSeconds(5)));
+            Assert.AreEqual(1, fixture.Record.ExternalReferenceCount);
+
+            attempt.Interrupt();
+
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            maintenance.Dispose();
+
+            if (attempt.IsAlive)
+            {
+                attempt.Interrupt();
+                _ = attempt.Join(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        Assert.IsInstanceOfType<ThreadInterruptedException>(failure);
+        Assert.AreEqual(0, fixture.Record.ExternalReferenceCount);
     }
 
     [CombinatorialTestMethod]

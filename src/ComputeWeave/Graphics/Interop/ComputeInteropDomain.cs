@@ -65,7 +65,9 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     /// </summary>
     private DomainOperationRecord operation;
 
-    private ManualResetEventSlim? operationReleaseSignal;
+    private object? operationReleaseGate;
+
+    private ulong operationReleaseVersion;
 
     private int operationReleaseWaiterCount;
 
@@ -242,6 +244,8 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             if (isPoisoned)
             {
                 _ = this.record.TryReleaseOwner();
+
+                NotifyOperationReleaseWaitersUnderLock();
             }
         }
 
@@ -430,7 +434,9 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         while (true)
         {
-            ManualResetEventSlim signal;
+            object releaseGate;
+            ulong releaseVersion;
+            bool isReleaseGateHeld = false;
 
             lock (this.gate)
             {
@@ -469,31 +475,58 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                     break;
                 }
 
-                signal = this.operationReleaseSignal ??= new(initialState: false, spinCount: 0);
-                this.operationReleaseWaiterCount++;
-                signal.Reset();
+                try
+                {
+                    releaseGate = this.operationReleaseGate ??= new();
+                    Monitor.Enter(releaseGate, ref isReleaseGateHeld);
+                    releaseVersion = this.operationReleaseVersion;
+                    this.operationReleaseWaiterCount++;
+                }
+                catch (Exception e)
+                {
+                    if (isReleaseGateHeld)
+                    {
+                        Monitor.Exit(this.operationReleaseGate!);
+                    }
+
+                    _ = this.record.TryRelease(reference);
+                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
+                    acquisitionFailure = e;
+
+                    break;
+                }
             }
 
             try
             {
-                signal.Wait();
+                while (releaseVersion == this.operationReleaseVersion)
+                {
+                    _ = Monitor.Wait(releaseGate);
+                }
             }
             catch (Exception e)
             {
-                lock (this.gate)
-                {
-                    this.operationReleaseWaiterCount--;
-                    _ = this.record.TryRelease(reference);
-                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
-                    acquisitionFailure = e;
-                }
-
-                break;
+                acquisitionFailure = e;
+            }
+            finally
+            {
+                Monitor.Exit(releaseGate);
             }
 
             lock (this.gate)
             {
                 this.operationReleaseWaiterCount--;
+
+                if (acquisitionFailure is not null)
+                {
+                    _ = this.record.TryRelease(reference);
+                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
+                }
+            }
+
+            if (acquisitionFailure is not null)
+            {
+                break;
             }
 
             hasWaitedForMaintenance = true;
@@ -533,10 +566,14 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 _ = this.operation.TryRelease(token);
                 _ = this.record.TryRelease(reference);
 
-                if (this.operationReleaseWaiterCount != 0)
-                {
-                    this.operationReleaseSignal!.Set();
-                }
+                shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
+
+                NotifyOperationReleaseWaitersUnderLock();
+            }
+
+            if (shouldReleaseNative)
+            {
+                TryReleaseNative();
             }
 
             return DomainOperationStatus.SchedulerBusy;
@@ -595,6 +632,12 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         {
             this.schedulerRegistration.ExitReservation();
         }
+        catch (Exception e)
+        {
+            MarkPoisoned(e);
+
+            throw;
+        }
         finally
         {
             lock (this.gate)
@@ -603,10 +646,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
                 _ = this.record.TryRelease(reference);
 
-                if (this.operationReleaseWaiterCount != 0)
-                {
-                    this.operationReleaseSignal!.Set();
-                }
+                NotifyOperationReleaseWaitersUnderLock();
             }
 
             if (isExternalReferenceHeld)
@@ -671,6 +711,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         lock (this.gate)
         {
             isTerminal = this.record.TryMarkTerminal();
+
+            if (isTerminal)
+            {
+                NotifyOperationReleaseWaitersUnderLock();
+            }
         }
 
         if (!isTerminal)
@@ -733,6 +778,23 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         _ = Interlocked.CompareExchange(ref this.providerDiagnostic, diagnostic, null);
     }
 
+    private void NotifyOperationReleaseWaitersUnderLock()
+    {
+        if (this.operationReleaseWaiterCount == 0)
+        {
+            return;
+        }
+
+        object releaseGate = this.operationReleaseGate!;
+
+        lock (releaseGate)
+        {
+            this.operationReleaseVersion++;
+
+            Monitor.PulseAll(releaseGate);
+        }
+    }
+
     /// <summary>
     /// Releases the native objects of the current domain, if it holds no reference anymore.
     /// </summary>
@@ -762,7 +824,6 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         }
         finally
         {
-            this.operationReleaseSignal?.Dispose();
             this.schedulerRegistration.Release();
             this.d3D12SharedFence.Dispose();
 

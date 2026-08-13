@@ -46,6 +46,10 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
 
     public bool ThrowOnEnter { get; set; }
 
+    public Action? OnEnter { get; set; }
+
+    public bool ThrowOnExit { get; set; }
+
     /// <remarks>
     /// The completion coordinator thread runs the release of a retired generation, so a test thread observes
     /// these counters across threads and they have to be read and written atomically.
@@ -54,6 +58,8 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
 
     protected override void EnterCore()
     {
+        this.OnEnter?.Invoke();
+
         if (this.ThrowOnEnter)
         {
             throw new InvalidOperationException("External queue scheduler is busy or reentered.");
@@ -64,6 +70,11 @@ internal sealed class FakeInteropScheduler : ComputeExternalQueueScheduler
 
     protected override void ExitCore()
     {
+        if (this.ThrowOnExit)
+        {
+            throw new InvalidOperationException("The external queue scheduler could not exit its reservation.");
+        }
+
         _ = Interlocked.Increment(ref this.exitCount);
     }
 

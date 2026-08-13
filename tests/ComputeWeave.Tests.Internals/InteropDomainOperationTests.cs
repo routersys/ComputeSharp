@@ -1,6 +1,6 @@
 using System;
+using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
 using ComputeWeave.Interop;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
@@ -11,6 +11,13 @@ namespace ComputeWeave.Tests.Internals;
 [TestClass]
 public class InteropDomainOperationTests
 {
+    private static void WaitForBlockedWait(Thread thread)
+    {
+        Assert.IsTrue(SpinWait.SpinUntil(
+            () => (thread.ThreadState & ThreadState.WaitSleepJoin) != 0,
+            TimeSpan.FromSeconds(5)));
+    }
+
     private static DomainOperationStatus Acquire(ComputeInteropDomain domain, out DomainOperationLease lease)
     {
         return domain.TryAcquireOperation(
@@ -185,32 +192,26 @@ public class InteropDomainOperationTests
 
         Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-        using ManualResetEventSlim started = new();
+        DomainOperationStatus attemptStatus = DomainOperationStatus.DomainUnavailable;
+        DomainOperationLease attemptLease = default;
+        Thread attempt = new(() => attemptStatus = Acquire(domain, out attemptLease));
 
-        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
-        {
-            started.Set();
-
-            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-            return (status, lease);
-        });
+        attempt.Start();
 
         try
         {
-            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
-            Assert.IsFalse(attempt.Wait(TimeSpan.FromMilliseconds(100)));
+            WaitForBlockedWait(attempt);
         }
         finally
         {
             maintenance.Dispose();
         }
 
-        Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
-        Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
-        Assert.IsTrue(attempt.Result.Lease.IsValid);
+        Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.Acquired, attemptStatus);
+        Assert.IsTrue(attemptLease.IsValid);
 
-        attempt.Result.Lease.Dispose();
+        attemptLease.Dispose();
     }
 
     [CombinatorialTestMethod]
@@ -232,21 +233,15 @@ public class InteropDomainOperationTests
 
         Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-        using ManualResetEventSlim started = new();
+        DomainOperationStatus attemptStatus = DomainOperationStatus.Acquired;
+        DomainOperationLease attemptLease = default;
+        Thread attempt = new(() => attemptStatus = Acquire(domain, out attemptLease));
 
-        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
-        {
-            started.Set();
-
-            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-            return (status, lease);
-        });
+        attempt.Start();
 
         try
         {
-            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
-            Assert.IsFalse(attempt.Wait(TimeSpan.FromMilliseconds(100)));
+            WaitForBlockedWait(attempt);
 
             domain.Dispose();
         }
@@ -255,9 +250,9 @@ public class InteropDomainOperationTests
             maintenance.Dispose();
         }
 
-        Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
-        Assert.AreEqual(DomainOperationStatus.DomainUnavailable, attempt.Result.Status);
-        Assert.IsFalse(attempt.Result.Lease.IsValid);
+        Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.DomainUnavailable, attemptStatus);
+        Assert.IsFalse(attemptLease.IsValid);
 
         domain.WaitForDisposal();
 
@@ -284,14 +279,10 @@ public class InteropDomainOperationTests
 
         Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-        using ManualResetEventSlim started = new();
-
         Exception? failure = null;
 
         Thread attempt = new(() =>
         {
-            started.Set();
-
             try
             {
                 _ = Acquire(domain, out _);
@@ -306,7 +297,7 @@ public class InteropDomainOperationTests
 
         try
         {
-            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+            WaitForBlockedWait(attempt);
 
             attempt.Interrupt();
 
@@ -336,6 +327,85 @@ public class InteropDomainOperationTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void AnInterruptedWaitRegistrationReleasesItsDomainReference(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        Assert.AreEqual(
+            DomainOperationStatus.Acquired,
+            domain.TryAcquireOperation(
+                ExternalDomainReference.Maintenance,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out DomainOperationLease maintenance,
+                out _));
+
+        DomainOperationStatus firstStatus = DomainOperationStatus.DomainUnavailable;
+        DomainOperationLease firstLease = default;
+        Thread first = new(() => firstStatus = Acquire(domain, out firstLease));
+
+        first.Start();
+        WaitForBlockedWait(first);
+
+        FieldInfo releaseGateField = typeof(ComputeInteropDomain).GetField(
+            "operationReleaseGate",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        object releaseGate = releaseGateField.GetValue(domain)!;
+        Exception? failure = null;
+        Thread second = new(() =>
+        {
+            try
+            {
+                _ = Acquire(domain, out _);
+            }
+            catch (Exception e)
+            {
+                failure = e;
+            }
+        });
+
+        try
+        {
+            lock (releaseGate)
+            {
+                second.Start();
+                WaitForBlockedWait(second);
+
+                second.Interrupt();
+
+                Assert.IsTrue(second.Join(TimeSpan.FromSeconds(5)));
+            }
+        }
+        finally
+        {
+            maintenance.Dispose();
+
+            if (second.IsAlive)
+            {
+                second.Interrupt();
+                _ = second.Join(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        Assert.IsTrue(first.Join(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.Acquired, firstStatus);
+        Assert.IsTrue(firstLease.IsValid);
+        Assert.IsInstanceOfType<ThreadInterruptedException>(failure);
+
+        firstLease.Dispose();
+        domain.Dispose();
+
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void OneOfTwoForegroundWaitersAcquiresTheReleasedMaintenancePermit(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
@@ -353,48 +423,41 @@ public class InteropDomainOperationTests
 
         Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-        using CountdownEvent started = new(2);
+        DomainOperationStatus firstStatus = DomainOperationStatus.DomainUnavailable;
+        DomainOperationStatus secondStatus = DomainOperationStatus.DomainUnavailable;
+        DomainOperationLease firstLease = default;
+        DomainOperationLease secondLease = default;
+        Thread first = new(() => firstStatus = Acquire(domain, out firstLease));
+        Thread second = new(() => secondStatus = Acquire(domain, out secondLease));
 
-        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> first = Task.Run(() =>
-        {
-            _ = started.Signal();
-
-            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-            return (status, lease);
-        });
-        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> second = Task.Run(() =>
-        {
-            _ = started.Signal();
-
-            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-            return (status, lease);
-        });
+        first.Start();
+        second.Start();
 
         try
         {
-            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+            WaitForBlockedWait(first);
+            WaitForBlockedWait(second);
         }
         finally
         {
             maintenance.Dispose();
         }
 
-        Assert.IsTrue(Task.WaitAll([first, second], TimeSpan.FromSeconds(5)));
+        Assert.IsTrue(first.Join(TimeSpan.FromSeconds(5)));
+        Assert.IsTrue(second.Join(TimeSpan.FromSeconds(5)));
 
         int acquiredCount =
-            (first.Result.Status is DomainOperationStatus.Acquired ? 1 : 0) +
-            (second.Result.Status is DomainOperationStatus.Acquired ? 1 : 0);
+            (firstStatus is DomainOperationStatus.Acquired ? 1 : 0) +
+            (secondStatus is DomainOperationStatus.Acquired ? 1 : 0);
         int busyCount =
-            (first.Result.Status is DomainOperationStatus.PermitBusy ? 1 : 0) +
-            (second.Result.Status is DomainOperationStatus.PermitBusy ? 1 : 0);
+            (firstStatus is DomainOperationStatus.PermitBusy ? 1 : 0) +
+            (secondStatus is DomainOperationStatus.PermitBusy ? 1 : 0);
 
         Assert.AreEqual(1, acquiredCount);
         Assert.AreEqual(1, busyCount);
 
-        first.Result.Lease.Dispose();
-        second.Result.Lease.Dispose();
+        firstLease.Dispose();
+        secondLease.Dispose();
     }
 
     [CombinatorialTestMethod]
@@ -416,30 +479,25 @@ public class InteropDomainOperationTests
 
         Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-        using ManualResetEventSlim started = new();
+        DomainOperationStatus attemptStatus = DomainOperationStatus.DomainUnavailable;
+        DomainOperationLease attemptLease = default;
+        Thread attempt = new(() => attemptStatus = Acquire(domain, out attemptLease));
 
-        Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
-        {
-            started.Set();
-
-            DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-            return (status, lease);
-        });
+        attempt.Start();
 
         try
         {
-            Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
+            WaitForBlockedWait(attempt);
         }
         finally
         {
             maintenance.Dispose();
         }
 
-        Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
-        Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
+        Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        Assert.AreEqual(DomainOperationStatus.Acquired, attemptStatus);
 
-        attempt.Result.Lease.Dispose();
+        attemptLease.Dispose();
 
         long minimum = long.MaxValue;
 
@@ -480,31 +538,25 @@ public class InteropDomainOperationTests
 
             Assert.AreEqual(DomainOperationStatus.Acquired, maintenanceStatus);
 
-            using ManualResetEventSlim started = new();
+            DomainOperationStatus attemptStatus = DomainOperationStatus.DomainUnavailable;
+            DomainOperationLease attemptLease = default;
+            Thread attempt = new(() => attemptStatus = Acquire(domain, out attemptLease));
 
-            Task<(DomainOperationStatus Status, DomainOperationLease Lease)> attempt = Task.Run(() =>
-            {
-                started.Set();
-
-                DomainOperationStatus status = Acquire(domain, out DomainOperationLease lease);
-
-                return (status, lease);
-            });
+            attempt.Start();
 
             try
             {
-                Assert.IsTrue(started.Wait(TimeSpan.FromSeconds(5)));
-                Assert.IsFalse(attempt.Wait(TimeSpan.FromMilliseconds(100)));
+                WaitForBlockedWait(attempt);
             }
             finally
             {
                 maintenance.Dispose();
             }
 
-            Assert.IsTrue(attempt.Wait(TimeSpan.FromSeconds(5)));
-            Assert.AreEqual(DomainOperationStatus.Acquired, attempt.Result.Status);
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+            Assert.AreEqual(DomainOperationStatus.Acquired, attemptStatus);
 
-            attempt.Result.Lease.Dispose();
+            attemptLease.Dispose();
         }
     }
 
@@ -541,6 +593,193 @@ public class InteropDomainOperationTests
 
         domain.Dispose();
 
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AFailedSchedulerReservationConvergesAfterConcurrentDisposal(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+        using ManualResetEventSlim entered = new();
+        using ManualResetEventSlim release = new();
+
+        scheduler.OnEnter = () =>
+        {
+            entered.Set();
+            release.Wait();
+        };
+        scheduler.ThrowOnEnter = true;
+
+        DomainOperationStatus status = DomainOperationStatus.Acquired;
+        Exception? schedulerFailure = null;
+        Thread attempt = new(() =>
+        {
+            status = domain.TryAcquireOperation(
+                ExternalDomainReference.TransientOperation,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out _,
+                out schedulerFailure);
+        });
+
+        attempt.Start();
+
+        try
+        {
+            Assert.IsTrue(entered.Wait(TimeSpan.FromSeconds(5)));
+
+            domain.Dispose();
+
+            release.Set();
+
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            release.Set();
+
+            if (attempt.IsAlive)
+            {
+                _ = attempt.Join(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        Assert.AreEqual(DomainOperationStatus.SchedulerBusy, status);
+        Assert.IsInstanceOfType<InvalidOperationException>(schedulerFailure);
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void AFailedSchedulerReleasePoisonsBeforeWakingForegroundWork(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        Assert.AreEqual(
+            DomainOperationStatus.Acquired,
+            domain.TryAcquireOperation(
+                ExternalDomainReference.Maintenance,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out DomainOperationLease maintenance,
+                out _));
+
+        DomainOperationStatus status = DomainOperationStatus.Acquired;
+        DomainOperationLease foreground = default;
+        Thread attempt = new(() => status = Acquire(domain, out foreground));
+
+        attempt.Start();
+        WaitForBlockedWait(attempt);
+
+        scheduler.ThrowOnExit = true;
+
+        try
+        {
+            _ = Assert.ThrowsException<InvalidOperationException>(maintenance.Dispose);
+
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            scheduler.ThrowOnExit = false;
+            foreground.Dispose();
+
+            if (attempt.IsAlive)
+            {
+                attempt.Interrupt();
+                _ = attempt.Join(TimeSpan.FromSeconds(5));
+            }
+
+            domain.Dispose();
+        }
+
+        Assert.AreEqual(DomainOperationStatus.DomainUnavailable, status);
+        Assert.IsFalse(foreground.IsValid);
+        Assert.IsNotNull(domain.PoisonReason);
+        Assert.IsTrue(domain.IsDisposed);
+        Assert.AreEqual(1, provider.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void DeviceTeardownWakesForegroundWorkWaitingForMaintenance(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+
+        FakeInteropProvider provider = new(graphicsDevice, scheduler);
+        ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        Assert.AreEqual(
+            DomainOperationStatus.Acquired,
+            domain.TryAcquireOperation(
+                ExternalDomainReference.Maintenance,
+                default,
+                releaseExternalReferenceOnDispose: false,
+                out DomainOperationLease maintenance,
+                out _));
+
+        DomainOperationStatus status = DomainOperationStatus.Acquired;
+        DomainOperationLease foreground = default;
+        Exception? failure = null;
+        Thread attempt = new(() =>
+        {
+            try
+            {
+                status = Acquire(domain, out foreground);
+            }
+            catch (Exception e)
+            {
+                failure = e;
+            }
+        });
+
+        attempt.Start();
+        WaitForBlockedWait(attempt);
+
+        try
+        {
+            domain.MarkDeviceTerminal(new InvalidOperationException("The device is terminal."));
+            domain.ReleaseForDeviceTeardown();
+
+            Assert.IsTrue(attempt.Join(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            try
+            {
+                maintenance.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            foreground.Dispose();
+
+            if (attempt.IsAlive)
+            {
+                attempt.Interrupt();
+                _ = attempt.Join(TimeSpan.FromSeconds(5));
+            }
+        }
+
+        Assert.IsNull(failure);
+        Assert.AreEqual(DomainOperationStatus.DomainUnavailable, status);
+        Assert.IsFalse(foreground.IsValid);
         Assert.IsTrue(domain.IsDisposed);
         Assert.AreEqual(1, provider.DisposeCount);
     }
