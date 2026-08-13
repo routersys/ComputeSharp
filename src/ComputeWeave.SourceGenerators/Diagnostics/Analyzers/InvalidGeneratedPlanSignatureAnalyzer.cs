@@ -29,10 +29,13 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
         {
             // Get the attribute and slot symbols the owned members are declared with
             if (context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineHostAttribute") is not { } hostAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeInteropResourceSetAttribute") is not { } resourceSetAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceGroupAttribute") is not { } resourceGroupAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputePipelineResourceAttribute") is not { } resourceAttributeSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeSharedTextureAttribute") is not { } sharedTextureAttributeSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceSlot`1") is not { } resourceSlotSymbol ||
                 context.Compilation.GetTypeByMetadataName("ComputeWeave.ComputeResourceGroupSlot`1") is not { } resourceGroupSlotSymbol ||
+                context.Compilation.GetTypeByMetadataName("ComputeWeave.SharedTextureSlot`3") is not { } sharedTextureSlotSymbol ||
                 context.Compilation.GetTypeByMetadataName("System.CodeDom.Compiler.GeneratedCodeAttribute") is not { } generatedCodeAttributeSymbol)
             {
                 return;
@@ -48,6 +51,10 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
                 if (typeSymbol.TryGetAttributeWithType(hostAttributeSymbol, out _))
                 {
                     AnalyzeHost(context, typeSymbol, resourceAttributeSymbol, resourceSlotSymbol, resourceGroupSlotSymbol, generatedCodeAttributeSymbol);
+                }
+                else if (typeSymbol.TryGetAttributeWithType(resourceSetAttributeSymbol, out _))
+                {
+                    AnalyzeResourceSet(context, typeSymbol, sharedTextureAttributeSymbol, sharedTextureSlotSymbol, generatedCodeAttributeSymbol);
                 }
                 else if (typeSymbol.TryGetAttributeWithType(resourceGroupAttributeSymbol, out _))
                 {
@@ -98,6 +105,42 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
                     canonicalName,
                     IsResourceGroupSlot(fieldSymbol, resourceGroupSlotSymbol),
                     generatedCodeAttributeSymbol))
+            {
+                Report(context, fieldSymbol, typeSymbol);
+            }
+        }
+    }
+
+    private static void AnalyzeResourceSet(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol,
+        INamedTypeSymbol sharedTextureAttributeSymbol,
+        INamedTypeSymbol sharedTextureSlotSymbol,
+        INamedTypeSymbol generatedCodeAttributeSymbol)
+    {
+        using ImmutableArrayBuilder<IFieldSymbol> slotBuilder = new();
+
+        foreach (ISymbol memberSymbol in typeSymbol.GetMembers())
+        {
+            if (memberSymbol is IFieldSymbol { Type: INamedTypeSymbol slotTypeSymbol } fieldSymbol &&
+                memberSymbol.HasAttributeWithType(sharedTextureAttributeSymbol) &&
+                SymbolEqualityComparer.Default.Equals(slotTypeSymbol.OriginalDefinition, sharedTextureSlotSymbol))
+            {
+                slotBuilder.Add(fieldSymbol);
+            }
+        }
+
+        Dictionary<string, int> canonicalNameCounts = GetCanonicalNameCounts(slotBuilder.WrittenSpan);
+
+        foreach (IFieldSymbol fieldSymbol in slotBuilder.WrittenSpan)
+        {
+            if (!GeneratedIdentifier.TryCreateCanonicalName(fieldSymbol.MetadataName, out string canonicalName) ||
+                canonicalNameCounts[canonicalName] > 1 ||
+                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryEnsure{canonicalName}", generatedCodeAttributeSymbol) ||
+                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryGet{canonicalName}AllocatedSize", generatedCodeAttributeSymbol) ||
+                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol) ||
+                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Begin{canonicalName}ExternalOperation", generatedCodeAttributeSymbol) ||
+                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Acquire{canonicalName}ExternalViewLease", generatedCodeAttributeSymbol))
             {
                 Report(context, fieldSymbol, typeSymbol);
             }

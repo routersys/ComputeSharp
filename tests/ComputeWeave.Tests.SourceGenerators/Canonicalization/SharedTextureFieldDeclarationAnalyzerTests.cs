@@ -41,6 +41,22 @@ public class SharedTextureFieldDeclarationAnalyzerTests
                     ComputeResourceRecovery.RecreateFromHost)]
         """;
 
+    private static void AssertGeneratedMemberConflict(string member, string testName)
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidGeneratedPlanSignatureAnalyzer(),
+            [ResourceSet($$"""
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+
+                    public void {{member}}()
+                    {
+                    }
+                """)],
+            testName,
+            "CMPW0104");
+    }
+
     [TestMethod]
     public void AcceptsAPrivateReadOnlySlotFieldWithoutAnInitializer()
     {
@@ -116,5 +132,80 @@ public class SharedTextureFieldDeclarationAnalyzerTests
                 """)],
             "SharedTextureFieldDeclarationAnalyzerTests",
             "CMPW0109");
+    }
+
+    [TestMethod]
+    public void AcceptsSharedTextureSlotsWithDistinctCanonicalNames()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidGeneratedPlanSignatureAnalyzer(),
+            [ResourceSet($$"""
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> output;
+                """)],
+            "AcceptsDistinctSharedTextureCanonicalNames");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotWithoutACanonicalName()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidGeneratedPlanSignatureAnalyzer(),
+            [ResourceSet($$"""
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> _;
+                """)],
+            "RejectsEmptySharedTextureCanonicalName",
+            "CMPW0104");
+    }
+
+    [TestMethod]
+    public void RejectsSharedTextureSlotsSharingACanonicalName()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidGeneratedPlanSignatureAnalyzer(),
+            [ResourceSet($$"""
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+
+                {{Attribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> _source;
+                """)],
+            "RejectsSharedTextureCanonicalName",
+            "CMPW0104",
+            "CMPW0104");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotConflictingWithTryEnsure()
+    {
+        AssertGeneratedMemberConflict("TryEnsureSource", "RejectsDeclaredTryEnsure");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotConflictingWithTryGetAllocatedSize()
+    {
+        AssertGeneratedMemberConflict("TryGetSourceAllocatedSize", "RejectsDeclaredTryGetAllocatedSize");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotConflictingWithGetComputeBinding()
+    {
+        AssertGeneratedMemberConflict("GetSourceComputeBinding", "RejectsDeclaredGetComputeBinding");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotConflictingWithBeginExternalOperation()
+    {
+        AssertGeneratedMemberConflict("BeginSourceExternalOperation", "RejectsDeclaredBeginExternalOperation");
+    }
+
+    [TestMethod]
+    public void RejectsASharedTextureSlotConflictingWithAcquireExternalViewLease()
+    {
+        AssertGeneratedMemberConflict("AcquireSourceExternalViewLease", "RejectsDeclaredAcquireExternalViewLease");
     }
 }
