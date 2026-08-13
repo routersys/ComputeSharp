@@ -188,9 +188,9 @@ public sealed partial class ResourceSet
 }
 ```
 
-The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)` and, per slot, `TryEnsure<Slot>(int width, int height, out bool changed)`. `TryGet<Slot>AllocatedSize` reports the allocated width and height of the published texture, which can remain larger than the logical dimensions under `GrowOnly`. The result is an unpinned snapshot and does not describe a binding, borrow or lease acquired separately when generation replacement can run concurrently. The `Width` and `Height` of an `ExternalTextureLease<TView>` describe the generation held by that lease. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
+The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)` and, per slot, `TryEnsure<Slot>(int width, int height, out bool changed)`. `TryGet<Slot>AllocatedSize` delegates to `SharedTextureSlot.TryGetAllocatedSize` and reports the allocated width and height of the published texture, which can remain larger than the logical dimensions under `GrowOnly`. The result is an unpinned snapshot and does not describe a binding, borrow or lease acquired separately when generation replacement can run concurrently. The `Width` and `Height` of an `ExternalTextureLease<TView>` describe the allocated dimensions of the generation held by that lease. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
-Retiring a shared texture generation, whether by resizing it or by disposing its slot, drains the external queue before the external view is released. That drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. `WaitForDisposal` waits for it.
+Retiring a shared texture generation, whether by resizing it or by disposing its slot, drains the external queue before the external view is released. That drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A foreground operation waits when that internal maintenance operation temporarily holds the domain, while another foreground operation remains a conflicting use and is rejected. A provider that throws poisons its domain, and every later operation on that domain reports the failure. `WaitForDisposal` waits for retirement and disposal to complete.
 
 ### 5. Read-only buffer views
 
@@ -250,6 +250,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `ComputeResourceBinding<T> Get<Slot>ComputeBinding()` | Returns the binding of the owned resource. |
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | Registers an interop resource set. |
 | `bool TryEnsure<Slot>(int width, int height, out bool changed)` | Matches a shared texture to a size. |
+| `bool TryGet<Slot>AllocatedSize(out int width, out int height)` | Reports the allocated size of the published shared texture as an unpinned snapshot. |
 | `void Dispose()` / `void WaitForDisposal()` | Releases the registration and waits for it to complete. |
 
 ### Runtime
@@ -274,10 +275,11 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `ComputeResourceGroupSlot<TGroup>` | Owns a group of resources published as one generation. |
 | `SharedTextureSlot<T, TPixel, TView>` | Owns a texture shared with an external API. |
 | `SharedTextureSlot.TryEnsure(int width, int height, out bool changed)` | Matches the texture to a size. |
+| `SharedTextureSlot.TryGetAllocatedSize(out int width, out int height)` | Reports the allocated size of the published generation as an unpinned snapshot. |
 | `SharedTextureSlot.GetComputeBinding()` | Returns the compute-side binding. |
 | `SharedTextureSlot.BeginExternalOperation()` | Borrows the external view for one operation. |
 | `SharedTextureSlot.AcquireExternalViewLease()` | Takes a lease on the external view. |
-| `SharedTextureSlot.Width` / `Height` / `IsAllocated` | Reports the published size and whether one exists. |
+| `SharedTextureSlot.Width` / `Height` / `IsAllocated` | Reports the current logical dimensions and whether a generation is published. |
 | `ComputeResourceBinding<TResource>` | A binding to a published resource generation. It carries the slot it was produced from. |
 | `ComputePipelineBinder.TryPin(IGraphicsResource resource)` | Pins the generation of a borrowed resource. |
 | `ComputePipelineBinder.TryPin<TResource>(in ComputeResourceBinding<TResource> binding, out TResource resource)` | Pins a resource shared with an external queue, revalidated under the slot the binding carries. |
@@ -297,6 +299,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | Opens a shared texture as the external view type. |
 | `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | Reports that the device entered a terminal state. |
 | `ComputeExternalQueueScheduler` | Base class for providers needing a scope around each queue operation. |
+| `ExternalTextureLease<TView>.Width` / `Height` | Reports the allocated dimensions of the generation held by the lease. |
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | Uses the leased external view. |
 | `ExternalTextureDescriptor` | `Width`, `Height`, `Format`, `ExternalUsage`, `AlphaMode`. |
 | `ExternalAdapterIdentity(long adapterLuid)` / `ExternalDomainId` | Identifies the adapter and the domain. |

@@ -13,8 +13,8 @@ namespace ComputeWeave;
 /// <remarks>
 /// A lease holds an external reference over its generation and a reference over its domain, but no external
 /// queue ownership, so every external queue work over the leased view runs inside the scope of one of the
-/// operations the lease hands out. Its <see cref="Width"/> and <see cref="Height"/> are captured together with
-/// the leased generation and remain unchanged when the slot publishes another generation.
+/// operations the lease hands out. Its allocated <see cref="Width"/> and <see cref="Height"/> are captured
+/// together with the leased generation and remain unchanged when the slot publishes another generation.
 /// </remarks>
 public sealed class ExternalTextureLease<TView> : IDisposable
     where TView : class
@@ -35,12 +35,12 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     private readonly TView view;
 
     /// <summary>
-    /// The width of the leased texture generation.
+    /// The allocated width of the leased texture generation.
     /// </summary>
     private readonly int width;
 
     /// <summary>
-    /// The height of the leased texture generation.
+    /// The allocated height of the leased texture generation.
     /// </summary>
     private readonly int height;
 
@@ -55,8 +55,8 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     /// <param name="runtime">The resource set the leased generation belongs to.</param>
     /// <param name="pin">The generation the lease holds an external reference of.</param>
     /// <param name="view">The leased external view.</param>
-    /// <param name="width">The width of the leased texture generation.</param>
-    /// <param name="height">The height of the leased texture generation.</param>
+    /// <param name="width">The allocated width of the leased texture generation.</param>
+    /// <param name="height">The allocated height of the leased texture generation.</param>
     internal ExternalTextureLease(
         InteropResourceSetRuntime runtime,
         in ResourceGenerationPin pin,
@@ -77,7 +77,7 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     public bool IsDisposed => Volatile.Read(ref this.isDisposed) != 0;
 
     /// <summary>
-    /// Gets the width of the leased texture generation.
+    /// Gets the allocated width of the leased texture generation.
     /// </summary>
     /// <exception cref="ObjectDisposedException">Thrown if the current lease has been disposed.</exception>
     public int Width
@@ -91,7 +91,7 @@ public sealed class ExternalTextureLease<TView> : IDisposable
     }
 
     /// <summary>
-    /// Gets the height of the leased texture generation.
+    /// Gets the allocated height of the leased texture generation.
     /// </summary>
     /// <exception cref="ObjectDisposedException">Thrown if the current lease has been disposed.</exception>
     public int Height

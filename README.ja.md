@@ -188,9 +188,9 @@ public sealed partial class ResourceSet
 }
 ```
 
-ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。`TryGet<スロット名>AllocatedSize` は公開中のテクスチャに確保されている幅と高さを返します。`GrowOnly` では確保サイズが論理寸法より大きい場合があります。結果は世代を固定しないスナップショットです。世代交換が並行しうる場合は、別に取得した束縛や貸し出しや貸与のサイズを表しません。`ExternalTextureLease<TView>` の `Width` と `Height` は、その貸与が保持する世代の寸法を表します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
+ジェネレーターは `Create(GraphicsDevice device, ComputeInteropDomain domain)` と、スロットごとの `TryEnsure<スロット名>(int width, int height, out bool changed)` を出力します。`TryGet<スロット名>AllocatedSize` は `SharedTextureSlot.TryGetAllocatedSize` へ委譲し、公開中のテクスチャに確保されている幅と高さを返します。`GrowOnly` では確保サイズが論理寸法より大きい場合があります。結果は世代を固定しないスナップショットです。世代交換が並行しうる場合は、別に取得した束縛や貸し出しや貸与のサイズを表しません。`ExternalTextureLease<TView>` の `Width` と `Height` は、その貸与が保持する世代の確保寸法を表します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
-共有テクスチャの世代を退役させるとき、大きさの変更でもスロットの破棄でも、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。待つには `WaitForDisposal` を使います。
+共有テクスチャの世代を退役させるとき、大きさの変更でもスロットの破棄でも、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。内部の保守処理が一時的にドメインを保持している場合、前景処理はその完了を待ちます。別の前景処理が保持している場合は競合した利用として拒否します。実装側が例外を投げるとそのドメインは汚染され、以後そのドメインへの操作はすべて失敗を報告します。`WaitForDisposal` は退役と破棄の完了を待ちます。
 
 ### 5. バッファの読み取り専用ビュー
 
@@ -250,6 +250,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `ComputeResourceBinding<T> Get<スロット名>ComputeBinding()` | 所有資源の束縛を返します。 |
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | 相互運用の資源集合を登録します。 |
 | `bool TryEnsure<スロット名>(int width, int height, out bool changed)` | 共有テクスチャを寸法へ一致させます。 |
+| `bool TryGet<スロット名>AllocatedSize(out int width, out int height)` | 発行済みの共有テクスチャの確保寸法を、世代を固定しないスナップショットとして返します。 |
 | `void Dispose()` / `void WaitForDisposal()` | 登録の解除を要求し、完了まで待ちます。 |
 
 ### 実行時
@@ -274,10 +275,11 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `ComputeResourceGroupSlot<TGroup>` | 一つの世代として発行される資源の組を所有します。 |
 | `SharedTextureSlot<T, TPixel, TView>` | 外部APIと共有するテクスチャを所有します。 |
 | `SharedTextureSlot.TryEnsure(int width, int height, out bool changed)` | テクスチャを寸法へ一致させます。 |
+| `SharedTextureSlot.TryGetAllocatedSize(out int width, out int height)` | 発行済み世代の確保寸法を、世代を固定しないスナップショットとして返します。 |
 | `SharedTextureSlot.GetComputeBinding()` | 計算側の束縛を返します。 |
 | `SharedTextureSlot.BeginExternalOperation()` | 1回の操作のために外部ビューを借ります。 |
 | `SharedTextureSlot.AcquireExternalViewLease()` | 外部ビューの貸与を取ります。 |
-| `SharedTextureSlot.Width` / `Height` / `IsAllocated` | 発行済みの寸法と、その有無を報告します。 |
+| `SharedTextureSlot.Width` / `Height` / `IsAllocated` | 現在の論理寸法と、世代が発行されているかを報告します。 |
 | `ComputeResourceBinding<TResource>` | 発行済みの資源世代への束縛です。生成元のスロットを保持します。 |
 | `ComputePipelineBinder.TryPin(IGraphicsResource resource)` | 借用した資源の世代を固定します。 |
 | `ComputePipelineBinder.TryPin<TResource>(in ComputeResourceBinding<TResource> binding, out TResource resource)` | 外部と共有する資源を、束縛が持つスロットの門で再検証してから固定します。 |
@@ -297,6 +299,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | 共有テクスチャを外部のビュー型として開きます。 |
 | `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | デバイスが終了状態へ入ったことを通知します。 |
 | `ComputeExternalQueueScheduler` | 操作ごとにキューの出入りが必要な実装の基底クラスです。 |
+| `ExternalTextureLease<TView>.Width` / `Height` | 貸与が保持する世代の確保寸法を返します。 |
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | 貸与した外部ビューを使います。 |
 | `ExternalTextureDescriptor` | `Width`、`Height`、`Format`、`ExternalUsage`、`AlphaMode`。 |
 | `ExternalAdapterIdentity(long adapterLuid)` / `ExternalDomainId` | アダプターとドメインを識別します。 |

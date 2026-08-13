@@ -122,7 +122,7 @@ partial class PipelineDescriptorGenerator
         writer.WriteLine("""/// <param name="width">The allocated width, or zero if no texture generation is published.</param>""");
         writer.WriteLine("""/// <param name="height">The allocated height, or zero if no texture generation is published.</param>""");
         writer.WriteLine("""/// <returns>Whether a texture generation is currently published.</returns>""");
-        writer.WriteLine("""/// <remarks>The returned size is an unpinned snapshot of the generation published while the slot is inspected.</remarks>""");
+        writer.WriteLine("""/// <remarks>The returned size is an unpinned snapshot of the generation published while the slot is inspected. It does not describe a binding, borrow or lease acquired separately when generation replacement can run concurrently.</remarks>""");
         writer.WriteGeneratedAttributes(GeneratorName);
         writer.WriteLine($"public bool TryGet{slot.CanonicalName}AllocatedSize(out int width, out int height)");
 
