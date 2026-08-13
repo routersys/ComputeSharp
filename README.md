@@ -251,6 +251,9 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | Registers an interop resource set. |
 | `bool TryEnsure<Slot>(int width, int height, out bool changed)` | Matches a shared texture to a size. |
 | `bool TryGet<Slot>AllocatedSize(out int width, out int height)` | Reports the allocated size of the published shared texture as an unpinned snapshot. |
+| `ComputeResourceBinding<ReadWriteTexture2D<T, TPixel>> Get<Slot>ComputeBinding()` | Returns the compute-side binding of a shared texture. |
+| `BorrowedExternalTextureView<TView> Begin<Slot>ExternalOperation()` | Borrows the external view for one operation. |
+| `ExternalTextureLease<TView> Acquire<Slot>ExternalViewLease()` | Takes a persistent lease on the external view. |
 | `void Dispose()` / `void WaitForDisposal()` | Releases the registration and waits for it to complete. |
 
 ### Runtime

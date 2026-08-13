@@ -251,6 +251,9 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `static TSet Create(GraphicsDevice device, ComputeInteropDomain domain)` | 相互運用の資源集合を登録します。 |
 | `bool TryEnsure<スロット名>(int width, int height, out bool changed)` | 共有テクスチャを寸法へ一致させます。 |
 | `bool TryGet<スロット名>AllocatedSize(out int width, out int height)` | 発行済みの共有テクスチャの確保寸法を、世代を固定しないスナップショットとして返します。 |
+| `ComputeResourceBinding<ReadWriteTexture2D<T, TPixel>> Get<スロット名>ComputeBinding()` | 共有テクスチャの計算側の束縛を返します。 |
+| `BorrowedExternalTextureView<TView> Begin<スロット名>ExternalOperation()` | 1回の操作のために外部ビューを借ります。 |
+| `ExternalTextureLease<TView> Acquire<スロット名>ExternalViewLease()` | 外部ビューの永続的な貸与を取ります。 |
 | `void Dispose()` / `void WaitForDisposal()` | 登録の解除を要求し、完了まで待ちます。 |
 
 ### 実行時
