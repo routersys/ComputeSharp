@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading;
 
 #pragma warning disable RS1035
 
@@ -14,6 +15,10 @@ namespace ComputeWeave.SourceGenerators.Dxc;
 /// </summary>
 internal sealed unsafe class DxcLibraryLoader
 {
+    private const int CachePublicationRetryCount = 500;
+
+    private const int CachePublicationRetryDelayMilliseconds = 10;
+
     /// <summary>
     /// An object to use to synchronize loading the DXC libraries.
     /// </summary>
@@ -32,40 +37,49 @@ internal sealed unsafe class DxcLibraryLoader
     public static void LoadNativeDxcLibraries()
     {
         // Extracts a specified native library for a given runtime identifier
-        static string ExtractLibrary(string folder, string rid, string name)
+        static FileStream ExtractLibrary(string folder, string rid, string name, byte[] expectedHash)
         {
             string sourceFilename = $"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.{name}.dll";
             string targetFilename = Path.Combine(folder, rid, $"{name}.dll");
 
             using Stream sourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(sourceFilename);
 
-            ExtractLibraryAtomically(sourceStream, targetFilename);
-
-            return targetFilename;
+            return ExtractLibraryAtomically(sourceStream, expectedHash, targetFilename);
         }
 
-        static string GetCacheKey(string rid)
+        static byte[] GetResourceHash(string rid, string name)
         {
-            using Stream dxilStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxil.dll");
-            using Stream dxcompilerStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.dxcompiler.dll");
+            using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"ComputeWeave.SourceGenerators.ComputeWeave.Libraries.{rid}.{name}.dll");
 
-            return DxcLibraryLoader.GetCacheKey(dxilStream, dxcompilerStream);
+            return GetHash(stream);
         }
 
         // Loads a target native library
-        static unsafe void LoadLibrary(string filename)
+        static unsafe void* LoadLibrary(string filename)
         {
             [DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
-            static extern void* LoadLibraryW(ushort* lpLibFileName);
+            static extern void* LoadLibraryExW(ushort* lpLibFileName, void* hFile, uint dwFlags);
+
+            const uint LoadLibrarySearchDllLoadDir = 0x00000100;
+            const uint LoadLibrarySearchSystem32 = 0x00000800;
+
+            filename = Path.GetFullPath(filename);
 
             fixed (char* p = filename)
             {
-                if (LoadLibraryW((ushort*)p) is null)
-                {
-                    int hresult = Marshal.GetLastWin32Error();
+                void* module = LoadLibraryExW(
+                    (ushort*)p,
+                    null,
+                    LoadLibrarySearchDllLoadDir | LoadLibrarySearchSystem32);
 
-                    throw new Win32Exception(hresult, $"Failed to load {Path.GetFileName(filename)}.");
+                if (module is null)
+                {
+                    int errorCode = Marshal.GetLastWin32Error();
+
+                    throw new Win32Exception(errorCode, $"Failed to load {Path.GetFileName(filename)}.");
                 }
+
+                return module;
             }
         }
 
@@ -88,43 +102,98 @@ internal sealed unsafe class DxcLibraryLoader
                 _ => throw new NotSupportedException("Invalid process architecture")
             };
 
-            string folder = Path.Combine(Path.GetTempPath(), "ComputeWeave.SourceGenerators", "Dxc", GetCacheKey(rid));
+            byte[] dxilHash = GetResourceHash(rid, "dxil");
+            byte[] dxcompilerHash = GetResourceHash(rid, "dxcompiler");
+            string folder = GetCacheFolder(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create),
+                GetCacheKey(dxilHash, dxcompilerHash));
 
-            LoadLibrary(ExtractLibrary(folder, rid, "dxil"));
-            LoadLibrary(ExtractLibrary(folder, rid, "dxcompiler"));
+            using FileStream dxilLibrary = ExtractLibrary(folder, rid, "dxil", dxilHash);
+            using FileStream dxcompilerLibrary = ExtractLibrary(folder, rid, "dxcompiler", dxcompilerHash);
+
+            void* dxilModule = LoadLibrary(dxilLibrary.Name);
+
+            try
+            {
+                _ = LoadLibrary(dxcompilerLibrary.Name);
+            }
+            catch
+            {
+                [DllImport("kernel32", ExactSpelling = true)]
+                static extern int FreeLibrary(void* hLibModule);
+
+                _ = FreeLibrary(dxilModule);
+
+                throw;
+            }
 
             areDxcLibrariesLoaded = true;
         }
     }
 
-    internal static void ExtractLibraryAtomically(Stream sourceStream, string targetFilename)
+    internal static FileStream ExtractLibraryAtomically(Stream sourceStream, byte[] expectedHash, string targetFilename)
     {
-        _ = Directory.CreateDirectory(Path.GetDirectoryName(targetFilename));
+        string folder = Path.GetDirectoryName(targetFilename);
 
-        if (File.Exists(targetFilename))
+        _ = Directory.CreateDirectory(folder);
+
+        if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream existingLibrary)
         {
-            return;
+            return existingLibrary;
         }
 
-        string temporaryFilename = Path.Combine(Path.GetDirectoryName(targetFilename), Path.GetRandomFileName());
+        string temporaryFilename = Path.Combine(folder, Path.GetRandomFileName());
         bool isTemporaryFileCreated = false;
 
         try
         {
-            using (Stream destinationStream = File.Open(temporaryFilename, FileMode.CreateNew, FileAccess.Write))
+            using (FileStream destinationStream = new(temporaryFilename, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
             {
                 isTemporaryFileCreated = true;
 
                 sourceStream.CopyTo(destinationStream);
+                destinationStream.Flush(flushToDisk: true);
+                destinationStream.Position = 0;
+
+                if (!HashesMatch(GetHash(destinationStream), expectedHash))
+                {
+                    throw new InvalidDataException("The extracted DXC library does not match its embedded source.");
+                }
             }
 
-            try
+            if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream competingLibrary)
             {
-                File.Move(temporaryFilename, targetFilename);
+                return competingLibrary;
             }
-            catch (IOException) when (File.Exists(targetFilename))
+
+            for (int attempt = 0; ; attempt++)
             {
+                if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream publishedLibrary)
+                {
+                    return publishedLibrary;
+                }
+
+                try
+                {
+                    if (File.Exists(targetFilename))
+                    {
+                        File.Replace(temporaryFilename, targetFilename, null);
+                    }
+                    else
+                    {
+                        File.Move(temporaryFilename, targetFilename);
+                    }
+
+                    break;
+                }
+                catch (IOException) when (attempt < CachePublicationRetryCount)
+                {
+                    Thread.Sleep(CachePublicationRetryDelayMilliseconds);
+                }
             }
+
+            return TryOpenVerifiedLibrary(targetFilename, expectedHash) ??
+                throw new InvalidDataException("The published DXC library does not match its embedded source.");
         }
         finally
         {
@@ -135,15 +204,96 @@ internal sealed unsafe class DxcLibraryLoader
         }
     }
 
+    internal static string GetCacheFolder(string localApplicationData, string cacheKey)
+    {
+        if (string.IsNullOrWhiteSpace(localApplicationData) || !Path.IsPathRooted(localApplicationData))
+        {
+            throw new InvalidOperationException("The local application data directory is not available.");
+        }
+
+        return Path.Combine(localApplicationData, "ComputeWeave", "SourceGenerators", "Dxc", cacheKey);
+    }
+
     internal static string GetCacheKey(Stream dxilStream, Stream dxcompilerStream)
     {
-        byte[] resourceHashes = new byte[64];
+        return GetCacheKey(GetHash(dxilStream), GetHash(dxcompilerStream));
+    }
+
+    private static string GetCacheKey(byte[] dxilHash, byte[] dxcompilerHash)
+    {
+        byte[] resourceHashes = new byte[dxilHash.Length + dxcompilerHash.Length];
+
+        Buffer.BlockCopy(dxilHash, 0, resourceHashes, 0, dxilHash.Length);
+        Buffer.BlockCopy(dxcompilerHash, 0, resourceHashes, dxilHash.Length, dxcompilerHash.Length);
 
         using SHA256 hashAlgorithm = SHA256.Create();
 
-        Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxilStream), 0, resourceHashes, 0, 32);
-        Buffer.BlockCopy(hashAlgorithm.ComputeHash(dxcompilerStream), 0, resourceHashes, 32, 32);
-
         return BitConverter.ToString(hashAlgorithm.ComputeHash(resourceHashes)).Replace("-", string.Empty);
+    }
+
+    private static byte[] GetHash(Stream stream)
+    {
+        using SHA256 hashAlgorithm = SHA256.Create();
+
+        return hashAlgorithm.ComputeHash(stream);
+    }
+
+    private static FileStream? TryOpenVerifiedLibrary(string targetFilename, byte[] expectedHash)
+    {
+        for (int attempt = 0; ; attempt++)
+        {
+            FileStream? stream = null;
+
+            try
+            {
+                stream = new FileStream(targetFilename, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+                if (!HashesMatch(GetHash(stream), expectedHash))
+                {
+                    stream.Dispose();
+
+                    return null;
+                }
+
+                stream.Position = 0;
+
+                return stream;
+            }
+            catch (FileNotFoundException)
+            {
+                stream?.Dispose();
+
+                return null;
+            }
+            catch (IOException) when (attempt < 100)
+            {
+                stream?.Dispose();
+
+                Thread.Sleep(1);
+            }
+            catch
+            {
+                stream?.Dispose();
+
+                throw;
+            }
+        }
+    }
+
+    private static bool HashesMatch(byte[] left, byte[] right)
+    {
+        if (left.Length != right.Length)
+        {
+            return false;
+        }
+
+        int difference = 0;
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            difference |= left[i] ^ right[i];
+        }
+
+        return difference == 0;
     }
 }
