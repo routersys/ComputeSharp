@@ -111,6 +111,14 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    /// <summary>
+    /// Analyzes the owned slots of a compute interop resource set.
+    /// </summary>
+    /// <param name="context">The current symbol analysis context.</param>
+    /// <param name="typeSymbol">The compute interop resource set type.</param>
+    /// <param name="sharedTextureAttributeSymbol">The <c>[ComputeSharedTexture]</c> symbol.</param>
+    /// <param name="sharedTextureSlotSymbol">The <c>SharedTextureSlot&lt;T, TPixel, TView&gt;</c> symbol.</param>
+    /// <param name="generatedCodeAttributeSymbol">The <see cref="System.CodeDom.Compiler.GeneratedCodeAttribute"/> symbol.</param>
     private static void AnalyzeResourceSet(
         SymbolAnalysisContext context,
         INamedTypeSymbol typeSymbol,
@@ -136,11 +144,7 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
         {
             if (!GeneratedIdentifier.TryCreateCanonicalName(fieldSymbol.MetadataName, out string canonicalName) ||
                 canonicalNameCounts[canonicalName] > 1 ||
-                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryEnsure{canonicalName}", generatedCodeAttributeSymbol) ||
-                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryGet{canonicalName}AllocatedSize", generatedCodeAttributeSymbol) ||
-                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol) ||
-                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Begin{canonicalName}ExternalOperation", generatedCodeAttributeSymbol) ||
-                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Acquire{canonicalName}ExternalViewLease", generatedCodeAttributeSymbol))
+                IsGeneratedSharedTextureMemberDeclared(typeSymbol, canonicalName, generatedCodeAttributeSymbol))
             {
                 Report(context, fieldSymbol, typeSymbol);
             }
@@ -256,6 +260,25 @@ public sealed class InvalidGeneratedPlanSignatureAnalyzer : DiagnosticAnalyzer
 
         return GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, GeneratedIdentifier.CreatePlanTypeName(canonicalName), generatedCodeAttributeSymbol) ||
                GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol);
+    }
+
+    /// <summary>
+    /// Checks whether a compute interop resource set declares a member generated for a given canonical name.
+    /// </summary>
+    /// <param name="typeSymbol">The compute interop resource set type.</param>
+    /// <param name="canonicalName">The generated canonical name of the owned slot.</param>
+    /// <param name="generatedCodeAttributeSymbol">The <see cref="System.CodeDom.Compiler.GeneratedCodeAttribute"/> symbol.</param>
+    /// <returns>Whether <paramref name="typeSymbol"/> declares a member generated for <paramref name="canonicalName"/>.</returns>
+    private static bool IsGeneratedSharedTextureMemberDeclared(
+        INamedTypeSymbol typeSymbol,
+        string canonicalName,
+        INamedTypeSymbol generatedCodeAttributeSymbol)
+    {
+        return GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryEnsure{canonicalName}", generatedCodeAttributeSymbol) ||
+               GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"TryGet{canonicalName}AllocatedSize", generatedCodeAttributeSymbol) ||
+               GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Get{canonicalName}ComputeBinding", generatedCodeAttributeSymbol) ||
+               GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Begin{canonicalName}ExternalOperation", generatedCodeAttributeSymbol) ||
+               GeneratedMemberLookup.IsDeclaredByUser(typeSymbol, $"Acquire{canonicalName}ExternalViewLease", generatedCodeAttributeSymbol);
     }
 
     /// <summary>
