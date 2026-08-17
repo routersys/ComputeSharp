@@ -316,6 +316,104 @@ public unsafe class ComputeExternalDirect3D11ProviderTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void ReleasesEveryInterfaceWhenConstructionFails(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using Direct3D11ImmediateContext context = CreateContext(graphicsDevice);
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        nint devicePointer = (nint)context.D3D11Device;
+
+        uint before = GetReferenceCount(devicePointer);
+
+        // デバイスを Immediate Context として渡す。ID3D11DeviceContext4 への照会が失敗し、構築が中断する。
+        // 不変条件が定めるのは参照の均衡であり例外の種別ではないため、種別を固定しない。
+        bool threw = false;
+
+        try
+        {
+            _ = new ComputeExternalDirect3D11Provider(devicePointer, devicePointer, 0, scheduler);
+        }
+        catch (Exception)
+        {
+            threw = true;
+        }
+
+        Assert.IsTrue(threw, "A construction that cannot query its interfaces was accepted.");
+        Assert.AreEqual(before, GetReferenceCount(devicePointer), "A failed construction leaked a reference.");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RefusesASecondInitialization(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using Direct3D11ImmediateContext context = CreateContext(graphicsDevice);
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        ComputeExternalDirect3D11Provider provider = new(
+            (nint)context.D3D11Device,
+            (nint)context.D3D11ImmediateContext,
+            0,
+            scheduler);
+
+        // 登録が一度目の Initialize を行う。二度目は拒まれる。
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        // ref struct はラムダへ捕捉できないため、その場で構築して渡す。
+        try
+        {
+            provider.Initialize(default);
+
+            Assert.Fail("The second initialization was accepted.");
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void EnqueuesWithoutManagedAllocation(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using Direct3D11ImmediateContext context = CreateContext(graphicsDevice);
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        ComputeExternalDirect3D11Provider provider = new(
+            (nint)context.D3D11Device,
+            (nint)context.D3D11ImmediateContext,
+            0,
+            scheduler);
+
+        using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+
+        long minimum = long.MaxValue;
+        ulong value = 1;
+
+        for (int i = 0; i < 10; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int j = 0; j < 100; j++)
+            {
+                provider.EnqueueSignal(value);
+                provider.EnqueueWait(value);
+                provider.FlushAfterSignal();
+                value++;
+            }
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        Assert.AreEqual(0, minimum, "The enqueue path allocates managed memory.");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void LeavesTheSchedulerToItsOwner(Device device)
     {
         GraphicsDevice graphicsDevice = device.Get();
