@@ -19,7 +19,12 @@ internal static unsafe class ComputePipelineInvoker
 
         default(ArgumentOutOfRangeException).ThrowIfNotInRange(pipelineOrdinal, 0, pipelines.Length);
 
-        default(InvalidOperationException).ThrowIf(!host.TryAcquireInvocation(), "The host has no concurrent invocation permit left.");
+        if (!host.TryAcquireInvocation())
+        {
+            throw new ComputeDiagnosticException(
+                ComputeDiagnosticIds.InvocationLimit,
+                "The host has no concurrent invocation permit left.");
+        }
 
         try
         {

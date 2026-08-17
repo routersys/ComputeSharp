@@ -170,7 +170,12 @@ internal static unsafe class ResourceGenerationPinTracker
     {
         ref ResourceGenerationRecord record = ref pin.Handle.Owner.GetResourceRecord(pin.ResourceIndex);
 
-        default(InvalidOperationException).ThrowIf(record.Id != pin.GenerationId, "The pinned generation no longer matches.");
+        if (record.Id != pin.GenerationId)
+        {
+            throw new ComputeDiagnosticException(
+                ComputeDiagnosticIds.StaleGeneration,
+                "The pinned generation no longer matches.");
+        }
 
         return ref record;
     }

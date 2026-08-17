@@ -6,7 +6,7 @@ namespace ComputeWeave;
 /// <summary>
 /// A custom <see cref="InvalidOperationException"/> that indicates when mismatched devices are being used.
 /// </summary>
-public sealed class GraphicsDeviceMismatchException : InvalidOperationException
+public sealed class GraphicsDeviceMismatchException : InvalidOperationException, IComputeDiagnostic
 {
     /// <summary>
     /// Creates a new <see cref="GraphicsDeviceMismatchException"/> instance.
@@ -16,6 +16,9 @@ public sealed class GraphicsDeviceMismatchException : InvalidOperationException
         : base(message)
     {
     }
+
+    /// <inheritdoc/>
+    public string DiagnosticId => ComputeDiagnosticIds.DeviceMismatch;
 
     /// <summary>
     /// Creates a new <see cref="GraphicsDeviceMismatchException"/> instance from the specified parameters.

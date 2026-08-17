@@ -214,7 +214,8 @@ internal static unsafe partial class ComputeSubmissionExecutor
             return lease;
         }
 
-        throw new InvalidOperationException(
+        throw new ComputeDiagnosticException(
+            ComputeDiagnosticIds.FromDomainOperationStatus(status),
             $"The interop round-trip could not acquire an operation of its domain ({status}).",
             schedulerFailure);
     }

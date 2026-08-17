@@ -143,7 +143,8 @@ public sealed class ExternalTextureLease<TView> : IDisposable
 
         if (status is not DomainOperationStatus.Acquired)
         {
-            throw new InvalidOperationException(
+            throw new ComputeDiagnosticException(
+                ComputeDiagnosticIds.FromDomainOperationStatus(status),
                 $"The external texture view lease could not acquire an operation of its domain ({status}).",
                 schedulerFailure);
         }
