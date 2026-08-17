@@ -1,0 +1,65 @@
+name: 文書の不備
+description: 誤り、記載漏れ、または実装と食い違っている文書を報告します。
+title: "[Docs] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        実装と食い違う文書は、言い回しの好みではなく欠陥として扱います。どちらが正しいと考えるかを
+        書いてください。それによって、直す先が文章か実装かが決まります。
+
+  - type: dropdown
+    id: location
+    attributes:
+      label: 場所
+      options:
+        - README
+        - README.ja
+        - CONTRIBUTING
+        - 公開APIのXMLドキュメントコメント
+        - アナライザーまたは実行時の診断メッセージ
+        - 生成されるコードの文書
+    validations:
+      required: true
+
+  - type: input
+    id: reference
+    attributes:
+      label: 正確な位置
+      description: 見出し、行番号付きのファイルパス、メンバー名、または診断IDのいずれか。
+      placeholder: "src/ComputeWeave/Graphics/Interop/ExternalTextureLease.cs, Width"
+    validations:
+      required: true
+
+  - type: textarea
+    id: says
+    attributes:
+      label: 現在の記述
+      description: そのまま引用してください。原文を開かずに変更を検討できるようにするためです。
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: どこが問題か
+      description: |
+        不正確、不足、曖昧のいずれか。そしてそれによって読者が何を取り違えるかを書いてください。
+        挙動と食い違っている場合は、どちらを直すべきと考えるかも書いてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 提案する文面
+      description: 任意ですが、具体的な代替文があると最も早く片付きます。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提出の前に
+      options:
+        - label: 最新の公開版の文書を確認しました。古い写しではありません。
+          required: true

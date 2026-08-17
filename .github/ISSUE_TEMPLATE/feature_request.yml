@@ -1,0 +1,83 @@
+name: Proposal
+description: Propose a new capability, a new public API, or a change to one that exists.
+title: "[Proposal] "
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The public API of this library is governed by a normative specification that is not part of
+        this repository. A proposal that adds or changes public API is answered by amending that
+        specification first, so the design questions below are the ones that decide the outcome.
+
+        If you are still exploring the idea, the discussions link on the previous page is the better
+        place to start.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New public API
+        - Change to existing public API
+        - New analyzer or runtime diagnostic
+        - Behaviour change with no API change
+        - Tooling, packaging or documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: |
+        What you cannot do today, described from the caller's side. Write the situation, not the
+        solution. A proposal that only describes an API rarely survives review.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do instead today
+      description: |
+        The workaround you currently use and what it costs you. If there is no workaround, say so,
+        and say what you do instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: surface
+    attributes:
+      label: Proposed API
+      description: |
+        Signatures only, in C#. Include every public and protected member you intend to add. A
+        proposal is easier to accept when the surface is small and complete.
+      render: csharp
+
+  - type: textarea
+    id: guarantees
+    attributes:
+      label: What it must guarantee
+      description: |
+        State the guarantees explicitly, and equally the ones it does not make. Lifetime, ordering
+        between queues, thread safety, allocation on the hot path, and behaviour during teardown are
+        the ones this library is usually asked about.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including doing nothing, and why that is not enough.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I checked that the current release does not already provide this.
+          required: true

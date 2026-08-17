@@ -1,0 +1,53 @@
+name: 質問
+description: 想定された使い方や、観測した挙動が意図どおりかどうかを尋ねます。
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ライブラリ側が誤っていると既に考えている場合は、不具合報告のほうを使ってください。
+        見えている挙動が欠陥か意図した契約か、まだ判断がつかないときにこちらを使ってください。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 質問
+      description: 背景より先に、一文か二文で直接尋ねてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 何をしようとしているか
+      description: |
+        詰まっている手順だけでなく、最終的に達したい状態を書いてください。答えが、今の方法の修正ではなく
+        別の方法になることがよくあります。
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: 試したこと
+      description: 現在のコードと、期待した動きの代わりに何が起きるか。
+      render: csharp
+
+  - type: input
+    id: version
+    attributes:
+      label: パッケージの版数
+      placeholder: ComputeWeave 1.5.0
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提出の前に
+      options:
+        - label: この領域を扱っているREADMEの節を読みました。
+          required: true
+        - label: 同じ質問が既存の課題に無いか検索しました。
+          required: true

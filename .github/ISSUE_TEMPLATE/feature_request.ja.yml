@@ -1,0 +1,79 @@
+name: 機能提案
+description: 新しい機能、新しい公開API、または既存の公開APIの変更を提案します。
+title: "[Proposal] "
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        このライブラリの公開APIは、リポジトリの外にある規範仕様が正本です。公開APIを足す提案も変える提案も、
+        まず仕様を改訂してから答えを出します。以下の設計上の設問が結果を決めます。
+
+        まだ着想を練っている段階であれば、前の画面のディスカッションのリンクから始めるほうが向いています。
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 種別
+      options:
+        - 新しい公開API
+        - 既存の公開APIの変更
+        - 新しいアナライザー診断または実行時診断
+        - API変更を伴わない挙動の変更
+        - 開発補助、パッケージ、文書
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 課題
+      description: |
+        今できないことを、呼び出す側の視点で書いてください。解決策ではなく状況を書いてください。
+        APIの形だけを書いた提案は、検討を通ることがまれです。
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: 今はどうしているか
+      description: |
+        現在の回避策と、それが要している費用。回避策が無いならその旨と、代わりに何をしているかを書いてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: surface
+    attributes:
+      label: 提案するAPI
+      description: |
+        C#の署名だけで構いません。足すつもりの public と protected のメンバーを漏れなく挙げてください。
+        面が小さく、かつ網羅されている提案ほど受け入れやすくなります。
+      render: csharp
+
+  - type: textarea
+    id: guarantees
+    attributes:
+      label: 何を保証すべきか
+      description: |
+        保証することを明示し、同じだけ保証しないことも書いてください。寿命、キュー間の順序、スレッド安全性、
+        高頻度経路での確保、破棄中の挙動が、このライブラリでよく問われる点です。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 検討した代替案
+      description: 何もしないという選択肢と、それでは足りない理由も含めてください。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提出の前に
+      options:
+        - label: 既存の課題を検索し、重複でないことを確認しました。
+          required: true
+        - label: 現在の公開版に同じ機能が無いことを確認しました。
+          required: true

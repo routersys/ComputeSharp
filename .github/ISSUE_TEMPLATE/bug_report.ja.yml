@@ -1,0 +1,140 @@
+name: 不具合報告
+description: ライブラリが文書化している挙動や保証と異なる動きを報告します。
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        脆弱性はここへ書かないでください。前の画面の脆弱性報告のリンクを使ってください。
+
+        報告が動くのは、他人が再現できるときだけです。以下の項目は、このライブラリで
+        再現できるかどうかを決めるものに絞ってあります。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 領域
+      description: 挙動が現れる場所です。ご自身のコードではなく、失敗した箇所に近いものを選んでください。
+      options:
+        - 実行時、投入と資源
+        - 相互運用ドメイン、共有テクスチャ、外部ビュー
+        - ソースジェネレーターまたはアナライザーの診断
+        - メモリの受理、Trim、統計
+        - シェーダーのHLSLへの変換
+        - DXC、パッケージ、ビルド
+        - 判断がつかない
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: パッケージの版数
+      description: 参照している ComputeWeave の全パッケージについて、正確な版数を書いてください。
+      placeholder: ComputeWeave 1.5.0, ComputeWeave.Dxc 1.5.0
+    validations:
+      required: true
+
+  - type: input
+    id: diagnostic
+    attributes:
+      label: 診断ID
+      description: ビルドまたは実行時が識別子を出した場合は書いてください。無ければ空欄で構いません。
+      placeholder: CMPW0109
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した挙動
+      description: 何を期待したか。文書に根拠がある場合はその箇所も書いてください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の挙動
+      description: 代わりに何が起きたか。例外が出た場合は種別とメッセージとスタックトレースを省略せずに貼ってください。
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 再現手順
+      description: |
+        問題を示す最小のコードです。シェーダー、パイプラインホスト、資源集合の宣言を含めてください。
+        これが無い報告は、情報不足として閉じられることが多くなります。
+      render: csharp
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: デバイス
+      description: |
+        どのデバイスで再現するか。Discrete と WARP はしばしば違う結果になり、WARP でも起きるかどうかが
+        ドライバー側の問題かライブラリ側の問題かを分けます。
+      multiple: true
+      options:
+        - 単体GPU
+        - 統合GPU
+        - WARPソフトウェアアダプター
+        - 他は試していない
+    validations:
+      required: true
+
+  - type: input
+    id: adapter
+    attributes:
+      label: アダプターとドライバー
+      description: デバイスマネージャーまたは dxdiag に出るアダプター名とドライバー版数。
+      placeholder: NVIDIA GeForce RTX 4070, 566.36
+
+  - type: input
+    id: os
+    attributes:
+      label: Windowsの版数
+      description: winver を実行し、ビルド番号まで書いてください。
+      placeholder: Windows 11 24H2, 26100.2605
+    validations:
+      required: true
+
+  - type: input
+    id: sdk
+    attributes:
+      label: .NET SDKの版数
+      description: dotnet --version の出力。
+      placeholder: 10.0.400
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: デバッグレイヤーの出力
+      description: |
+        最初のデバイス生成より前に COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT スイッチを立て、D3D12 デバッグレイヤーの
+        出力を貼ってください。実行時の不具合では、これが最も役に立つ添付です。
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: その他
+      description: |
+        GraphicsDevice.GetMemoryStatistics() の値、プロセスが x64 か Arm64 か、ILRepack で統合しているか、
+        その他関係すると思われることを書いてください。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提出の前に
+      options:
+        - label: 最新の公開版を使っています。使えない場合はその理由を上に書きました。
+          required: true
+        - label: 既存の課題を検索し、重複でないことを確認しました。
+          required: true
+        - label: 独自の ID3D12MemoryAllocator を設定していないことを確認しました。設定している場合はその旨を書きました。

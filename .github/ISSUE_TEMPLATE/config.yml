@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report / 脆弱性報告
+    url: https://github.com/routersys/ComputeWeave/security/advisories/new
+    about: Report a vulnerability privately. Do not open a public issue for it. 脆弱性は公開の課題にせず、非公開で報告してください。
+  - name: Contributing guide / 貢献の手引き
+    url: https://github.com/routersys/ComputeWeave/blob/main/CONTRIBUTING.md
+    about: How changes are built, tested and reviewed. Read this before opening a pull request. 変更をどう作り、試し、査読するか。プルリクエストの前に読んでください。

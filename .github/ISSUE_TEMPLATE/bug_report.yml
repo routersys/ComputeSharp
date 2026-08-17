@@ -1,0 +1,140 @@
+name: Bug report
+description: Report behaviour that differs from what the library documents or guarantees.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a vulnerability here. Use the security advisory link on the previous page.
+
+        A report is actionable when someone else can reproduce it. The fields below are the ones
+        that decide whether that is possible for this library.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where the behaviour appears. Pick the one closest to the failure, not to your own code.
+      options:
+        - Runtime, dispatch and resources
+        - Interop domain, shared textures and external views
+        - Source generator or analyzer diagnostic
+        - Memory admission, trim or statistics
+        - Shader translation to HLSL
+        - DXC, packaging or build
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The exact version of every ComputeWeave package you reference.
+      placeholder: ComputeWeave 1.5.0, ComputeWeave.Dxc 1.5.0
+    validations:
+      required: true
+
+  - type: input
+    id: diagnostic
+    attributes:
+      label: Diagnostic ID
+      description: If the build or the runtime reported an identifier, give it. Leave empty otherwise.
+      placeholder: CMPW0109
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you expected, and where that expectation comes from if the documentation states it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What happened instead. Paste the exception type, message and stack trace in full if one was thrown.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        The smallest code that shows the problem, including the shader, the pipeline host or the
+        resource set declaration. A report without this is usually closed for lack of information.
+      render: csharp
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Device
+      description: |
+        Which device reproduces it. Discrete and WARP frequently disagree, and knowing that a failure
+        also occurs on WARP separates a driver problem from a library problem.
+      multiple: true
+      options:
+        - Discrete GPU
+        - Integrated GPU
+        - WARP software adapter
+        - Not tested on the others
+    validations:
+      required: true
+
+  - type: input
+    id: adapter
+    attributes:
+      label: Adapter and driver
+      description: The adapter name and driver version, from Device Manager or dxdiag.
+      placeholder: NVIDIA GeForce RTX 4070, 566.36
+
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      description: Run `winver` and give the full build number.
+      placeholder: Windows 11 24H2, 26100.2605
+    validations:
+      required: true
+
+  - type: input
+    id: sdk
+    attributes:
+      label: .NET SDK version
+      description: Output of `dotnet --version`.
+      placeholder: 10.0.400
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: Debug layer output
+      description: |
+        Set the `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT` switch before the first device is created and paste
+        what the D3D12 debug layer reports. This is the single most useful attachment for a runtime bug.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else
+      description: |
+        Memory statistics from `GraphicsDevice.GetMemoryStatistics()`, whether the process is x64 or
+        Arm64, whether the plugin is merged with ILRepack, or anything else you think matters.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I am using the latest released version, or I state above why I cannot.
+          required: true
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I confirmed that a custom `ID3D12MemoryAllocator` is not configured, or I state that it is.
