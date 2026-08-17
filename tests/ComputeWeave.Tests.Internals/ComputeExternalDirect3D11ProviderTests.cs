@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -92,8 +93,36 @@ public unsafe class ComputeExternalDirect3D11ProviderTests
         Assert.AreEqual(
             ExternalInteropCapabilities.SharedFence |
             ExternalInteropCapabilities.SharedTexture2D |
-            ExternalInteropCapabilities.SingleImmediateContextOrdering,
+            ExternalInteropCapabilities.SingleImmediateContextOrdering |
+            ExternalInteropCapabilities.PersistentExternalViewOrdering,
             provider.Capabilities);
+    }
+
+    [TestMethod]
+    public void NeverForbidsDrawingFromAView()
+    {
+        Type type = typeof(ComputeExternalDirect3D11Provider);
+        MethodInfo? method = type.GetMethod("GetBitmapOptions", BindingFlags.NonPublic | BindingFlags.Static);
+
+        Assert.IsNotNull(method, "GetBitmapOptions is missing.");
+
+        // 3 は TARGET | CANNOT_DRAW にあたる。Sampled の View が描画元に使えなくなる。
+        foreach (ExternalTextureUsage usage in Enum.GetValues<ExternalTextureUsage>())
+        {
+            uint options = Convert.ToUInt32(method.Invoke(null, [usage]));
+
+            Assert.AreEqual(0u, options & 2u, $"The bitmap of a {usage} view forbids drawing from it.");
+        }
+    }
+
+    [TestMethod]
+    public void MarksOnlyARenderTargetViewAsATarget()
+    {
+        Type type = typeof(ComputeExternalDirect3D11Provider);
+        MethodInfo method = type.GetMethod("GetBitmapOptions", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.AreEqual(1u, Convert.ToUInt32(method.Invoke(null, [ExternalTextureUsage.RenderTarget])));
+        Assert.AreEqual(0u, Convert.ToUInt32(method.Invoke(null, [ExternalTextureUsage.Sampled])));
     }
 
     [CombinatorialTestMethod]
