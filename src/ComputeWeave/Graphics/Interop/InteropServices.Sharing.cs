@@ -151,6 +151,11 @@ public static unsafe partial class InteropServices
     /// <remarks>
     /// This method only succeeds for textures created as shareable, such as with
     /// <see cref="AllocateSharedReadWriteTexture2D{T}(GraphicsDevice, int, int)"/>. It fails for textures not created for sharing.
+    /// <para>
+    /// This method is untracked. The runtime does not know the exported handle is in use, so the resource
+    /// generation backing the texture can be released while the handle is still open. Use
+    /// <c>AcquireNativeResource</c> to hold the generation for the duration of the use.
+    /// </para>
     /// </remarks>
     public static nint CreateSharedHandle<T>(Texture2D<T> texture)
         where T : unmanaged
@@ -177,6 +182,11 @@ public static unsafe partial class InteropServices
     /// The exported <paramref name="sharedHandle"/> can be opened on the D3D11 side via <c>ID3D11Device5::OpenSharedFence</c>.
     /// The retrieved <paramref name="ppvFence"/> can be passed to <see cref="SignalSharedFence(GraphicsDevice, void*, ulong)"/> and
     /// <see cref="WaitForSharedFence(GraphicsDevice, void*, ulong)"/> to synchronize on the compute queue.
+    /// <para>
+    /// This method is untracked. The runtime does not know the retrieved fence is in use, so the device can be
+    /// disposed while the fence is still referenced. Use <c>AcquireNativeDevice</c> to hold the device for the
+    /// duration of the use.
+    /// </para>
     /// </remarks>
     public static void CreateSharedFence(GraphicsDevice device, Guid* riid, void** ppvFence, nint* sharedHandle)
     {
@@ -201,6 +211,11 @@ public static unsafe partial class InteropServices
     /// <param name="ppvFence">The address of a pointer to the interface specified by <paramref name="riid"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     /// <exception cref="System.ComponentModel.Win32Exception">Thrown if opening the fence or retrieving the interface fails.</exception>
+    /// <remarks>
+    /// This method is untracked. The runtime does not know the retrieved fence is in use, so the device can be
+    /// disposed while the fence is still referenced. Use <c>AcquireNativeDevice</c> to hold the device for the
+    /// duration of the use.
+    /// </remarks>
     public static void OpenSharedFence(GraphicsDevice device, nint handle, Guid* riid, void** ppvFence)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -219,6 +234,10 @@ public static unsafe partial class InteropServices
     /// <param name="value">The value to signal.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     /// <exception cref="System.ComponentModel.Win32Exception">Thrown if issuing the signal fails.</exception>
+    /// <remarks>
+    /// This method is untracked. The signal is enqueued outside the common resource usage tracker, so the
+    /// runtime does not order it against the work it submits itself.
+    /// </remarks>
     public static void SignalSharedFence(GraphicsDevice device, void* d3D12Fence, ulong value)
     {
         default(ArgumentNullException).ThrowIfNull(device);
@@ -236,6 +255,15 @@ public static unsafe partial class InteropServices
     /// <param name="value">The target value to wait for.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="device"/> is <see langword="null"/>.</exception>
     /// <exception cref="System.ComponentModel.Win32Exception">Thrown if enqueueing the wait fails.</exception>
+    /// <remarks>
+    /// This method is untracked. The wait is enqueued outside the common resource usage tracker, so the runtime
+    /// does not order it against the work it submits itself, and every later compute queue submission is held
+    /// until the fence reaches the value.
+    /// <para>
+    /// Only the compute queue can be made to wait this way. Work the runtime issues on the copy queue is not
+    /// ordered after the fence, so a caller needing that order confirms the completion on the CPU instead.
+    /// </para>
+    /// </remarks>
     public static void WaitForSharedFence(GraphicsDevice device, void* d3D12Fence, ulong value)
     {
         default(ArgumentNullException).ThrowIfNull(device);
