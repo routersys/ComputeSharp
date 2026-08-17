@@ -58,6 +58,36 @@ public class ExternalMaintenancePhaseClaimTests
         }
     }
 
+    private const string Claim = "SharedTextureSlot`3.TryEnterExternalMaintenance";
+
+    private const string BlockingReference = "ComputeInteropDomain.TryAcquireOperation";
+
+    private static readonly string[] BlockingPrimitives =
+    [
+        "Monitor.Wait",
+        "Thread.Join",
+        "Windows.WaitForSingleObjectEx",
+        "CompletionCoordinator.TryWaitForProgress"
+    ];
+
+    [TestMethod]
+    public void RefusesThePhaseWithoutWaiting()
+    {
+        AssemblyCallGraph graph = AssemblyCallGraph.Read();
+
+        Assert.AreNotEqual(0, graph.GetCallees(Claim).Count, $"{Claim} was not found in the assembly");
+        Assert.IsTrue(
+            graph.TryGetPath(BlockingReference, BlockingPrimitives[0], out _),
+            "the call graph no longer resolves the primitives this test looks for");
+
+        foreach (string primitive in BlockingPrimitives)
+        {
+            Assert.IsFalse(
+                graph.TryGetPath(Claim, primitive, out string path),
+                $"the phase claim reaches a blocking primitive: {path}");
+        }
+    }
+
     [TestMethod]
     public void ARecordGrantsItsPhaseClaimToOneHolder()
     {
