@@ -15,9 +15,25 @@ namespace ComputeWeave.SourceGenerators.Dxc;
 /// </summary>
 internal sealed unsafe class DxcLibraryLoader
 {
+    /// <summary>
+    /// The number of times publishing an extracted library into the cache is retried.
+    /// </summary>
     private const int CachePublicationRetryCount = 500;
 
+    /// <summary>
+    /// The delay between two attempts at publishing an extracted library into the cache.
+    /// </summary>
     private const int CachePublicationRetryDelayMilliseconds = 10;
+
+    /// <summary>
+    /// The number of times opening a cached library is retried.
+    /// </summary>
+    private const int CacheOpenRetryCount = 100;
+
+    /// <summary>
+    /// The delay between two attempts at opening a cached library.
+    /// </summary>
+    private const int CacheOpenRetryDelayMilliseconds = 1;
 
     /// <summary>
     /// An object to use to synchronize loading the DXC libraries.
@@ -131,6 +147,20 @@ internal sealed unsafe class DxcLibraryLoader
         }
     }
 
+    /// <summary>
+    /// Extracts a native library into the shared cache, so that only a verified copy is ever observed.
+    /// </summary>
+    /// <param name="sourceStream">The embedded library to extract.</param>
+    /// <param name="expectedHash">The hash <paramref name="sourceStream"/> is expected to have.</param>
+    /// <param name="targetFilename">The cached path the library is published at.</param>
+    /// <returns>A read handle over the cached library, holding it in place until it is disposed.</returns>
+    /// <exception cref="InvalidDataException">Thrown if the extracted or published library does not match <paramref name="expectedHash"/>.</exception>
+    /// <exception cref="IOException">Thrown if the library could not be published into the cache.</exception>
+    /// <remarks>
+    /// The library is written to a temporary file of the cache folder, verified there, then moved over the
+    /// cached path, so a concurrent process observes either the previous copy or the whole new one. A copy
+    /// another process published first is reused as is, and a corrupt one is replaced.
+    /// </remarks>
     internal static FileStream ExtractLibraryAtomically(Stream sourceStream, byte[] expectedHash, string targetFilename)
     {
         string folder = Path.GetDirectoryName(targetFilename);
@@ -159,11 +189,6 @@ internal sealed unsafe class DxcLibraryLoader
                 {
                     throw new InvalidDataException("The extracted DXC library does not match its embedded source.");
                 }
-            }
-
-            if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream competingLibrary)
-            {
-                return competingLibrary;
             }
 
             for (int attempt = 0; ; attempt++)
@@ -204,6 +229,13 @@ internal sealed unsafe class DxcLibraryLoader
         }
     }
 
+    /// <summary>
+    /// Gets the folder the libraries of a given cache key are extracted into.
+    /// </summary>
+    /// <param name="localApplicationData">The local application data directory of the current user.</param>
+    /// <param name="cacheKey">The cache key of the embedded libraries.</param>
+    /// <returns>The folder the libraries of <paramref name="cacheKey"/> are extracted into.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if <paramref name="localApplicationData"/> is not a rooted path.</exception>
     internal static string GetCacheFolder(string localApplicationData, string cacheKey)
     {
         if (string.IsNullOrWhiteSpace(localApplicationData) || !Path.IsPathRooted(localApplicationData))
@@ -214,11 +246,27 @@ internal sealed unsafe class DxcLibraryLoader
         return Path.Combine(localApplicationData, "ComputeWeave", "SourceGenerators", "Dxc", cacheKey);
     }
 
+    /// <summary>
+    /// Gets the cache key of a pair of embedded libraries.
+    /// </summary>
+    /// <param name="dxilStream">The embedded <c>dxil.dll</c> library.</param>
+    /// <param name="dxcompilerStream">The embedded <c>dxcompiler.dll</c> library.</param>
+    /// <returns>The cache key of the two embedded libraries.</returns>
     internal static string GetCacheKey(Stream dxilStream, Stream dxcompilerStream)
     {
         return GetCacheKey(GetHash(dxilStream), GetHash(dxcompilerStream));
     }
 
+    /// <summary>
+    /// Gets the cache key of a pair of embedded library hashes.
+    /// </summary>
+    /// <param name="dxilHash">The hash of the embedded <c>dxil.dll</c> library.</param>
+    /// <param name="dxcompilerHash">The hash of the embedded <c>dxcompiler.dll</c> library.</param>
+    /// <returns>The cache key of the two embedded libraries.</returns>
+    /// <remarks>
+    /// The two hashes have a fixed length, so concatenating them keeps the boundary between the libraries and
+    /// no pair of different libraries produces the key of another one.
+    /// </remarks>
     private static string GetCacheKey(byte[] dxilHash, byte[] dxcompilerHash)
     {
         byte[] resourceHashes = new byte[dxilHash.Length + dxcompilerHash.Length];
@@ -231,6 +279,11 @@ internal sealed unsafe class DxcLibraryLoader
         return BitConverter.ToString(hashAlgorithm.ComputeHash(resourceHashes)).Replace("-", string.Empty);
     }
 
+    /// <summary>
+    /// Gets the hash of the remaining content of a stream.
+    /// </summary>
+    /// <param name="stream">The stream to hash the remaining content of.</param>
+    /// <returns>The hash of the remaining content of <paramref name="stream"/>.</returns>
     private static byte[] GetHash(Stream stream)
     {
         using SHA256 hashAlgorithm = SHA256.Create();
@@ -238,6 +291,16 @@ internal sealed unsafe class DxcLibraryLoader
         return hashAlgorithm.ComputeHash(stream);
     }
 
+    /// <summary>
+    /// Opens a cached library, if it is present and matches its embedded source.
+    /// </summary>
+    /// <param name="targetFilename">The cached path of the library.</param>
+    /// <param name="expectedHash">The hash the cached library is expected to have.</param>
+    /// <returns>A read handle over the cached library, or <see langword="null"/> if it is absent or corrupt.</returns>
+    /// <remarks>
+    /// Another process publishing the library holds it while it does so, so the open is retried before the
+    /// library is reported as absent.
+    /// </remarks>
     private static FileStream? TryOpenVerifiedLibrary(string targetFilename, byte[] expectedHash)
     {
         for (int attempt = 0; ; attempt++)
@@ -265,11 +328,11 @@ internal sealed unsafe class DxcLibraryLoader
 
                 return null;
             }
-            catch (IOException) when (attempt < 100)
+            catch (IOException) when (attempt < CacheOpenRetryCount)
             {
                 stream?.Dispose();
 
-                Thread.Sleep(1);
+                Thread.Sleep(CacheOpenRetryDelayMilliseconds);
             }
             catch
             {
@@ -280,6 +343,12 @@ internal sealed unsafe class DxcLibraryLoader
         }
     }
 
+    /// <summary>
+    /// Checks whether two hashes match.
+    /// </summary>
+    /// <param name="left">The first hash to compare.</param>
+    /// <param name="right">The second hash to compare.</param>
+    /// <returns>Whether <paramref name="left"/> and <paramref name="right"/> match.</returns>
     private static bool HashesMatch(byte[] left, byte[] right)
     {
         if (left.Length != right.Length)
