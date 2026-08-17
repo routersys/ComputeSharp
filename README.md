@@ -366,8 +366,8 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 ## Limitations
 
 - Windows only. The library uses Direct3D 12 and does not run on other operating systems.
-- `ExternalTextureFormat` currently declares a single member, `Bgra8Unorm`. Shared textures are limited to that format.
-- `ExternalTextureUsage` declares `Sampled` and `RenderTarget` only.
+- Shared textures are fixed to `Bgra8Unorm`. The native descriptor of every shared texture generation is fixed, so `ExternalTextureFormat` declares that one member and a shared texture slot only stores the pixel type it maps to. A slot declared with another pixel type is rejected when its resource set is created.
+- `ExternalTextureUsage` declares `Sampled` and `RenderTarget`. It selects how the provider opens the external view and does not change the native descriptor.
 - The body of a compute shader is limited to the C# constructs the generator can translate to HLSL. Anything outside that range is reported as a diagnostic at compile time.
 - `ComputeWeave.Dxc` bundles `dxcompiler.dll` and `dxil.dll` and therefore runs only in x64 and Arm64 processes.
 

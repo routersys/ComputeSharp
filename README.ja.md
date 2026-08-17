@@ -366,8 +366,8 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 ## 制限事項
 
 - Windows 専用です。Direct3D 12 を利用するため、他のOSでは動作しません。
-- `ExternalTextureFormat` が宣言するメンバーは現在 `Bgra8Unorm` の1件です。共有テクスチャはこの形式に限られます。
-- `ExternalTextureUsage` が宣言するのは `Sampled` と `RenderTarget` だけです。
+- 共有テクスチャは `Bgra8Unorm` に固定されています。すべての共有テクスチャ世代のネイティブ記述子が固定されているため、`ExternalTextureFormat` はこの1件だけを宣言し、共有テクスチャのスロットはこの形式が対応する画素型だけを保持します。別の画素型で宣言したスロットは、資源集合の生成時に拒否します。
+- `ExternalTextureUsage` は `Sampled` と `RenderTarget` を宣言します。実装が外部ビューを開く方法を選ぶ値であり、ネイティブ記述子を変えません。
 - 計算シェーダーの本体に書ける C# の構文は、ジェネレーターが HLSL へ変換できる範囲に限られます。範囲外の構文はコンパイル時に診断として報告します。
 - `ComputeWeave.Dxc` は `dxcompiler.dll` と `dxil.dll` を同梱するため、x64 と Arm64 以外のプロセスでは動作しません。
 
