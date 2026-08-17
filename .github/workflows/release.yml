@@ -6,8 +6,12 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-*"
 
+concurrency:
+  group: computeweave-release
+  queue: max
+
 permissions:
-  contents: write
+  contents: read
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
@@ -37,10 +41,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: タグからバージョン番号を抽出
+      - name: リリース元とバージョン番号を検証
         id: parse
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            echo "タグ以外からリリースすることはできません。" >&2
+            exit 1
+          fi
           VERSION="${TAG#v}"
           PREFIX="${VERSION%%-*}"
           if [[ "${VERSION}" == *"-"* ]]; then
@@ -50,18 +60,63 @@ jobs:
             SUFFIX=""
             IS_PRERELEASE=false
           fi
+          if [[ ! "${PREFIX}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "タグのバージョン接頭辞が正しくありません。" >&2
+            exit 1
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${PREFIX}"
+          for COMPONENT in "${MAJOR}" "${MINOR}" "${PATCH}"; do
+            if [ "${#COMPONENT}" -gt 5 ] || { [ "${#COMPONENT}" -eq 5 ] && (( 10#${COMPONENT} > 65534 )); }; then
+              echo "タグのバージョン接頭辞がアセンブリバージョンの範囲を超えています。" >&2
+              exit 1
+            fi
+          done
+          if [ "${IS_PRERELEASE}" = "true" ] && [[ ! "${SUFFIX}" =~ ^[0-9a-z-]+(\.[0-9a-z-]+)*$ ]]; then
+            echo "タグのバージョン接尾辞が正しくありません。" >&2
+            exit 1
+          fi
+          if [ -n "${SUFFIX}" ]; then
+            IFS='.' read -ra IDENTIFIERS <<< "${SUFFIX}"
+            for IDENTIFIER in "${IDENTIFIERS[@]}"; do
+              if [[ "${IDENTIFIER}" =~ ^[0-9]+$ ]] && [[ ! "${IDENTIFIER}" =~ ^(0|[1-9][0-9]*)$ ]]; then
+                echo "数値のプレリリース識別子に先頭の0は使用できません。" >&2
+                exit 1
+              fi
+            done
+          fi
+          if [ "${#VERSION}" -gt 64 ]; then
+            echo "バージョンは64文字以内で指定してください。" >&2
+            exit 1
+          fi
+          if [ "${TAG}" != "v${VERSION}" ]; then
+            echo "リリースタグが正しくありません。" >&2
+            exit 1
+          fi
+          git check-ref-format "refs/tags/${TAG}"
+          git check-ref-format --branch "${DEFAULT_BRANCH}"
+          git fetch --no-tags --force origin "refs/heads/${DEFAULT_BRANCH}:refs/remotes/origin/${DEFAULT_BRANCH}"
+          if ! git merge-base --is-ancestor HEAD "refs/remotes/origin/${DEFAULT_BRANCH}"; then
+            echo "リリース対象は既定ブランチに含まれていません。" >&2
+            exit 1
+          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "version_prefix=${PREFIX}" >> "$GITHUB_OUTPUT"
           echo "version_suffix=${SUFFIX}" >> "$GITHUB_OUTPUT"
           echo "is_prerelease=${IS_PRERELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: 抽出したバージョン番号を確認
+        env:
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.parse.outputs.version }}
+          VERSION_PREFIX: ${{ steps.parse.outputs.version_prefix }}
+          VERSION_SUFFIX: ${{ steps.parse.outputs.version_suffix }}
+          IS_PRERELEASE: ${{ steps.parse.outputs.is_prerelease }}
         run: |
-          echo "タグ          : ${{ github.ref_name }}"
-          echo "バージョン    : ${{ steps.parse.outputs.version }}"
-          echo "接頭辞        : ${{ steps.parse.outputs.version_prefix }}"
-          echo "接尾辞        : ${{ steps.parse.outputs.version_suffix }}"
-          echo "プレリリース  : ${{ steps.parse.outputs.is_prerelease }}"
+          echo "タグ          : ${TAG}"
+          echo "バージョン    : ${VERSION}"
+          echo "接頭辞        : ${VERSION_PREFIX}"
+          echo "接尾辞        : ${VERSION_SUFFIX}"
+          echo "プレリリース  : ${IS_PRERELEASE}"
 
       - name: .NET SDK をセットアップ
         uses: actions/setup-dotnet@v4
@@ -69,10 +124,13 @@ jobs:
           dotnet-version: "10.x"
 
       - name: ソリューションをビルド
+        env:
+          VERSION_PREFIX: ${{ steps.parse.outputs.version_prefix }}
+          VERSION_SUFFIX: ${{ steps.parse.outputs.version_suffix }}
         run: |
           dotnet build ComputeWeave.sln -c Release -p:Platform=x64 \
-            -p:VersionPrefix=${{ steps.parse.outputs.version_prefix }} \
-            -p:VersionSuffix=${{ steps.parse.outputs.version_suffix }}
+            "-p:VersionPrefix=${VERSION_PREFIX}" \
+            "-p:VersionSuffix=${VERSION_SUFFIX}"
 
       - name: ソースジェネレーターのテストを実行
         run: dotnet test tests/ComputeWeave.Tests.SourceGenerators/ComputeWeave.Tests.SourceGenerators.csproj -c Release -p:Platform=x64
@@ -124,6 +182,9 @@ jobs:
           dotnet-version: "10.x"
 
       - name: パッケージを作成
+        env:
+          VERSION_PREFIX: ${{ needs.validate.outputs.version_prefix }}
+          VERSION_SUFFIX: ${{ needs.validate.outputs.version_suffix }}
         run: |
           for project in \
             src/ComputeWeave.Core/ComputeWeave.Core.csproj \
@@ -132,12 +193,71 @@ jobs:
             src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj
           do
             dotnet pack "$project" -c Release \
-              -p:VersionPrefix=${{ needs.validate.outputs.version_prefix }} \
-              -p:VersionSuffix=${{ needs.validate.outputs.version_suffix }}
+              "-p:VersionPrefix=${VERSION_PREFIX}" \
+              "-p:VersionSuffix=${VERSION_SUFFIX}"
           done
 
       - name: 作成されたパッケージ一覧を確認
         run: ls -la ./artifacts/
+
+      - name: パッケージ内容を検証
+        shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ needs.validate.outputs.version }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expectedPackageIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+          [void]$expectedPackageIds.Add('ComputeWeave.Core')
+          [void]$expectedPackageIds.Add('ComputeWeave')
+          [void]$expectedPackageIds.Add('ComputeWeave.Dxc')
+          [void]$expectedPackageIds.Add('ComputeWeave.D3D12MemoryAllocator')
+          function Test-PackageSet([string]$filter, [string]$description) {
+            $actualPackageIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+            $packageFiles = @(Get-ChildItem -LiteralPath artifacts -File -Filter $filter)
+            if ($packageFiles.Count -ne $expectedPackageIds.Count) {
+              throw "$descriptionは4個でなければなりません。"
+            }
+            foreach ($packageFile in $packageFiles) {
+              $archive = [System.IO.Compression.ZipFile]::OpenRead($packageFile.FullName)
+              try {
+                $nuspecEntries = @($archive.Entries | Where-Object { $_.FullName -like '*.nuspec' -and $_.FullName -notlike '*/*' })
+                if ($nuspecEntries.Count -ne 1) {
+                  throw "$($packageFile.Name)のnuspecを一意に特定できません。"
+                }
+                $reader = [System.IO.StreamReader]::new($nuspecEntries[0].Open())
+                try {
+                  [xml]$document = $reader.ReadToEnd()
+                }
+                finally {
+                  $reader.Dispose()
+                }
+              }
+              finally {
+                $archive.Dispose()
+              }
+              $namespaceManager = [System.Xml.XmlNamespaceManager]::new($document.NameTable)
+              $namespaceManager.AddNamespace('n', $document.DocumentElement.NamespaceURI)
+              $metadata = $document.SelectSingleNode('/n:package/n:metadata', $namespaceManager)
+              $packageId = $metadata.SelectSingleNode('n:id', $namespaceManager).InnerText
+              $packageVersion = $metadata.SelectSingleNode('n:version', $namespaceManager).InnerText
+              $repositoryCommit = $metadata.SelectSingleNode('n:repository', $namespaceManager).GetAttribute('commit')
+              if (!$expectedPackageIds.Contains($packageId) -or !$actualPackageIds.Add($packageId)) {
+                throw "$($packageFile.Name)のパッケージIDが正しくありません。"
+              }
+              if ($packageVersion -cne $env:EXPECTED_VERSION) {
+                throw "$($packageFile.Name)のバージョンが正しくありません。"
+              }
+              if ($repositoryCommit -cne $env:EXPECTED_COMMIT) {
+                throw "$($packageFile.Name)のコミットが正しくありません。"
+              }
+            }
+            if (!$actualPackageIds.SetEquals($expectedPackageIds)) {
+              throw "必要な$descriptionが揃っていません。"
+            }
+          }
+          Test-PackageSet '*.nupkg' 'NuGetパッケージ'
+          Test-PackageSet '*.snupkg' 'NuGetシンボルパッケージ'
 
       - name: パッケージをアーティファクトとして保存
         uses: actions/upload-artifact@v4
@@ -181,16 +301,89 @@ jobs:
           user: routersys
 
       - name: NuGet.org へパッケージを発行
+        env:
+          ALLOW_DUPLICATES: ${{ github.run_attempt > 1 }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
-            --source https://api.nuget.org/v3/index.json \
-            --skip-duplicate
+          get_package_status() {
+            curl --location --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              "${PACKAGE_BASE}$1/${VERSION}/$1.nuspec"
+          }
+
+          get_package_commit() {
+            curl --fail --location --silent --show-error "${PACKAGE_BASE}$1/${VERSION}/$1.nuspec" \
+              | python -c 'import sys, xml.etree.ElementTree as ET; root = ET.parse(sys.stdin).getroot(); print(next((node.get("commit", "") for node in root.iter() if node.tag.rsplit("}", 1)[-1] == "repository"), ""))'
+          }
+
+          PACKAGE_BASE=$(curl --fail --location --silent --show-error https://api.nuget.org/v3/index.json \
+            | python -c 'import json, sys; resources = json.load(sys.stdin)["resources"]; print(next(item["@id"] for item in resources if item["@type"] == "PackageBaseAddress/3.0.0"))')
+          for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator; do
+            PACKAGE_STATUS=$(get_package_status "${PACKAGE_ID}")
+            if [ "${PACKAGE_STATUS}" = "404" ]; then
+              continue
+            fi
+            if [ "${PACKAGE_STATUS}" != "200" ]; then
+              echo "NuGet.orgのパッケージ状態を確認できませんでした。" >&2
+              exit 1
+            fi
+            if [ "${ALLOW_DUPLICATES}" != "true" ]; then
+              echo "同じバージョンのパッケージがNuGet.orgに存在します。" >&2
+              exit 1
+            fi
+            PACKAGE_COMMIT=$(get_package_commit "${PACKAGE_ID}")
+            if [ "${PACKAGE_COMMIT}" != "${EXPECTED_COMMIT}" ]; then
+              echo "NuGet.orgのパッケージは別のコミットから作成されています。" >&2
+              exit 1
+            fi
+          done
+
+          if [ "${ALLOW_DUPLICATES}" = "true" ]; then
+            dotnet nuget push ./artifacts/*.nupkg \
+              --api-key "${NUGET_API_KEY}" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          else
+            dotnet nuget push ./artifacts/*.nupkg \
+              --api-key "${NUGET_API_KEY}" \
+              --source https://api.nuget.org/v3/index.json
+          fi
+
+          if [ "${ALLOW_DUPLICATES}" = "true" ]; then
+            for ATTEMPT in $(seq 1 60); do
+              ALL_PACKAGES_VERIFIED=true
+              for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator; do
+                PACKAGE_STATUS=$(get_package_status "${PACKAGE_ID}")
+                if [ "${PACKAGE_STATUS}" = "404" ]; then
+                  ALL_PACKAGES_VERIFIED=false
+                  continue
+                fi
+                if [ "${PACKAGE_STATUS}" != "200" ]; then
+                  echo "NuGet.orgのパッケージ状態を確認できませんでした。" >&2
+                  exit 1
+                fi
+                PACKAGE_COMMIT=$(get_package_commit "${PACKAGE_ID}")
+                if [ "${PACKAGE_COMMIT}" != "${EXPECTED_COMMIT}" ]; then
+                  echo "NuGet.orgのパッケージは別のコミットから作成されています。" >&2
+                  exit 1
+                fi
+              done
+              if [ "${ALL_PACKAGES_VERIFIED}" = "true" ]; then
+                exit 0
+              fi
+              sleep 10
+            done
+            echo "NuGet.orgで全パッケージを確認できませんでした。" >&2
+            exit 1
+          fi
 
       - name: GitHub Packages へも発行
+        env:
+          GITHUB_PACKAGES_API_KEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --api-key "${GITHUB_PACKAGES_API_KEY}" \
             --source https://nuget.pkg.github.com/routersys/index.json \
             --skip-duplicate
         continue-on-error: true
@@ -199,6 +392,8 @@ jobs:
     name: GitHub Release の作成
     runs-on: ubuntu-latest
     needs: [validate, pack, publish-nuget]
+    permissions:
+      contents: write
     defaults:
       run:
         shell: bash
@@ -215,46 +410,42 @@ jobs:
           name: nuget-packages
           path: ./artifacts
 
-      - name: 直前のリリースタグを取得
-        id: prev_tag
-        run: |
-          PREV=$(git tag --sort=-version:refname \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sed -n '2p' || true)
-          echo "tag=${PREV}" >> "$GITHUB_OUTPUT"
-
       - name: コミット履歴からリリースノートを生成
-        id: changelog
+        env:
+          CURRENT_TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          PREV="${{ steps.prev_tag.outputs.tag }}"
-          CURRENT="${{ github.ref_name }}"
+          CURRENT_SHA=$(git rev-parse HEAD)
+          PREV=$(git tag --merged "${CURRENT_SHA}" --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | grep -Fxv "${CURRENT_TAG}" \
+            | head -n 1 || true)
           if [ -n "${PREV}" ]; then
-            LOG=$(git log "${PREV}..${CURRENT}" --pretty=format:"- %s (%h)" --no-merges)
+            LOG=$(git log "${PREV}..${CURRENT_SHA}" --pretty=format:"- %s (%h)" --no-merges --)
           else
             LOG=$(git log -n 30 --pretty=format:"- %s (%h)" --no-merges)
           fi
           {
-            echo "notes<<NOTES_EOF"
             echo "### 変更内容"
-            echo "${LOG:-変更履歴を取得できませんでした。}"
+            printf '%s\n' "${LOG:-変更履歴を取得できませんでした。}"
             echo ""
             echo "### インストール"
             echo '```sh'
-            echo "dotnet add package ComputeWeave --version ${{ needs.validate.outputs.version }}"
+            echo "dotnet add package ComputeWeave --version ${VERSION}"
             echo '```'
             echo ""
             echo "### NuGet"
-            echo "https://www.nuget.org/packages/ComputeWeave/${{ needs.validate.outputs.version }}"
-            echo "NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
+            echo "https://www.nuget.org/packages/ComputeWeave/${VERSION}"
+          } > release-notes.md
 
       - name: GitHub Release を作成してパッケージを添付
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.notes }}
+          body_path: release-notes.md
           prerelease: ${{ needs.validate.outputs.is_prerelease }}
+          fail_on_unmatched_files: true
           files: |
             artifacts/*.nupkg
             artifacts/*.snupkg
