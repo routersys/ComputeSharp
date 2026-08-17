@@ -382,7 +382,7 @@ public class InteropResourceSetRegistrationTests
 
         IComputeSharedResourceSlot[] slots = [new SharedTextureSlot<Rgba32, Float4, FakeExternalView>()];
 
-        _ = Assert.ThrowsException<InvalidOperationException>(() => ComputeInteropResourceSetRuntime.Create(
+        _ = Assert.ThrowsExactly<UnsupportedTextureTypeException>(() => ComputeInteropResourceSetRuntime.Create(
             graphicsDevice,
             domain,
             ResourceSetDescriptor(1),
