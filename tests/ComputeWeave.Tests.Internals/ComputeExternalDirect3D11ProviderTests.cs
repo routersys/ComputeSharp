@@ -125,6 +125,111 @@ public unsafe class ComputeExternalDirect3D11ProviderTests
         Assert.AreEqual(0u, Convert.ToUInt32(method.Invoke(null, [ExternalTextureUsage.Sampled])));
     }
 
+    /// <summary>
+    /// Creates a view over a COM object, handing it one reference the view owns.
+    /// </summary>
+    /// <param name="value">The object the view holds as its texture.</param>
+    /// <param name="withBitmap">Whether the view also holds it as its bitmap.</param>
+    /// <returns>The created view.</returns>
+    /// <remarks>
+    /// The invariants under test are about reference counting, not about the object being a texture, so any COM
+    /// object serves. Using the device avoids standing up a shared texture for this.
+    /// </remarks>
+    private static ExternalDirect3D11TextureView CreateView(nint value, bool withBitmap)
+    {
+        IUnknown* unknown = (IUnknown*)value;
+
+        _ = unknown->AddRef();
+
+        if (!withBitmap)
+        {
+            return new ExternalDirect3D11TextureView((ComputeWeave.Win32.ID3D11Texture2D*)value, null);
+        }
+
+        _ = unknown->AddRef();
+
+        return new ExternalDirect3D11TextureView(
+            (ComputeWeave.Win32.ID3D11Texture2D*)value,
+            (ComputeWeave.Win32.ID2D1Bitmap1*)value);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void TakesNoReferenceForAnAbsentPointer(Device device)
+    {
+        using Direct3D11ImmediateContext context = CreateContext(device.Get());
+
+        nint value = (nint)context.D3D11Device;
+
+        using ExternalDirect3D11TextureView view = CreateView(value, withBitmap: false);
+
+        uint before = GetReferenceCount(value);
+
+        Assert.AreEqual(0, view.Bitmap);
+        Assert.AreEqual(0, view.AddRefBitmap(), "AddRefBitmap returned a pointer for an absent bitmap.");
+        Assert.AreEqual(before, GetReferenceCount(value), "AddRefBitmap took a reference for an absent bitmap.");
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void HandsOutAReferenceTheCallerOwns(Device device)
+    {
+        using Direct3D11ImmediateContext context = CreateContext(device.Get());
+
+        nint value = (nint)context.D3D11Device;
+
+        using ExternalDirect3D11TextureView view = CreateView(value, withBitmap: true);
+
+        foreach (bool bitmap in (bool[])[false, true])
+        {
+            uint before = GetReferenceCount(value);
+            nint acquired = bitmap ? view.AddRefBitmap() : view.AddRefTexture();
+
+            Assert.AreEqual(value, acquired);
+            Assert.AreEqual(before + 1, GetReferenceCount(value), $"bitmap={bitmap} took no reference.");
+
+            _ = ((IUnknown*)acquired)->Release();
+
+            Assert.AreEqual(before, GetReferenceCount(value), $"bitmap={bitmap} did not restore the count.");
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void KeepsTheViewUsableAfterTheCallerReleases(Device device)
+    {
+        using Direct3D11ImmediateContext context = CreateContext(device.Get());
+
+        nint value = (nint)context.D3D11Device;
+
+        using ExternalDirect3D11TextureView view = CreateView(value, withBitmap: false);
+
+        _ = ((IUnknown*)view.AddRefTexture())->Release();
+
+        // View 自身の参照は手放していないため、まだ有効である。
+        Assert.AreEqual(value, view.Texture);
+        Assert.AreNotEqual(0, view.AddRefTexture());
+        _ = ((IUnknown*)value)->Release();
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void ReturnsNothingAfterTheViewIsReleased(Device device)
+    {
+        using Direct3D11ImmediateContext context = CreateContext(device.Get());
+
+        nint value = (nint)context.D3D11Device;
+
+        ExternalDirect3D11TextureView view = CreateView(value, withBitmap: true);
+
+        view.Dispose();
+
+        Assert.AreEqual(0, view.Texture);
+        Assert.AreEqual(0, view.Bitmap);
+        Assert.AreEqual(0, view.AddRefTexture());
+        Assert.AreEqual(0, view.AddRefBitmap());
+    }
+
     [CombinatorialTestMethod]
     [AllDevices]
     public void RefusesToEnqueueBeforeItIsInitialized(Device device)
