@@ -199,10 +199,7 @@ internal struct SlotGate
         {
             this.exclusion.Enter(ref taken);
 
-            width = 0;
-            height = 0;
-
-            if (!this.control.IsAllocated || this.planState.FieldCount < 2)
+            if (!TryReadActiveAllocatedSize(out width, out height))
             {
                 pin = default;
                 view = null!;
@@ -210,15 +207,13 @@ internal struct SlotGate
                 return false;
             }
 
-            Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(this.PlanStorage, in this.planState);
-
             if (!this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view))
             {
+                width = 0;
+                height = 0;
+
                 return false;
             }
-
-            width = activePhysicalCapacity[0];
-            height = activePhysicalCapacity[1];
 
             return true;
         }
@@ -626,20 +621,7 @@ internal struct SlotGate
         {
             this.exclusion.Enter(ref taken);
 
-            if (!this.control.IsAllocated || this.planState.FieldCount < 2)
-            {
-                width = 0;
-                height = 0;
-
-                return false;
-            }
-
-            Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(this.PlanStorage, in this.planState);
-
-            width = activePhysicalCapacity[0];
-            height = activePhysicalCapacity[1];
-
-            return true;
+            return TryReadActiveAllocatedSize(out width, out height);
         }
         finally
         {
@@ -648,6 +630,24 @@ internal struct SlotGate
                 this.exclusion.Exit(useMemoryBarrier: true);
             }
         }
+    }
+
+    private readonly bool TryReadActiveAllocatedSize(out int width, out int height)
+    {
+        if (!this.control.IsAllocated || this.planState.FieldCount < 2)
+        {
+            width = 0;
+            height = 0;
+
+            return false;
+        }
+
+        Span<int> activePhysicalCapacity = SlotResourcePlanStorage.GetActivePhysicalCapacity(this.PlanStorage, in this.planState);
+
+        width = activePhysicalCapacity[0];
+        height = activePhysicalCapacity[1];
+
+        return true;
     }
 
     public ulong GetBindingEpoch()
