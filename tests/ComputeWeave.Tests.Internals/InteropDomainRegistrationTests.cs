@@ -12,7 +12,8 @@ public unsafe partial class InteropDomainRegistrationTests
     private const ExternalInteropCapabilities RequiredCapabilities =
         ExternalInteropCapabilities.SharedFence |
         ExternalInteropCapabilities.SharedTexture2D |
-        ExternalInteropCapabilities.SingleImmediateContextOrdering;
+        ExternalInteropCapabilities.SingleImmediateContextOrdering |
+        ExternalInteropCapabilities.PersistentExternalViewOrdering;
 
     [CombinatorialTestMethod]
     [AllDevices]

@@ -113,10 +113,13 @@ internal sealed unsafe class FakeInteropProvider(GraphicsDevice device, FakeInte
 
     public ExternalAdapterIdentity AdapterIdentity { get; set; } = new ExternalAdapterIdentity(device.Luid.ToInt64());
 
+    // Persistent Lease を配るテストが多数あるため、既定でその順序保証も宣言する。宣言しない構成は
+    // 仕様上 Persistent Lease を取れない。不足を試すテストは個別に減らして設定する。
     public ExternalInteropCapabilities Capabilities { get; set; } =
         ExternalInteropCapabilities.SharedFence |
         ExternalInteropCapabilities.SharedTexture2D |
-        ExternalInteropCapabilities.SingleImmediateContextOrdering;
+        ExternalInteropCapabilities.SingleImmediateContextOrdering |
+        ExternalInteropCapabilities.PersistentExternalViewOrdering;
 
     public ComputeExternalQueueScheduler Scheduler => this.scheduler;
 

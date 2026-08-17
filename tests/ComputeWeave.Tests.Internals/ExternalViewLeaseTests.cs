@@ -403,7 +403,12 @@ public class ExternalViewLeaseTests
             Assert.AreEqual(reservations + 1, fixture.Scheduler.EnterCount);
             Assert.IsTrue(fixture.Scheduler.IsReserved);
 
-            _ = Assert.ThrowsException<InvalidOperationException>(() => { _ = lease.BeginExternalQueueOperation().IsValid; });
+            // 既に操作が活きている間の二つ目は CMPW3004 で拒まれる。
+            ComputeDiagnosticException rejection = Assert.ThrowsExactly<ComputeDiagnosticException>(
+                () => _ = lease.BeginExternalQueueOperation().IsValid);
+
+            Assert.AreEqual("CMPW3004", rejection.DiagnosticId);
+            Assert.IsInstanceOfType<InvalidOperationException>(rejection);
         }
 
         Assert.AreEqual(fixture.Scheduler.EnterCount, fixture.Scheduler.ExitCount);
