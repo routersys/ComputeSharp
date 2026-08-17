@@ -49,7 +49,7 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 
 基盤部分は変更していません。計算シェーダーは `IComputeShader` を実装する `partial struct` で、`GraphicsDevice.GetDefault()` がデバイスを返し、`For` がディスパッチします。本書はそれを置き換えるものではありません。
 
-このフォークが追加したのは、公開型61件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
+このフォークが追加したのは、公開型65件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
 
 資源は直接保持しません。世代を発行するスロットに入ります。`TryEnsure` はスロットへ要求した計画への一致を求め、計画が実際に変わったときだけ新しい世代を発行します。実行中の処理は捕捉した世代を生かし続けるため、資源の再確保が記録済みの投入を無効にすることはありません。
 
@@ -161,9 +161,25 @@ private void Run(
 using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
 ```
 
-`ComputeInteropDomain` は `Device`、`Id`、`Capabilities` と、`Dispose` および `WaitForDisposal` の対を公開します。`ExternalInteropCapabilities` は `SharedFence`、`SharedTexture2D`、`SingleImmediateContextOrdering`、`PersistentExternalViewOrdering` を報告します。操作のたびにキューへの出入りが必要な実装は `ComputeExternalQueueScheduler` を継承します。
+`ComputeInteropDomain` は `Device`、`Id`、`Capabilities` と、`Dispose` および `WaitForDisposal` の対を公開します。`ExternalInteropCapabilities` は `SharedFence`、`SharedTexture2D`、`SingleImmediateContextOrdering`、`PersistentExternalViewOrdering` を報告します。
+
+Direct3D 11 の即時コンテキストを外部キューとして使う場合、実装を自分で書く必要はありません。`ComputeExternalDirect3D11Provider` が共有フェンスの開示、信号と待機と Flush の投入、共有テクスチャの開示と外部ビューの生成をすべて引き受けます。デバイスと即時コンテキストと描画対象を生のCOMポインタとして渡すため、利用者が使っている束縛の種類に依存しません。
+
+```csharp
+using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+ComputeExternalDirect3D11Provider provider = new(device, immediateContext, renderTarget, scheduler);
+using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+```
+
+`ComputeExternalQueueScheduler.Create()` は、一つの即時コンテキストに対する予約を単一飛行へ直列化するSchedulerを返します。同じ即時コンテキストへ積む Provider は同じインスタンスを共有します。その対応付けは利用者が保ちます。ライブラリは即時コンテキストを型として観測しないため、対応付けの正しさを検証できません。
+
+生成される `ExternalDirect3D11TextureView` は、開いたテクスチャと、描画対象が与えられていればその上のビットマップを保持します。`Texture` と `Bitmap` は借用であり解放してはなりません。自分の束縛へ渡す場合は `AddRefTexture()` と `AddRefBitmap()` を使ってください。参照数を1つ増やして返すため、束縛にそのまま所有させられます。
+
+操作のたびにキューへの出入りが必要な実装を自分で書く場合は `ComputeExternalQueueScheduler` を継承します。
 
 実装側が例外を投げると、外部キューの状態を実行時が判断できなくなるため、そのドメインは汚染されます。以後そのドメインへの操作と、そこから取得した貸し出しや貸与はすべて、実装側が投げた例外を報告します。同じデバイス上の他のドメインは影響を受けません。
+
+拒否は識別子を持ちます。`ComputeDiagnosticException` は `InvalidOperationException` から派生し、`DiagnosticId` に `CMPW3004` のような安定した識別子を載せます。再試行してよいのか、資源を作り直すべきなのか、ドメインごと畳むべきなのかは識別子ごとに異なります。**例外のメッセージ文字列で判別しないでください。** メッセージは実装の都合で変わります。
 
 ### 4. 共有テクスチャスロット
 
@@ -302,6 +318,11 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | 共有テクスチャを外部のビュー型として開きます。 |
 | `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | デバイスが終了状態へ入ったことを通知します。 |
 | `ComputeExternalQueueScheduler` | 操作ごとにキューの出入りが必要な実装の基底クラスです。 |
+| `ComputeExternalQueueScheduler.Create()` | 一つの即時コンテキストの予約を単一飛行へ直列化するSchedulerを返します。 |
+| `ComputeExternalDirect3D11Provider(nint device, nint immediateContext, nint renderTarget, ComputeExternalQueueScheduler)` | Direct3D 11 の即時コンテキストを外部キューとするProviderです。 |
+| `ExternalDirect3D11TextureView.Texture` / `Bitmap` | 開いたテクスチャとビットマップを借用として返します。解放しないでください。 |
+| `ExternalDirect3D11TextureView.AddRefTexture()` / `AddRefBitmap()` | 参照数を1つ増やして返します。呼び出し側が解放します。 |
+| `IComputeDiagnostic.DiagnosticId` / `ComputeDiagnosticException` | 拒否の識別子を報告します。 |
 | `ExternalTextureLease<TView>.Width` / `Height` | 貸与が保持する世代の確保寸法を返します。 |
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | 貸与した外部ビューを使います。 |
 | `ExternalTextureDescriptor` | `Width`、`Height`、`Format`、`ExternalUsage`、`AlphaMode`。 |

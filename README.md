@@ -49,7 +49,7 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
 
 The base library is unchanged. A compute shader is a `partial struct` implementing `IComputeShader`, `GraphicsDevice.GetDefault()` returns the device, and `For` dispatches. Nothing in this document replaces that.
 
-What the fork adds is 61 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
+What the fork adds is 65 public types and additional members on `GraphicsDevice` and `InteropServices`. They form one system. A type marked `[ComputePipelineHost]` declares a device field, a set of resource slots and a set of pipeline methods. The source generator reads that declaration, writes a canonical descriptor as a byte array in the generated partial, and emits typed members that forward to the runtime. At construction the runtime parses the descriptor, validates every contract against it, and from then on the descriptor is the single source of truth for ordinals, resource access and structural limits.
 
 Resources are not held directly. They live in slots that publish generations: `TryEnsure` asks a slot to match a requested plan, and a new generation is published only when the plan actually changes. Work in flight keeps the generation it captured alive, so resizing a resource does not invalidate submissions already recorded.
 
@@ -161,9 +161,25 @@ An external API is connected by implementing `IComputeExternalInteropProvider<TV
 using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
 ```
 
-`ComputeInteropDomain` exposes `Device`, `Id`, `Capabilities` and the disposal pair `Dispose` / `WaitForDisposal`. `ExternalInteropCapabilities` reports `SharedFence`, `SharedTexture2D`, `SingleImmediateContextOrdering` and `PersistentExternalViewOrdering`. Providers whose queue must be entered and left around each operation derive a `ComputeExternalQueueScheduler`.
+`ComputeInteropDomain` exposes `Device`, `Id`, `Capabilities` and the disposal pair `Dispose` / `WaitForDisposal`. `ExternalInteropCapabilities` reports `SharedFence`, `SharedTexture2D`, `SingleImmediateContextOrdering` and `PersistentExternalViewOrdering`.
+
+You do not have to write a provider to drive a Direct3D 11 immediate context. `ComputeExternalDirect3D11Provider` opens the shared fence, enqueues the signals, the waits and the flush, opens the shared textures and creates the external views. It takes the device, the immediate context and the render target as raw COM pointers, so it stays independent of the Direct3D 11 bindings you use.
+
+```csharp
+using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+ComputeExternalDirect3D11Provider provider = new(device, immediateContext, renderTarget, scheduler);
+using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+```
+
+`ComputeExternalQueueScheduler.Create()` returns a scheduler serializing the reservations of one immediate context into a single flight. Providers enqueueing onto the same context share one instance, and you keep that mapping: the library never observes the immediate context as a type, so it cannot check the mapping for you.
+
+The `ExternalDirect3D11TextureView` it creates holds the opened texture, and the bitmap over it when a render target was given. `Texture` and `Bitmap` are borrowed and must not be released. Use `AddRefTexture()` and `AddRefBitmap()` to hand a pointer to your own bindings: they return a reference you own, so the binding can take ownership of it.
+
+Providers whose queue must be entered and left around each operation derive a `ComputeExternalQueueScheduler`.
 
 A provider that throws leaves its external queue in a state the runtime cannot reason about, so the domain is poisoned. Every subsequent operation on that domain, and every borrow or lease taken from it, reports the failure the provider raised. Other domains on the same device are unaffected.
+
+Rejections carry an identifier. `ComputeDiagnosticException` derives from `InvalidOperationException` and reports a stable `DiagnosticId` such as `CMPW3004`. Whether to retry, rebuild the resource or tear the domain down differs per identifier. **Do not tell rejections apart by their message.** Messages change with the implementation.
 
 ### 4. Shared texture slots
 
@@ -302,6 +318,11 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 | `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | Opens a shared texture as the external view type. |
 | `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | Reports that the device entered a terminal state. |
 | `ComputeExternalQueueScheduler` | Base class for providers needing a scope around each queue operation. |
+| `ComputeExternalQueueScheduler.Create()` | Returns a scheduler serializing the reservations of one immediate context. |
+| `ComputeExternalDirect3D11Provider(nint device, nint immediateContext, nint renderTarget, ComputeExternalQueueScheduler)` | A provider driving a Direct3D 11 immediate context. |
+| `ExternalDirect3D11TextureView.Texture` / `Bitmap` | The opened texture and bitmap, borrowed. Do not release them. |
+| `ExternalDirect3D11TextureView.AddRefTexture()` / `AddRefBitmap()` | Returns the object with one reference the caller owns and releases. |
+| `IComputeDiagnostic.DiagnosticId` / `ComputeDiagnosticException` | Reports the identifier of a rejection. |
 | `ExternalTextureLease<TView>.Width` / `Height` | Reports the allocated dimensions of the generation held by the lease. |
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | Uses the leased external view. |
 | `ExternalTextureDescriptor` | `Width`, `Height`, `Format`, `ExternalUsage`, `AlphaMode`. |
