@@ -116,9 +116,11 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         int[] planStorage,
         in SlotResourcePlanStateRecord planState)
     {
-        default(InvalidOperationException).ThrowIf(
-            DXGIFormatHelper.GetForType<T>() != DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
-            "A shared texture slot only stores the pixel type the shared texture native descriptor is fixed to.");
+        if (DXGIFormatHelper.GetForType<T>() != DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM)
+        {
+            UnsupportedTextureTypeException.ThrowForSharedTexture2D<T>();
+        }
+
         default(InvalidOperationException).ThrowIf(
             runtime.Domain.TryGetEndpoint<TView>() is null,
             "The interop domain does not create external views of the type the shared texture slot declares.");

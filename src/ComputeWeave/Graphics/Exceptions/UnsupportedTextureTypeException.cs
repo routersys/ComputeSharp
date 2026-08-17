@@ -41,6 +41,22 @@ public sealed class UnsupportedTextureTypeException : NotSupportedException
     }
 
     /// <summary>
+    /// Creates a new <see cref="UnsupportedTextureTypeException"/> instance for a shared texture.
+    /// </summary>
+    /// <param name="type">The element type of the shared texture that was being created.</param>
+    /// <returns>A new <see cref="UnsupportedTextureTypeException"/> instance with a formatted error message.</returns>
+    private static UnsupportedTextureTypeException CreateForSharedTexture2D(Type type)
+    {
+        string message =
+            $"A shared texture cannot store values of type {type}. " +
+            $"The native descriptor of every shared texture generation is fixed to " +
+            $"{nameof(ExternalTextureFormat)}.{nameof(ExternalTextureFormat.Bgra8Unorm)}, " +
+            $"so a shared texture slot only stores the pixel type that format maps to.";
+
+        return new(message);
+    }
+
+    /// <summary>
     /// Throws a new <see cref="UnsupportedTextureTypeException"/> instance from the specified parameters.
     /// </summary>
     /// <typeparam name="T">The type of values in the texture that couldn't be created.</typeparam>
@@ -68,5 +84,15 @@ public sealed class UnsupportedTextureTypeException : NotSupportedException
         where T : unmanaged
     {
         throw Create(3, typeof(T));
+    }
+
+    /// <summary>
+    /// Throws a new <see cref="UnsupportedTextureTypeException"/> instance from the specified parameters.
+    /// </summary>
+    /// <typeparam name="T">The type of values in the shared texture that couldn't be created.</typeparam>
+    internal static void ThrowForSharedTexture2D<T>()
+        where T : unmanaged
+    {
+        throw CreateForSharedTexture2D(typeof(T));
     }
 }
