@@ -7,6 +7,14 @@ namespace ComputeWeave.Tests.Internals;
 [TestClass]
 public class ExternalQueueSchedulerTests
 {
+    private const string BuiltInEnter = "SingleReservationScheduler.EnterCore";
+
+    private const string BuiltInExit = "SingleReservationScheduler.ExitCore";
+
+    private const string MonitorEntry = "Monitor.Wait";
+
+    private static readonly string[] MonitorMembers = ["Monitor.Enter", "Monitor.Exit", "Monitor.Wait", "Monitor.PulseAll"];
+
     private sealed class TrackingScheduler : ComputeExternalQueueScheduler
     {
         public int EnterCount;
@@ -45,11 +53,123 @@ public class ExternalQueueSchedulerTests
         }
     }
 
-    private static SchedulerRegistration AcquireRegistration(TrackingScheduler scheduler)
+    private static SchedulerRegistration AcquireRegistration(ComputeExternalQueueScheduler scheduler)
     {
         Assert.IsTrue(SchedulerRegistration.TryAcquire(scheduler, out SchedulerRegistration? registration));
 
         return registration;
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerAdmitsOneReservationAtATime()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        SchedulerRegistration first = AcquireRegistration(scheduler);
+        SchedulerRegistration second = AcquireRegistration(scheduler);
+
+        first.EnterReservation();
+
+        _ = Assert.ThrowsException<InvalidOperationException>(second.EnterReservation);
+
+        first.ExitReservation();
+
+        second.EnterReservation();
+        second.ExitReservation();
+
+        first.Release();
+        second.Release();
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerRejectsAReservationReenteredOnTheSameThread()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        SchedulerRegistration registration = AcquireRegistration(scheduler);
+
+        registration.EnterReservation();
+
+        _ = Assert.ThrowsException<InvalidOperationException>(registration.EnterReservation);
+
+        registration.ExitReservation();
+        registration.Release();
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerRejectsAnExitWithoutAReservation()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        SchedulerRegistration registration = AcquireRegistration(scheduler);
+
+        _ = Assert.ThrowsException<InvalidOperationException>(registration.ExitReservation);
+
+        registration.Release();
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerDoesNotPublishItsImplementationType()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        Type type = scheduler.GetType();
+
+        Assert.AreNotSame(typeof(ComputeExternalQueueScheduler), type);
+        Assert.IsFalse(type.IsVisible, type.FullName);
+        Assert.AreNotSame(scheduler, ComputeExternalQueueScheduler.Create());
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerReservesWithoutManagedAllocation()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        SchedulerRegistration registration = AcquireRegistration(scheduler);
+
+        registration.EnterReservation();
+        registration.ExitReservation();
+
+        long minimum = long.MaxValue;
+
+        for (int i = 0; i < 10; i++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            for (int j = 0; j < 1000; j++)
+            {
+                registration.EnterReservation();
+                registration.ExitReservation();
+            }
+
+            minimum = Math.Min(minimum, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        registration.Release();
+
+        Assert.AreEqual(0, minimum);
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerReservesWithoutAMonitor()
+    {
+        AssemblyCallGraph graph = AssemblyCallGraph.Read();
+
+        Assert.AreNotEqual(0, graph.GetCallees(BuiltInEnter).Count, $"{BuiltInEnter} was not found in the assembly");
+        Assert.AreNotEqual(0, graph.GetCallees(BuiltInExit).Count, $"{BuiltInExit} was not found in the assembly");
+        Assert.IsTrue(
+            graph.TryGetPath("ComputeInteropDomain.TryAcquireOperation", MonitorEntry, out _),
+            "the call graph no longer resolves the primitive this test looks for");
+
+        foreach (string root in new[] { BuiltInEnter, BuiltInExit })
+        {
+            foreach (string monitorMember in MonitorMembers)
+            {
+                Assert.IsFalse(
+                    graph.TryGetPath(root, monitorMember, out string path),
+                    $"the built-in scheduler reaches a monitor: {path}");
+            }
+        }
     }
 
     [TestMethod]
