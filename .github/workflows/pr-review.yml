@@ -1,0 +1,252 @@
+name: PRレビュー
+
+# フォークからのPRでも書き込み権限のあるトークンで動かすため pull_request_target を使う。
+# このワークフローはPR側のコードを一切チェックアウトせず、APIから得た情報だけを読む。
+# checkout を足すとフォークの任意コードが書き込み権限付きで走るため、絶対に足さないこと。
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: 変更範囲の判定と確認
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: PRを検査して所見を投稿
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: pr.number, per_page: 100,
+            });
+            const paths = files.map(f => f.filename);
+
+            // 変更範囲の判定。どのテストスイートを走らせる必要があるかを決める。
+            const touched = re => paths.some(p => re.test(p));
+
+            const isDoc    = p => /\.md$/i.test(p) || p.startsWith('.github/LICENSE/');
+            const docsOnly = paths.length > 0 && paths.every(isDoc);
+
+            const runtime    = touched(/^src\/ComputeWeave\/(?!.*\.md$)/);
+            const coreLib    = touched(/^src\/ComputeWeave\.Core\//);
+            const generators = touched(/^src\/ComputeWeave\.SourceGenerators\//);
+            const dxc        = touched(/^src\/ComputeWeave\.Dxc\//);
+            const allocator  = touched(/^src\/ComputeWeave\.D3D12MemoryAllocator\//);
+            const testsOnly  = touched(/^tests\//);
+            const buildFiles = touched(/^(build\/|global\.json|nuget\.config|.*\.sln$|Directory\.Build)/);
+            const workflows  = touched(/^\.github\/workflows\//);
+
+            const anySource = runtime || coreLib || generators || dxc || allocator;
+
+            // CONTRIBUTING は src/ComputeWeave の変更を4スイート全部で確認するよう求める。
+            const suites = new Set();
+            if (runtime || coreLib || dxc || allocator || buildFiles) {
+              ['SourceGenerators', 'Internals', 'Tests', 'DeviceLost'].forEach(s => suites.add(s));
+            }
+            if (generators) {
+              ['SourceGenerators', 'Internals', 'Tests'].forEach(s => suites.add(s));
+            }
+            if (testsOnly && !anySource) suites.add('変更した該当スイート');
+
+            // 慎重を要する箇所。CONTRIBUTING が名指ししている領域を経路と名前から推定する。
+            const guarded = [];
+            const guardRules = [
+              ['interop',  /Interop|Shared|External|D3D11|Dxgi/i,                 '相互運用 / interoperation'],
+              ['sync',     /Fence|Sync|Barrier|Hazard|Queue|Schedul/i,            '同期と危険追跡 / synchronization and hazard tracking'],
+              ['lifetime', /Lifetime|Lease|Dispose|Disposal|Reclaim|Generation/i, '寿命と破棄 / lifetime and disposal'],
+              ['contract', /Descriptor|Generator|Analyzer|Diagnostic/i,           '記述子と診断 / descriptors and diagnostics'],
+              ['failure',  /DeviceLost|Removed|Recover/i,                         '失敗処理 / failure handling'],
+              ['memory',   /Memory|Allocat|Budget|Trim/i,                         'メモリ管理 / memory management'],
+            ];
+            const srcPaths = paths.filter(p => p.startsWith('src/'));
+            for (const [id, re, label] of guardRules) {
+              const hit = srcPaths.filter(p => re.test(p));
+              if (hit.length) guarded.push({ id, label, hit });
+            }
+            const guardIds = new Set(guarded.map(g => g.id));
+
+            // コミットの作法。実装と検証テストは別コミットにする決まりがある。
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner, repo, pull_number: pr.number, per_page: 100,
+            });
+            const mixed = [];
+            if (commits.length <= 30) {
+              for (const c of commits) {
+                const detail = await github.rest.repos.getCommit({ owner, repo, ref: c.sha });
+                const f = (detail.data.files || []).map(x => x.filename);
+                const hasSrc  = f.some(p => /^src\//.test(p));
+                const hasTest = f.some(p => /^tests\//.test(p));
+                if (hasSrc && hasTest) {
+                  mixed.push(`${c.sha.slice(0, 8)} ${c.commit.message.split('\n')[0]}`);
+                }
+              }
+            }
+
+            // 本文の記入状況。見出しの直後に本文があるかどうかだけを見る。
+            const body = pr.body || '';
+            const stripped = body.replace(/<!--[\s\S]*?-->/g, '');
+            const sectionFilled = (heading) => {
+              const m = stripped.match(new RegExp(`^##\\s*${heading}[^\\n]*\\n([\\s\\S]*?)(?=^##\\s|\\Z)`, 'm'));
+              if (!m) return null;
+              return m[1].replace(/```[\s\S]*?```/g, '').replace(/^[-*]\s.*$/gm, '')
+                         .replace(/Closes #\s*$/m, '').trim().length > 0;
+            };
+
+            const findings = [];
+            const confirmed = [];
+
+            if (!stripped.trim()) {
+              findings.push('本文が空です。テンプレートが消されています。 / The body is empty; the template was removed.');
+            } else {
+              const summary = sectionFilled('Summary');
+              if (summary === false) findings.push('概要が空です。 / The summary section is empty.');
+              else if (summary) confirmed.push('概要が書かれています。 / A summary is present.');
+
+              const verify = sectionFilled('Verification');
+              if (verify === false && !docsOnly) {
+                findings.push('検証の節が空です。走らせた結果を貼ってください。 / The verification section is empty; paste the results you ran.');
+              } else if (verify) confirmed.push('検証の結果が書かれています。 / Verification results are present.');
+
+              const behaviour = sectionFilled('Behaviour change');
+              if (behaviour === false && anySource) {
+                findings.push('挙動の変更の節が空です。無ければ「なし」と書いてください。 / The behaviour-change section is empty; write "none" if nothing changes.');
+              }
+            }
+
+            const linked = /\b(closes|fixes|resolves)\s+#\d+/i.test(stripped) || /#\d+/.test(stripped);
+            if (!linked && anySource && paths.length > 3) {
+              findings.push('関連する課題が見当たりません。大きめの変更は先に課題で範囲を合意する決まりです。 / No linked issue found; larger changes need an issue agreed first.');
+            } else if (linked) {
+              confirmed.push('関連する課題が示されています。 / A linked issue is referenced.');
+            }
+
+            if (mixed.length) {
+              findings.push(`実装と検証テストが同じコミットに入っています。分けてください。 / Implementation and tests share a commit; split them.\n${mixed.map(m => `      - \`${m}\``).join('\n')}`);
+            } else if (commits.length <= 30 && anySource && testsOnly) {
+              confirmed.push('実装と検証テストが別のコミットに分かれています。 / Implementation and tests are in separate commits.');
+            }
+
+            if (anySource && !testsOnly) {
+              findings.push('ソースだけが変わり、テストが増えていません。守るべき挙動を動かす試験が要るか検討してください。 / Source changed without any test change; consider whether the guarded behaviour needs one.');
+            }
+
+            const uncheckedGuard = guarded.length > 0
+              && /- \[ \].*(?:Lifetime tracking and hazard|寿命の追跡と危険の追跡)/.test(body);
+            if (guarded.length && uncheckedGuard) {
+              findings.push('慎重を要する箇所に触れていますが、その節の確認が未記入です。 / A guarded area is touched but its checklist is unticked.');
+            }
+
+            // 所見の組み立て。
+            const suiteList = [...suites];
+            const lines = [];
+            lines.push('<!-- computeweave-pr-review -->');
+            lines.push('## PRレビュー / PR review');
+            lines.push('');
+            lines.push(`変更 ${paths.length} ファイル、コミット ${commits.length} 件。 / ${paths.length} files, ${commits.length} commits.`);
+            lines.push('');
+
+            lines.push('### 検証の要否 / Verification required');
+            lines.push('');
+            if (docsOnly) {
+              lines.push('文書だけの変更です。**テストの実行は不要**です。該当箇所の確認で足ります。');
+              lines.push('Documentation-only change. **Tests are not required**; verify the affected area instead.');
+            } else if (suiteList.length === 0) {
+              lines.push('ソースに触れていません。**このPRの内容に応じた確認**で足ります。');
+              lines.push('No source touched. Verify whatever this change actually affects.');
+            } else {
+              lines.push('以下を走らせ、失敗した試験の**名前と失敗の様子**を変更前と突き合わせてください。総数だけで判断しないでください。');
+              lines.push('Run the following and compare the **names and failure modes** against the same suites before your change. Do not judge by totals alone.');
+              lines.push('');
+              lines.push('```console');
+              lines.push('dotnet build ComputeWeave.sln -c Release -p:Platform=x64');
+              for (const s of ['SourceGenerators', 'Internals', 'Tests', 'DeviceLost']) {
+                if (!suites.has(s)) continue;
+                const proj = s === 'Tests' ? 'ComputeWeave.Tests' : `ComputeWeave.Tests.${s}`;
+                lines.push(`dotnet test tests/${proj}/${proj}.csproj -c Release -p:Platform=x64`);
+              }
+              lines.push('```');
+              if (generators) {
+                lines.push('');
+                lines.push('ビルドエラーを出す診断を変えた場合は、アナライザーの試験に加えて解全体の検証が要ります。');
+                lines.push('If a diagnostic that produces build errors changed, verify the complete solution as well.');
+              }
+            }
+            lines.push('');
+
+            if (guarded.length) {
+              lines.push('### 慎重を要する箇所 / Guarded areas touched');
+              lines.push('');
+              for (const g of guarded) {
+                lines.push(`- **${g.label}**`);
+                for (const p of g.hit.slice(0, 5)) lines.push(`  - \`${p}\``);
+                if (g.hit.length > 5) lines.push(`  - ほか ${g.hit.length - 5} 件 / ${g.hit.length - 5} more`);
+              }
+              lines.push('');
+              if (guardIds.has('lifetime') || guardIds.has('sync')) {
+                lines.push('寿命の追跡と危険の追跡は別々の保証です。一方を保っても他方が保たれるとは限りません。');
+                lines.push('Lifetime tracking and hazard tracking are separate guarantees; preserving one does not preserve the other.');
+                lines.push('');
+              }
+              if (guardIds.has('interop') || guardIds.has('sync')) {
+                lines.push('コマンドの順序、資源の状態、バリア、キューの同期、相互運用を変えた場合は Direct3D デバッグレイヤーと GPU 検証を使ってください。');
+                lines.push('If command ordering, resource states, barriers, queue synchronization or interoperation changed, use the Direct3D debug layer and GPU validation.');
+                lines.push('');
+              }
+              if (guardIds.has('contract')) {
+                lines.push('公開APIまたは生成される記述子を変えた場合は、該当部分の互換性、生成の決定性、基準データの検査を走らせてください。');
+                lines.push('For public API or generated descriptor changes, run the compatibility, deterministic-generation or golden-data checks of the affected subsystem.');
+                lines.push('');
+              }
+              if (guardIds.has('memory')) {
+                lines.push('確保の契約が定まっている経路は、それを保つか、変える根拠を示してください。性能に効く構造体は `Unsafe.SizeOf<T>()` で測ってください。');
+                lines.push('Preserve an established allocation contract or justify changing it. Measure performance-sensitive structures with `Unsafe.SizeOf<T>()`.');
+                lines.push('');
+              }
+            }
+
+            if (findings.length) {
+              lines.push('### 指摘 / Findings');
+              lines.push('');
+              for (const f of findings) lines.push(`- [ ] ${f}`);
+              lines.push('');
+            }
+            if (confirmed.length) {
+              lines.push('### 確認できた点 / Confirmed');
+              lines.push('');
+              for (const c of confirmed) lines.push(`- ${c}`);
+              lines.push('');
+            }
+
+            lines.push('---');
+            lines.push('');
+            lines.push('これは自動の確認で、査読の代わりにはなりません。指摘は判断の材料であって、従う義務はありません。');
+            lines.push('This is an automated check, not a substitute for review. Findings are input to a decision, not obligations.');
+
+            const bodyText = lines.join('\n');
+
+            // 同じ内容の投稿を増やさず、既存の所見を書き換える。
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: pr.number, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes('<!-- computeweave-pr-review -->'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: bodyText });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body: bodyText });
+            }
+
+            core.summary.addRaw(bodyText).write();
