@@ -338,6 +338,13 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         default(InvalidOperationException).ThrowIf(
             runtime.State is not RegistrationState.Active,
             "The compute interop resource set no longer accepts work.");
+
+        // 保持されるViewの順序を保てない Provider からは Persistent Lease を配らない。要求が現実になる
+        // のはここであり、共有スロットを宣言しただけの Resource Set を拒んではならない。
+        default(NotSupportedException).ThrowIf(
+            (runtime.Domain.Capabilities & ExternalInteropCapabilities.PersistentExternalViewOrdering) == 0,
+            $"The provider of the interop domain does not offer {nameof(ExternalInteropCapabilities.PersistentExternalViewOrdering)}, which a persistent external view lease requires.");
+
         default(InvalidOperationException).ThrowIf(
             !this.slotGate.TryAcquirePersistentLease(
                 runtime,
