@@ -267,5 +267,18 @@
     <Compile Include="$(MSBuildThisFileDirectory)Windows\um\winnt\ULARGE_INTEGER.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Windows\um\winnt\Windows.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WinRT\um\windows.ui.xaml.media.dxinterop\ISwapChainPanelNative.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi\IDXGIDevice.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\shared\dxgi\IDXGISurface.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d2d1\D2D1_BITMAP_OPTIONS.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d2d1\D2D1_BITMAP_PROPERTIES1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d2d1\ID2D1Bitmap1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d2d1\ID2D1DeviceContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\dcommon\D2D1_ALPHA_MODE.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\dcommon\D2D1_PIXEL_FORMAT.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d3d11\ID3D11Device1.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d3d11\ID3D11Device5.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d3d11\ID3D11DeviceContext4.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d3d11\ID3D11Fence.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DirectX\um\d3d11\ID3D11Texture2D.cs" />
   </ItemGroup>
 </Project>
