@@ -192,7 +192,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         lock (this.gate)
         {
             _ = this.record.TryRequestDispose();
-            _ = this.record.TryReleaseOwner();
+
+            if (this.record.TryReleaseOwner())
+            {
+                NotifyOperationReleaseWaitersUnderLock();
+            }
         }
 
         this.registry.RequestResourceSetDispose(this);
