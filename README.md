@@ -155,7 +155,7 @@ private void Run(
 
 ### 3. Direct3D 11 interoperation
 
-An external API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
+An external API is connected as a domain. One is shipped for the Direct3D 11 immediate context; any other API is connected by implementing `IComputeExternalInteropProvider<TView>` yourself. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
 
 ```csharp
 using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);

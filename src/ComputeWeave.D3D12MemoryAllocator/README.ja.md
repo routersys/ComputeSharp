@@ -12,7 +12,9 @@ AllocationServices.ConfigureAllocatorFactory(new D3D12MemoryAllocatorFactory());
 
 これ以降の確保はすべて D3D12MA を経由します。
 
-これはフォークが追加したGPUメモリの予算管理とは独立しています。`GraphicsDevice.SetMemoryPolicy` と `GraphicsDevice.GetMemoryStatistics` は [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) パッケージにあり、本パッケージを参照するかどうかに関わらず機能します。
+`GraphicsDevice.SetMemoryPolicy` と `GraphicsDevice.GetMemoryStatistics` は [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) パッケージにあり、本パッケージを参照するかどうかに関わらず機能します。
+
+ただしアロケーターを設定すると話が変わります。確保を外部のアロケーターが所有するため、デバイスは予約も計上も行いません。`SetMemoryPolicy` の上限は審査されず、所有バイト数は計上されず、`TrimMemory` は何も回収しません。フォークが追加した宣言的な層はそのようなデバイスでは使えず、`Create` が `NotSupportedException` を投げます。基盤部分と `InteropServices` は影響を受けません。
 
 ## 詳細
 

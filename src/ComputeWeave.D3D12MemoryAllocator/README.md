@@ -12,7 +12,9 @@ AllocationServices.ConfigureAllocatorFactory(new D3D12MemoryAllocatorFactory());
 
 Every subsequent allocation then goes through D3D12MA.
 
-This is independent of the GPU memory budget the fork adds. `GraphicsDevice.SetMemoryPolicy` and `GraphicsDevice.GetMemoryStatistics` are in the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package and apply whether or not this package is referenced.
+`GraphicsDevice.SetMemoryPolicy` and `GraphicsDevice.GetMemoryStatistics` are in the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package and apply whether or not this package is referenced.
+
+Configuring the allocator changes that. Once an external allocator owns the allocations, the device no longer reserves or accounts for them: the limits of `SetMemoryPolicy` are not enforced, the owned bytes are not counted, and `TrimMemory` reclaims nothing. The declarative layer the fork adds cannot be used at all on such a device, and `Create` throws a `NotSupportedException`. The base library and `InteropServices` are unaffected.
 
 ## More
 

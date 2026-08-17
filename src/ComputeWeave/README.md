@@ -48,11 +48,19 @@ Resources are not held directly; they live in slots that publish generations. A 
 
 ## Direct3D 11 interoperation
 
-An external API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it with `GraphicsDevice.RegisterExternalDomain`. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
+You do not have to write a provider to drive a Direct3D 11 immediate context. `ComputeExternalDirect3D11Provider` opens the shared fence, enqueues the signals, the waits and the flush, opens the shared textures and creates the external views. It takes the device, the immediate context and the render target as raw COM pointers, so it stays independent of the Direct3D 11 bindings you use.
 
 ```csharp
-using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
+using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+ComputeExternalDirect3D11Provider provider = new(device, immediateContext, renderTarget, scheduler);
+using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 ```
+
+`ComputeExternalQueueScheduler.Create()` returns a scheduler serializing the reservations of one immediate context. Providers enqueueing onto the same context share one instance, and you keep that mapping.
+
+On the `ExternalDirect3D11TextureView` it creates, `Texture` and `Bitmap` are borrowed and must not be released. Use `AddRefTexture()` and `AddRefBitmap()` to hand a pointer to your own bindings: they return a reference you own, so the binding can take ownership of it.
+
+Any other API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it with `GraphicsDevice.RegisterExternalDomain`. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
 
 Shared textures are declared in a `partial` type marked `[ComputeInteropResourceSet]`, as `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`.
 
@@ -74,7 +82,7 @@ public sealed partial class ResourceSet
 
 `TryGet<Slot>AllocatedSize` delegates to `SharedTextureSlot.TryGetAllocatedSize` and reports the allocated width and height of the published texture, which can remain larger than the logical dimensions under `GrowOnly`. The result is an unpinned snapshot and does not describe a binding, borrow or lease acquired separately when generation replacement can run concurrently. The `Width` and `Height` of an `ExternalTextureLease<TView>` describe the allocated dimensions of the generation held by that lease. Ownership is handed over through the shared fence: `BeginExternalOperation` borrows the view for the external API, `AcquireExternalViewLease` takes a lease that outlives a single operation, and `GetComputeBinding` returns the compute-side binding.
 
-Retiring a shared texture generation drains the external queue before the external view is released, and that drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A foreground operation waits when that internal maintenance operation temporarily holds the domain, while another foreground operation remains a conflicting use and is rejected. A provider that throws poisons its domain, and every later operation on that domain reports the failure.
+Retiring a shared texture generation drains the external queue before the external view is released, and that drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A foreground operation waits when that internal maintenance operation temporarily holds the domain, while another foreground operation remains a conflicting use and is rejected. A provider that throws poisons its domain, and every later operation on that domain reports the failure. Rejections carry an identifier: `ComputeDiagnosticException` derives from `InvalidOperationException` and reports a stable `DiagnosticId` such as `CMPW3004`. Whether to retry, rebuild the resource or tear the domain down differs per identifier, so do not tell rejections apart by their message.
 
 `InteropServices` additionally exposes the shared texture and shared fence primitives directly, for callers that manage the handles themselves.
 
@@ -84,7 +92,7 @@ Retiring a shared texture generation drains the external queue before the extern
 
 ## Compile-time validation
 
-The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 95 diagnostics, `CMPW0001` through `CMPW0111`, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix. Runtime rejections use the same `CMPW` prefix, told apart by their number band.
 
 ## More
 

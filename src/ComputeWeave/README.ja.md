@@ -48,11 +48,19 @@ submission.Wait();
 
 ## Direct3D 11との相互運用
 
-外部のAPIは `IComputeExternalInteropProvider<TView>` を実装し、`GraphicsDevice.RegisterExternalDomain` で登録します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
+Direct3D 11 の即時コンテキストを外部キューとして使う場合、実装を書く必要はありません。`ComputeExternalDirect3D11Provider` が共有フェンスの開示、信号と待機と Flush の投入、共有テクスチャの開示と外部ビューの生成を引き受けます。デバイスと即時コンテキストと描画対象を生のCOMポインタとして渡すため、利用している束縛の種類に依存しません。
 
 ```csharp
-using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
+using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+ComputeExternalDirect3D11Provider provider = new(device, immediateContext, renderTarget, scheduler);
+using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
 ```
+
+`ComputeExternalQueueScheduler.Create()` は、一つの即時コンテキストへの予約を直列化する Scheduler を返します。同じ即時コンテキストへ積む Provider は同じインスタンスを共有します。その対応付けは利用者が保ちます。
+
+生成される `ExternalDirect3D11TextureView` の `Texture` と `Bitmap` は借用であり解放してはなりません。自分の束縛へ渡す場合は `AddRefTexture()` と `AddRefBitmap()` を使ってください。参照数を1つ増やして返すため、束縛にそのまま所有させられます。
+
+他のAPIを使う場合は `IComputeExternalInteropProvider<TView>` を自分で実装し、`GraphicsDevice.RegisterExternalDomain` で登録します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
 
 共有テクスチャは、`[ComputeInteropResourceSet]` を付けた `partial` な型の中で、`[ComputeSharedTexture]` を付けた `SharedTextureSlot<T, TPixel, TView>` のフィールドとして宣言します。
 
@@ -74,7 +82,7 @@ public sealed partial class ResourceSet
 
 `TryGet<スロット名>AllocatedSize` は `SharedTextureSlot.TryGetAllocatedSize` へ委譲し、公開中のテクスチャに確保されている幅と高さを返します。`GrowOnly` では確保サイズが論理寸法より大きい場合があります。結果は世代を固定しないスナップショットです。世代交換が並行しうる場合は、別に取得した束縛や貸し出しや貸与のサイズを表しません。`ExternalTextureLease<TView>` の `Width` と `Height` は、その貸与が保持する世代の確保寸法を表します。所有権は共有フェンスを介して受け渡します。`BeginExternalOperation` が外部API向けにビューを一時的に貸し出し、`AcquireExternalViewLease` が単一の操作を越えて保持する貸与を取り、`GetComputeBinding` が計算側の束縛を返します。
 
-共有テクスチャの世代を退役させると、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。内部の保守処理が一時的にドメインを保持している場合、前景処理はその完了を待ちます。別の前景処理が保持している場合は競合した利用として拒否します。実装側が例外を投げるとそのドメインは汚染され、以後そのドメインへの操作はすべて失敗を報告します。
+共有テクスチャの世代を退役させると、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。内部の保守処理が一時的にドメインを保持している場合、前景処理はその完了を待ちます。別の前景処理が保持している場合は競合した利用として拒否します。実装側が例外を投げるとそのドメインは汚染され、以後そのドメインへの操作はすべて失敗を報告します。拒否は識別子を持ちます。`ComputeDiagnosticException` は `InvalidOperationException` から派生し、`DiagnosticId` に `CMPW3004` のような安定した識別子を載せます。再試行してよいのか、資源を作り直すべきなのか、ドメインごと畳むべきなのかは識別子ごとに異なるため、例外のメッセージ文字列で判別しないでください。
 
 ハンドルを自分で管理する場合のために、`InteropServices` が共有テクスチャと共有フェンスの基本操作を直接公開しています。
 
@@ -84,7 +92,7 @@ public sealed partial class ResourceSet
 
 ## コンパイル時の検証
 
-以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断95種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
+以上の宣言はアナライザーが検査し、`CMPW0001` から `CMPW0111` までの診断95種類として報告します。実行時の拒否も同じ `CMPW` 接頭辞を使い、番号帯で区別します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
 
 ## 詳細
 

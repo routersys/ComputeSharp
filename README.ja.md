@@ -155,7 +155,7 @@ private void Run(
 
 ### 3. Direct3D 11との相互運用
 
-外部のAPIは `IComputeExternalInteropProvider<TView>` を実装して登録します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
+外部のAPIはドメインとして登録します。Direct3D 11 の即時コンテキストであれば実装は同梱されており、それ以外のAPIでは `IComputeExternalInteropProvider<TView>` を自分で実装します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
 
 ```csharp
 using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
