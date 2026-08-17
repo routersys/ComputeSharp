@@ -213,9 +213,21 @@ internal sealed partial class ShaderSourceRewriter(
     {
         ParameterSyntax updatedNode = (ParameterSyntax)base.VisitParameter(node)!;
 
-        // By default, parameters just have no modifier
-        SyntaxToken modifier = Token(SyntaxKind.None);
+        SyntaxToken modifier = GetHlslParameterModifier(node);
 
+        updatedNode = updatedNode.WithAttributeLists(default);
+        updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type!, node.Type!, SemanticModel.For(node));
+
+        return updatedNode.WithModifiers(TokenList(modifier));
+    }
+
+    /// <summary>
+    /// Gets the HLSL modifier a parameter is rewritten with.
+    /// </summary>
+    /// <param name="node">The current <see cref="ParameterSyntax"/> instance for the parameter.</param>
+    /// <returns>The HLSL modifier for <paramref name="node"/>.</returns>
+    private static SyntaxToken GetHlslParameterModifier(ParameterSyntax node)
+    {
         // Convert the C# parameter modifiers to the HLSL equivalent
         for (int i = 0; i < node.Modifiers.Count; i++)
         {
@@ -227,23 +239,16 @@ internal sealed partial class ShaderSourceRewriter(
             {
                 case SyntaxKind.InKeyword:
                 case SyntaxKind.OutKeyword:
-                    modifier = currentModifier;
-                    goto ExitLoop;
+                    return currentModifier;
                 case SyntaxKind.RefKeyword when node.Modifiers.Count >= 2 && i < node.Modifiers.Count - 1 && node.Modifiers[i + 1].IsKind(SyntaxKind.ReadOnlyKeyword):
-                    modifier = Token(SyntaxKind.InKeyword);
-                    goto ExitLoop;
+                    return Token(SyntaxKind.InKeyword);
                 case SyntaxKind.RefKeyword:
-                    modifier = ParseToken("inout");
-                    goto ExitLoop;
+                    return ParseToken("inout");
             }
         }
 
-        ExitLoop:
-
-        updatedNode = updatedNode.WithAttributeLists(default);
-        updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type!, node.Type!, SemanticModel.For(node));
-
-        return updatedNode.WithModifiers(TokenList(modifier));
+        // By default, parameters just have no modifier
+        return Token(SyntaxKind.None);
     }
 
     /// <inheritdoc/>
