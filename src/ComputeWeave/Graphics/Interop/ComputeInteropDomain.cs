@@ -51,6 +51,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     private readonly Lock gate = new();
 
     /// <summary>
+    /// The gate the releases of <see cref="operation"/> are published on.
+    /// </summary>
+    private readonly object operationReleaseGate = new();
+
+    /// <summary>
     /// The shared fence backing the timeline of the current domain.
     /// </summary>
     private ComPtr<ID3D12Fence> d3D12SharedFence;
@@ -65,10 +70,14 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     /// </summary>
     private DomainOperationRecord operation;
 
-    private object? operationReleaseGate;
-
+    /// <summary>
+    /// The number of releases of <see cref="operation"/> that have been published.
+    /// </summary>
     private ulong operationReleaseVersion;
 
+    /// <summary>
+    /// The number of operations waiting for a release of <see cref="operation"/>.
+    /// </summary>
     private int operationReleaseWaiterCount;
 
     /// <summary>
@@ -410,10 +419,17 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
     /// <param name="lease">The acquired operation lease, if the acquisition succeeded.</param>
     /// <param name="schedulerFailure">The exception the scheduler reservation failed with, if it did.</param>
     /// <returns>The outcome of the acquisition.</returns>
+    /// <exception cref="Exception">Rethrown from the failure the wait for the release of a maintenance operation ended with.</exception>
     /// <remarks>
     /// The acquisition order is domain reference, domain permit, then scheduler reservation. Every failure
-    /// releases what it already took, in reverse order, and leaves no native side effect behind. An operation
-    /// taking the external reference of its generation is released by naming that generation.
+    /// releases what it already took, in reverse order, and enqueues no external work. An operation taking the
+    /// external reference of its generation is released by naming that generation.
+    /// <para>
+    /// A foreground operation finding the permit held by an internal maintenance operation leaves the gate of
+    /// the domain, waits for the release of that operation, then revalidates the state of the domain before
+    /// taking the permit again. A maintenance operation never waits, and neither does a foreground operation
+    /// finding the permit held by another foreground operation.
+    /// </para>
     /// </remarks>
     internal DomainOperationStatus TryAcquireOperation(
         ExternalDomainReference reference,
@@ -429,12 +445,10 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         ulong token = 0;
         bool hasWaitedForMaintenance = false;
         bool isReferenceHeld = false;
-        bool shouldReleaseNative = false;
-        Exception? acquisitionFailure = null;
+        Exception? waitFailure = null;
 
         while (true)
         {
-            object releaseGate;
             ulong releaseVersion;
             bool isReleaseGateHeld = false;
 
@@ -452,9 +466,7 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
                 if (hasWaitedForMaintenance && this.record.State is not ComputeInteropDomainState.Active)
                 {
-                    _ = this.record.TryRelease(reference);
                     status = DomainOperationStatus.DomainUnavailable;
-                    shouldReleaseNative = true;
 
                     break;
                 }
@@ -470,15 +482,13 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                     reference is ExternalDomainReference.Maintenance ||
                     this.record.References.Maintenance == 0)
                 {
-                    _ = this.record.TryRelease(reference);
-
                     break;
                 }
 
                 try
                 {
-                    releaseGate = this.operationReleaseGate ??= new();
-                    Monitor.Enter(releaseGate, ref isReleaseGateHeld);
+                    Monitor.Enter(this.operationReleaseGate, ref isReleaseGateHeld);
+
                     releaseVersion = this.operationReleaseVersion;
                     this.operationReleaseWaiterCount++;
                 }
@@ -486,12 +496,10 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 {
                     if (isReleaseGateHeld)
                     {
-                        Monitor.Exit(this.operationReleaseGate!);
+                        Monitor.Exit(this.operationReleaseGate);
                     }
 
-                    _ = this.record.TryRelease(reference);
-                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
-                    acquisitionFailure = e;
+                    waitFailure = e;
 
                     break;
                 }
@@ -501,30 +509,24 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             {
                 while (releaseVersion == this.operationReleaseVersion)
                 {
-                    _ = Monitor.Wait(releaseGate);
+                    _ = Monitor.Wait(this.operationReleaseGate);
                 }
             }
             catch (Exception e)
             {
-                acquisitionFailure = e;
+                waitFailure = e;
             }
             finally
             {
-                Monitor.Exit(releaseGate);
+                Monitor.Exit(this.operationReleaseGate);
             }
 
             lock (this.gate)
             {
                 this.operationReleaseWaiterCount--;
-
-                if (acquisitionFailure is not null)
-                {
-                    _ = this.record.TryRelease(reference);
-                    shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
-                }
             }
 
-            if (acquisitionFailure is not null)
+            if (waitFailure is not null)
             {
                 break;
             }
@@ -532,14 +534,14 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             hasWaitedForMaintenance = true;
         }
 
-        if (shouldReleaseNative)
+        if (status is not DomainOperationStatus.Acquired && isReferenceHeld)
         {
-            TryReleaseNative();
+            ReleaseReference(reference);
         }
 
-        if (acquisitionFailure is not null)
+        if (waitFailure is not null)
         {
-            ExceptionDispatchInfo.Throw(acquisitionFailure);
+            ExceptionDispatchInfo.Throw(waitFailure);
         }
 
         if (status is DomainOperationStatus.TokenExhausted)
@@ -566,15 +568,12 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
                 _ = this.operation.TryRelease(token);
                 _ = this.record.TryRelease(reference);
 
-                shouldReleaseNative = this.record.State is not ComputeInteropDomainState.Active;
-
                 NotifyOperationReleaseWaitersUnderLock();
             }
 
-            if (shouldReleaseNative)
-            {
-                TryReleaseNative();
-            }
+            TryReleaseNative();
+
+            this.registry.Coordinator.Wake();
 
             return DomainOperationStatus.SchedulerBusy;
         }
@@ -778,6 +777,13 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
         _ = Interlocked.CompareExchange(ref this.providerDiagnostic, diagnostic, null);
     }
 
+    /// <summary>
+    /// Publishes a release of the operation of the current domain to the operations waiting for one.
+    /// </summary>
+    /// <remarks>
+    /// Waiters register under the gate of the domain, so a release published while none is registered wakes
+    /// nothing, and an operation registering afterwards observes the state that release left behind.
+    /// </remarks>
     private void NotifyOperationReleaseWaitersUnderLock()
     {
         if (this.operationReleaseWaiterCount == 0)
@@ -785,13 +791,11 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
             return;
         }
 
-        object releaseGate = this.operationReleaseGate!;
-
-        lock (releaseGate)
+        lock (this.operationReleaseGate)
         {
             this.operationReleaseVersion++;
 
-            Monitor.PulseAll(releaseGate);
+            Monitor.PulseAll(this.operationReleaseGate);
         }
     }
 
