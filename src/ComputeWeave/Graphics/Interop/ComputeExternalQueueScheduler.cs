@@ -39,6 +39,31 @@ public abstract class ComputeExternalQueueScheduler : IDisposable
     }
 
     /// <summary>
+    /// Creates a scheduler admitting one reservation of an external queue at a time.
+    /// </summary>
+    /// <returns>The created <see cref="ComputeExternalQueueScheduler"/> instance.</returns>
+    /// <remarks>
+    /// <para>
+    /// The returned scheduler rejects a reservation taken while another one is held, including one taken again
+    /// on the thread already holding it. It owns nothing beyond that, so releasing it releases no queue, no
+    /// context and no device.
+    /// </para>
+    /// <para>
+    /// One scheduler corresponds to exactly one immediate context. The caller creates one per immediate context
+    /// and returns that same instance from every provider enqueueing onto it. This call hands out a new instance
+    /// every time and does not know which context a scheduler was created for, so the caller keeps that mapping.
+    /// </para>
+    /// <para>
+    /// The caller owns the returned scheduler. A provider must not release it, and the caller releases it after
+    /// the domains built on it. Releasing it earlier only rejects new domain registrations.
+    /// </para>
+    /// </remarks>
+    public static ComputeExternalQueueScheduler Create()
+    {
+        return new SingleReservationScheduler();
+    }
+
+    /// <summary>
     /// Enters the exclusive reservation of the external queue.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown if the external queue is already reserved.</exception>
@@ -235,5 +260,37 @@ public abstract class ComputeExternalQueueScheduler : IDisposable
         this.isDisposeCoreInvoked = true;
 
         return true;
+    }
+
+    /// <summary>
+    /// A <see cref="ComputeExternalQueueScheduler"/> admitting one reservation of its external queue at a time.
+    /// </summary>
+    private sealed class SingleReservationScheduler : ComputeExternalQueueScheduler
+    {
+        /// <summary>
+        /// Whether the external queue is reserved.
+        /// </summary>
+        private int isReserved;
+
+        /// <inheritdoc/>
+        protected override void EnterCore()
+        {
+            default(InvalidOperationException).ThrowIf(
+                Interlocked.CompareExchange(ref this.isReserved, 1, 0) != 0,
+                "External queue scheduler is busy or reentered.");
+        }
+
+        /// <inheritdoc/>
+        protected override void ExitCore()
+        {
+            default(InvalidOperationException).ThrowIf(
+                Interlocked.Exchange(ref this.isReserved, 0) != 1,
+                "Scheduler exit invariant failed.");
+        }
+
+        /// <inheritdoc/>
+        protected override void DisposeCore()
+        {
+        }
     }
 }
