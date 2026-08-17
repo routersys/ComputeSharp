@@ -20,6 +20,11 @@ namespace ComputeWeave.Interop;
 /// The runtime does not track what the holder submits, and does not order it against its own submissions.
 /// </para>
 /// <para>
+/// The reference addresses the generation it was acquired on. A slot publishing another generation does not
+/// move it, so the native object keeps addressing the resource acquired earlier even once the slot reports
+/// new dimensions. A holder needing the newly published resource releases the reference and acquires another.
+/// </para>
+/// <para>
 /// The holder must return the resource to the state it was acquired in. The runtime keeps recording the state
 /// it observed at acquisition, and plans the barriers of its own submissions from it.
 /// </para>
