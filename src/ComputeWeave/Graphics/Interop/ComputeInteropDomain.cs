@@ -550,7 +550,10 @@ public sealed unsafe class ComputeInteropDomain : IDisposable
 
         if (status is DomainOperationStatus.TokenExhausted)
         {
-            MarkPoisoned(new InvalidOperationException(
+            // 汚染理由は後から再送出される。識別子を載せておかないと、二人目以降の呼び出し側が
+            // 何で拒まれたのかを判別できない。
+            MarkPoisoned(new ComputeDiagnosticException(
+                ComputeDiagnosticIds.DomainTimelineExhausted,
                 $"""The operation token sequence of the interop domain "{this.id.Value}" is exhausted."""));
         }
 
