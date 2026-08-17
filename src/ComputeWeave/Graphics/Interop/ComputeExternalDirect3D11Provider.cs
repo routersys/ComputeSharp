@@ -128,13 +128,15 @@ public unsafe class ComputeExternalDirect3D11Provider : IComputeExternalInteropP
 
     /// <inheritdoc/>
     /// <remarks>
-    /// The persistent external view ordering is not offered. It states that external views keep their order
-    /// across the lifetime of a domain, and the provider cannot observe that.
+    /// The persistent external view ordering follows from the construction: every view is opened from the
+    /// shared texture of the domain, and all external work against it is enqueued onto the one immediate
+    /// context whose reservations the scheduler serializes. A view therefore keeps its order while it is held.
     /// </remarks>
     public ExternalInteropCapabilities Capabilities =>
         ExternalInteropCapabilities.SharedFence |
         ExternalInteropCapabilities.SharedTexture2D |
-        ExternalInteropCapabilities.SingleImmediateContextOrdering;
+        ExternalInteropCapabilities.SingleImmediateContextOrdering |
+        ExternalInteropCapabilities.PersistentExternalViewOrdering;
 
     /// <inheritdoc/>
     /// <exception cref="InvalidOperationException">Thrown if the current provider is already initialized.</exception>
@@ -207,7 +209,7 @@ public unsafe class ComputeExternalDirect3D11Provider : IComputeExternalInteropP
                 },
                 dpiX = 96.0f,
                 dpiY = 96.0f,
-                bitmapOptions = D2D1_BITMAP_OPTIONS_TARGET | D2D1_BITMAP_OPTIONS_CANNOT_DRAW,
+                bitmapOptions = GetBitmapOptions(descriptor.ExternalUsage),
                 colorContext = null
             };
 
@@ -298,6 +300,24 @@ public unsafe class ComputeExternalDirect3D11Provider : IComputeExternalInteropP
         long adapterLuid = ((long)description.AdapterLuid.HighPart << 32) | description.AdapterLuid.LowPart;
 
         return new ExternalAdapterIdentity(adapterLuid);
+    }
+
+    /// <summary>
+    /// Maps an external usage to the Direct2D bitmap options.
+    /// </summary>
+    /// <param name="usage">The usage to map.</param>
+    /// <returns>The Direct2D bitmap options matching <paramref name="usage"/>.</returns>
+    /// <remarks>
+    /// The bitmap is never marked as one that cannot be drawn. That flag forbids using it as a drawing source,
+    /// which is exactly what a sampled view is opened for.
+    /// </remarks>
+    private static D2D1_BITMAP_OPTIONS GetBitmapOptions(ExternalTextureUsage usage)
+    {
+        return usage switch
+        {
+            ExternalTextureUsage.RenderTarget => D2D1_BITMAP_OPTIONS_TARGET,
+            _ => D2D1_BITMAP_OPTIONS_NONE
+        };
     }
 
     /// <summary>
