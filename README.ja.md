@@ -49,7 +49,7 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 
 基盤部分は変更していません。計算シェーダーは `IComputeShader` を実装する `partial struct` で、`GraphicsDevice.GetDefault()` がデバイスを返し、`For` がディスパッチします。本書はそれを置き換えるものではありません。
 
-このフォークが追加したのは、公開型65件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
+このフォークが追加したのは、公開型67件と、`GraphicsDevice` および `InteropServices` への追加メンバーです。これらは一つの体系を成します。`[ComputePipelineHost]` を付けた型が、デバイスを保持するフィールドと、資源スロットの集合と、パイプラインメソッドの集合を宣言します。ソースジェネレーターはその宣言を読み、正準記述子をバイト配列として生成側の partial へ書き出し、実行時へ委譲する型付きのメンバーを出力します。実行時は構築の時点で記述子を解析し、あらゆる契約をそれと照合します。以降、序数、資源の参照権、構造上の上限は記述子だけが決めます。
 
 資源は直接保持しません。世代を発行するスロットに入ります。`TryEnsure` はスロットへ要求した計画への一致を求め、計画が実際に変わったときだけ新しい世代を発行します。実行中の処理は捕捉した世代を生かし続けるため、資源の再確保が記録済みの投入を無効にすることはありません。
 
@@ -174,6 +174,23 @@ using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provid
 `ComputeExternalQueueScheduler.Create()` は、一つの即時コンテキストに対する予約を単一飛行へ直列化するSchedulerを返します。同じ即時コンテキストへ積む Provider は同じインスタンスを共有します。その対応付けは利用者が保ちます。ライブラリは即時コンテキストを型として観測しないため、対応付けの正しさを検証できません。
 
 生成される `ExternalDirect3D11TextureView` は、開いたテクスチャと、描画対象が与えられていればその上のビットマップを保持します。`Texture` と `Bitmap` は借用であり解放してはなりません。自分の束縛へ渡す場合は `AddRefTexture()` と `AddRefBitmap()` を使ってください。参照数を1つ増やして返すため、束縛にそのまま所有させられます。
+
+外部側が自前デバイスの Direct3D 12 コマンドキューであるホストは、`ComputeExternalDirect3D12Provider` を同じ形で使います。共有フェンスと共有テクスチャを自分のデバイスで開き、キューへ信号と待機を積みます。Direct3D 12 のキューには後から掃き出す遅延バッチが無いため、`FlushAfterSignal` は何もしません。生成される `ExternalDirect3D12TextureView` は開いた資源を借用の `Resource` として公開し、`AddRefResource()` が呼び出し側の所有する参照を返します。
+
+```csharp
+using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+ComputeExternalDirect3D12Provider provider = new(d3D12Device, d3D12Queue, scheduler);
+using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provider);
+```
+
+ドメインを登録するグラフィックスデバイスは、Providerと同じアダプター上で動いている必要があります。`GraphicsDevice.TryGetDevice` が識別子からそのデバイスを解決するため、ホストが照合の方法を書き下す必要はありません。
+
+```csharp
+if (!GraphicsDevice.TryGetDevice(new ExternalAdapterIdentity(adapterLuid), out GraphicsDevice? graphicsDevice))
+{
+    return;
+}
+```
 
 操作のたびにキューへの出入りが必要な実装を自分で書く場合は `ComputeExternalQueueScheduler` を継承します。
 
@@ -312,6 +329,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | メンバー | 説明 |
 |---|---|
 | `GraphicsDevice.RegisterExternalDomain<TView>(IComputeExternalInteropProvider<TView> provider)` | 外部APIを登録してドメインを返します。 |
+| `GraphicsDevice.TryGetDevice(ExternalAdapterIdentity adapterIdentity, out GraphicsDevice? device)` | 与えた識別子のアダプター上で動くデバイスを解決します。 |
 | `ComputeInteropDomain.Device` / `Id` / `Capabilities` | デバイス、ドメイン識別子、合意した能力を報告します。 |
 | `IComputeExternalInteropProvider.Initialize(in ExternalTimelineInitialization)` | 共有タイムラインを初期化します。 |
 | `IComputeExternalInteropProvider.EnqueueSignal(ulong)` / `EnqueueWait(ulong)` / `FlushAfterSignal()` | 外部キュー上で共有フェンスを駆動します。 |
@@ -322,6 +340,8 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 | `ComputeExternalDirect3D11Provider(nint device, nint immediateContext, nint renderTarget, ComputeExternalQueueScheduler)` | Direct3D 11 の即時コンテキストを外部キューとするProviderです。 |
 | `ExternalDirect3D11TextureView.Texture` / `Bitmap` | 開いたテクスチャとビットマップを借用として返します。解放しないでください。 |
 | `ExternalDirect3D11TextureView.AddRefTexture()` / `AddRefBitmap()` | 参照数を1つ増やして返します。呼び出し側が解放します。 |
+| `ComputeExternalDirect3D12Provider(nint device, nint queue, ComputeExternalQueueScheduler)` | 自前デバイスの Direct3D 12 コマンドキューを外部キューとするProviderです。 |
+| `ExternalDirect3D12TextureView.Resource` / `AddRefResource()` | 開いた資源を借用として返します。AddRef側は呼び出し側の所有する参照を返します。 |
 | `IComputeDiagnostic.DiagnosticId` / `ComputeDiagnosticException` | 拒否の識別子を報告します。 |
 | `ExternalTextureLease<TView>.Width` / `Height` | 貸与が保持する世代の確保寸法を返します。 |
 | `ExternalTextureLease<TView>.DangerousGetView()` / `BeginExternalQueueOperation()` | 貸与した外部ビューを使います。 |

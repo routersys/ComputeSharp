@@ -60,6 +60,8 @@ using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provid
 
 生成される `ExternalDirect3D11TextureView` の `Texture` と `Bitmap` は借用であり解放してはなりません。自分の束縛へ渡す場合は `AddRefTexture()` と `AddRefBitmap()` を使ってください。参照数を1つ増やして返すため、束縛にそのまま所有させられます。
 
+外部側が自前デバイスの Direct3D 12 コマンドキューであるホストは、`ComputeExternalDirect3D12Provider` を同じ形で使います。共有フェンスと共有テクスチャを自分のデバイスで開き、キューへ信号と待機を積みます。生成されるビューは開いた資源を `Resource` と `AddRefResource()` で公開します。いずれのProviderでも、その `ExternalAdapterIdentity` から `GraphicsDevice.TryGetDevice` が同じアダプター上のデバイスを解決します。
+
 他のAPIを使う場合は `IComputeExternalInteropProvider<TView>` を自分で実装し、`GraphicsDevice.RegisterExternalDomain` で登録します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
 
 共有テクスチャは、`[ComputeInteropResourceSet]` を付けた `partial` な型の中で、`[ComputeSharedTexture]` を付けた `SharedTextureSlot<T, TPixel, TView>` のフィールドとして宣言します。

@@ -60,6 +60,8 @@ using ComputeInteropDomain domain = graphicsDevice.RegisterExternalDomain(provid
 
 On the `ExternalDirect3D11TextureView` it creates, `Texture` and `Bitmap` are borrowed and must not be released. Use `AddRefTexture()` and `AddRefBitmap()` to hand a pointer to your own bindings: they return a reference you own, so the binding can take ownership of it.
 
+A host whose external side is a Direct3D 12 command queue of its own device uses `ComputeExternalDirect3D12Provider` the same way: it opens the shared fence and the shared textures on its device, signals and waits on the queue, and its views expose the opened resource through `Resource` and `AddRefResource()`. `GraphicsDevice.TryGetDevice` resolves the graphics device running on the adapter of either provider from its `ExternalAdapterIdentity`.
+
 Any other API is connected by implementing `IComputeExternalInteropProvider<TView>` and registering it with `GraphicsDevice.RegisterExternalDomain`. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
 
 Shared textures are declared in a `partial` type marked `[ComputeInteropResourceSet]`, as `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`.
