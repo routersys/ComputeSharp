@@ -98,7 +98,9 @@ public sealed class ComputeInteropResourceSetRuntime : IDisposable
     /// <exception cref="InvalidOperationException">Thrown if disposal of the current resource set has not been requested.</exception>
     /// <remarks>
     /// The structural capacity of a resource set is returned once every shared slot has released its generations
-    /// and its maintenance has completed, so this blocks until the completion coordinator gets there.
+    /// and its maintenance has completed, so this blocks until the completion coordinator gets there. The
+    /// external drain phases run only on that coordinator: this loop requests the maintenance and wakes it,
+    /// and never runs a drain phase on the calling thread.
     /// </remarks>
     public void WaitForDisposal()
     {
@@ -112,7 +114,7 @@ public sealed class ComputeInteropResourceSetRuntime : IDisposable
         {
             ulong progress = coordinator.ProgressVersion;
 
-            this.runtime.RunSharedSlotMaintenance();
+            this.runtime.RequestSharedSlotMaintenance();
 
             if (this.runtime.TryCompleteDeferredRelease())
             {

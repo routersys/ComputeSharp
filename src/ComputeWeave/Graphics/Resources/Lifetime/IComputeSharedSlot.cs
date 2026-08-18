@@ -14,6 +14,8 @@ internal interface IComputeSharedSlot
 
     void RequestDispose();
 
+    void RequestMaintenance();
+
     void RunMaintenance();
 
     bool TryGetPendingDrainFence(out FencePoint fence);

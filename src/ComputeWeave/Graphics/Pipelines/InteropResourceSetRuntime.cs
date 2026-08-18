@@ -144,6 +144,14 @@ internal sealed class InteropResourceSetRuntime
         }
     }
 
+    public void RequestSharedSlotMaintenance()
+    {
+        foreach (IComputeSharedSlot slot in this.slots)
+        {
+            slot.RequestMaintenance();
+        }
+    }
+
     public void RunSharedSlotMaintenance()
     {
         foreach (IComputeSharedSlot slot in this.slots)

@@ -146,6 +146,12 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     }
 
     /// <inheritdoc/>
+    void IComputeSharedSlot.RequestMaintenance()
+    {
+        RequestMaintenance();
+    }
+
+    /// <inheritdoc/>
     void IComputeSharedSlot.RunMaintenance()
     {
         RunMaintenance();
