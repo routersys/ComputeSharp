@@ -99,7 +99,7 @@ internal struct SlotControlRecord
         return true;
     }
 
-    public readonly bool TryAcquirePersistentLease<TView>(
+    public readonly PersistentLeaseStatus TryAcquirePersistentLease<TView>(
         InteropResourceSetRuntime runtime,
         int resourceIndex,
         out ResourceGenerationPin pin,
@@ -112,7 +112,7 @@ internal struct SlotControlRecord
         if (TryGetActiveExternalOwner(resourceIndex) is not ResourceGenerationOwner owner ||
             owner.TryGetExternalObject<TView>(resourceIndex) is not TView externalView)
         {
-            return false;
+            return PersistentLeaseStatus.GenerationUnavailable;
         }
 
         ComputeInteropDomain domain = runtime.Domain;
@@ -121,7 +121,7 @@ internal struct SlotControlRecord
 
         if (record.ReadLifecycle() is not ResourceGenerationState.Active)
         {
-            return false;
+            return PersistentLeaseStatus.GenerationUnavailable;
         }
 
         default(InvalidOperationException).ThrowIf(
@@ -135,7 +135,7 @@ internal struct SlotControlRecord
         {
             record.ReleasePersistentLease();
 
-            return false;
+            return PersistentLeaseStatus.GenerationUnavailable;
         }
 
         if (!domain.TryAcquireReference(ExternalDomainReference.PersistentLease))
@@ -143,7 +143,7 @@ internal struct SlotControlRecord
             record.ReleaseExternalReference();
             record.ReleasePersistentLease();
 
-            return false;
+            return PersistentLeaseStatus.DomainUnavailable;
         }
 
         if (!runtime.TryAcquirePersistentLease())
@@ -152,13 +152,13 @@ internal struct SlotControlRecord
             record.ReleaseExternalReference();
             record.ReleasePersistentLease();
 
-            return false;
+            return PersistentLeaseStatus.RegistrationUnavailable;
         }
 
         pin = new ResourceGenerationPin(this.Active, record.Id, resourceIndex);
         view = externalView;
 
-        return true;
+        return PersistentLeaseStatus.Acquired;
     }
 
     public static void ReleaseExternalPin(GraphicsDevice device, in ResourceGenerationPin pin)

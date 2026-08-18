@@ -211,8 +211,9 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         device.ThrowIfDeviceTerminal();
 
-        default(InvalidOperationException).ThrowIf(
+        default(ComputeDiagnosticException).ThrowIf(
             runtime.State is not RegistrationState.Active,
+            ComputeDiagnosticIds.DisposeRequested,
             "The compute interop resource set no longer accepts work.");
 
         ref readonly SharedTextureContractDescriptor descriptor = ref runtime.Descriptor.SharedTextures.Span[(int)this.ordinal.Value];
@@ -270,11 +271,13 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         runtime.Device.ThrowIfDeviceTerminal();
 
-        default(InvalidOperationException).ThrowIf(
+        default(ComputeDiagnosticException).ThrowIf(
             runtime.State is not RegistrationState.Active,
+            ComputeDiagnosticIds.DisposeRequested,
             "The compute interop resource set no longer accepts work.");
-        default(InvalidOperationException).ThrowIf(
+        default(ComputeDiagnosticException).ThrowIf(
             !this.slotGate.TryPinActiveExternal(0, out ResourceGenerationPin pin, out TView view),
+            ComputeDiagnosticIds.GenerationUnavailable,
             "The shared texture slot has no published texture generation to borrow.");
 
         ComputeInteropDomain domain = runtime.Domain;
@@ -302,7 +305,8 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
         {
             domain.ReleaseGenerationExternalReference(in pin);
 
-            throw new InvalidOperationException(
+            throw new ComputeDiagnosticException(
+                ComputeDiagnosticIds.FromDomainOperationStatus(status),
                 $"The shared texture slot could not acquire an operation of its domain ({status}).",
                 schedulerFailure);
         }
@@ -316,7 +320,9 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         borrow.Dispose();
 
-        throw new InvalidOperationException("The published texture generation is not available to the external queue.");
+        throw new ComputeDiagnosticException(
+            ComputeDiagnosticIds.GenerationUnavailable,
+            "The published texture generation is not available to the external queue.");
     }
 
     /// <summary>
@@ -335,8 +341,9 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
         runtime.Device.ThrowIfDeviceTerminal();
 
-        default(InvalidOperationException).ThrowIf(
+        default(ComputeDiagnosticException).ThrowIf(
             runtime.State is not RegistrationState.Active,
+            ComputeDiagnosticIds.DisposeRequested,
             "The compute interop resource set no longer accepts work.");
 
         // 保持されるViewの順序を保てない Provider からは Persistent Lease を配らない。要求が現実になる
@@ -345,15 +352,26 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             (runtime.Domain.Capabilities & ExternalInteropCapabilities.PersistentExternalViewOrdering) == 0,
             $"The provider of the interop domain does not offer {nameof(ExternalInteropCapabilities.PersistentExternalViewOrdering)}, which a persistent external view lease requires.");
 
-        default(InvalidOperationException).ThrowIf(
-            !this.slotGate.TryAcquirePersistentLease(
-                runtime,
-                0,
-                out ResourceGenerationPin pin,
-                out TView view,
-                out int width,
-                out int height),
+        PersistentLeaseStatus leaseStatus = this.slotGate.TryAcquirePersistentLease(
+            runtime,
+            0,
+            out ResourceGenerationPin pin,
+            out TView view,
+            out int width,
+            out int height);
+
+        default(ComputeDiagnosticException).ThrowIf(
+            leaseStatus is PersistentLeaseStatus.GenerationUnavailable,
+            ComputeDiagnosticIds.GenerationUnavailable,
             "The shared texture slot cannot lease the external view of its published texture generation.");
+        default(ComputeDiagnosticException).ThrowIf(
+            leaseStatus is PersistentLeaseStatus.DomainUnavailable,
+            ComputeDiagnosticIds.DomainUnusable,
+            "The interop domain of the shared texture slot no longer accepts a persistent lease.");
+        default(ComputeDiagnosticException).ThrowIf(
+            leaseStatus is PersistentLeaseStatus.RegistrationUnavailable,
+            ComputeDiagnosticIds.DisposeRequested,
+            "The compute interop resource set no longer accepts work.");
 
         try
         {

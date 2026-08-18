@@ -158,7 +158,9 @@ public sealed class ExternalTextureLease<TView> : IDisposable
 
         operation.Dispose();
 
-        throw new InvalidOperationException("The leased texture generation is not available to the external queue.");
+        throw new ComputeDiagnosticException(
+            ComputeDiagnosticIds.GenerationUnavailable,
+            "The leased texture generation is not available to the external queue.");
     }
 
     /// <inheritdoc/>

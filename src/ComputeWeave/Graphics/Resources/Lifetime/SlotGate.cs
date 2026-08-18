@@ -184,7 +184,7 @@ internal struct SlotGate
         }
     }
 
-    public bool TryAcquirePersistentLease<TView>(
+    public PersistentLeaseStatus TryAcquirePersistentLease<TView>(
         InteropResourceSetRuntime runtime,
         int resourceIndex,
         out ResourceGenerationPin pin,
@@ -204,18 +204,18 @@ internal struct SlotGate
                 pin = default;
                 view = null!;
 
-                return false;
+                return PersistentLeaseStatus.GenerationUnavailable;
             }
 
-            if (!this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view))
+            PersistentLeaseStatus status = this.control.TryAcquirePersistentLease(runtime, resourceIndex, out pin, out view);
+
+            if (status is not PersistentLeaseStatus.Acquired)
             {
                 width = 0;
                 height = 0;
-
-                return false;
             }
 
-            return true;
+            return status;
         }
         finally
         {

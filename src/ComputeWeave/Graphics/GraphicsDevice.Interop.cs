@@ -89,7 +89,9 @@ unsafe partial class GraphicsDevice
 
         if (!SchedulerRegistration.TryAcquire(scheduler, out SchedulerRegistration? schedulerRegistration))
         {
-            throw new InvalidOperationException("The external queue scheduler no longer accepts domain registrations.");
+            throw new ComputeDiagnosticException(
+                ComputeDiagnosticIds.DisposeRequested,
+                "The external queue scheduler no longer accepts domain registrations.");
         }
 
         try

@@ -101,7 +101,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+            default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
         }
 
         PipelineDescriptorSet descriptorSet = PipelineDescriptorReader.Read(descriptor);
@@ -129,7 +129,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+            default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
             default(InvalidOperationException).ThrowIf(
                 !this.aggregate.TryReserveHost(host, maximumPendingSubmissions, planScalarCount, out reservation),
                 "The device structural capacity is exhausted.");
@@ -149,7 +149,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             lock (this.registrationGate)
             {
-                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+                default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
                 isSequenceExhausted = this.nextHostRegistrationId == ulong.MaxValue;
 
@@ -200,7 +200,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             lock (this.registrationGate)
             {
-                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+                default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
                 this.hosts.Add(runtime);
             }
@@ -250,8 +250,9 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         SlotResourcePlanStateRecord[] planStates = new SlotResourcePlanStateRecord[slots.Length];
         int planScalarCount = SlotResourcePlanStorage.CreateResourceSetPlanStates(resourceSet, planStates);
 
-        default(InvalidOperationException).ThrowIf(
+        default(ComputeDiagnosticException).ThrowIf(
             !domain.TryAcquireReference(ExternalDomainReference.ResourceSet),
+            ComputeDiagnosticIds.DomainUnusable,
             "The interop domain no longer accepts resource set registrations.");
 
         ResourceSetStructuralReservation reservation = default;
@@ -262,7 +263,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
         {
             lock (this.registrationGate)
             {
-                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+                default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
                 default(InvalidOperationException).ThrowIf(
                     !this.aggregate.TryReserveResourceSet(resourceSet, planScalarCount, out reservation),
                     "The device structural capacity is exhausted.");
@@ -293,7 +294,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
             lock (this.registrationGate)
             {
-                default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+                default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
                 this.resourceSets.Add(runtime);
             }
@@ -355,7 +356,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+            default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
             isSequenceExhausted = this.nextDomainRegistrationId == ulong.MaxValue;
 
@@ -379,7 +380,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+            default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
             this.domains.Add(domain);
         }
@@ -790,7 +791,7 @@ internal sealed unsafe class DeviceRegistrationRegistry : IDisposable
 
         lock (this.registrationGate)
         {
-            default(InvalidOperationException).ThrowIf(this.isDisposed, "The device no longer accepts registrations.");
+            default(ComputeDiagnosticException).ThrowIf(this.isDisposed, ComputeDiagnosticIds.DisposeRequested, "The device no longer accepts registrations.");
 
             isSequenceExhausted = this.nextResourceSetRegistrationId == ulong.MaxValue;
 
