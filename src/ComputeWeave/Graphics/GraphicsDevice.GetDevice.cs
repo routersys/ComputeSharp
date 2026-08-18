@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using ComputeWeave.Graphics.Helpers;
 
 namespace ComputeWeave;
@@ -89,5 +90,39 @@ partial class GraphicsDevice
         default(ArgumentNullException).ThrowIfNull(predicate);
 
         return new DeviceHelper.DeviceQuery(predicate);
+    }
+
+    /// <summary>
+    /// Gets the device running on the adapter with a given identity, if one can be created.
+    /// </summary>
+    /// <param name="adapterIdentity">The identity of the adapter to get the device of.</param>
+    /// <param name="device">The resulting <see cref="GraphicsDevice"/> instance, if one was found.</param>
+    /// <returns>Whether a device matching <paramref name="adapterIdentity"/> was found.</returns>
+    /// <remarks>
+    /// <para>
+    /// An external interop provider enqueues against the adapter its own device runs on, and registering its
+    /// domain requires a <see cref="GraphicsDevice"/> on that same adapter. This resolves the device from the
+    /// identity the provider reports, so a host does not have to spell out how the two are matched.
+    /// </para>
+    /// <para>
+    /// Just like <see cref="QueryDevices"/>, only a device supporting the minimum necessary feature level is
+    /// returned, so this returns <see langword="false"/> both when no adapter carries the identity and when
+    /// the adapter that does cannot back a device.
+    /// </para>
+    /// </remarks>
+    public static bool TryGetDevice(ExternalAdapterIdentity adapterIdentity, [NotNullWhen(true)] out GraphicsDevice? device)
+    {
+        long adapterLuid = adapterIdentity.AdapterLuid;
+
+        foreach (GraphicsDevice candidate in new DeviceHelper.DeviceQuery(info => info.Luid.ToInt64() == adapterLuid))
+        {
+            device = candidate;
+
+            return true;
+        }
+
+        device = null;
+
+        return false;
     }
 }
