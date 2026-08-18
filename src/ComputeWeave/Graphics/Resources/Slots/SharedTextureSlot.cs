@@ -505,7 +505,7 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
             owner.GetResourceRecord(0).ReadOwnership() is not ExternalOwnershipState.ComputeAvailable &&
             runtime.Domain.IsExternalQueueUsable;
 
-        if (!TryEnterExternalMaintenance(owner.GetResourceRecord(0).Id, isDrainRequired, out ExternalDrainPhase phase))
+        if (!TryEnterExternalMaintenance(owner, isDrainRequired, out ExternalDrainPhase phase))
         {
             return false;
         }
@@ -560,12 +560,20 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
     /// <summary>
     /// Moves the maintenance record of the current slot to the phase the next pass has to run.
     /// </summary>
-    /// <param name="generation">The generation to release the external objects of.</param>
+    /// <param name="owner">The generation to release the external objects of.</param>
     /// <param name="isDrainRequired">Whether the external queue still has to drain the generation.</param>
     /// <param name="phase">The phase the next pass has to run.</param>
     /// <returns>Whether a phase has to run.</returns>
-    private bool TryEnterExternalMaintenance(ResourceGenerationId generation, bool isDrainRequired, out ExternalDrainPhase phase)
+    /// <remarks>
+    /// The generation is revalidated here, under the same exclusion the request is made under. The caller read
+    /// its pending release outside the exclusion, so a pass that stalled after that read can arrive after
+    /// another pass completed the whole cycle and the record was reset. Requesting again would drain the
+    /// generation a second time, and the external queue would observe a duplicate signal.
+    /// </remarks>
+    private bool TryEnterExternalMaintenance(ResourceGenerationOwner owner, bool isDrainRequired, out ExternalDrainPhase phase)
     {
+        ResourceGenerationId generation = owner.GetResourceRecord(0).Id;
+
         bool taken = false;
 
         phase = ExternalDrainPhase.ExternalRelease;
@@ -581,6 +589,11 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
             if (this.maintenance.IsIdle)
             {
+                if (owner.GetResourceRecord(0).IsExternalObjectsReleased)
+                {
+                    return false;
+                }
+
                 if (!this.maintenance.TryRequest(generation) || !this.maintenance.TryQueue())
                 {
                     return false;
