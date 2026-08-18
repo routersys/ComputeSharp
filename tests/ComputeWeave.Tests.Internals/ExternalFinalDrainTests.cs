@@ -1,5 +1,8 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using ComputeWeave.Graphics.Pipelines;
+using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -165,6 +168,38 @@ public class ExternalFinalDrainTests
         Assert.AreEqual(1, provider.SignalCount);
         Assert.AreEqual(1, view.DisposeCount);
         Assert.AreEqual(1, view.CompletedSignalsAtDispose);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void DrainsAGenerationOnceWhenAnExecutorRacesTheDisposal(Device device)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            using Fixture fixture = Create(device, ComputeSharedTextureInitialOwner.External);
+
+            Assert.IsTrue(fixture.Slot.TryEnsure(16, 16, out _));
+
+            IComputeSharedSlot executor = fixture.Slot;
+
+            using ManualResetEventSlim stop = new();
+
+            Task hammer = Task.Run(() =>
+            {
+                while (!stop.IsSet)
+                {
+                    executor.RunMaintenance();
+                }
+            });
+
+            fixture.Resources.Dispose();
+            fixture.Resources.WaitForDisposal();
+
+            stop.Set();
+            hammer.Wait();
+
+            Assert.AreEqual(1, fixture.Provider.SignalCount, $"signal count of iteration {i}");
+        }
     }
 
     [CombinatorialTestMethod]

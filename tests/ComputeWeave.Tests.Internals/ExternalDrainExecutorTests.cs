@@ -27,7 +27,8 @@ public class ExternalDrainExecutorTests
         $"{SlotType}.TryEnsure",
         $"{SlotType}.Dispose",
         $"{SlotType}.WaitForDisposal",
-        $"{SlotType}.TryReplaceGeneration"
+        $"{SlotType}.TryReplaceGeneration",
+        "ComputeInteropResourceSetRuntime.WaitForDisposal"
     ];
 
     private static readonly string[] DrainPhases =
@@ -69,6 +70,19 @@ public class ExternalDrainExecutorTests
             ExecutorEntry,
             string.Join(", ", callers.OrderBy(static caller => caller, System.StringComparer.Ordinal)),
             "the executor gained a caller outside the shared slot interface");
+    }
+
+    [TestMethod]
+    public void RunsTheSharedSlotMaintenanceOnlyFromTheRegistryExecutors()
+    {
+        AssemblyCallGraph graph = AssemblyCallGraph.Read();
+
+        IReadOnlyCollection<string> callers = graph.GetCallers("InteropResourceSetRuntime.RunSharedSlotMaintenance");
+
+        Assert.AreEqual(
+            "DeviceRegistrationRegistry.RunExternalMaintenance",
+            string.Join(", ", callers.OrderBy(static caller => caller, System.StringComparer.Ordinal)),
+            "the shared slot maintenance gained a caller outside the registry executors");
     }
 
     [TestMethod]
