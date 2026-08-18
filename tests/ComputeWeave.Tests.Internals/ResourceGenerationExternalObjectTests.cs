@@ -1,8 +1,10 @@
 using System;
 using ComputeWeave.Memory;
 using ComputeWeave.Resources.Lifetime;
+using ComputeWeave.Resources.Plans;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
+using ComputeWeave.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.Tests.Internals;
@@ -100,6 +102,54 @@ public class ResourceGenerationExternalObjectTests
         owner.ReleaseUnpublished();
 
         Assert.AreEqual(1, externalObject.DisposeCount);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public unsafe void AnUnpublishedGenerationReleasesItsExternalObjectAfterConstruction(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+
+        using FakeInteropScheduler scheduler = new();
+        using ComputeInteropDomain domain = RegisterDomain(graphicsDevice, scheduler);
+
+        Assert.AreEqual(
+            ComputeGenerationDeclarationStatus.Valid,
+            ComputeGenerationDescriber.DescribeInteropSharedTexture(graphicsDevice, 16, 16, out ComputeGenerationDeclaration declaration));
+        Assert.AreEqual(
+            MemoryAdmissionStatus.Admitted,
+            graphicsDevice.TryReserveMemory(declaration.Placement, declaration.SizeInBytes, out MemoryReservationToken token));
+
+        ResourceGenerationOwner owner = new(
+            graphicsDevice,
+            graphicsDevice.ResourceIdentities,
+            ComputeResourceRecovery.Discardable,
+            in token,
+            1,
+            domain);
+
+        Assert.IsTrue(graphicsDevice.TryCreateCommittedResource(in declaration.Description, out ComPtr<ID3D12Resource> created) >= 0);
+
+        using ComPtr<ID3D12Resource> d3D12Resource = created;
+
+        ReadWriteTexture2D<Bgra32, Float4> texture = new(
+            graphicsDevice,
+            d3D12Resource.Get(),
+            16,
+            16,
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+        owner.AttachResource(texture, d3D12Resource.Get(), TrackedResourceState.Common, declaration.SizeInBytes);
+
+        TrackedExternalObject externalObject = new();
+
+        owner.AttachExternalObject(0, externalObject);
+        owner.CompleteConstruction();
+
+        owner.ReleaseUnpublished();
+
+        Assert.AreEqual(1, externalObject.DisposeCount);
+        Assert.AreEqual(ResourceGenerationState.Released, owner.GetResourceRecord(0).ReadLifecycle());
     }
 
     [CombinatorialTestMethod]
