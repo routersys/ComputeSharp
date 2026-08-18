@@ -268,6 +268,7 @@ unsafe partial class GraphicsDevice
         HRESULT hresult = S.S_OK;
         bool isSequenceExhausted = false;
         string operation = "Wait";
+        string diagnosticId = ComputeDiagnosticIds.DeviceTerminal;
 
         lock (this.d3D12ComputeCommandQueueLock)
         {
@@ -284,6 +285,7 @@ unsafe partial class GraphicsDevice
 
                 completionValue = ++this.nextD3D12ComputeFenceValue;
                 operation = "Signal";
+                diagnosticId = ComputeDiagnosticIds.CompletionProofMissing;
 
                 hresult = this.d3D12ComputeCommandQueue.Get()->Signal(this.d3D12ComputeFence.Get(), completionValue);
             }
@@ -296,7 +298,7 @@ unsafe partial class GraphicsDevice
 
         if (hresult < 0)
         {
-            ThrowTerminalQueueFailure(hresult, operation);
+            ThrowTerminalQueueFailure(hresult, operation, diagnosticId);
         }
 
         return new FencePoint(ComputeQueueKind.Compute, completionValue);
@@ -320,6 +322,7 @@ unsafe partial class GraphicsDevice
         HRESULT hresult = S.S_OK;
         bool isSequenceExhausted = false;
         string operation = "Wait";
+        string diagnosticId = ComputeDiagnosticIds.DeviceTerminal;
 
         lock (this.d3D12CopyCommandQueueLock)
         {
@@ -336,6 +339,7 @@ unsafe partial class GraphicsDevice
 
                 completionValue = ++this.nextD3D12CopyFenceValue;
                 operation = "Signal";
+                diagnosticId = ComputeDiagnosticIds.CompletionProofMissing;
 
                 hresult = this.d3D12CopyCommandQueue.Get()->Signal(this.d3D12CopyFence.Get(), completionValue);
             }
@@ -348,7 +352,7 @@ unsafe partial class GraphicsDevice
 
         if (hresult < 0)
         {
-            ThrowTerminalQueueFailure(hresult, operation);
+            ThrowTerminalQueueFailure(hresult, operation, diagnosticId);
         }
 
         return new FencePoint(ComputeQueueKind.Copy, completionValue);
@@ -480,7 +484,7 @@ unsafe partial class GraphicsDevice
 
         if (hresult < 0)
         {
-            ThrowTerminalQueueFailure(hresult, operation);
+            ThrowTerminalQueueFailure(hresult, operation, ComputeDiagnosticIds.DeviceTerminal);
         }
 
         return new FencePoint(ComputeQueueKind.Compute, completionValue);
@@ -491,11 +495,18 @@ unsafe partial class GraphicsDevice
     /// </summary>
     /// <param name="hresult">The <see cref="HRESULT"/> the call failed with.</param>
     /// <param name="operation">The name of the failed call.</param>
+    /// <param name="diagnosticId">The identifier of the diagnostic the failure represents.</param>
     /// <exception cref="InvalidOperationException">Always thrown.</exception>
+    /// <remarks>
+    /// The saved reason is rethrown by every call the terminal device rejects afterwards, so the identifier
+    /// is carried by the reason itself. A failure losing the completion proof of issued work carries the
+    /// completion proof diagnostic, and every other queue failure carries the device terminal one.
+    /// </remarks>
     [DoesNotReturn]
-    internal void ThrowTerminalQueueFailure(HRESULT hresult, string operation)
+    internal void ThrowTerminalQueueFailure(HRESULT hresult, string operation, string diagnosticId)
     {
-        InvalidOperationException reason = new(
+        ComputeDiagnosticException reason = new(
+            diagnosticId,
             $"""The "{operation}" call on the compute queue of the device "{this}" failed with code 0x{(uint)hresult:X8}.""");
 
         MarkDeviceTerminal(reason);
@@ -511,7 +522,8 @@ unsafe partial class GraphicsDevice
     [DoesNotReturn]
     internal void ThrowTerminalSequenceExhaustion(string sequence)
     {
-        InvalidOperationException reason = new(
+        ComputeDiagnosticException reason = new(
+            ComputeDiagnosticIds.DeviceSequenceExhausted,
             $"""The {sequence} sequence of the device "{this}" is exhausted.""");
 
         MarkDeviceTerminal(reason);
@@ -646,7 +658,7 @@ unsafe partial class GraphicsDevice
 
         if (hresult < 0)
         {
-            ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+            ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion", ComputeDiagnosticIds.CompletionProofMissing);
         }
     }
 
@@ -662,7 +674,7 @@ unsafe partial class GraphicsDevice
 
             if (hresult < 0)
             {
-                ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+                ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion", ComputeDiagnosticIds.CompletionProofMissing);
             }
         }
     }
@@ -773,7 +785,7 @@ unsafe partial class GraphicsDevice
 
                     if (hresult < 0)
                     {
-                        ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion");
+                        ThrowTerminalQueueFailure(hresult, "SetEventOnCompletion", ComputeDiagnosticIds.CompletionProofMissing);
                     }
                 }
 

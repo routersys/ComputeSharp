@@ -161,7 +161,10 @@ internal static unsafe partial class ComputeSubmissionExecutor
 
             if (execution.Result < 0)
             {
-                device.ThrowTerminalQueueFailure(execution.Result, execution.FailedOperation);
+                device.ThrowTerminalQueueFailure(
+                    execution.Result,
+                    execution.FailedOperation,
+                    execution.IsExecutionIssued ? ComputeDiagnosticIds.CompletionProofMissing : ComputeDiagnosticIds.DeviceTerminal);
             }
 
             default(InvalidOperationException).ThrowIf(!record.TryMarkCompletionSignaled(), "The submission completion could not be signaled.");
