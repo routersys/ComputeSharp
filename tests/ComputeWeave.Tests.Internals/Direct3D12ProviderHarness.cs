@@ -62,6 +62,102 @@ internal sealed unsafe class Direct3D12ExternalQueue : IDisposable
         return new Direct3D12ExternalQueue(d3D12Device.Detach(), d3D12Queue.Detach(), adapterLuid);
     }
 
+    public void Write(nint resource, ReadOnlySpan<uint> pixels, int width, int height)
+    {
+        uint rowPitch = (uint)(((width * sizeof(uint)) + (D3D12.D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12.D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
+        ulong uploadLength = (ulong)rowPitch * (uint)height;
+
+        using ComPtr<ID3D12Resource> upload = default;
+
+        D3D12_HEAP_PROPERTIES heapProperties = new(D3D12_HEAP_TYPE.D3D12_HEAP_TYPE_UPLOAD);
+        D3D12_RESOURCE_DESC uploadDescription = D3D12_RESOURCE_DESC.Buffer(uploadLength);
+
+        ThrowIfFailed(this.d3D12Device.Get()->CreateCommittedResource(
+            &heapProperties,
+            D3D12_HEAP_FLAGS.D3D12_HEAP_FLAG_NONE,
+            &uploadDescription,
+            D3D12_RESOURCE_STATES.D3D12_RESOURCE_STATE_GENERIC_READ,
+            null,
+            Windows.__uuidof<ID3D12Resource>(),
+            (void**)upload.GetAddressOf()));
+
+        void* mapped;
+
+        ThrowIfFailed(upload.Get()->Map(0, null, &mapped));
+
+        fixed (uint* source = pixels)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                Buffer.MemoryCopy(
+                    source + ((nint)y * width),
+                    (byte*)mapped + ((nuint)y * rowPitch),
+                    rowPitch,
+                    (uint)(width * sizeof(uint)));
+            }
+        }
+
+        upload.Get()->Unmap(0, null);
+
+        using ComPtr<ID3D12CommandAllocator> allocator = default;
+        using ComPtr<ID3D12GraphicsCommandList> list = default;
+
+        ThrowIfFailed(this.d3D12Device.Get()->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT,
+            Windows.__uuidof<ID3D12CommandAllocator>(),
+            (void**)allocator.GetAddressOf()));
+        ThrowIfFailed(this.d3D12Device.Get()->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE.D3D12_COMMAND_LIST_TYPE_DIRECT,
+            allocator.Get(),
+            null,
+            Windows.__uuidof<ID3D12GraphicsCommandList>(),
+            (void**)list.GetAddressOf()));
+
+        D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = new()
+        {
+            Offset = 0,
+            Footprint = new D3D12_SUBRESOURCE_FOOTPRINT
+            {
+                Format = DXGI_FORMAT.DXGI_FORMAT_B8G8R8A8_UNORM,
+                Width = (uint)width,
+                Height = (uint)height,
+                Depth = 1,
+                RowPitch = rowPitch
+            }
+        };
+
+        D3D12_TEXTURE_COPY_LOCATION source2 = new(upload.Get(), footprint);
+        D3D12_TEXTURE_COPY_LOCATION destination = new((ID3D12Resource*)resource, 0);
+
+        list.Get()->CopyTextureRegion(&destination, 0, 0, 0, &source2, null);
+
+        ThrowIfFailed(list.Get()->Close());
+
+        ID3D12CommandList* lists = (ID3D12CommandList*)list.Get();
+
+        this.d3D12Queue.Get()->ExecuteCommandLists(1, &lists);
+
+        WaitForIdle();
+    }
+
+    private void WaitForIdle()
+    {
+        using ComPtr<ID3D12Fence> fence = default;
+
+        ThrowIfFailed(this.d3D12Device.Get()->CreateFence(
+            0,
+            D3D12_FENCE_FLAGS.D3D12_FENCE_FLAG_NONE,
+            Windows.__uuidof<ID3D12Fence>(),
+            (void**)fence.GetAddressOf()));
+        ThrowIfFailed(this.d3D12Queue.Get()->Signal(fence.Get(), 1));
+
+        if (fence.Get()->GetCompletedValue() < 1)
+        {
+            ThrowIfFailed(fence.Get()->SetEventOnCompletion(1, HANDLE.NULL));
+        }
+    }
+
     public void Dispose()
     {
         this.d3D12Queue.Dispose();
