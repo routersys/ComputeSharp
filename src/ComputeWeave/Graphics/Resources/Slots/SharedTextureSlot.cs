@@ -1152,7 +1152,16 @@ public sealed unsafe class SharedTextureSlot<T, TPixel, TView> : IComputeSharedR
 
             TView view = endpoint.OpenSharedTexture(new BorrowedSharedHandle((nint)sharedHandle.Value), in textureDescriptor);
 
-            owner.AttachExternalObject(0, view);
+            try
+            {
+                owner.AttachExternalObject(0, view);
+            }
+            catch
+            {
+                view.Dispose();
+
+                throw;
+            }
         }
         finally
         {

@@ -259,6 +259,8 @@ internal sealed unsafe class ResourceGenerationOwner : IResourceGenerationOwner
 
     public void ReleaseUnpublished()
     {
+        _ = TryReleaseExternalObjects();
+
         for (int i = ResourceCount - 1; i >= 0; i--)
         {
             ref ResourceGenerationRecord record = ref GetResourceRecord(i);
