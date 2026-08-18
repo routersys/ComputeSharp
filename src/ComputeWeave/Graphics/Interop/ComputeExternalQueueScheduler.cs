@@ -275,16 +275,18 @@ public abstract class ComputeExternalQueueScheduler : IDisposable
         /// <inheritdoc/>
         protected override void EnterCore()
         {
-            default(InvalidOperationException).ThrowIf(
+            default(ComputeDiagnosticException).ThrowIf(
                 Interlocked.CompareExchange(ref this.isReserved, 1, 0) != 0,
+                ComputeDiagnosticIds.SchedulerBusy,
                 "External queue scheduler is busy or reentered.");
         }
 
         /// <inheritdoc/>
         protected override void ExitCore()
         {
-            default(InvalidOperationException).ThrowIf(
+            default(ComputeDiagnosticException).ThrowIf(
                 Interlocked.Exchange(ref this.isReserved, 0) != 1,
+                ComputeDiagnosticIds.SchedulerContract,
                 "Scheduler exit invariant failed.");
         }
 
