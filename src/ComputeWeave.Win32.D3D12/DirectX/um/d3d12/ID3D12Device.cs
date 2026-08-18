@@ -272,4 +272,11 @@ internal unsafe partial struct ID3D12Device : IComObject
     {
         ((delegate* unmanaged[MemberFunction]<ID3D12Device*, D3D12_RESOURCE_DESC*, uint, uint, ulong, D3D12_PLACED_SUBRESOURCE_FOOTPRINT*, uint*, ulong*, ulong*, void>)(lpVtbl[38]))((ID3D12Device*)Unsafe.AsPointer(ref this), pResourceDesc, FirstSubresource, NumSubresources, BaseOffset, pLayouts, pNumRows, pRowSizeInBytes, pTotalBytes);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [VtblIndex(43)]
+    public LUID GetAdapterLuid()
+    {
+        return ((delegate* unmanaged[MemberFunction]<ID3D12Device*, LUID>)(lpVtbl[43]))((ID3D12Device*)Unsafe.AsPointer(ref this));
+    }
 }
