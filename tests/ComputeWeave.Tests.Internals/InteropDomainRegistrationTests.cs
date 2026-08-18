@@ -207,8 +207,9 @@ public unsafe partial class InteropDomainRegistrationTests
 
         FakeInteropProvider provider = new(graphicsDevice, scheduler);
 
-        _ = Assert.ThrowsException<InvalidOperationException>(() => graphicsDevice.RegisterExternalDomain(provider));
+        ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(() => graphicsDevice.RegisterExternalDomain(provider));
 
+        Assert.AreEqual("CMPW1002", rejection.DiagnosticId);
         Assert.AreEqual(0, provider.InitializeCount);
         Assert.AreEqual(1, provider.DisposeCount);
     }

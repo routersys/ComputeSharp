@@ -234,7 +234,9 @@ public unsafe class SharedTextureGenerationTests
         {
             fixture.Resources.Dispose();
 
-            _ = Assert.ThrowsException<InvalidOperationException>(() => _ = fixture.Slot.TryEnsure(16, 16, out _));
+            ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(() => _ = fixture.Slot.TryEnsure(16, 16, out _));
+
+            Assert.AreEqual("CMPW1002", rejection.DiagnosticId);
         }
         finally
         {

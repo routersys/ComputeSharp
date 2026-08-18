@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using ComputeWeave.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -70,7 +71,9 @@ public class ExternalQueueSchedulerTests
 
         first.EnterReservation();
 
-        _ = Assert.ThrowsException<InvalidOperationException>(second.EnterReservation);
+        ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(second.EnterReservation);
+
+        Assert.AreEqual("CMPW3007", rejection.DiagnosticId);
 
         first.ExitReservation();
 
@@ -90,7 +93,9 @@ public class ExternalQueueSchedulerTests
 
         registration.EnterReservation();
 
-        _ = Assert.ThrowsException<InvalidOperationException>(registration.EnterReservation);
+        ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(registration.EnterReservation);
+
+        Assert.AreEqual("CMPW3007", rejection.DiagnosticId);
 
         registration.ExitReservation();
         registration.Release();
@@ -106,6 +111,19 @@ public class ExternalQueueSchedulerTests
         _ = Assert.ThrowsException<InvalidOperationException>(registration.ExitReservation);
 
         registration.Release();
+    }
+
+    [TestMethod]
+    public void TheBuiltInSchedulerNamesItsExitContractViolation()
+    {
+        using ComputeExternalQueueScheduler scheduler = ComputeExternalQueueScheduler.Create();
+
+        MethodInfo method = typeof(ComputeExternalQueueScheduler).GetMethod("ExitCore", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        TargetInvocationException invocation = Assert.ThrowsException<TargetInvocationException>(() => method.Invoke(scheduler, null));
+
+        Assert.IsInstanceOfType<ComputeDiagnosticException>(invocation.InnerException);
+        Assert.AreEqual("CMPW3005", ((ComputeDiagnosticException)invocation.InnerException!).DiagnosticId);
     }
 
     [TestMethod]

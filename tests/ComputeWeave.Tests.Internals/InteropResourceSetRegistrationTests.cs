@@ -296,12 +296,13 @@ public class InteropResourceSetRegistrationTests
 
         Assert.IsTrue(domain.IsDisposed);
 
-        _ = Assert.ThrowsException<InvalidOperationException>(() => ComputeInteropResourceSetRuntime.Create(
+        ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(() => ComputeInteropResourceSetRuntime.Create(
             graphicsDevice,
             domain,
             ResourceSetDescriptor(1),
             CreateSlots(1)));
 
+        Assert.AreEqual("CMPW3003", rejection.DiagnosticId);
         Assert.AreEqual(1, provider.DisposeCount);
     }
 

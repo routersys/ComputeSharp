@@ -145,7 +145,9 @@ public class ExternalViewLeaseTests
 
         int reservations = fixture.Scheduler.EnterCount;
 
-        _ = Assert.ThrowsException<InvalidOperationException>(() => { _ = fixture.Slot.BeginExternalOperation().IsValid; });
+        ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(() => { _ = fixture.Slot.BeginExternalOperation().IsValid; });
+
+        Assert.AreEqual("CMPW4002", rejection.DiagnosticId);
 
         Assert.AreEqual(reservations + 1, fixture.Scheduler.EnterCount);
         Assert.AreEqual(fixture.Scheduler.EnterCount, fixture.Scheduler.ExitCount);
@@ -162,7 +164,9 @@ public class ExternalViewLeaseTests
 
         using (BorrowedExternalTextureView<FakeExternalView> borrow = fixture.Slot.BeginExternalOperation())
         {
-            _ = Assert.ThrowsException<InvalidOperationException>(() => { _ = fixture.Slot.BeginExternalOperation().IsValid; });
+            ComputeDiagnosticException rejection = Assert.ThrowsException<ComputeDiagnosticException>(() => { _ = fixture.Slot.BeginExternalOperation().IsValid; });
+
+            Assert.AreEqual("CMPW3004", rejection.DiagnosticId);
 
             Assert.AreEqual(1, fixture.Record.ExternalReferenceCount);
         }

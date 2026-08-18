@@ -354,6 +354,8 @@ public unsafe partial class DeviceRegistrationRegistryTests
         Assert.AreEqual(RegistrationState.Released, runtime.State);
         Assert.AreEqual(0, registry.HostCount);
 
-        _ = Assert.ThrowsExactly<InvalidOperationException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1)));
+        ComputeDiagnosticException rejection = Assert.ThrowsExactly<ComputeDiagnosticException>(() => registry.RegisterHost(CreateHostDescriptor(1), 1, Slots(1)));
+
+        Assert.AreEqual("CMPW1002", rejection.DiagnosticId);
     }
 }
