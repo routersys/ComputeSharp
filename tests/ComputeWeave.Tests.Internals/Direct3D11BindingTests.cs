@@ -28,7 +28,11 @@ public class Direct3D11BindingTests
         ("ID3D11DeviceContext4", "Wait", 148),
         ("ID2D1DeviceContext", "CreateBitmapFromDxgiSurface", 62),
         ("IDXGIDevice", "GetAdapter", 7),
-        ("IDXGIAdapter", "GetDesc", 8)
+        ("IDXGIAdapter", "GetDesc", 8),
+        ("ID3D12Device", "GetAdapterLuid", 43),
+        ("ID3D12Device", "OpenSharedHandle", 32),
+        ("ID3D12CommandQueue", "Signal", 14),
+        ("ID3D12CommandQueue", "Wait", 15)
     ];
 
     /// <summary>
