@@ -15,4 +15,7 @@ internal static partial class Windows
 
     [NativeTypeName("#define GENERIC_ALL (0x10000000L)")]
     public const uint GENERIC_ALL = (0x10000000);
+
+    [NativeTypeName("#define WT_EXECUTEONLYONCE 0x00000008")]
+    public const uint WT_EXECUTEONLYONCE = (0x00000008);
 }
