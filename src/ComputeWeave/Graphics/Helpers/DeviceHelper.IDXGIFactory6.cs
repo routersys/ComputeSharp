@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using ComputeWeave.Core.Extensions;
 using ComputeWeave.Win32;
 
@@ -101,7 +102,7 @@ partial class DeviceHelper
     /// <summary>
     /// A custom <see cref="IDXGIFactory6"/> fallback implementation to use on systems with no support for it.
     /// </summary>
-    private unsafe struct IDXGIFactory4As6Backcompat
+    internal unsafe struct IDXGIFactory4As6Backcompat
     {
         /// <summary>
         /// The shared method table pointer for all <see cref="IDXGIFactory4As6Backcompat"/> instances.
@@ -118,6 +119,8 @@ partial class DeviceHelper
 
             new Span<IntPtr>(lpVtbl, 30).Clear();
 
+            lpVtbl[0] = (delegate* unmanaged[MemberFunction]<IDXGIFactory4As6Backcompat*, Guid*, void**, int>)&QueryInterface;
+            lpVtbl[1] = (delegate* unmanaged[MemberFunction]<IDXGIFactory4As6Backcompat*, uint>)&AddRef;
             lpVtbl[2] = (delegate* unmanaged[MemberFunction]<IDXGIFactory4As6Backcompat*, uint>)&Release;
             lpVtbl[7] = (delegate* unmanaged[MemberFunction]<IDXGIFactory4As6Backcompat*, uint, IDXGIAdapter**, int>)&EnumAdapters;
             lpVtbl[27] = (delegate* unmanaged[MemberFunction]<IDXGIFactory4As6Backcompat*, Guid*, void**, int>)&EnumWarpAdapter;
@@ -137,6 +140,11 @@ partial class DeviceHelper
         private ComPtr<IDXGIFactory4> dxgiFactory4;
 
         /// <summary>
+        /// The current reference count for the object (from <c>IUnknown</c>).
+        /// </summary>
+        private volatile int referenceCount;
+
+        /// <summary>
         /// Creates and initializes a new <see cref="IDXGIFactory4As6Backcompat"/> instance.
         /// </summary>
         /// <param name="dxgiFactory4">The <see cref="IDXGIFactory4"/> instance to wrap.</param>
@@ -147,19 +155,56 @@ partial class DeviceHelper
 
             @this->lpVtbl = Vtbl;
             @this->dxgiFactory4 = new ComPtr<IDXGIFactory4>(dxgiFactory4);
+            @this->referenceCount = 1;
 
             *dxgiFactory6 = (IDXGIFactory6*)@this;
+        }
+
+        /// <inheritdoc cref="IUnknown.QueryInterface"/>
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvMemberFunction)])]
+        private static int QueryInterface(IDXGIFactory4As6Backcompat* @this, Guid* riid, void** ppvObject)
+        {
+            if (ppvObject is null)
+            {
+                return E.E_POINTER;
+            }
+
+            if (riid->Equals(Windows.__uuidof<IUnknown>()) ||
+                riid->Equals(Windows.__uuidof<IDXGIFactory6>()))
+            {
+                _ = Interlocked.Increment(ref @this->referenceCount);
+
+                *ppvObject = @this;
+
+                return S.S_OK;
+            }
+
+            *ppvObject = null;
+
+            return E.E_NOINTERFACE;
+        }
+
+        /// <inheritdoc cref="IUnknown.AddRef"/>
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvMemberFunction)])]
+        private static uint AddRef(IDXGIFactory4As6Backcompat* @this)
+        {
+            return (uint)Interlocked.Increment(ref @this->referenceCount);
         }
 
         /// <inheritdoc cref="IUnknown.Release"/>
         [UnmanagedCallersOnly(CallConvs = [typeof(CallConvMemberFunction)])]
         private static uint Release(IDXGIFactory4As6Backcompat* @this)
         {
-            @this->dxgiFactory4.Dispose();
+            uint referenceCount = (uint)Interlocked.Decrement(ref @this->referenceCount);
 
-            NativeMemory.Free(@this);
+            if (referenceCount == 0)
+            {
+                @this->dxgiFactory4.Dispose();
 
-            return 0;
+                NativeMemory.Free(@this);
+            }
+
+            return referenceCount;
         }
 
         /// <inheritdoc cref="IDXGIFactory6.EnumAdapters(uint, IDXGIAdapter**)"/>
