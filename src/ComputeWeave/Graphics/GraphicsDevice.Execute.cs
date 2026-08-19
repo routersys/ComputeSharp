@@ -699,6 +699,8 @@ unsafe partial class GraphicsDevice
         /// The event handle set when the target fence value is reached.
         /// </summary>
         public HANDLE EventHandle;
+
+        public HANDLE WaitHandle;
     }
 
     /// <summary>
@@ -718,8 +720,6 @@ unsafe partial class GraphicsDevice
     {
         HANDLE eventHandle = Windows.CreateEventW(null, Windows.FALSE, Windows.FALSE, null);
 
-        device.d3D12ComputeFence.Get()->SetEventOnCompletion(d3D12FenceValue, eventHandle).Assert();
-
         WaitForFenceValueTaskSource waitForFenceValueTaskSource = WaitForFenceValueTaskSource.Rent();
         CallbackContext* callbackContext = (CallbackContext*)NativeMemory.Alloc((nuint)sizeof(CallbackContext));
 
@@ -728,6 +728,7 @@ unsafe partial class GraphicsDevice
         callbackContext->D3D12GraphicsCommandList = d3D12GraphicsCommandList;
         callbackContext->D3D12CommandAllocator = d3D12CommandAllocator;
         callbackContext->EventHandle = eventHandle;
+        callbackContext->WaitHandle = default;
 
         HANDLE waitHandle;
 
@@ -739,19 +740,57 @@ unsafe partial class GraphicsDevice
             Callback: &WaitForSingleObjectCallbackForWaitForFenceAsync,
             Context: callbackContext,
             dwMilliseconds: Windows.INFINITE,
-            dwFlags: 0);
+            dwFlags: Windows.WT_EXECUTEONLYONCE);
 
         // The register is successful if the return value is nonzero
         if (result == 0)
         {
-            device.GetReferenceTracker().DangerousRelease();
-
-            NativeMemory.Free(callbackContext);
+            ReleaseCallbackContext(device, callbackContext, d3D12FenceValue);
 
             default(Win32Exception).Throw(E.E_FAIL);
         }
 
+        callbackContext->WaitHandle = waitHandle;
+
+        HRESULT setEventOnCompletionResult = device.d3D12ComputeFence.Get()->SetEventOnCompletion(d3D12FenceValue, eventHandle);
+
+        if (Windows.FAILED(setEventOnCompletionResult))
+        {
+            _ = Windows.UnregisterWait(waitHandle);
+
+            ReleaseCallbackContext(device, callbackContext, d3D12FenceValue);
+        }
+
+        setEventOnCompletionResult.Assert();
+
         return waitForFenceValueTaskSource;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static void ReleaseCallbackContext(GraphicsDevice device, CallbackContext* callbackContext, ulong d3D12FenceValue)
+        {
+            ID3D12GraphicsCommandList* d3D12GraphicsCommandList = callbackContext->D3D12GraphicsCommandList;
+            ID3D12CommandAllocator* d3D12CommandAllocator = callbackContext->D3D12CommandAllocator;
+
+            callbackContext->WaitForFenceValueTaskSourceHandle.Free();
+            callbackContext->GraphicsDeviceHandle.Free();
+
+            _ = Windows.CloseHandle(callbackContext->EventHandle);
+
+            NativeMemory.Free(callbackContext);
+
+            try
+            {
+                device.computeCommandListPool.ReturnWhenCompleted(
+                    d3D12GraphicsCommandList,
+                    d3D12CommandAllocator,
+                    d3D12FenceValue,
+                    null);
+            }
+            finally
+            {
+                device.GetReferenceTracker().DangerousRelease();
+            }
+        }
     }
 
     /// <summary>
@@ -769,6 +808,7 @@ unsafe partial class GraphicsDevice
         ID3D12GraphicsCommandList* d3D12GraphicsCommandList = callbackContext->D3D12GraphicsCommandList;
         ID3D12CommandAllocator* d3D12CommandAllocator = callbackContext->D3D12CommandAllocator;
         HANDLE eventHandle = callbackContext->EventHandle;
+        HANDLE waitHandle = callbackContext->WaitHandle;
 
         callbackContext->WaitForFenceValueTaskSourceHandle.Free();
         callbackContext->GraphicsDeviceHandle.Free();
@@ -777,6 +817,8 @@ unsafe partial class GraphicsDevice
 
         // Decrement the reference count that was incremented when scheduling the completion callback
         device.GetReferenceTracker().DangerousRelease();
+
+        _ = Windows.UnregisterWait(waitHandle);
 
         _ = Windows.CloseHandle(eventHandle);
 
