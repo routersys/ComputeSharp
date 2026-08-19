@@ -118,7 +118,7 @@ unsafe partial class GraphicsDevice
             Callback: &WaitForSingleObjectCallbackForRegisterDeviceLostCallback,
             Context: (void*)GCHandle.ToIntPtr(handle),
             dwMilliseconds: Windows.INFINITE,
-            dwFlags: 0);
+            dwFlags: Windows.WT_EXECUTEONLYONCE);
 
         deviceRemovedEvent = eventHandle;
         deviceRemovedWaitHandle = waitHandle;
