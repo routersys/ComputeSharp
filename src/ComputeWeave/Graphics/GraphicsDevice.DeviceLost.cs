@@ -96,12 +96,10 @@ unsafe partial class GraphicsDevice
     /// Registers a callback to notify whenever the current device is lost.
     /// </summary>
     /// <param name="device">The current <see cref="GraphicsDevice"/> instance.</param>
-    /// <param name="deviceHandle">The resulting <see cref="GCHandle"/> used as callback state.</param>
     /// <param name="deviceRemovedEvent">The resulting device lost event for the callback.</param>
     /// <param name="deviceRemovedWaitHandle">The resulting device lost wait handle for the callback.</param>
     private static void RegisterDeviceLostCallback(
         GraphicsDevice device,
-        out GCHandle deviceHandle,
         out HANDLE deviceRemovedEvent,
         out HANDLE deviceRemovedWaitHandle)
     {
@@ -122,7 +120,6 @@ unsafe partial class GraphicsDevice
             dwMilliseconds: Windows.INFINITE,
             dwFlags: 0);
 
-        deviceHandle = handle;
         deviceRemovedEvent = eventHandle;
         deviceRemovedWaitHandle = waitHandle;
     }
@@ -133,21 +130,7 @@ unsafe partial class GraphicsDevice
     /// <param name="device">The current <see cref="GraphicsDevice"/> instance.</param>
     private static void UnregisterDeviceLostCallback(GraphicsDevice device)
     {
-        // As per the UnregisterWait docs:
-        // "If any callback functions associated with the timer have not completed when UnregisterWait is called,
-        // UnregisterWait unregisters the wait on the callback functions and fails with the ERROR_IO_PENDING error code."
-        // To ensure the handle is always correctly disposed, there are three scenarios to take into account:
-        //   1) If the callback is executed first and has completed, this call will return S_OK. No additional cleanup
-        //      is needed, as the wait callback will have already freed the handle. In that case, do nothing.
-        //   2) If the callback is pending, this call will return ERROR_IO_PENDING. If that happens, no additional work
-        //      is needed in this case either, as the callback will take care of freeing the handle during execution.
-        //   3) If the callback has never been invoked, the handle can safely be freed.
-        // In all cases, the OS will take care of checking against race conditions, so no interlocked APIs are needed.
-        if (Windows.UnregisterWait(device.deviceRemovedWaitHandle) == S.S_OK &&
-            device.deviceHandle.IsAllocated)
-        {
-            device.deviceHandle.Free();
-        }
+        _ = Windows.UnregisterWait(device.deviceRemovedWaitHandle);
 
         _ = Windows.CloseHandle(device.deviceRemovedEvent);
     }
@@ -166,11 +149,8 @@ unsafe partial class GraphicsDevice
         // Since the GCHandle is weak, it's possible that if the callback races against the finalizer thread,
         // the call to UnregisterDeviceLostCallback might not be able to unregister the wait before the object
         // is collected, which causes the GCHandle to return null. To guard against this, it is crucial to
-        // free the handle from the input context, and not by trying to get the one stored in the field on
-        // the target object, as that might just be null. The handle is guaranteed to be allocated when the
-        // callback is executed. Freeing it from here is needed so that the cleanup upon disposal might skip
-        // it if there's a pending execution. That ensures the handle is always disposed, without the disposal
-        // path having to lock and wait for it.
+        // free the handle from the input context. The handle is guaranteed to be allocated when the
+        // callback is executed.
         handle.Free();
 
         // If the device is available, then also queue the device lost event to be raised on the thread pool

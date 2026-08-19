@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using ComputeWeave.Graphics.Commands.Interop;
 using ComputeWeave.Graphics.Extensions;
@@ -93,11 +92,6 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
     /// The <see cref="ID3D12MemoryAllocator"/> in use associated to the current device, if available.
     /// </summary>
     private ComPtr<ID3D12MemoryAllocator> allocator;
-
-    /// <summary>
-    /// A weak <see cref="GCHandle"/> to the current instance (used to support the device lost callback).
-    /// </summary>
-    private GCHandle deviceHandle;
 
     /// <summary>
     /// The event for the device removed callback.
@@ -194,7 +188,7 @@ public sealed unsafe partial class GraphicsDevice : IReferenceTrackedObject
         this.cachedPipelineData = [];
         this.resourceIdentities = new ResourceIdentityAllocator(this);
 
-        RegisterDeviceLostCallback(this, out this.deviceHandle, out this.deviceRemovedEvent, out this.deviceRemovedWaitHandle);
+        RegisterDeviceLostCallback(this, out this.deviceRemovedEvent, out this.deviceRemovedWaitHandle);
     }
 
     /// <summary>
