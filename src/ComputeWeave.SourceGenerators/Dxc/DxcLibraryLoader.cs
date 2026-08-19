@@ -167,7 +167,7 @@ internal sealed unsafe class DxcLibraryLoader
 
         _ = Directory.CreateDirectory(folder);
 
-        if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream existingLibrary)
+        if (TryOpenVerifiedLibrary(targetFilename, expectedHash, out _) is FileStream existingLibrary)
         {
             return existingLibrary;
         }
@@ -193,7 +193,7 @@ internal sealed unsafe class DxcLibraryLoader
 
             for (int attempt = 0; ; attempt++)
             {
-                if (TryOpenVerifiedLibrary(targetFilename, expectedHash) is FileStream publishedLibrary)
+                if (TryOpenVerifiedLibrary(targetFilename, expectedHash, out _) is FileStream publishedLibrary)
                 {
                     return publishedLibrary;
                 }
@@ -217,8 +217,20 @@ internal sealed unsafe class DxcLibraryLoader
                 }
             }
 
-            return TryOpenVerifiedLibrary(targetFilename, expectedHash) ??
-                throw new InvalidDataException("The published DXC library does not match its embedded source.");
+            for (int attempt = 0; ; attempt++)
+            {
+                if (TryOpenVerifiedLibrary(targetFilename, expectedHash, out bool isAbsent) is FileStream verifiedLibrary)
+                {
+                    return verifiedLibrary;
+                }
+
+                if (!isAbsent || attempt == CacheOpenRetryCount)
+                {
+                    throw new InvalidDataException("The published DXC library does not match its embedded source.");
+                }
+
+                Thread.Sleep(CacheOpenRetryDelayMilliseconds);
+            }
         }
         finally
         {
@@ -296,13 +308,16 @@ internal sealed unsafe class DxcLibraryLoader
     /// </summary>
     /// <param name="targetFilename">The cached path of the library.</param>
     /// <param name="expectedHash">The hash the cached library is expected to have.</param>
+    /// <param name="isAbsent">Whether the cached library was absent rather than corrupt.</param>
     /// <returns>A read handle over the cached library, or <see langword="null"/> if it is absent or corrupt.</returns>
     /// <remarks>
     /// Another process publishing the library holds it while it does so, so the open is retried before the
     /// library is reported as absent.
     /// </remarks>
-    private static FileStream? TryOpenVerifiedLibrary(string targetFilename, byte[] expectedHash)
+    private static FileStream? TryOpenVerifiedLibrary(string targetFilename, byte[] expectedHash, out bool isAbsent)
     {
+        isAbsent = false;
+
         for (int attempt = 0; ; attempt++)
         {
             FileStream? stream = null;
@@ -325,6 +340,8 @@ internal sealed unsafe class DxcLibraryLoader
             catch (FileNotFoundException)
             {
                 stream?.Dispose();
+
+                isAbsent = true;
 
                 return null;
             }
