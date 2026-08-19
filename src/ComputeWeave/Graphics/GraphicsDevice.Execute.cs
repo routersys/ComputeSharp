@@ -756,9 +756,12 @@ unsafe partial class GraphicsDevice
 
         if (Windows.FAILED(setEventOnCompletionResult))
         {
-            _ = Windows.UnregisterWait(waitHandle);
+            int unregisterResult = Windows.UnregisterWait(waitHandle);
 
-            ReleaseCallbackContext(device, callbackContext, d3D12FenceValue);
+            if (unregisterResult != 0)
+            {
+                ReleaseCallbackContext(device, callbackContext, d3D12FenceValue);
+            }
         }
 
         setEventOnCompletionResult.Assert();
