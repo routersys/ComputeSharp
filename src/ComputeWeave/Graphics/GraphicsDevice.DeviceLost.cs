@@ -110,7 +110,7 @@ unsafe partial class GraphicsDevice
         device.d3D12ComputeFence.Get()->SetEventOnCompletion(ulong.MaxValue, eventHandle).Assert();
 
         GCHandle handle = GCHandle.Alloc(device, GCHandleType.Weak);
-        HANDLE waitHandle;
+        HANDLE waitHandle = default;
 
         _ = Windows.RegisterWaitForSingleObject(
             phNewWaitObject: &waitHandle,
