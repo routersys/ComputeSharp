@@ -111,7 +111,7 @@ internal static class WICFormatHelper
     /// <exception cref="ArgumentException">Thrown when the input filename doesn't have a valid file extension.</exception>
     public static unsafe Guid GetForFilename(ReadOnlySpan<char> filename)
     {
-        Span<char> extension = stackalloc char[4];
+        Span<char> extension = stackalloc char[5];
 
         int length = Path.GetExtension(filename).ToLowerInvariant(extension);
 
