@@ -362,7 +362,7 @@ public readonly unsafe ref struct TextureView3D<T>
     /// <returns>Whether or not <paramref name="span"/> was correctly assigned.</returns>
     public bool TryGetSpan(out Span<T> span)
     {
-        if (this.strideInBytes == this.width)
+        if (this.strideInBytes == this.width * sizeof(T))
         {
             span = new(this.pointer, Length);
 
