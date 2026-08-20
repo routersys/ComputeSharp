@@ -84,17 +84,20 @@ internal unsafe struct ManualCopyCommandList : IDisposable
 
         EnsureCommandList();
 
-        this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
-            this.firstResource,
-            this.firstState,
-            D3D12_RESOURCE_STATE_COMMON);
-
-        if (this.resourceCount == 2)
+        if (this.commandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
             this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
-                this.secondResource,
-                this.secondState,
+                this.firstResource,
+                this.firstState,
                 D3D12_RESOURCE_STATE_COMMON);
+
+            if (this.resourceCount == 2)
+            {
+                this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
+                    this.secondResource,
+                    this.secondState,
+                    D3D12_RESOURCE_STATE_COMMON);
+            }
         }
 
         this.commandList.ExecuteAndWaitForCompletion(this.resourceLeases);
@@ -122,17 +125,20 @@ internal unsafe struct ManualCopyCommandList : IDisposable
             this.device,
             this.isComputeQueueRequired ? D3D12_COMMAND_LIST_TYPE_COMPUTE : D3D12_COMMAND_LIST_TYPE_COPY);
 
-        this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
-            this.firstResource,
-            D3D12_RESOURCE_STATE_COMMON,
-            this.firstState);
-
-        if (this.resourceCount == 2)
+        if (this.commandList.D3D12CommandListType == D3D12_COMMAND_LIST_TYPE_COMPUTE)
         {
             this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
-                this.secondResource,
+                this.firstResource,
                 D3D12_RESOURCE_STATE_COMMON,
-                this.secondState);
+                this.firstState);
+
+            if (this.resourceCount == 2)
+            {
+                this.commandList.D3D12GraphicsCommandList->TransitionBarrier(
+                    this.secondResource,
+                    D3D12_RESOURCE_STATE_COMMON,
+                    this.secondState);
+            }
         }
     }
 }
