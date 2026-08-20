@@ -99,6 +99,27 @@ public partial class ManualResourceHazardTests
     }
 
     [TestMethod]
+    public void ManualTexture3DCopyUsesTheComputeQueue()
+    {
+        GraphicsDevice device = GraphicsDevice.GetDefault();
+        using ReadOnlyTexture3D<float> source = device.AllocateReadOnlyTexture3D<float>(16, 16, 4, AllocationMode.Clear);
+        using ReadOnlyTexture3D<float> destination = device.AllocateReadOnlyTexture3D<float>(16, 16, 4, AllocationMode.Clear);
+
+        source.CopyTo(destination, 0, 0, 1, 0, 0, 0, 16, 16, 2);
+
+        ref ResourceGenerationRecord sourceRecord = ref ((IResourceGenerationOwner)source).GetResourceRecord(0);
+        ref ResourceGenerationRecord destinationRecord = ref ((IResourceGenerationOwner)destination).GetResourceRecord(0);
+
+        Assert.AreEqual(ComputeQueueKind.Compute, sourceRecord.LastComputeRead.Queue);
+        Assert.AreNotEqual(0ul, sourceRecord.LastComputeRead.Value);
+        Assert.IsTrue(sourceRecord.LastCopyRead.IsNone);
+        Assert.AreEqual(ComputeQueueKind.Compute, destinationRecord.LastWrite.Queue);
+        Assert.AreNotEqual(0ul, destinationRecord.LastWrite.Value);
+        Assert.AreEqual(TrackedResourceState.Common, sourceRecord.D3D12State);
+        Assert.AreEqual(TrackedResourceState.Common, destinationRecord.D3D12State);
+    }
+
+    [TestMethod]
     public void SharedTextureTransitionThenCopyUsesTheCopyQueue()
     {
         GraphicsDevice device = GraphicsDevice.GetDefault();

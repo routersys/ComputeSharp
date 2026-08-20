@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Add a defined constant for D3D12MA, same as in the main test project -->
+  <PropertyGroup Condition="'$(UseD3D12MemoryAllocator)' == 'true'">
+    <DefineConstants>$(DefineConstants);USE_D3D12MA</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Enable the D3D12 debug layer and GPU-based validation for the whole process, before any device is created -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT" Value="true" Trim="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoConstructor" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="MSTest" Version="3.8.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComputeWeave.Core\ComputeWeave.Core.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.Core.SourceGenerators\ComputeWeave.Core.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D3D12MemoryAllocator\ComputeWeave.D3D12MemoryAllocator.csproj" Condition="'$(UseD3D12MemoryAllocator)' == 'true'" />
+    <ProjectReference Include="..\..\src\ComputeWeave\ComputeWeave.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.SourceGenerators\ComputeWeave.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ComputeWeave.Tests\Attributes\AllDevicesAttribute.cs" Link="Attributes\AllDevicesAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\CombinatorialTestMethodAttribute.cs" Link="Attributes\CombinatorialTestMethodAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\DataAttribute.cs" Link="Attributes\DataAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\DeviceAttribute.cs" Link="Attributes\DeviceAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\AdditionalDataAttribute.cs" Link="Attributes\AdditionalDataAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\AdditionalResourceAttribute.cs" Link="Attributes\AdditionalResourceAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Attributes\ResourceAttribute.cs" Link="Attributes\ResourceAttribute.cs" />
+  </ItemGroup>
+</Project>
