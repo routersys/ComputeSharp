@@ -176,7 +176,7 @@ public readonly unsafe ref struct TextureView2D<T>
         }
         else
         {
-            default(ArgumentException).ThrowIf(destination.Length != Length, nameof(destination));
+            default(ArgumentException).ThrowIf(destination.Length < Length, nameof(destination));
 
             for (int y = 0, j = 0; y < this.height; y++, j += this.width)
             {

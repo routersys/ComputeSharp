@@ -205,6 +205,8 @@ public readonly unsafe ref struct TextureView3D<T>
         }
         else
         {
+            default(ArgumentException).ThrowIf(destination.Length < Length, nameof(destination));
+
             for (int z = 0, j = 0; z < this.depth; z++)
             {
                 for (int y = 0; y < this.height; y++, j += this.width)
