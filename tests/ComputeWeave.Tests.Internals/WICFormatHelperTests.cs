@@ -4,19 +4,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.Tests.Internals;
 
-/// <summary>
-/// Verifies the container format every accepted file extension resolves to.
-/// </summary>
-/// <remarks>
-/// The expected values are written here as literals, taken from the <c>GUID_ContainerFormat</c> definitions
-/// of <c>wincodec.h</c>. Reading them back out of the implementation would assert nothing.
-/// </remarks>
 [TestClass]
 public class WICFormatHelperTests
 {
-    /// <summary>
-    /// The container format each extension the implementation lists must resolve to.
-    /// </summary>
     private static readonly (string Extension, string ContainerFormat)[] Containers =
     [
         (".bmp", "0af1d87e-fcfe-4188-bdeb-a7906471cbe3"),
