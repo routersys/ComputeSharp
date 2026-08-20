@@ -71,7 +71,7 @@ public abstract class StructuredBuffer<T> : Buffer<T>
         else
         {
             nint byteOffset = (nint)sourceOffset * sizeof(T);
-            nint byteLength = count * sizeof(T);
+            nint byteLength = (nint)count * sizeof(T);
 
             using ComPtr<ID3D12Allocation> allocation = default;
             using ComPtr<ID3D12Resource> d3D12Resource = default;
@@ -127,7 +127,7 @@ public abstract class StructuredBuffer<T> : Buffer<T>
         {
             nint sourceByteOffset = (nint)sourceOffset * sizeof(T);
             nint destinationByteOffset = (nint)destinationOffset * sizeof(T);
-            nint byteLength = count * sizeof(T);
+            nint byteLength = (nint)count * sizeof(T);
 
             // Directly copy the input buffer
             using ManualCopyCommandList copyCommandList = new(GraphicsDevice);
@@ -235,7 +235,7 @@ public abstract class StructuredBuffer<T> : Buffer<T>
         else
         {
             nint byteOffset = (nint)offset * sizeof(T);
-            nint byteLength = length * sizeof(T);
+            nint byteLength = (nint)length * sizeof(T);
 
             using ComPtr<ID3D12Allocation> allocation = default;
             using ComPtr<ID3D12Resource> d3D12Resource = default;
