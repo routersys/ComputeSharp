@@ -366,7 +366,7 @@ internal static unsafe class ID3D12DeviceExtensions
     /// <exception cref="Exception">Thrown when the creation of the info queue fails.</exception>
     public static ComPtr<ID3D12InfoQueue> CreateInfoQueue(this ref ID3D12Device d3D12Device)
     {
-        ComPtr<ID3D12InfoQueue> d3D12InfoQueue = default;
+        using ComPtr<ID3D12InfoQueue> d3D12InfoQueue = default;
 
         d3D12Device.QueryInterface(Windows.__uuidof<ID3D12InfoQueue>(), (void**)d3D12InfoQueue.GetAddressOf()).Assert();
 
