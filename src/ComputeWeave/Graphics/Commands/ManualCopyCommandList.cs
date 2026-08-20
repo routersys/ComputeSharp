@@ -4,6 +4,7 @@ using ComputeWeave.Graphics.Pipelines;
 using ComputeWeave.Resources.Lifetime;
 using ComputeWeave.Win32;
 using static ComputeWeave.Win32.D3D12_COMMAND_LIST_TYPE;
+using static ComputeWeave.Win32.D3D12_RESOURCE_DIMENSION;
 using static ComputeWeave.Win32.D3D12_RESOURCE_STATES;
 
 namespace ComputeWeave.Graphics.Commands;
@@ -64,7 +65,9 @@ internal unsafe struct ManualCopyCommandList : IDisposable
 
         TrackedResourceState residentState = new ResourceUsageRecorder(this.resourceLeases).RecordCopy(resource, access);
 
-        this.isComputeQueueRequired |= residentState is not TrackedResourceState.Common;
+        this.isComputeQueueRequired |=
+            residentState is not TrackedResourceState.Common ||
+            d3D12Resource->GetDesc().Dimension is D3D12_RESOURCE_DIMENSION_TEXTURE3D;
 
         if (this.resourceCount++ == 0)
         {
