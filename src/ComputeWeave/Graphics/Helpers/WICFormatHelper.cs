@@ -56,7 +56,7 @@ internal static class WICFormatHelper
             else if (typeof(T) == typeof(Rgba32)) intermediateFormat = GUID.GUID_WICPixelFormat32bppBGRA;
             else if (typeof(T) == typeof(Rgba64)) intermediateFormat = default;
             else if (typeof(T) == typeof(R8)) intermediateFormat = default;
-            else if (typeof(T) == typeof(R16)) intermediateFormat = GUID.GUID_WICPixelFormat8bppGray;
+            else if (typeof(T) == typeof(R16)) intermediateFormat = default;
             else intermediateFormat = default(ArgumentException).Throw<Guid>(nameof(T));
         }
         else if (containerFormat == GUID.GUID_ContainerFormatJpeg)
