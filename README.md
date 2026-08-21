@@ -421,7 +421,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 - `Dispose` requests the release of a registration; `WaitForDisposal` blocks until it has completed. Work still in flight keeps the generation it captured alive.
 - `GraphicsDevice.GetDefault()` caches the device for the process and returns the same instance until it is disposed.
 - The `DeviceLost` event on `GraphicsDevice` is raised at most once per instance. After the device is lost, the public APIs throw `InvalidOperationException`.
-- The `AppContext` switches are named `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`, `COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA` and `COMPUTEWEAVE_ENABLE_GPU_TIMEOUT` since 1.2.0. The `COMPUTESHARP_` names they had before are still honoured when the new ones are not set, so an application that set them keeps its behaviour. Setting them through the `ComputeWeaveEnableDebugOutput`, `ComputeWeaveEnableDeviceRemovedExtendedData` and `ComputeWeaveEnableGpuTimeout` MSBuild properties is unaffected.
+- The `AppContext` switches are named `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`, `COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA` and `COMPUTEWEAVE_ENABLE_GPU_TIMEOUT`. They can also be set through the `ComputeWeaveEnableDebugOutput`, `ComputeWeaveEnableDeviceRemovedExtendedData` and `ComputeWeaveEnableGpuTimeout` MSBuild properties.
 
 ---
 

@@ -35,21 +35,6 @@ internal static class Configuration
     private const string IsGpuTimeoutEnabledPropertyName = "COMPUTEWEAVE_ENABLE_GPU_TIMEOUT";
 
     /// <summary>
-    /// The configuration property name <see cref="IsDebugOutputEnabled"/> had before the library was renamed.
-    /// </summary>
-    private const string IsDebugOutputEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_DEBUG_OUTPUT";
-
-    /// <summary>
-    /// The configuration property name <see cref="IsDeviceRemovedExtendedDataEnabled"/> had before the library was renamed.
-    /// </summary>
-    private const string IsDeviceRemovedExtendedDataEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_DEVICE_REMOVED_EXTENDED_DATA";
-
-    /// <summary>
-    /// The configuration property name <see cref="IsGpuTimeoutEnabled"/> had before the library was renamed.
-    /// </summary>
-    private const string IsGpuTimeoutEnabledLegacyPropertyName = "COMPUTESHARP_ENABLE_GPU_TIMEOUT";
-
-    /// <summary>
     /// The backing field for <see cref="IsDebugOutputEnabled"/>.
     /// </summary>
     private static int isDebugOutputEnabledConfigurationValue;
@@ -70,10 +55,7 @@ internal static class Configuration
     public static bool IsDebugOutputEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(
-            IsDebugOutputEnabledPropertyName,
-            IsDebugOutputEnabledLegacyPropertyName,
-            ref isDebugOutputEnabledConfigurationValue);
+        get => GetConfigurationValue(IsDebugOutputEnabledPropertyName, ref isDebugOutputEnabledConfigurationValue);
     }
 
     /// <summary>
@@ -82,10 +64,7 @@ internal static class Configuration
     public static bool IsDeviceRemovedExtendedDataEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(
-            IsDeviceRemovedExtendedDataEnabledPropertyName,
-            IsDeviceRemovedExtendedDataEnabledLegacyPropertyName,
-            ref isDeviceRemovedExtendedDataEnabledConfigurationValue);
+        get => GetConfigurationValue(IsDeviceRemovedExtendedDataEnabledPropertyName, ref isDeviceRemovedExtendedDataEnabledConfigurationValue);
     }
 
     /// <summary>
@@ -94,24 +73,16 @@ internal static class Configuration
     public static bool IsGpuTimeoutEnabled
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => GetConfigurationValue(
-            IsGpuTimeoutEnabledPropertyName,
-            IsGpuTimeoutEnabledLegacyPropertyName,
-            ref isGpuTimeoutEnabledConfigurationValue);
+        get => GetConfigurationValue(IsGpuTimeoutEnabledPropertyName, ref isGpuTimeoutEnabledConfigurationValue);
     }
 
     /// <summary>
     /// Gets a configuration value for a specified property.
     /// </summary>
     /// <param name="propertyName">The property name to retrieve the value for.</param>
-    /// <param name="legacyPropertyName">The property name the switch had before the library was renamed.</param>
     /// <param name="cachedResult">The cached result for the target configuration value.</param>
     /// <returns>The value of the specified configuration setting.</returns>
-    /// <remarks>
-    /// The current name wins over the legacy one. An application that only sets the legacy name keeps the
-    /// behaviour it had before the rename, so that upgrading never silently changes a switch it relies on.
-    /// </remarks>
-    private static bool GetConfigurationValue(string propertyName, string legacyPropertyName, ref int cachedResult)
+    private static bool GetConfigurationValue(string propertyName, ref int cachedResult)
     {
         // The cached switch value has 3 states:
         //   0: unknown.
@@ -130,9 +101,8 @@ internal static class Configuration
             return true;
         }
 
-        // Get the configuration switch value, the value of the legacy name, or its default
-        if (!AppContext.TryGetSwitch(propertyName, out bool isEnabled) &&
-            !AppContext.TryGetSwitch(legacyPropertyName, out isEnabled))
+        // Get the configuration switch value, or its default
+        if (!AppContext.TryGetSwitch(propertyName, out bool isEnabled))
         {
             isEnabled = GetDefaultConfigurationValue(propertyName);
         }

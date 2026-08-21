@@ -421,7 +421,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 - `Dispose` は登録の解除を要求し、`WaitForDisposal` はそれが完了するまで待ちます。実行中の処理は捕捉した世代を生かし続けます。
 - `GraphicsDevice.GetDefault()` はプロセス内でデバイスをキャッシュし、破棄されるまで同じインスタンスを返します。
 - `GraphicsDevice` の `DeviceLost` イベントは、1つのインスタンスにつき最大1回だけ発火します。デバイスの消失後、公開APIは `InvalidOperationException` を送出します。
-- `AppContext` のスイッチ名は 1.2.0 から `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`、`COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA`、`COMPUTEWEAVE_ENABLE_GPU_TIMEOUT` です。それ以前の `COMPUTESHARP_` の名前は、新しい名前が設定されていない場合に限り引き続き読みます。設定済みのアプリケーションは挙動が変わりません。MSBuild プロパティ `ComputeWeaveEnableDebugOutput`、`ComputeWeaveEnableDeviceRemovedExtendedData`、`ComputeWeaveEnableGpuTimeout` から設定している場合は影響を受けません。
+- `AppContext` のスイッチ名は `COMPUTEWEAVE_ENABLE_DEBUG_OUTPUT`、`COMPUTEWEAVE_ENABLE_DEVICE_REMOVED_EXTENDED_DATA`、`COMPUTEWEAVE_ENABLE_GPU_TIMEOUT` です。MSBuild プロパティ `ComputeWeaveEnableDebugOutput`、`ComputeWeaveEnableDeviceRemovedExtendedData`、`ComputeWeaveEnableGpuTimeout` からも設定できます。
 
 ---
 
