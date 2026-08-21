@@ -106,7 +106,7 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>https://github.com/routersys/ComputeWeave/releases</PackageReleaseNotes>
-    <PackageTags>dotnet;csharp;gpu;compute;compute-shader;directx;direct3d;d3d12;hlsl;shader;source-generator;interop;windows</PackageTags>
+    <PackageTags>dotnet;csharp;gpu;compute;compute-shader;directx;direct3d;d3d12;d3d11;hlsl;shader;source-generator;interop;computesharp;windows</PackageTags>
 
     <!--
       Generate documentation files. In theory this should only be abled for published, non source generator projects.
