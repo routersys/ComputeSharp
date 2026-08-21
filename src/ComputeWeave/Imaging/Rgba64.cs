@@ -6,7 +6,7 @@ using System.Runtime.Intrinsics;
 namespace ComputeWeave;
 
 /// <summary>
-/// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 255.
+/// Packed pixel type containing four 16-bit unsigned normalized values ranging from 0 to 65535.
 /// The color components are stored in red, green, blue, and alpha order (least significant to most significant byte).
 /// <para>
 /// Ranges from [0, 0, 0, 0] to [1, 1, 1, 1] in vector form.

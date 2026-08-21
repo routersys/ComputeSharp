@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace ComputeWeave;
 
 /// <summary>
-/// Packed pixel type containing two 16-bit unsigned normalized values ranging from 0 to 255.
+/// Packed pixel type containing two 16-bit unsigned normalized values ranging from 0 to 65535.
 /// <para>
 /// Ranges from [0, 0, 0, 0] to [1, 1, 0, 0] in vector form.
 /// </para>
