@@ -22,7 +22,7 @@
 
     <!-- Package descriptions-->
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave'">
-<![CDATA[A library for running C# code in parallel on the GPU using DirectX 12 and dynamically generated HLSL compute shaders.]]>
+<![CDATA[A library for running C# code in parallel on the GPU using DirectX 12 and dynamically generated HLSL compute shaders. Derived from ComputeSharp, ComputeWeave adds declarative compute pipelines built from a compile-time descriptor, resource lifetime and cross-queue hazard tracking, Direct3D 11 and Direct3D 12 interoperation through shared fences and shared textures, and GPU memory budgeting, with no managed allocation on the steady-state submission path.]]>
     </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Core'">
 <![CDATA[A library containing the fundamental types underpinning ComputeWeave. It is not intended for direct use by developers.]]>
