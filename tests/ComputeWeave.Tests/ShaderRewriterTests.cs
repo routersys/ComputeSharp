@@ -1655,4 +1655,51 @@ public partial class ShaderRewriterTests
             return buffer[0];
         }
     }
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void LitIntrinsic(Device device)
+    {
+        float[] data = [0.5f, 0.5f, 2f, -1f];
+
+        using ReadOnlyBuffer<float> source = device.Get().AllocateReadOnlyBuffer(data);
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(8);
+
+        device.Get().For(1, new LitIntrinsicShader(source, buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(typeof(float4), typeof(Hlsl).GetMethod(nameof(Hlsl.Lit))!.ReturnType);
+        Assert.AreEqual(1f, result[0], 0.0001f);
+        Assert.AreEqual(0.5f, result[1], 0.0001f);
+        Assert.AreEqual(0.25f, result[2], 0.0001f);
+        Assert.AreEqual(1f, result[3], 0.0001f);
+        Assert.AreEqual(1f, result[4], 0.0001f);
+        Assert.AreEqual(0f, result[5], 0.0001f);
+        Assert.AreEqual(0f, result[6], 0.0001f);
+        Assert.AreEqual(1f, result[7], 0.0001f);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct LitIntrinsicShader : IComputeShader
+    {
+        public readonly ReadOnlyBuffer<float> source;
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            float4 lightened = Hlsl.Lit(source[0], source[1], source[2]);
+            float4 shadowed = Hlsl.Lit(source[3], source[1], source[2]);
+
+            buffer[0] = lightened.X;
+            buffer[1] = lightened.Y;
+            buffer[2] = lightened.Z;
+            buffer[3] = lightened.W;
+            buffer[4] = shadowed.X;
+            buffer[5] = shadowed.Y;
+            buffer[6] = shadowed.Z;
+            buffer[7] = shadowed.W;
+        }
+    }
 }
