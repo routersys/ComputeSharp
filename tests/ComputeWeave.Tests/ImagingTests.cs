@@ -545,16 +545,13 @@ public class ImagingTests
     [AllDevices]
     public void SaveR16AsPng_ToStream_WithReadBackTexture_PreservesEveryChannelBit(Device device)
     {
-        const int Size = 16;
+        const int Size = 256;
 
         R16[] source = new R16[Size * Size];
 
-        for (int y = 0; y < Size; y++)
+        for (int i = 0; i < source.Length; i++)
         {
-            for (int x = 0; x < Size; x++)
-            {
-                source[(y * Size) + x] = new R16((ushort)((x * 4096) + y));
-            }
+            source[i] = new R16((ushort)i);
         }
 
         using ReadOnlyTexture2D<R16, float> texture = device.Get().AllocateReadOnlyTexture2D<R16, float>(source, Size, Size);
