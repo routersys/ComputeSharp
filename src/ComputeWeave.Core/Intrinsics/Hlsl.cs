@@ -88,5 +88,5 @@ public static partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("lit")]
-    public static float Lit(float nDotL, float nDotH, float m) => default;
+    public static Float4 Lit(float nDotL, float nDotH, float m) => default;
 }
