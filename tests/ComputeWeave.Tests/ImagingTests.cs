@@ -540,4 +540,44 @@ public class ImagingTests
 
         texture.Save(typeof(string), null!);
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void SaveR16AsPng_ToStream_WithReadBackTexture_PreservesEveryChannelBit(Device device)
+    {
+        const int Size = 16;
+
+        R16[] source = new R16[Size * Size];
+
+        for (int y = 0; y < Size; y++)
+        {
+            for (int x = 0; x < Size; x++)
+            {
+                source[(y * Size) + x] = new R16((ushort)((x * 4096) + y));
+            }
+        }
+
+        using ReadOnlyTexture2D<R16, float> texture = device.Get().AllocateReadOnlyTexture2D<R16, float>(source, Size, Size);
+        using ReadBackTexture2D<R16> readback = device.Get().AllocateReadBackTexture2D<R16>(Size, Size);
+
+        texture.CopyTo(readback);
+
+        using MemoryStream stream = new();
+
+        readback.Save(stream, ImageFormat.Png);
+
+        stream.Position = 0;
+
+        using UploadTexture2D<R16> loaded = device.Get().LoadUploadTexture2D<R16>(stream);
+
+        TextureView2D<R16> loadedView = loaded.View;
+
+        for (int y = 0; y < Size; y++)
+        {
+            for (int x = 0; x < Size; x++)
+            {
+                Assert.AreEqual(source[(y * Size) + x].R, loadedView[x, y].R);
+            }
+        }
+    }
 }
