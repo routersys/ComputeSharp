@@ -12,7 +12,7 @@ public readonly struct GraphicsMemorySegmentStatistics
     /// <param name="status">The status of the observed video memory budget.</param>
     /// <param name="budgetBytes">The number of bytes the process is budgeted for.</param>
     /// <param name="currentProcessUsageBytes">The number of bytes the process currently uses.</param>
-    /// <param name="computeSharpOwnedBytes">The number of bytes owned by native resources the device created.</param>
+    /// <param name="computeWeaveOwnedBytes">The number of bytes owned by native resources the device created.</param>
     /// <param name="reservationBytes">The number of bytes reserved by allocations that have not been committed.</param>
     /// <param name="retiredPendingBytes">The number of bytes owned by retired generations that have not been released.</param>
     internal GraphicsMemorySegmentStatistics(
@@ -20,7 +20,7 @@ public readonly struct GraphicsMemorySegmentStatistics
         MemoryBudgetStatus status,
         ulong budgetBytes,
         ulong currentProcessUsageBytes,
-        ulong computeSharpOwnedBytes,
+        ulong computeWeaveOwnedBytes,
         ulong reservationBytes,
         ulong retiredPendingBytes)
     {
@@ -28,7 +28,7 @@ public readonly struct GraphicsMemorySegmentStatistics
         Status = status;
         BudgetBytes = budgetBytes;
         CurrentProcessUsageBytes = currentProcessUsageBytes;
-        ComputeWeaveOwnedBytes = computeSharpOwnedBytes;
+        ComputeWeaveOwnedBytes = computeWeaveOwnedBytes;
         ReservationBytes = reservationBytes;
         RetiredPendingBytes = retiredPendingBytes;
     }
