@@ -265,16 +265,13 @@ partial class ConstantBufferSyntaxProcessor
                         string typeName = pathPart switch
                         {
                             FieldPathPart.Nested nested => nested.TypeName,
+
+                            // Special case: if the field was actually of type ComputeWeave.Bool, and not System.Boolean,
+                            // we need to preserve the original type name, and we cannot use the mapped type name (bool),
+                            // as it would cause the generated field accessor to fail (the field type would not match).
+                            _ when fieldInfo.TypeName == "ComputeWeave.Bool" => "Bool",
                             _ => HlslKnownTypes.GetMappedName(fieldInfo.TypeName)
                         };
-
-                        // Special case: if the field was actually of type ComputeWeave.Bool, and not System.Boolean,
-                        // we need to preserve the original type name, and we cannot use the mapped type name (bool),
-                        // as it would cause the generated field accessor to fail (the field type would not match).
-                        if (fieldInfo.TypeName == "ComputeWeave.Bool")
-                        {
-                            typeName = "Bool";
-                        }
 
                         // Get the friendly type name for the field. If this nested field is the
                         // first path, then the parent is the shader type itself. Otherwise, the
