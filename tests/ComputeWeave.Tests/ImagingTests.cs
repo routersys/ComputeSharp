@@ -176,6 +176,29 @@ public class ImagingTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void LoadAsRgba32_WithUploadTexture_SizeMismatch_ParameterName(Device device)
+    {
+        string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "Imaging", "city.jpg");
+        ArgumentException widthMismatch;
+        ArgumentException heightMismatch;
+
+        using (UploadTexture2D<Rgba32> upload = device.Get().AllocateUploadTexture2D<Rgba32>(3839, 2560))
+        {
+            widthMismatch = Assert.ThrowsExactly<ArgumentException>(() => upload.Load(path));
+        }
+
+        using (UploadTexture2D<Rgba32> upload = device.Get().AllocateUploadTexture2D<Rgba32>(3840, 2562))
+        {
+            heightMismatch = Assert.ThrowsExactly<ArgumentException>(() => upload.Load(path));
+        }
+
+        Assert.AreEqual("texture", widthMismatch.ParamName);
+        Assert.AreEqual("texture", heightMismatch.ParamName);
+        Assert.AreNotEqual(widthMismatch.Message, heightMismatch.Message);
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     [Resource(typeof(ReadOnlyTexture2D<,>))]
     [Resource(typeof(ReadWriteTexture2D<,>))]
     [Data(typeof(string))]
