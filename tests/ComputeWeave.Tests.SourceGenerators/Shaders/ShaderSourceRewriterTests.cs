@@ -33,15 +33,47 @@ public class ShaderSourceRewriterTests
             }
             """;
 
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderVarArrayTests", "CMPW0031");
+    }
+
+    [TestMethod]
+    public void DeclaringALambdaIsDiagnosedWithoutFaultingTheGenerator()
+    {
+        const string Source = """
+            using System;
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Func<int, int> identity = static value => value;
+
+                    this.buffer[ThreadIds.X] = identity(1);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderLambdaTests", "CMPW0031");
+    }
+
+    private static void AssertIsDiagnosedWithoutFaulting(string source, string assemblyName, string diagnosticId)
+    {
         CSharpCompilation compilation = CompilationHelper
-            .CreateCompilation([Source], "ShaderVarArrayTests")
+            .CreateCompilation([source], assemblyName)
             .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
         GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
         GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
 
         Assert.IsNull(result.Exception, result.Exception?.ToString());
         Assert.IsTrue(
-            result.Diagnostics.Any(static diagnostic => diagnostic.Id == "CMPW0031"),
+            result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
             string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
     }
 }
