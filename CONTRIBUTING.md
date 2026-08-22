@@ -599,7 +599,7 @@ Record every intentional divergence from upstream, with the reason, in the ledge
 | `WICHelper`, size mismatch | Reports the failure with `nameof(texture.Width)`, naming a property instead of the parameter | Names the parameter and states which dimension differs | `4bb55543` |
 | `WICHelper`, encoder results | Discards the `HRESULT` of stream initialization and of both `Commit` calls | Asserts each of them | `817addc4` |
 | `ComputeContext`, dispatch group counts | Reports the Y and Z checks with `nameof(groupsX)` | Reports each argument under its own name | `35cd67ea` |
-| Generated HLSL, `bool` constants | Formats the constant through `IFormattable`, yielding `True` and `False`, which HLSL does not accept | Emits `true` and `false` | `b242e784` |
+| Generated HLSL, `bool` constants | Casts the constant to `IFormattable`, which `bool` does not implement, so the generator throws and every shader in the compilation unit loses its descriptor | Emits `true` and `false` | `b242e784` |
 | `Configuration`, `AppContext` switch names | Reads the `COMPUTESHARP_…` switches | Reads the `COMPUTEWEAVE_…` switches; the former names were honored as a fallback for a time and are no longer read | `7c3ebec1`, `391c75ea` |
 
 The ledger is kept current by derivation, not by memory: `build/audit-upstream-divergence.ps1` lists every commit after the marker below that modifies a file inherited from upstream and is not cited by a row. Run it before a release. When the queue is not empty, either add a row or decide that the commit is not a divergence, and then move the marker. The ledger is audited through commit `20514044`.
