@@ -593,6 +593,16 @@ Record every intentional divergence from upstream, with the reason, in the ledge
 | `ID3D12DeviceExtensions.CreateInfoQueue` | Leaks the queried interface when filter configuration fails | Releases it on the failure path | `a7f7826d` |
 | `WICFormatHelper.GetForFilename` | Uses a 4-character buffer, making `.jpeg`, `.jfif`, `.exif` and `.tiff` unreachable and throwing instead | Uses 5 characters | `1965f274` |
 | `StructuredBuffer<T>` byte length | Multiplies as `int` before widening, while adjacent code widens first | Widens to `nint` before multiplying | `4001e9a7` |
+| `Hlsl.Lit` | Declares a `float` return, though the HLSL `lit` intrinsic returns four components | Declares `Float4` | `f8acc01f` |
+| `WICFormatHelper`, saving `R16` | Encodes through an 8-bit grayscale intermediate, discarding the low byte of every pixel | Keeps the 16-bit format | `21c54a22` |
+| `Rg32` and `Rgba64` documentation | Describe their 16-bit components as ranging from 0 to 255 | 0 to 65535; a documentation correction only, with no behavioral change | `bb3bfe75` |
+| `WICHelper`, size mismatch | Reports the failure with `nameof(texture.Width)`, naming a property instead of the parameter | Names the parameter and states which dimension differs | `4bb55543` |
+| `WICHelper`, encoder results | Discards the `HRESULT` of stream initialization and of both `Commit` calls | Asserts each of them | `817addc4` |
+| `ComputeContext`, dispatch group counts | Reports the Y and Z checks with `nameof(groupsX)` | Reports each argument under its own name | `35cd67ea` |
+| Generated HLSL, `bool` constants | Formats the constant through `IFormattable`, yielding `True` and `False`, which HLSL does not accept | Emits `true` and `false` | `b242e784` |
+| `Configuration`, `AppContext` switch names | Reads the `COMPUTESHARP_…` switches | Reads the `COMPUTEWEAVE_…` switches; the former names were honored as a fallback for a time and are no longer read | `7c3ebec1`, `391c75ea` |
+
+The ledger is kept current by derivation, not by memory: `build/audit-upstream-divergence.ps1` lists every commit after the marker below that modifies a file inherited from upstream and is not cited by a row. Run it before a release. When the queue is not empty, either add a row or decide that the commit is not a divergence, and then move the marker. The ledger is audited through commit `20514044`.
 
 Record the attempts that failed, too, and why. A rejected approach with its cause documented is worth more to the next contributor than a clean history that invites the same mistake twice.
 
