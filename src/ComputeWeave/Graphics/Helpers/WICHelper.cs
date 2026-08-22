@@ -306,8 +306,15 @@ internal sealed unsafe class WICHelper
         wicBitmapFrameDecode.Get()->GetSize(&width, &height).Assert();
 
         // Validate the target texture has the right size
-        default(ArgumentException).ThrowIf((uint)texture.Width != width, nameof(texture.Width));
-        default(ArgumentException).ThrowIf((uint)texture.Height != height, nameof(texture.Height));
+        if ((uint)texture.Width != width)
+        {
+            default(ArgumentException).Throw(nameof(texture), "The width of the target texture does not match the image.");
+        }
+
+        if ((uint)texture.Height != height)
+        {
+            default(ArgumentException).Throw(nameof(texture), "The height of the target texture does not match the image.");
+        }
 
         Guid wicTargetPixelFormatGuid = WICFormatHelper.GetForType<T>();
         Guid wicActualPixelFormatGuid;
