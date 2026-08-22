@@ -31,7 +31,10 @@ partial class HlslSourceRewriter
     {
         string typeName = typeSymbol.GetFullyQualifiedName();
 
-        DiscoveredTypes.Add((INamedTypeSymbol)typeSymbol);
+        if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+        {
+            DiscoveredTypes.Add(namedTypeSymbol);
+        }
 
         if (HlslKnownTypes.TryGetMappedName(typeName, out string? mappedName))
         {
@@ -90,7 +93,10 @@ partial class HlslSourceRewriter
 
         string typeName = typeSymbol.GetFullyQualifiedName();
 
-        DiscoveredTypes.Add((INamedTypeSymbol)typeSymbol);
+        if (typeSymbol is INamedTypeSymbol namedTypeSymbol)
+        {
+            DiscoveredTypes.Add(namedTypeSymbol);
+        }
 
         if (HlslKnownTypes.TryGetMappedName(typeName, out string? mappedName))
         {
