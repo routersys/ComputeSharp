@@ -88,6 +88,7 @@ Adapter and driver tested / 試したアダプターとドライバー:
 - [ ] New internal runtime code follows the local convention for implementation comments. / 新しい内部の実行時コードは、その場所の実装コメントの作法に従っている。
 - [ ] No silent fallback behaviour or compatibility shim was introduced. / 暗黙の代替動作や互換性のための繕いを持ち込んでいない。
 - [ ] No unrelated dependency was updated. / 無関係な依存関係を更新していない。
+- [ ] If a file inherited from upstream changed, the divergence ledger in CONTRIBUTING.md was updated, or the change was judged not to be a divergence. / 上流から受け継いだファイルを変更した場合、CONTRIBUTING.md の乖離台帳を更新したか、乖離ではないと判断した。
 
 ## If this touches a guarded area / 慎重を要する箇所に触れる場合
 
