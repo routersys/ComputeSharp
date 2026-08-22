@@ -183,4 +183,40 @@ public partial class ShaderMembersTests
             buffer[ThreadIds.X].B = true;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void BoolInstanceFieldInCapturedCustomStruct(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(3, AllocationMode.Clear);
+
+        device.Get().For(1, new BoolInstanceFieldInCapturedCustomStructShader(buffer, new BoolAndInt2Field { B = true, P = new Int2(7, 9) }));
+
+        CollectionAssert.AreEqual(
+            expected: new[] { 1, 7, 9 },
+            actual: buffer.ToArray());
+    }
+
+    public struct BoolAndInt2Field
+    {
+        public Bool B;
+        public Int2 P;
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct BoolInstanceFieldInCapturedCustomStructShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        public readonly BoolAndInt2Field value;
+
+        public void Execute()
+        {
+            buffer[0] = Hlsl.BoolToInt(value.B);
+            buffer[1] = value.P.X;
+            buffer[2] = value.P.Y;
+        }
+    }
 }
