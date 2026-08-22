@@ -144,22 +144,25 @@ unsafe partial class GraphicsDevice
     private static void WaitForSingleObjectCallbackForRegisterDeviceLostCallback(void* pContext, byte timedOut)
     {
         GCHandle handle = GCHandle.FromIntPtr((IntPtr)pContext);
-        GraphicsDevice? device = Unsafe.As<GraphicsDevice>(handle.Target);
-
-        // Since the GCHandle is weak, it's possible that if the callback races against the finalizer thread,
-        // the call to UnregisterDeviceLostCallback might not be able to unregister the wait before the object
-        // is collected, which causes the GCHandle to return null. To guard against this, it is crucial to
-        // free the handle from the input context. The handle is guaranteed to be allocated when the
-        // callback is executed.
-        handle.Free();
 
         try
         {
+            GraphicsDevice? device = Unsafe.As<GraphicsDevice>(handle.Target);
+
             // If the device is available, then also queue the device lost event to be raised on the thread pool
             device?.QueueRaiseDeviceLostEventIfNeeded();
         }
         catch (Exception)
         {
+        }
+        finally
+        {
+            // Since the GCHandle is weak, it's possible that if the callback races against the finalizer thread,
+            // the call to UnregisterDeviceLostCallback might not be able to unregister the wait before the object
+            // is collected, which causes the GCHandle to return null. To guard against this, it is crucial to
+            // free the handle from the input context. The handle is guaranteed to be allocated when the
+            // callback is executed.
+            handle.Free();
         }
     }
 }
