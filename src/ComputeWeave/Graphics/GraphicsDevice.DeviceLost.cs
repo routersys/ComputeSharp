@@ -153,7 +153,13 @@ unsafe partial class GraphicsDevice
         // callback is executed.
         handle.Free();
 
-        // If the device is available, then also queue the device lost event to be raised on the thread pool
-        device?.QueueRaiseDeviceLostEventIfNeeded();
+        try
+        {
+            // If the device is available, then also queue the device lost event to be raised on the thread pool
+            device?.QueueRaiseDeviceLostEventIfNeeded();
+        }
+        catch (Exception)
+        {
+        }
     }
 }
