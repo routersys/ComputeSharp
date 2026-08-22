@@ -34,17 +34,17 @@ You do not need to read all of it. Start with [Getting Started](#getting-started
    - [Three layers of guarantee](#three-layers-of-guarantee)
    - [Ownership](#ownership)
 6. [Engineering Rules](#engineering-rules)
-   - [1. Contracts come first](#1-contracts-come-first)
-   - [2. Keep separate guarantees separate](#2-keep-separate-guarantees-separate)
-   - [3. Exclusion and ordering](#3-exclusion-and-ordering)
-   - [4. Reserve before you act](#4-reserve-before-you-act)
-   - [5. Failure is classified](#5-failure-is-classified)
-   - [6. Refuse, do not wait](#6-refuse-do-not-wait)
-   - [7. Ownership and unwinding](#7-ownership-and-unwinding)
-   - [8. Public API and diagnostics](#8-public-api-and-diagnostics)
-   - [9. Allocation contracts](#9-allocation-contracts)
-   - [10. Deterministic generators](#10-deterministic-generators)
-   - [11. Native bindings](#11-native-bindings)
+   - [Contracts come first](#contracts-come-first)
+   - [Keep separate guarantees separate](#keep-separate-guarantees-separate)
+   - [Exclusion and ordering](#exclusion-and-ordering)
+   - [Reserve before you act](#reserve-before-you-act)
+   - [Failure is classified](#failure-is-classified)
+   - [Refuse, do not wait](#refuse-do-not-wait)
+   - [Ownership and unwinding](#ownership-and-unwinding)
+   - [Public API and diagnostics](#public-api-and-diagnostics)
+   - [Allocation contracts](#allocation-contracts)
+   - [Deterministic generators](#deterministic-generators)
+   - [Native bindings](#native-bindings)
 7. [Code Conventions](#code-conventions)
 8. [Commit Conventions](#commit-conventions)
 9. [Building](#building)
@@ -292,20 +292,20 @@ Where the runtime cannot guarantee ordering, it still supplies the material a ca
 
 ## Engineering Rules
 
-### 1. Contracts come first
+### Contracts come first
 
 - Amend the specification in the same work that changes the contract; never leave one ahead of the other.
 - Do not add a public API without a demonstrated need. "A caller might want it" is not one.
 - Do not silently coerce invalid input. An out-of-range ordinal fails; it does not resolve to index 0 because the owner happens to hold a single resource. Silent coercion turns a caller's mistake into a write to the wrong resource.
 - Keep the access contract in one place, the descriptor. A materializer declares shape and dimensions, never access.
 
-### 2. Keep separate guarantees separate
+### Keep separate guarantees separate
 
 - Lifetime and hazard are different guarantees; see [Three layers of guarantee](#three-layers-of-guarantee).
 - Lifetime and memory policy are different questions. Lifetime decides whether a resource is still in use; policy decides whether an unused but recoverable resource is kept.
 - A mechanism that prevents a duplicate *request* is not a mechanism that prevents duplicate *execution*. Name them differently, document them separately, and never cite one as evidence for the other. Conflating the two is what produced a duplicated external signal that shipped.
 
-### 3. Exclusion and ordering
+### Exclusion and ordering
 
 The runtime holds a fixed lock order. Acquire in this order and release in reverse.
 
@@ -325,7 +325,7 @@ invocation permit
 - Every check-then-increment on a reference counter happens under the exclusion that owns that counter: the slot gate, the hazard gate, or the resource's reference-tracker lease, depending on the reference kind. Verifying outside the exclusion and incrementing inside it is the same bug written twice.
 - Keep critical sections short and do the expensive work outside them. Snapshot under the gate, then wait, map, allocate or call out.
 
-### 4. Reserve before you act
+### Reserve before you act
 
 Work submitted to a GPU queue or an external queue cannot be recalled, and neither can an allocation that has already been published.
 
@@ -338,7 +338,7 @@ Work submitted to a GPU queue or an external queue cannot be recalled, and neith
 - Retention — resource leases, allocators, command lists, usage sets, interop metadata — is released as one unit after completion, never piecemeal.
 - Once execution has been issued there is no clean abort. Design the failure path around that, not against it.
 
-### 5. Failure is classified
+### Failure is classified
 
 Every failure has a scope, and the scope determines the response.
 
@@ -363,7 +363,7 @@ Releasing a faulted or terminally retained object requires the matching authorit
 
 Failures must arrive where something reads them. A diagnostic that no code path consumes is equivalent to silence, and some teardown paths cannot even begin until the observable failure state is set — which is how a faulted record once held an external view forever.
 
-### 6. Refuse, do not wait
+### Refuse, do not wait
 
 Backpressure is explicit and non-blocking. The runtime does not hide contention behind a wait.
 
@@ -375,7 +375,7 @@ Backpressure is explicit and non-blocking. The runtime does not hide contention 
 - Do not make re-entrancy legal by recognizing the owning thread. Nested execution reproduces exactly the duplication the exclusion was introduced to prevent.
 - When work is concentrated into a single executor, isolate failure in the same change. One faulting participant must not stop maintenance for everyone else sharing that executor — a lesson learned when a single provider fault disabled a whole device.
 
-### 7. Ownership and unwinding
+### Ownership and unwinding
 
 - Every native allocation and pinned handle has exactly one owner, and that owner releases it on every path, including every failure path. Two owners are not permitted, and an "is allocated" flag on a copied handle is not a defense against double release.
 - Unregister a wait before closing the object it waits on, and release the callback context only after unregistration completes. Closing a handle a registered wait still references is undefined behavior; from inside the callback itself, unregistration must use the non-blocking form, or it waits for itself.
@@ -387,7 +387,7 @@ Backpressure is explicit and non-blocking. The runtime does not hide contention 
 - Do not operate queues, providers, schedulers, fences, registrations or policies from a finalizer.
 - Make the difference between a borrowed pointer and a transferred reference explicit in the name of the API, not only in its documentation. Callers hand pointers to bindings that release whatever they are given, whether or not the documentation asked them not to.
 
-### 8. Public API and diagnostics
+### Public API and diagnostics
 
 - Add the minimum, and follow the established naming: `Compute…` for types the consumer holds, `External…` for values and views describing the external side, `Direct3D11…` and `Direct3D12…` for API-specific common types. Internal bindings keep the SDK spelling; that is not public surface.
 - After a change that could affect the surface, enumerate the public and protected members of the built assembly and confirm that nothing was exposed unintentionally.
@@ -401,7 +401,7 @@ Backpressure is explicit and non-blocking. The runtime does not hide contention 
 - An identifier that cannot currently be reached stays in the table with the reason recorded. Deleting it invites the number to be reused later.
 - Diagnostics detect contract violations. Deliberate, documented use of a low-level API is not a violation, and a diagnostic for it produces permanent noise instead of safety.
 
-### 9. Allocation contracts
+### Allocation contracts
 
 Once warmed up, the no-resize generated pipeline path holds to zero: zero managed allocation per call, zero full registry scans in a normal frame, zero per-submission collections, zero per-resource or per-generation managed tracking objects, zero implicit CPU waits, zero empty prologue or epilogue command lists, zero dynamic pool growth, no unbounded retired generations, and no speculative allocation that has not passed admission.
 
@@ -411,7 +411,7 @@ Once warmed up, the no-resize generated pipeline path holds to zero: zero manage
 - Descriptors are allocated with the generation that owns them, not per submission.
 - If you change a path with a documented allocation or layout budget, either preserve it or present the evidence for changing it. Measure managed layout with `Unsafe.SizeOf<T>()` and update the layout tests when appropriate.
 
-### 10. Deterministic generators
+### Deterministic generators
 
 - Implement incremental generators with stateless instances, equatable immutable models and deterministic hint names. No reflection, no arbitrary delegate factories, no hot-path allocation in generated code.
 - Order everything canonically by metadata name, never by source path, syntax discovery order or dictionary enumeration order. Two identical canonical signatures are a build error; they are never disambiguated by source position.
@@ -420,7 +420,7 @@ Once warmed up, the no-resize generated pipeline path holds to zero: zero manage
 - Generated output must be byte-identical between a clean build and an incremental one.
 - The runtime validates what the generator produced instead of trusting it. Keep the formatter and the validator independent, or a single mistake becomes self-consistent.
 
-### 11. Native bindings
+### Native bindings
 
 A wrong vtable slot number compiles cleanly and calls a different function. The type system will not catch it, and neither will most tests.
 
@@ -440,7 +440,7 @@ The build treats warnings as errors and enforces code style. Do not work around 
 
 For new internal runtime code, follow the local convention for implementation comments. Do not add comments unless the surrounding code uses them for the same purpose.
 
-Public and protected APIs must carry the XML documentation the repository requires, including the contracts named in [Public API and diagnostics](#8-public-api-and-diagnostics). Preserve existing documentation comments when modifying existing code, and keep the documentation and comment conventions of the source generators and analyzers when working there.
+Public and protected APIs must carry the XML documentation the repository requires, including the contracts named in [Public API and diagnostics](#public-api-and-diagnostics). Preserve existing documentation comments when modifying existing code, and keep the documentation and comment conventions of the source generators and analyzers when working there.
 
 ---
 
@@ -542,7 +542,7 @@ These values were measured on 2026-08-22 with the commands above, on a machine w
 
 Running the suites is not the whole of verification.
 
-- A change on a path with an established allocation contract is verified by measuring managed allocation with `GC.GetAllocatedBytesForCurrentThread`, not by inspection; the contract itself is stated under [Allocation contracts](#9-allocation-contracts).
+- A change on a path with an established allocation contract is verified by measuring managed allocation with `GC.GetAllocatedBytesForCurrentThread`, not by inspection; the contract itself is stated under [Allocation contracts](#allocation-contracts).
 - If you add or modify an analyzer diagnostic that produces build errors, verify the complete solution in addition to the analyzer tests.
 - For public API or descriptor changes, run the compatibility, deterministic-generation and golden-data checks of the affected subsystem.
 
