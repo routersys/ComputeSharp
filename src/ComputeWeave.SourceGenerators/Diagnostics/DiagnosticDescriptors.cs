@@ -1428,4 +1428,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A parameter annotated with [ComputeOwnedResource] receives the resource owned by a ComputeResourceSlot<T>, or the resource group owned by a ComputeResourceGroupSlot<TGroup>, so it must declare that type argument.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an intrinsic that a compute shader cannot use.
+    /// <para>
+    /// Format: <c>"The intrinsic {0} cannot be used in a compute shader, because {1}"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnsupportedHlslIntrinsicInvocation = new(
+        id: "CMPW0112",
+        title: "Unsupported HLSL intrinsic invocation",
+        messageFormat: "The intrinsic {0} cannot be used in a compute shader, because {1}",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Some intrinsics declared by the Hlsl type target a rasterization stage or a shader model that the compute shaders compiled by ComputeWeave do not provide, so they cannot be used in a shader.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
