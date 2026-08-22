@@ -806,28 +806,49 @@ unsafe partial class GraphicsDevice
     {
         CallbackContext* callbackContext = (CallbackContext*)pContext;
 
-        WaitForFenceValueTaskSource waitForFenceValueTaskSource = Unsafe.As<WaitForFenceValueTaskSource>(callbackContext->WaitForFenceValueTaskSourceHandle.Target)!;
-        GraphicsDevice device = Unsafe.As<GraphicsDevice>(callbackContext->GraphicsDeviceHandle.Target)!;
-        ID3D12GraphicsCommandList* d3D12GraphicsCommandList = callbackContext->D3D12GraphicsCommandList;
-        ID3D12CommandAllocator* d3D12CommandAllocator = callbackContext->D3D12CommandAllocator;
         HANDLE eventHandle = callbackContext->EventHandle;
         HANDLE waitHandle = callbackContext->WaitHandle;
 
-        callbackContext->WaitForFenceValueTaskSourceHandle.Free();
-        callbackContext->GraphicsDeviceHandle.Free();
+        WaitForFenceValueTaskSource? waitForFenceValueTaskSource = null;
+        Exception? failure = null;
 
-        device.computeCommandListPool.Return(d3D12GraphicsCommandList, d3D12CommandAllocator);
+        try
+        {
+            waitForFenceValueTaskSource = Unsafe.As<WaitForFenceValueTaskSource>(callbackContext->WaitForFenceValueTaskSourceHandle.Target)!;
 
-        // Decrement the reference count that was incremented when scheduling the completion callback
-        device.GetReferenceTracker().DangerousRelease();
+            GraphicsDevice device = Unsafe.As<GraphicsDevice>(callbackContext->GraphicsDeviceHandle.Target)!;
+            ID3D12GraphicsCommandList* d3D12GraphicsCommandList = callbackContext->D3D12GraphicsCommandList;
+            ID3D12CommandAllocator* d3D12CommandAllocator = callbackContext->D3D12CommandAllocator;
 
-        _ = Windows.UnregisterWait(waitHandle);
+            callbackContext->WaitForFenceValueTaskSourceHandle.Free();
+            callbackContext->GraphicsDeviceHandle.Free();
 
-        _ = Windows.CloseHandle(eventHandle);
+            device.computeCommandListPool.Return(d3D12GraphicsCommandList, d3D12CommandAllocator);
 
-        NativeMemory.Free(callbackContext);
+            // Decrement the reference count that was incremented when scheduling the completion callback
+            device.GetReferenceTracker().DangerousRelease();
+        }
+        catch (Exception e)
+        {
+            failure = e;
+        }
+        finally
+        {
+            _ = Windows.UnregisterWait(waitHandle);
 
-        waitForFenceValueTaskSource.Complete();
+            _ = Windows.CloseHandle(eventHandle);
+
+            NativeMemory.Free(callbackContext);
+        }
+
+        if (failure is not null)
+        {
+            waitForFenceValueTaskSource?.Fail(failure);
+        }
+        else
+        {
+            waitForFenceValueTaskSource?.Complete();
+        }
     }
 
     /// <summary>
@@ -885,6 +906,16 @@ unsafe partial class GraphicsDevice
         public void Complete()
         {
             this.manualResetValueTaskSource.SetResult(null);
+        }
+
+        /// <summary>
+        /// Signals the current instance for completion with a failure.
+        /// </summary>
+        /// <param name="exception">The exception to deliver to the awaiter.</param>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Fail(Exception exception)
+        {
+            this.manualResetValueTaskSource.SetException(exception);
         }
 
         /// <inheritdoc/>
