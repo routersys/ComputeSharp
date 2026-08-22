@@ -207,7 +207,27 @@ internal sealed unsafe class Direct3D11ImmediateContext : IDisposable
             ThrowIfFailed(this.d3D11Device.Get()->CreateTexture2D(&stagingDescription, &initialData, staging.GetAddressOf()));
 
             this.d3D11ImmediateContext.Get()->CopyResource((ID3D11Resource*)d3D11Texture, (ID3D11Resource*)staging.Get());
-            this.d3D11ImmediateContext.Get()->Flush();
+
+            WaitForIdle();
+        }
+    }
+
+    private void WaitForIdle()
+    {
+        using ComPtr<ID3D11Fence> fence = default;
+
+        ThrowIfFailed(this.d3D11Device.Get()->CreateFence(
+            0,
+            D3D11_FENCE_FLAG.D3D11_FENCE_FLAG_NONE,
+            Windows.__uuidof<ID3D11Fence>(),
+            (void**)fence.GetAddressOf()));
+        ThrowIfFailed(this.d3D11ImmediateContext.Get()->Signal(fence.Get(), 1));
+
+        this.d3D11ImmediateContext.Get()->Flush();
+
+        if (fence.Get()->GetCompletedValue() < 1)
+        {
+            ThrowIfFailed(fence.Get()->SetEventOnCompletion(1, HANDLE.NULL));
         }
     }
 
