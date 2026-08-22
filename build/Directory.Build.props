@@ -72,7 +72,7 @@
     local and continuous integration builds, so they need to be bumped when preparing the next release.
   -->
   <PropertyGroup>
-    <VersionPrefix>2.0.0</VersionPrefix>
+    <VersionPrefix>2.1.0</VersionPrefix>
     <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
   </PropertyGroup>
 
