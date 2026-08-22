@@ -215,7 +215,11 @@ internal sealed partial class ShaderSourceRewriter(
         SyntaxToken modifier = GetHlslParameterModifier(node);
 
         updatedNode = updatedNode.WithAttributeLists(default);
-        updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type!, node.Type!, SemanticModel.For(node));
+
+        if (node.Type is TypeSyntax sourceType)
+        {
+            updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type!, sourceType, SemanticModel.For(node));
+        }
 
         return updatedNode.WithModifiers(TokenList(modifier));
     }
