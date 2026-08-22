@@ -55,6 +55,21 @@ public partial class DispatchTests
         Assert.Fail();
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    [Data(int.MaxValue, 1, 1, "groupsX")]
+    [Data(1, int.MaxValue, 1, "groupsY")]
+    [Data(1, 1, int.MaxValue, "groupsZ")]
+    public void Verify_ThreadIds_OutOfRange_ParameterName(Device device, int x, int y, int z, string parameterName)
+    {
+        using ReadWriteTexture3D<int4> buffer = device.Get().AllocateReadWriteTexture3D<int4>(50, 50, 50);
+
+        ArgumentOutOfRangeException exception = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+            () => device.Get().For(x, y, z, new ThreadIdsShader(buffer)));
+
+        Assert.AreEqual(parameterName, exception.ParamName);
+    }
+
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.XYZ)]
     [GeneratedComputeShaderDescriptor]
