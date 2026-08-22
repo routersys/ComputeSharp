@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using ComputeWeave.SourceGeneration.Extensions;
@@ -391,12 +390,15 @@ internal sealed partial class ShaderSourceRewriter(
                         return ParseExpression(constantLiteral!);
                     }
 
-                    ConstantDefinitions[fieldOperation.Field] = ((IFormattable)fieldOperation.Field.ConstantValue!).ToString(null, CultureInfo.InvariantCulture);
+                    if (TryGetConstantLiteral(fieldOperation.Field.ConstantValue, out string? constantValue))
+                    {
+                        ConstantDefinitions[fieldOperation.Field] = constantValue!;
 
-                    string ownerTypeName = ((INamedTypeSymbol)fieldOperation.Field.ContainingSymbol).ToDisplayString().ToHlslIdentifierName();
-                    string constantName = $"__{ownerTypeName}__{fieldOperation.Field.Name}";
+                        string ownerTypeName = ((INamedTypeSymbol)fieldOperation.Field.ContainingSymbol).ToDisplayString().ToHlslIdentifierName();
+                        string constantName = $"__{ownerTypeName}__{fieldOperation.Field.Name}";
 
-                    return IdentifierName(constantName);
+                        return IdentifierName(constantName);
+                    }
                 }
 
                 // Special handling for 'this.' expressions, which are not always allowed in HLSL

@@ -391,9 +391,10 @@ internal abstract partial class HlslSourceRewriter(
         if (node.Parent is not (InvocationExpressionSyntax or MemberAccessExpressionSyntax) &&
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation operation &&
             operation.Field.IsConst &&
-            operation.Type!.TypeKind != TypeKind.Enum)
+            operation.Type!.TypeKind != TypeKind.Enum &&
+            TryGetConstantLiteral(operation.Field.ConstantValue, out string? constantLiteral))
         {
-            ConstantDefinitions[operation.Field] = ((IFormattable)operation.Field.ConstantValue!).ToString(null, CultureInfo.InvariantCulture);
+            ConstantDefinitions[operation.Field] = constantLiteral!;
 
             string ownerTypeName = ((INamedTypeSymbol)operation.Field.ContainingSymbol).ToDisplayString().ToHlslIdentifierName();
             string constantName = $"__{ownerTypeName}__{operation.Field.Name}";
@@ -431,6 +432,27 @@ internal abstract partial class HlslSourceRewriter(
     {
         // By default, constructors are not supported, so just return an empty value
         return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+    }
+
+    protected static bool TryGetConstantLiteral(object? value, out string? literal)
+    {
+        if (value is bool flag)
+        {
+            literal = flag ? "true" : "false";
+
+            return true;
+        }
+
+        if (value is IFormattable formattable)
+        {
+            literal = formattable.ToString(null, CultureInfo.InvariantCulture);
+
+            return true;
+        }
+
+        literal = null;
+
+        return false;
     }
 
     /// <summary>
