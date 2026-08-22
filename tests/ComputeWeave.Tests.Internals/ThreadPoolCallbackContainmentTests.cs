@@ -55,6 +55,16 @@ public class ThreadPoolCallbackContainmentTests
     }
 
     [TestMethod]
+    public void TheDeviceLostCallbackReleasesItsHandleOnEveryPath()
+    {
+        IList<ExceptionHandlingClause> clauses = GetClauses("WaitForSingleObjectCallbackForRegisterDeviceLostCallback");
+
+        Assert.IsTrue(
+            clauses.Any(static clause => clause.Flags == ExceptionHandlingClauseOptions.Finally),
+            "the device lost callback releases its handle only when nothing throws");
+    }
+
+    [TestMethod]
     public void TheInspectionReportsNoHandlerForAMethodThatHasNone()
     {
         MethodInfo? method = typeof(GraphicsDevice)
