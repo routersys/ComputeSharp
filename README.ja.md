@@ -21,13 +21,13 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
 2. [動作要件](#動作要件)
 3. [インストール方法](#インストール方法)
 4. [追加した機能](#追加した機能)
-   - [1. 宣言による計算パイプライン](#1-宣言による計算パイプライン)
-   - [2. 所有資源スロット](#2-所有資源スロット)
-   - [3. Direct3D 11との相互運用](#3-direct3d-11との相互運用)
-   - [4. 共有テクスチャスロット](#4-共有テクスチャスロット)
-   - [5. バッファの読み取り専用ビュー](#5-バッファの読み取り専用ビュー)
-   - [6. GPUメモリの予算管理](#6-gpuメモリの予算管理)
-   - [7. コンパイル時の検証](#7-コンパイル時の検証)
+   - [宣言による計算パイプライン](#宣言による計算パイプライン)
+   - [所有資源スロット](#所有資源スロット)
+   - [Direct3D 11との相互運用](#direct3d-11との相互運用)
+   - [共有テクスチャスロット](#共有テクスチャスロット)
+   - [バッファの読み取り専用ビュー](#バッファの読み取り専用ビュー)
+   - [GPUメモリの予算管理](#gpuメモリの予算管理)
+   - [コンパイル時の検証](#コンパイル時の検証)
 5. [APIリファレンス](#apiリファレンス)
    - [宣言用の属性](#宣言用の属性)
    - [生成されるメンバー](#生成されるメンバー)
@@ -100,7 +100,7 @@ dotnet add package ComputeWeave.D3D12MemoryAllocator
 
 ## 追加した機能
 
-### 1. 宣言による計算パイプライン
+### 宣言による計算パイプライン
 
 ホストは `[ComputePipelineHost]` を付けた `partial` な型です。第1引数はデバイスを保持するフィールド名、第2引数は確保する同時実行数です。パイプラインは `[ComputePipeline]` を付けたメソッドで、第1引数は `in ComputeContext` でなければなりません。
 
@@ -134,7 +134,7 @@ submission.Wait();
 
 `ComputeSubmission` は `FencePoint` と `ComputeSubmissionStatus` と `IsCompleted` を持ちます。待機は明示的に行うもので、破棄の時点で暗黙に待つことはありません。
 
-### 2. 所有資源スロット
+### 所有資源スロット
 
 ホストが所有する資源は、`ComputeResourceSlot<TResource>` または `ComputeResourceGroupSlot<TGroup>` のフィールドとして宣言し、`[ComputePipelineResource]` を付けて `new()` で初期化します。グループスロットの `TGroup` は `[ComputeResourceGroup]` を付けた `sealed partial class` であり、そのメンバーは `[ComputePipelineResource]` を付けた取得専用のプロパティです。ジェネレーターは `TryEnsure<スロット名>(in <計画> plan, out bool changed)` を出力し、資源が単一のスロットについては `ComputeResourceBinding<TResource>` を返す `Get<スロット名>ComputeBinding()` も出力します。
 
@@ -153,7 +153,7 @@ private void Run(
 }
 ```
 
-### 3. Direct3D 11との相互運用
+### Direct3D 11との相互運用
 
 外部のAPIはドメインとして登録します。Direct3D 11 の即時コンテキストであれば実装は同梱されており、それ以外のAPIでは `IComputeExternalInteropProvider<TView>` を自分で実装します。実装側は、共有タイムラインの初期化、自身のキューへの信号と待機の投入、共有テクスチャを自身のビュー型として開く処理を求められます。
 
@@ -198,7 +198,7 @@ if (!GraphicsDevice.TryGetDevice(new ExternalAdapterIdentity(adapterLuid), out G
 
 拒否は識別子を持ちます。`ComputeDiagnosticException` は `InvalidOperationException` から派生し、`DiagnosticId` に `CMPW3004` のような安定した識別子を載せます。再試行してよいのか、資源を作り直すべきなのか、ドメインごと畳むべきなのかは識別子ごとに異なります。**例外のメッセージ文字列で判別しないでください。** メッセージは実装の都合で変わります。
 
-### 4. 共有テクスチャスロット
+### 共有テクスチャスロット
 
 資源集合は `[ComputeInteropResourceSet]` を付けた `partial` な型で、`[ComputeSharedTexture]` を付けた `SharedTextureSlot<T, TPixel, TView>` のフィールドを持ちます。属性が、再確保の方針、両側それぞれの参照権、外部側の用途、アルファの扱い、最初の所有者、復帰の方法を固定します。
 
@@ -225,7 +225,7 @@ public sealed partial class ResourceSet
 
 共有テクスチャの世代を退役させるとき、大きさの変更でもスロットの破棄でも、外部ビューを解放する前に外部キューを排出します。この排出は呼び出し元のスレッドではなくデバイス側で走るため、`TryEnsure` や `Dispose` から戻った時点では退役した世代がまだ保持されています。内部の保守処理が一時的にドメインを保持している場合、前景処理はその完了を待ちます。別の前景処理が保持している場合は競合した利用として拒否します。実装側が例外を投げるとそのドメインは汚染され、以後そのドメインへの操作はすべて失敗を報告します。`WaitForDisposal` は退役と破棄の完了を待ちます。
 
-### 5. バッファの読み取り専用ビュー
+### バッファの読み取り専用ビュー
 
 `ReadWriteBuffer<T>.AsReadOnly()` が `IReadOnlyBuffer<T>` を返します。同じ資源をSRVとして束縛するビューで、これを受けるシェーダーは書き込めません。
 
@@ -240,7 +240,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 テクスチャの読み取り専用ビューと違い、状態の遷移は要りません。バッファは常在状態が `COMMON` で、SRVとして読むために遷移しないためです。返るビューは資源の寿命の間ずっと有効で、保持して使い回せます。`ReadOnlyBuffer<T>` も `IReadOnlyBuffer<T>` を実装するので、同じ引数へどちらも渡せます。
 
-### 6. GPUメモリの予算管理
+### GPUメモリの予算管理
 
 `GraphicsDevice` へ3つのメンバーが加わります。`SetMemoryPolicy` はメモリ区分ごとの上限と、必要であれば利用者間を調停する `IGraphicsMemoryBudgetBroker` を設定します。`GetMemoryStatistics` は、世代番号、区分ごとの統計、世代数を持つ `GraphicsMemoryStatistics` の断面を返します。`TrimMemory` は退役して待機中の資源を解放します。世代が待機中になるのは、それを保持していた処理と外部キューが用済みになった後なので、退役させた直後に整理しても何も回収されません。
 
@@ -250,7 +250,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 **外部アロケーターと宣言的な層は併用できません。** 世代、整理、予算のいずれもデバイスが確保を所有していることが前提であり、外部アロケーターで確保するデバイスはそれらを載せられません。`ComputeHostRuntime.Create`、`ComputeInteropResourceSetRuntime.Create`、および生成された `Create` は `NotSupportedException` を投げます。基盤部分、`ComputeContext`、資源のコピー、`InteropServices` は影響を受けません。どちらか一方を選んでください。
 
-### 7. コンパイル時の検証
+### コンパイル時の検証
 
 以上の宣言はアナライザーが検査し、接頭辞 `CMPW` の診断95種類として報告します。対象は属性の位置、ホストとパイプラインメソッドの形、スロットの宣言、資源の契約、生成されるオーバーロードの衝突です。一部にはコード修正が付きます。
 

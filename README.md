@@ -21,13 +21,13 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
 2. [Requirements](#requirements)
 3. [Installation](#installation)
 4. [Features](#features)
-   - [1. Declarative compute pipelines](#1-declarative-compute-pipelines)
-   - [2. Owned resource slots](#2-owned-resource-slots)
-   - [3. Direct3D 11 interoperation](#3-direct3d-11-interoperation)
-   - [4. Shared texture slots](#4-shared-texture-slots)
-   - [5. Read-only buffer views](#5-read-only-buffer-views)
-   - [6. GPU memory budget](#6-gpu-memory-budget)
-   - [7. Compile-time validation](#7-compile-time-validation)
+   - [Declarative compute pipelines](#declarative-compute-pipelines)
+   - [Owned resource slots](#owned-resource-slots)
+   - [Direct3D 11 interoperation](#direct3d-11-interoperation)
+   - [Shared texture slots](#shared-texture-slots)
+   - [Read-only buffer views](#read-only-buffer-views)
+   - [GPU memory budget](#gpu-memory-budget)
+   - [Compile-time validation](#compile-time-validation)
 5. [API Reference](#api-reference)
    - [Declaration attributes](#declaration-attributes)
    - [Generated members](#generated-members)
@@ -100,7 +100,7 @@ dotnet add package ComputeWeave.D3D12MemoryAllocator
 
 ## Features
 
-### 1. Declarative compute pipelines
+### Declarative compute pipelines
 
 A host is a `partial` type marked with `[ComputePipelineHost]`. The first argument names the field holding the device, the second is the number of concurrent invocations to reserve. A pipeline is a method marked `[ComputePipeline]` whose first parameter is `in ComputeContext`.
 
@@ -134,7 +134,7 @@ submission.Wait();
 
 `ComputeSubmission` carries a `FencePoint`, a `ComputeSubmissionStatus` and `IsCompleted`. Waiting is explicit; a submission is not awaited implicitly at disposal.
 
-### 2. Owned resource slots
+### Owned resource slots
 
 A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` and initialised with `new()`. The `TGroup` of a group slot is a `sealed partial class` marked with `[ComputeResourceGroup]`, whose members are get-only properties annotated with `[ComputePipelineResource]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
 
@@ -153,7 +153,7 @@ private void Run(
 }
 ```
 
-### 3. Direct3D 11 interoperation
+### Direct3D 11 interoperation
 
 An external API is connected as a domain. One is shipped for the Direct3D 11 immediate context; any other API is connected by implementing `IComputeExternalInteropProvider<TView>` yourself. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
 
@@ -198,7 +198,7 @@ A provider that throws leaves its external queue in a state the runtime cannot r
 
 Rejections carry an identifier. `ComputeDiagnosticException` derives from `InvalidOperationException` and reports a stable `DiagnosticId` such as `CMPW3004`. Whether to retry, rebuild the resource or tear the domain down differs per identifier. **Do not tell rejections apart by their message.** Messages change with the implementation.
 
-### 4. Shared texture slots
+### Shared texture slots
 
 A resource set is a `partial` type marked `[ComputeInteropResourceSet]` holding `SharedTextureSlot<T, TPixel, TView>` fields annotated with `[ComputeSharedTexture]`. The attribute fixes the resize policy, the access on each side, the external usage, the alpha mode, the initial owner and the recovery.
 
@@ -225,7 +225,7 @@ The generator emits `Create(GraphicsDevice device, ComputeInteropDomain domain)`
 
 Retiring a shared texture generation, whether by resizing it or by disposing its slot, drains the external queue before the external view is released. That drain runs on the device rather than on the calling thread, so the retired generation is still held when `TryEnsure` or `Dispose` returns. A foreground operation waits when that internal maintenance operation temporarily holds the domain, while another foreground operation remains a conflicting use and is rejected. A provider that throws poisons its domain, and every later operation on that domain reports the failure. `WaitForDisposal` waits for retirement and disposal to complete.
 
-### 5. Read-only buffer views
+### Read-only buffer views
 
 `ReadWriteBuffer<T>.AsReadOnly()` returns an `IReadOnlyBuffer<T>`. The view binds the same resource through its SRV, so a shader taking it cannot write to it.
 
@@ -240,7 +240,7 @@ A buffer produced on the GPU can be handed to later shaders as read-only without
 
 Unlike the texture counterparts, no state transition is involved: a buffer resides in `COMMON` and needs no transition to be read through an SRV. The returned view stays valid for the whole lifetime of the buffer and can be cached and reused. `ReadOnlyBuffer<T>` also implements `IReadOnlyBuffer<T>`, so either one can be passed to the same parameter.
 
-### 6. GPU memory budget
+### GPU memory budget
 
 `GraphicsDevice` gains three members. `SetMemoryPolicy` installs hard limits per memory segment and, optionally, an `IGraphicsMemoryBudgetBroker` that arbitrates between clients. `GetMemoryStatistics` returns a `GraphicsMemoryStatistics` snapshot carrying an epoch, per-segment statistics and generation counts. `TrimMemory` releases what is retired and idle. A generation is idle only once the work and the external queue that held it are done with it, so trimming right after the call that retired it reclaims nothing.
 
@@ -250,7 +250,7 @@ The budget covers the resources the device creates itself. A device using an all
 
 **A configured allocator and the declarative layer are mutually exclusive.** Generations, trimming and the budget all rest on the device owning its allocations, so a device that allocates through an external allocator cannot host them: `ComputeHostRuntime.Create`, `ComputeInteropResourceSetRuntime.Create` and the generated `Create` factories throw `NotSupportedException` on it. The base library, `ComputeContext`, resource copies and `InteropServices` are unaffected. Pick one of the two.
 
-### 7. Compile-time validation
+### Compile-time validation
 
 The declarations above are checked by analyzers that report 95 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
