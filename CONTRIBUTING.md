@@ -600,9 +600,12 @@ Record every intentional divergence from upstream, with the reason, in the ledge
 | `WICHelper`, encoder results | Discards the `HRESULT` of stream initialization and of both `Commit` calls | Asserts each of them | `817addc4` |
 | `ComputeContext`, dispatch group counts | Reports the Y and Z checks with `nameof(groupsX)` | Reports each argument under its own name | `35cd67ea` |
 | Generated HLSL, `bool` constants | Casts the constant to `IFormattable`, which `bool` does not implement, so the generator throws and every shader in the compilation unit loses its descriptor | Emits `true` and `false` | `b242e784` |
+| Generated HLSL, discovered types | Casts every tracked type to `INamedTypeSymbol`, so an array or a pointer throws and every shader in the compilation unit loses its descriptor | Adds only named types to the discovered set | `cfe0e650` |
+| Generated HLSL, lambda parameters | Reads the type syntax of every parameter, which a simple lambda does not have, so the semantic query throws | Tracks the type only when the parameter declares one | `814c32ca` |
+| Generated constant buffer accessors | Applies the `Bool` type name to every part of a field path, so the accessor for a struct that holds a `Bool` returns `ref Bool` and the marshaller does not compile | Applies it to the leaf part only | `add58a53` |
 | `Configuration`, `AppContext` switch names | Reads the `COMPUTESHARP_…` switches | Reads the `COMPUTEWEAVE_…` switches; the former names were honored as a fallback for a time and are no longer read | `7c3ebec1`, `391c75ea` |
 
-The ledger is kept current by derivation, not by memory: `build/audit-upstream-divergence.ps1` lists every commit after the marker below that modifies a file inherited from upstream and is not cited by a row. Run it before a release. When the queue is not empty, either add a row or decide that the commit is not a divergence, and then move the marker. The ledger is audited through commit `20514044`.
+The ledger is kept current by derivation, not by memory: `build/audit-upstream-divergence.ps1` lists every commit after the marker below that modifies a file inherited from upstream and is not cited by a row. Run it before a release. When the queue is not empty, either add a row or decide that the commit is not a divergence, and then move the marker. The ledger is audited through commit `add58a53`.
 
 Record the attempts that failed, too, and why. A rejected approach with its cause documented is worth more to the next contributor than a clean history that invites the same mistake twice.
 
