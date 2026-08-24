@@ -458,6 +458,20 @@ internal abstract partial class HlslSourceRewriter(
             return true;
         }
 
+        if (value is float or double)
+        {
+            string text = ((IFormattable)value).ToString(null, CultureInfo.InvariantCulture);
+
+            if (text.IndexOfAny(FloatLiteralSpecialCharacters) == -1)
+            {
+                text += ".0";
+            }
+
+            literal = value is double ? text + "L" : text;
+
+            return true;
+        }
+
         if (value is IFormattable formattable)
         {
             literal = formattable.ToString(null, CultureInfo.InvariantCulture);
