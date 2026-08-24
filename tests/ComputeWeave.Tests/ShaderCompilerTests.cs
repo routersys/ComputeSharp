@@ -1452,6 +1452,7 @@ namespace ExternalNamespace
             _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader2>();
             _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader3>();
             _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader4>();
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader5>();
         }
 
         [AutoConstructor]
@@ -2009,6 +2010,76 @@ namespace ExternalNamespace
                 sum += uint8_t4_packed;
                 sum += union;
                 sum += wchar_t;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader5 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float RAYTRACING_PIPELINE_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+            public readonly float STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
+            public readonly float STATE_OBJECT_FLAGS_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS;
+            public readonly float STATE_OBJECT_FLAGS_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITONS;
+            public readonly float STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS;
+            public readonly float STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITONS;
+            public readonly float __TIMESTAMP__;
+            public readonly float ALL_MEMORY;
+            public readonly float BARRIER_SEMANTIC_FLAG;
+            public readonly float DEVICE_SCOPE;
+            public readonly float DispatchNodeInputRecord;
+            public readonly float GROUP_SCOPE;
+            public readonly float GROUP_SHARED_MEMORY;
+            public readonly float GROUP_SYNC;
+            public readonly float GroupNodeInputRecords;
+            public readonly float GroupNodeOutputRecords;
+            public readonly float MEMORY_TYPE_FLAG;
+            public readonly float NODE_INPUT_MEMORY;
+            public readonly float NODE_OUTPUT_MEMORY;
+            public readonly float NodeOutput;
+            public readonly float NodeOutputArray;
+            public readonly float RWDispatchNodeInputRecord;
+            public readonly float RWGroupNodeInputRecords;
+            public readonly float RWThreadNodeInputRecord;
+            public readonly float ThreadNodeInputRecord;
+            public readonly float ThreadNodeOutputRecords;
+            public readonly float UAV_MEMORY;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += RAYTRACING_PIPELINE_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+                sum += STATE_OBJECT_FLAG_ALLOW_STATE_OBJECT_ADDITIONS;
+                sum += STATE_OBJECT_FLAGS_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS;
+                sum += STATE_OBJECT_FLAGS_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITONS;
+                sum += STATE_OBJECT_FLAG_ALLOW_EXTERNAL_DEPENDENCIES_ON_LOCAL_DEFINITIONS;
+                sum += STATE_OBJECT_FLAG_ALLOW_LOCAL_DEPENDENCIES_ON_EXTERNAL_DEFINITONS;
+                sum += __TIMESTAMP__;
+                sum += ALL_MEMORY;
+                sum += BARRIER_SEMANTIC_FLAG;
+                sum += DEVICE_SCOPE;
+                sum += DispatchNodeInputRecord;
+                sum += GROUP_SCOPE;
+                sum += GROUP_SHARED_MEMORY;
+                sum += GROUP_SYNC;
+                sum += GroupNodeInputRecords;
+                sum += GroupNodeOutputRecords;
+                sum += MEMORY_TYPE_FLAG;
+                sum += NODE_INPUT_MEMORY;
+                sum += NODE_OUTPUT_MEMORY;
+                sum += NodeOutput;
+                sum += NodeOutputArray;
+                sum += RWDispatchNodeInputRecord;
+                sum += RWGroupNodeInputRecords;
+                sum += RWThreadNodeInputRecord;
+                sum += ThreadNodeInputRecord;
+                sum += ThreadNodeOutputRecords;
+                sum += UAV_MEMORY;
 
                 buffer[ThreadIds.X] = sum;
             }
