@@ -111,4 +111,26 @@ partial class SyntaxNodeExtensions
 
         return node.WithModifiers(TokenList(node.Modifiers.Where(IsAllowedHlslModifier)));
     }
+
+    /// <summary>
+    /// Returns an <see cref="ExpressionSyntax"/> instance that is safe to use as the operand of any operator.
+    /// </summary>
+    /// <param name="node">The input <see cref="ExpressionSyntax"/> node.</param>
+    /// <returns>A node just like <paramref name="node"/>, parenthesized unless it already is a primary expression.</returns>
+    /// <remarks>
+    /// Printing a syntax tree only emits its tokens, so an expression embedded into a context that binds more
+    /// tightly than its own outermost operator would produce text that parses back into a different tree.
+    /// </remarks>
+    public static ExpressionSyntax AsOperand(this ExpressionSyntax node)
+    {
+        return node is
+            IdentifierNameSyntax or
+            LiteralExpressionSyntax or
+            InvocationExpressionSyntax or
+            MemberAccessExpressionSyntax or
+            ElementAccessExpressionSyntax or
+            ParenthesizedExpressionSyntax
+            ? node
+            : ParenthesizedExpression(node);
+    }
 }
