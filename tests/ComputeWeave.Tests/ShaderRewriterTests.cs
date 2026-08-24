@@ -2422,4 +2422,150 @@ public partial class ShaderRewriterTests
             this.buffer[3] = CharacterConstants.Newline;
         }
     }
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void HoistedLocalFunctions(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(3);
+
+        device.Get().For(1, new HoistedLocalFunctionShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        Assert.AreEqual(6, result[0]);
+        Assert.AreEqual(6, result[1]);
+        Assert.AreEqual(30, result[2]);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<HoistedLocalFunctionShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+
+            struct ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData;
+
+            struct ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData
+            {
+                int value;
+                int Doubled();
+                static ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData __ctor(int seed);
+                void __ctor__init(int seed);
+            };
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData__ctor__Inner(int inner);
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled__Inner(int inner);
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData_Doubled__Inner(int inner);
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled(int value);
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<int> __reserved__buffer : register(u0);
+
+            int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData::Doubled()
+            {
+                return ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData_Doubled__Inner(this.value);
+            }
+
+            static ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData::__ctor(int seed)
+            {
+                ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData __this = (ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData)0;
+                __this.__ctor__init(seed);
+                return __this;
+            }
+
+            void ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData::__ctor__init(int seed)
+            {
+                this.value = ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData__ctor__Inner(seed);
+            }
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData__ctor__Inner(int inner)
+            {
+                return inner * 3;
+            }
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled__Inner(int inner)
+            {
+                return inner * 2;
+            }
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData_Doubled__Inner(int inner)
+            {
+                return inner * 5;
+            }
+
+            static int ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled(int value)
+            {
+                return ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled__Inner(value);
+            }
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData data = ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionData::__ctor(2);
+                    __reserved__buffer[0] = ComputeWeave_Tests_ShaderRewriterTests_LocalFunctionHelpers_Scaled(3);
+                    __reserved__buffer[1] = data.value;
+                    __reserved__buffer[2] = data.Doubled();
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    internal static class LocalFunctionHelpers
+    {
+        public static int Scaled(int value)
+        {
+            static int Inner(int inner) => inner * 2;
+
+            return Inner(value);
+        }
+    }
+
+    internal struct LocalFunctionData
+    {
+        public int value;
+
+        public LocalFunctionData(int seed)
+        {
+            static int Inner(int inner) => inner * 3;
+
+            this.value = Inner(seed);
+        }
+
+        public readonly int Doubled()
+        {
+            static int Inner(int inner) => inner * 5;
+
+            return Inner(this.value);
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct HoistedLocalFunctionShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        public void Execute()
+        {
+            LocalFunctionData data = new(2);
+
+            this.buffer[0] = LocalFunctionHelpers.Scaled(3);
+            this.buffer[1] = data.value;
+            this.buffer[2] = data.Doubled();
+        }
+    }
 }
