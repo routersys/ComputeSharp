@@ -600,4 +600,41 @@ public class ImagingTests
             }
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void SaveEveryFormatForEveryPixelType(Device device)
+    {
+        static void SaveAll<T>(Device device)
+            where T : unmanaged
+        {
+            const int Size = 16;
+
+            using ReadBackTexture2D<T> readback = device.Get().AllocateReadBackTexture2D<T>(Size, Size);
+
+            Random random = new(42);
+
+            for (int y = 0; y < Size; y++)
+            {
+                Span<byte> row = System.Runtime.InteropServices.MemoryMarshal.AsBytes(readback.View.GetRowSpan(y));
+
+                random.NextBytes(row);
+            }
+
+            foreach (ImageFormat format in new[] { ImageFormat.Bmp, ImageFormat.Png, ImageFormat.Jpeg, ImageFormat.Wmp, ImageFormat.Tiff, ImageFormat.Dds })
+            {
+                using MemoryStream stream = new();
+
+                readback.Save(stream, format);
+
+                Assert.AreNotEqual(0, stream.Length, $"{typeof(T).Name} could not be saved as {format}");
+            }
+        }
+
+        SaveAll<Bgra32>(device);
+        SaveAll<Rgba32>(device);
+        SaveAll<Rgba64>(device);
+        SaveAll<R8>(device);
+        SaveAll<R16>(device);
+    }
 }
