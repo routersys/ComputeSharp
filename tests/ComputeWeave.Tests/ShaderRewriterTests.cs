@@ -1702,4 +1702,126 @@ public partial class ShaderRewriterTests
             buffer[7] = shadowed.W;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void MappedMemberExpressionPrecedence(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(3);
+
+        device.Get().For(4, 4, new MappedMemberPrecedenceShader(buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(16f, result[0], 0.0001f);
+        Assert.AreEqual(64f, result[1], 0.0001f);
+        Assert.AreEqual(9f, result[2], 0.0001f);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<MappedMemberPrecedenceShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 8
+            #define __GroupSize__get_Y 8
+            #define __GroupSize__get_Z 1
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = 1024.0 / (__GroupSize__get_X * __GroupSize__get_Y * __GroupSize__get_Z);
+                    __reserved__buffer[1] = 1024.0 / (__x * __y * __z);
+                    if (ThreadIds.x == 1 && ThreadIds.y == 0)
+                    {
+                        __reserved__buffer[2] = 3.0 / ((float)ThreadIds.x / (float)(max(1, __x - 1)));
+                    }
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct MappedMemberPrecedenceShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            this.buffer[0] = 1024.0f / GroupSize.Count;
+            this.buffer[1] = 1024.0f / DispatchSize.Count;
+
+            if (ThreadIds.X == 1 && ThreadIds.Y == 0)
+            {
+                this.buffer[2] = 3.0f / ThreadIds.Normalized.X;
+            }
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void MappedMemberAsMemberAccessTarget(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(4);
+
+        device.Get().For(4, new MappedMemberAccessTargetShader(buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(1f, result[0], 0.0001f);
+        Assert.AreEqual(1f, result[3], 0.0001f);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<MappedMemberAccessTargetShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[ThreadIds.x] = 1.0 + ((float4)0).x;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct MappedMemberAccessTargetShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            this.buffer[ThreadIds.X] = 1.0f + Float4.Zero.X;
+        }
+    }
 }
