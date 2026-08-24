@@ -1824,4 +1824,76 @@ public partial class ShaderRewriterTests
             this.buffer[ThreadIds.X] = 1.0f + Float4.Zero.X;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void WholeValuedFloatingPointConstants(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(3);
+
+        device.Get().For(1, new WholeValuedConstantShader(buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(0.5f, result[0], 0.0001f);
+        Assert.AreEqual(0.5f, result[1], 0.0001f);
+        Assert.AreEqual(0.75f, result[2], 0.0001f);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<WholeValuedConstantShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+            #define __ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__WholeFloat 1.0
+            #define __ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__WholeDouble 2.0L
+            #define __ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__FractionalFloat 1.5
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = __ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__WholeFloat / 2;
+                    __reserved__buffer[1] = (float)(__ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__WholeDouble / 4);
+                    __reserved__buffer[2] = __ComputeWeave_Tests_ShaderRewriterTests_WholeValuedConstants__FractionalFloat / 2;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    internal static class WholeValuedConstants
+    {
+        public const float WholeFloat = 1;
+
+        public const double WholeDouble = 2;
+
+        public const float FractionalFloat = 1.5f;
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct WholeValuedConstantShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            this.buffer[0] = WholeValuedConstants.WholeFloat / 2;
+            this.buffer[1] = (float)(WholeValuedConstants.WholeDouble / 4);
+            this.buffer[2] = WholeValuedConstants.FractionalFloat / 2;
+        }
+    }
 }
