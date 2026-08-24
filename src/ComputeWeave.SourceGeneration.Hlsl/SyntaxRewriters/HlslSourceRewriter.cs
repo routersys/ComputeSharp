@@ -267,6 +267,11 @@ internal abstract partial class HlslSourceRewriter(
                 return updatedNode.WithToken(Literal(literal, 0d));
             }
         }
+        else if (updatedNode.IsKind(SyntaxKind.CharacterLiteralExpression) &&
+                 updatedNode.Token.Value is char character)
+        {
+            return LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal((int)character));
+        }
         else if (updatedNode.IsKind(SyntaxKind.StringLiteralExpression))
         {
             Diagnostics.Add(StringLiteralExpression, node);
@@ -487,6 +492,13 @@ internal abstract partial class HlslSourceRewriter(
 
                 literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0L" : $"{text}L";
             }
+
+            return true;
+        }
+
+        if (value is char character)
+        {
+            literal = ((int)character).ToString(CultureInfo.InvariantCulture);
 
             return true;
         }
