@@ -113,7 +113,7 @@ partial class SyntaxNodeExtensions
     }
 
     /// <summary>
-    /// Returns an <see cref="ExpressionSyntax"/> instance that is safe to use as the operand of any operator.
+    /// Returns an <see cref="ExpressionSyntax"/> instance that is safe to use as the target of a member access.
     /// </summary>
     /// <param name="node">The input <see cref="ExpressionSyntax"/> node.</param>
     /// <returns>A node just like <paramref name="node"/>, parenthesized unless it already is a primary expression.</returns>
@@ -121,7 +121,7 @@ partial class SyntaxNodeExtensions
     /// Printing a syntax tree only emits its tokens, so an expression embedded into a context that binds more
     /// tightly than its own outermost operator would produce text that parses back into a different tree.
     /// </remarks>
-    public static ExpressionSyntax AsOperand(this ExpressionSyntax node)
+    public static ExpressionSyntax AsPrimaryExpression(this ExpressionSyntax node)
     {
         return node is
             IdentifierNameSyntax or
@@ -132,5 +132,21 @@ partial class SyntaxNodeExtensions
             ParenthesizedExpressionSyntax
             ? node
             : ParenthesizedExpression(node);
+    }
+
+    /// <summary>
+    /// Returns an <see cref="ExpressionSyntax"/> instance that is safe to use as the operand of a unary or binary operator.
+    /// </summary>
+    /// <param name="node">The input <see cref="ExpressionSyntax"/> node.</param>
+    /// <returns>A node just like <paramref name="node"/>, parenthesized unless it already binds at least as tightly.</returns>
+    /// <remarks><inheritdoc cref="AsPrimaryExpression(ExpressionSyntax)" path="/remarks/node()"/></remarks>
+    public static ExpressionSyntax AsOperand(this ExpressionSyntax node)
+    {
+        return node is
+            CastExpressionSyntax or
+            PrefixUnaryExpressionSyntax or
+            PostfixUnaryExpressionSyntax
+            ? node
+            : node.AsPrimaryExpression();
     }
 }

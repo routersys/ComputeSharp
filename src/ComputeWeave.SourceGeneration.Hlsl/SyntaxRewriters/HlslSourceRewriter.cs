@@ -443,7 +443,7 @@ internal abstract partial class HlslSourceRewriter(
 
     protected static ExpressionSyntax ParseMappedExpression(string mapping)
     {
-        return ParseExpression(mapping).AsOperand();
+        return ParseExpression(mapping).AsPrimaryExpression();
     }
 
     protected static unsafe bool TryGetConstantLiteral(object? value, out string? literal)
