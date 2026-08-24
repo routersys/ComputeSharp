@@ -1896,4 +1896,33 @@ public partial class ShaderRewriterTests
             this.buffer[2] = WholeValuedConstants.FractionalFloat / 2;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void CapturedFieldNamedAsTheGeneratedConstantBufferType(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(4);
+
+        device.Get().For(4, new ConstantBufferNameShader(buffer, 3.5f));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(3.5f, result[0], 0.0001f);
+        Assert.AreEqual(3.5f, result[3], 0.0001f);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ConstantBufferNameShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public readonly float ConstantBuffer;
+
+        public void Execute()
+        {
+            this.buffer[ThreadIds.X] = this.ConstantBuffer;
+        }
+    }
 }
