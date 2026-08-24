@@ -2009,4 +2009,66 @@ public partial class ShaderRewriterTests
             this.buffer[4] = (float)NonFiniteConstants.PositiveInfinityDouble;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void CapturedFieldNamedAsAVerbatimIdentifier(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(4);
+
+        device.Get().For(4, new VerbatimIdentifierShader(buffer, 7.5f));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(7.5f, result[0], 0.0001f);
+        Assert.AreEqual(7.5f, result[3], 0.0001f);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct VerbatimIdentifierShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public readonly float @class;
+
+        public void Execute()
+        {
+            this.buffer[ThreadIds.X] = this.@class;
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void CapturedFieldNamedAsAnArtificialConstantBufferField(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(4);
+
+        device.Get().For(4, new ArtificialFieldNameShader(buffer, 2.25f, 4.5f, 8.75f));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(15.5f, result[0], 0.0001f);
+        Assert.AreEqual(15.5f, result[3], 0.0001f);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ArtificialFieldNameShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public readonly float __x;
+
+        public readonly float __y;
+
+        public readonly float __z;
+
+        public void Execute()
+        {
+            this.buffer[ThreadIds.X] = this.__x + this.__y + this.__z;
+        }
+    }
 }
