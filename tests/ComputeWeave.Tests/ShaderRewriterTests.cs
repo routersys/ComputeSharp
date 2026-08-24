@@ -2138,4 +2138,85 @@ public partial class ShaderRewriterTests
             this.buffer[2] = matrix.M21;
         }
     }
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void UnsignedRightShiftOperandPrecedence(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(3);
+
+        device.Get().For(1, new UnsignedRightShiftPrecedenceShader(buffer, -8, 2, 1, 4294967288));
+
+        int[] result = buffer.ToArray();
+
+        Assert.AreEqual(2147483646, result[0]);
+        Assert.AreEqual(2147483644, result[1]);
+        Assert.AreEqual(2147483644, result[2]);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<UnsignedRightShiftPrecedenceShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+                int numerator;
+                int denominator;
+                int shift;
+                uint mask;
+            }
+
+            RWStructuredBuffer<int> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = (int)((uint)(numerator / denominator) >> shift);
+                    int signedValue = numerator;
+                    signedValue = (int)((uint)signedValue >> (denominator > shift ? 1 : 2));
+                    __reserved__buffer[1] = signedValue;
+                    uint unsignedValue = mask;
+                    unsignedValue = unsignedValue >> (denominator > shift ? 1 : 2);
+                    __reserved__buffer[2] = (int)unsignedValue;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct UnsignedRightShiftPrecedenceShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+        public readonly int numerator;
+        public readonly int denominator;
+        public readonly int shift;
+        public readonly uint mask;
+
+        public void Execute()
+        {
+            this.buffer[0] = this.numerator / this.denominator >>> this.shift;
+
+            int signedValue = this.numerator;
+
+            signedValue >>>= this.denominator > this.shift ? 1 : 2;
+
+            this.buffer[1] = signedValue;
+
+            uint unsignedValue = this.mask;
+
+            unsignedValue >>>= this.denominator > this.shift ? 1 : 2;
+
+            this.buffer[2] = (int)unsignedValue;
+        }
+    }
 }
