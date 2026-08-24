@@ -125,10 +125,15 @@ internal static partial class ConstantBufferSyntaxProcessor
 
             foreach (ISymbol memberSymbol in currentTypeSymbol.GetMembers())
             {
-                // Only process fields of a valid shape/type (same as the previous method).
-                // We don't need the additional checks here for accessibility or the field
-                // being valid, since those would already get separate warnings.
+                // Only process fields of a valid shape/type (same as the previous method)
                 if (memberSymbol is not IFieldSymbol { Type: INamedTypeSymbol { IsStatic: false }, IsConst: false, IsStatic: false, IsFixedSizeBuffer: false } fieldSymbol)
+                {
+                    continue;
+                }
+
+                // Skip the same fields the other method skips, so both compute the same size
+                if (!fieldSymbol.Type.IsAccessibleFromCompilationAssembly(compilation) ||
+                    !TryGetFieldAccessorName(fieldSymbol, out _, out _))
                 {
                     continue;
                 }
