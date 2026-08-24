@@ -12,7 +12,12 @@ internal static class AnalyzerHelper
 {
     public static void AssertDiagnostics(DiagnosticAnalyzer analyzer, string[] sources, string assemblyName, params string[] expectedIds)
     {
-        CSharpCompilation compilation = CompilationHelper.CreateCompilation(sources, assemblyName);
+        AssertDiagnostics(analyzer, sources, assemblyName, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary), expectedIds);
+    }
+
+    public static void AssertDiagnostics(DiagnosticAnalyzer analyzer, string[] sources, string assemblyName, CSharpCompilationOptions options, params string[] expectedIds)
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation(sources, assemblyName, options);
 
         ImmutableArray<Diagnostic> diagnostics = compilation
             .WithAnalyzers([analyzer])

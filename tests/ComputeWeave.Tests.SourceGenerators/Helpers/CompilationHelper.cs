@@ -20,6 +20,11 @@ internal static class CompilationHelper
 
     public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName)
     {
+        return CreateCompilation(sources, assemblyName, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+    }
+
+    public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName, CSharpCompilationOptions options)
+    {
         SyntaxTree[] syntaxTrees = new SyntaxTree[sources.Length];
 
         for (int i = 0; i < sources.Length; i++)
@@ -31,7 +36,7 @@ internal static class CompilationHelper
             assemblyName,
             syntaxTrees,
             References,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            options);
 
         ImmutableArray<Diagnostic> diagnostics = compilation.GetDiagnostics();
 
