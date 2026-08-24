@@ -2219,4 +2219,70 @@ public partial class ShaderRewriterTests
             this.buffer[2] = (int)unsignedValue;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void WholeValuedDecimalConstants(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(2);
+
+        device.Get().For(1, new WholeValuedDecimalConstantShader(buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(0.5f, result[0], 0.0001f);
+        Assert.AreEqual(0.25f, result[1], 0.0001f);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<WholeValuedDecimalConstantShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+            #define __ComputeWeave_Tests_ShaderRewriterTests_DecimalConstants__WholeDecimal 1.0
+            #define __ComputeWeave_Tests_ShaderRewriterTests_DecimalConstants__FractionalDecimal 0.5
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = (float)(__ComputeWeave_Tests_ShaderRewriterTests_DecimalConstants__WholeDecimal / 2);
+                    __reserved__buffer[1] = (float)(__ComputeWeave_Tests_ShaderRewriterTests_DecimalConstants__FractionalDecimal / 2);
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    internal static class DecimalConstants
+    {
+        public const decimal WholeDecimal = 1;
+
+        public const decimal FractionalDecimal = 0.5m;
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct WholeValuedDecimalConstantShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            this.buffer[0] = (float)(DecimalConstants.WholeDecimal / 2);
+            this.buffer[1] = (float)(DecimalConstants.FractionalDecimal / 2);
+        }
+    }
 }
