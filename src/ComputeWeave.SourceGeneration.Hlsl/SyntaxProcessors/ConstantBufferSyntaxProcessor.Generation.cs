@@ -89,7 +89,7 @@ partial class ConstantBufferSyntaxProcessor
                             writer.WriteFieldXmlSummary(field, fullyQualifiedTypeName);
                             writer.WriteFieldXmlRemarks(field);
                             writer.WriteLine($"""[FieldOffset({primitive.Offset})]""");
-                            writer.WriteLine($"""public Bool {string.Join("_", primitive.FieldPath.Select(static path => path.Name))};""");
+                            writer.WriteLine($"""public Bool {GetFieldName(primitive)};""");
                             break;
                         case FieldInfo.Primitive primitive:
 
@@ -97,7 +97,7 @@ partial class ConstantBufferSyntaxProcessor
                             writer.WriteFieldXmlSummary(field, fullyQualifiedTypeName);
                             writer.WriteFieldXmlRemarks(field);
                             writer.WriteLine($"""[FieldOffset({primitive.Offset})]""");
-                            writer.WriteLine($"""public {HlslKnownTypes.GetMappedName(primitive.TypeName)} {string.Join("_", primitive.FieldPath.Select(static path => path.Name))};""");
+                            writer.WriteLine($"""public {HlslKnownTypes.GetMappedName(primitive.TypeName)} {GetFieldName(primitive)};""");
                             break;
 
                         case FieldInfo.NonLinearMatrix matrix:
@@ -157,7 +157,7 @@ partial class ConstantBufferSyntaxProcessor
                             case FieldInfo.Primitive primitive:
 
                                 // Assign a primitive value
-                                writer.Write($"buffer.{string.Join("_", primitive.FieldPath.Select(static path => path.Name))} = ");
+                                writer.Write($"buffer.{GetFieldName(primitive)} = ");
                                 writer.WriteFieldAccessExpression(fieldInfo);
                                 writer.WriteLine(";");
                                 break;
@@ -215,7 +215,7 @@ partial class ConstantBufferSyntaxProcessor
 
                                     // Read a nested primitive value
                                     writer.WriteFieldAccessExpression(fieldInfo);
-                                    writer.WriteLine($" = buffer.{string.Join("_", primitive.FieldPath.Select(static path => path.Name))};");
+                                    writer.WriteLine($" = buffer.{GetFieldName(primitive)};");
                                     break;
 
                                 case FieldInfo.NonLinearMatrix matrix:
@@ -326,6 +326,13 @@ partial class ConstantBufferSyntaxProcessor
         {
             callbacks.Add(ConstantBufferMarshallerCallback);
         }
+    }
+
+    private static string GetFieldName(FieldInfo.Primitive primitive)
+    {
+        string name = string.Join("_", primitive.FieldPath.Select(static path => path.Name));
+
+        return name is "ConstantBuffer" ? $"__reserved__{name}" : name;
     }
 
     /// <summary>
