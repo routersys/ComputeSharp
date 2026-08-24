@@ -2285,4 +2285,67 @@ public partial class ShaderRewriterTests
             this.buffer[1] = (float)(DecimalConstants.FractionalDecimal / 2);
         }
     }
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void VerbatimLocalFunctionName(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(1);
+
+        device.Get().For(1, new VerbatimLocalFunctionShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        Assert.AreEqual(6, result[0]);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<VerbatimLocalFunctionShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+
+            static int __Execute__object(int value);
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<int> __reserved__buffer : register(u0);
+
+            static int __Execute__object(int value)
+            {
+                return value * 2;
+            }
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = __Execute__object(3);
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct VerbatimLocalFunctionShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        public void Execute()
+        {
+            static int @object(int value) => value * 2;
+
+            this.buffer[0] = @object(3);
+        }
+    }
+
 }
