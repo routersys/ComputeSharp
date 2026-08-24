@@ -2352,7 +2352,7 @@ public partial class ShaderRewriterTests
     [AllDevices]
     public void CharacterValues(Device device)
     {
-        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(4);
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(5);
 
         device.Get().For(1, new CharacterValueShader(buffer));
 
@@ -2360,8 +2360,9 @@ public partial class ShaderRewriterTests
 
         Assert.AreEqual('A', result[0]);
         Assert.AreEqual('A', result[1]);
-        Assert.AreEqual('あ', result[2]);
+        Assert.AreEqual('\u3042', result[2]);
         Assert.AreEqual('\n', result[3]);
+        Assert.AreEqual('\u3042', result[4]);
 
         ShaderInfo info = ReflectionServices.GetShaderInfo<CharacterValueShader>();
 
@@ -2392,6 +2393,7 @@ public partial class ShaderRewriterTests
                     __reserved__buffer[1] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Letter;
                     __reserved__buffer[2] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Wide;
                     __reserved__buffer[3] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Newline;
+                    __reserved__buffer[4] = 12354;
                 }
             }
             """,
@@ -2402,7 +2404,7 @@ public partial class ShaderRewriterTests
     {
         public const char Letter = 'A';
 
-        public const char Wide = 'あ';
+        public const char Wide = '\u3042';
 
         public const char Newline = '\n';
     }
@@ -2420,6 +2422,7 @@ public partial class ShaderRewriterTests
             this.buffer[1] = CharacterConstants.Letter;
             this.buffer[2] = CharacterConstants.Wide;
             this.buffer[3] = CharacterConstants.Newline;
+            this.buffer[4] = '\u3042';
         }
     }
     [CombinatorialTestMethod]
