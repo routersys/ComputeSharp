@@ -327,7 +327,7 @@ internal sealed partial class ShaderSourceRewriter(
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
                 .WithBlockBody()
                 .WithAttributeLists(List<AttributeListSyntax>())
-                .WithIdentifier(Identifier($"__{this.currentMethodIdentifier.Text}__{node.Identifier.Text}"));
+                .WithIdentifier(Identifier($"__{this.currentMethodIdentifier.ValueText}__{node.Identifier.ValueText}"));
 
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.ReturnType, node!.ReturnType, SemanticModel.For(node));
 
@@ -561,7 +561,7 @@ internal sealed partial class ShaderSourceRewriter(
                 // updated name is detailed in the override handling the local function statement.
                 if (method.MethodKind == MethodKind.LocalFunction)
                 {
-                    string functionIdentifier = $"__{this.currentMethodIdentifier.Text}__{method.Name}";
+                    string functionIdentifier = $"__{this.currentMethodIdentifier.ValueText}__{method.Name}";
 
                     return updatedNode.WithExpression(IdentifierName(functionIdentifier));
                 }
