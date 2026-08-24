@@ -2071,4 +2071,71 @@ public partial class ShaderRewriterTests
             this.buffer[ThreadIds.X] = this.__x + this.__y + this.__z;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void MatrixConstructorArgumentPrecedence(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(3);
+
+        device.Get().For(1, new MatrixConstructorArgumentPrecedenceShader(buffer, 7, 2));
+
+        float[] result = buffer.ToArray();
+
+        Assert.AreEqual(3f, result[0], 0.0001f);
+        Assert.AreEqual(1f, result[1], 0.0001f);
+        Assert.AreEqual(5f, result[2], 0.0001f);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<MatrixConstructorArgumentPrecedenceShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+                int numerator;
+                int denominator;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    float2x2 __reserved__matrix = float2x2((float)(numerator / denominator), (float)(numerator % denominator), (float)(numerator - denominator), (float)1);
+                    __reserved__buffer[0] = __reserved__matrix._m00;
+                    __reserved__buffer[1] = __reserved__matrix._m01;
+                    __reserved__buffer[2] = __reserved__matrix._m10;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct MatrixConstructorArgumentPrecedenceShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+        public readonly int numerator;
+        public readonly int denominator;
+
+        public void Execute()
+        {
+            Float2x2 matrix = new(this.numerator / this.denominator, this.numerator % this.denominator, this.numerator - this.denominator, 1);
+
+            this.buffer[0] = matrix.M11;
+            this.buffer[1] = matrix.M12;
+            this.buffer[2] = matrix.M21;
+        }
+    }
 }
