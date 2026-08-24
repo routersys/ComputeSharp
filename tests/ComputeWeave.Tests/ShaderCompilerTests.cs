@@ -1443,5 +1443,575 @@ namespace ExternalNamespace
                 buffer[ThreadIds.X] = sum;
             }
         }
+
+        [TestMethod]
+        public void ReservedKeywordsFromDxcSweep()
+        {
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader0>();
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader1>();
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader2>();
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader3>();
+            _ = ReflectionServices.GetShaderInfo<DxcReservedNamesShader4>();
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader0 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float CANDIDATE_NON_OPAQUE_TRIANGLE;
+            public readonly float CANDIDATE_PROCEDURAL_PRIMITIVE;
+            public readonly float CANDIDATE_TYPE;
+            public readonly float COMMITTED_NOTHING;
+            public readonly float COMMITTED_PROCEDURAL_PRIMITIVE_HIT;
+            public readonly float COMMITTED_STATUS;
+            public readonly float COMMITTED_TRIANGLE_HIT;
+            public readonly float HIT_KIND_NONE;
+            public readonly float HIT_KIND_TRIANGLE_BACK_FACE;
+            public readonly float HIT_KIND_TRIANGLE_FRONT_FACE;
+            public readonly float RAYTRACING_PIPELINE_FLAG_NONE;
+            public readonly float RAYTRACING_PIPELINE_FLAG_SKIP_TRIANGLES;
+            public readonly float RAY_FLAG;
+            public readonly float RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+            public readonly float RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+            public readonly float RAY_FLAG_CULL_FRONT_FACING_TRIANGLES;
+            public readonly float RAY_FLAG_CULL_NON_OPAQUE;
+            public readonly float RAY_FLAG_CULL_OPAQUE;
+            public readonly float RAY_FLAG_FORCE_NON_OPAQUE;
+            public readonly float RAY_FLAG_FORCE_OPAQUE;
+            public readonly float RAY_FLAG_NONE;
+            public readonly float RAY_FLAG_SKIP_CLOSEST_HIT_SHADER;
+            public readonly float RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+            public readonly float RAY_FLAG_SKIP_TRIANGLES;
+            public readonly float RWTexture2DMS;
+            public readonly float RWTexture2DMSArray;
+            public readonly float RasterizerOrderedTexture1DArray;
+            public readonly float SAMPLER_FEEDBACK_MIN_MIP;
+            public readonly float SAMPLER_FEEDBACK_MIP_REGION_USED;
+            public readonly float Technique;
+            public readonly float _Alignas;
+            public readonly float _Alignof;
+            public readonly float _Atomic;
+            public readonly float _Complex;
+            public readonly float _Decimal128;
+            public readonly float _Decimal32;
+            public readonly float _Decimal64;
+            public readonly float _Generic;
+            public readonly float _Imaginary;
+            public readonly float _Nonnull;
+            public readonly float _Noreturn;
+            public readonly float _Null_unspecified;
+            public readonly float _Nullable;
+            public readonly float _Pragma;
+            public readonly float _Static_assert;
+            public readonly float _Thread_local;
+            public readonly float __BASE_FILE__;
+            public readonly float __BYTE_ORDER__;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += CANDIDATE_NON_OPAQUE_TRIANGLE;
+                sum += CANDIDATE_PROCEDURAL_PRIMITIVE;
+                sum += CANDIDATE_TYPE;
+                sum += COMMITTED_NOTHING;
+                sum += COMMITTED_PROCEDURAL_PRIMITIVE_HIT;
+                sum += COMMITTED_STATUS;
+                sum += COMMITTED_TRIANGLE_HIT;
+                sum += HIT_KIND_NONE;
+                sum += HIT_KIND_TRIANGLE_BACK_FACE;
+                sum += HIT_KIND_TRIANGLE_FRONT_FACE;
+                sum += RAYTRACING_PIPELINE_FLAG_NONE;
+                sum += RAYTRACING_PIPELINE_FLAG_SKIP_TRIANGLES;
+                sum += RAY_FLAG;
+                sum += RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH;
+                sum += RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+                sum += RAY_FLAG_CULL_FRONT_FACING_TRIANGLES;
+                sum += RAY_FLAG_CULL_NON_OPAQUE;
+                sum += RAY_FLAG_CULL_OPAQUE;
+                sum += RAY_FLAG_FORCE_NON_OPAQUE;
+                sum += RAY_FLAG_FORCE_OPAQUE;
+                sum += RAY_FLAG_NONE;
+                sum += RAY_FLAG_SKIP_CLOSEST_HIT_SHADER;
+                sum += RAY_FLAG_SKIP_PROCEDURAL_PRIMITIVES;
+                sum += RAY_FLAG_SKIP_TRIANGLES;
+                sum += RWTexture2DMS;
+                sum += RWTexture2DMSArray;
+                sum += RasterizerOrderedTexture1DArray;
+                sum += SAMPLER_FEEDBACK_MIN_MIP;
+                sum += SAMPLER_FEEDBACK_MIP_REGION_USED;
+                sum += Technique;
+                sum += _Alignas;
+                sum += _Alignof;
+                sum += _Atomic;
+                sum += _Complex;
+                sum += _Decimal128;
+                sum += _Decimal32;
+                sum += _Decimal64;
+                sum += _Generic;
+                sum += _Imaginary;
+                sum += _Nonnull;
+                sum += _Noreturn;
+                sum += _Null_unspecified;
+                sum += _Nullable;
+                sum += _Pragma;
+                sum += _Static_assert;
+                sum += _Thread_local;
+                sum += __BASE_FILE__;
+                sum += __BYTE_ORDER__;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader1 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float __COUNTER__;
+            public readonly float __DATE__;
+            public readonly float __DXC_VERSION_COMMITS;
+            public readonly float __DXC_VERSION_MAJOR;
+            public readonly float __DXC_VERSION_MINOR;
+            public readonly float __DXC_VERSION_RELEASE;
+            public readonly float __FILE__;
+            public readonly float __FLT_RADIX__;
+            public readonly float __FUNCTION__;
+            public readonly float __GNUC_MINOR__;
+            public readonly float __GNUC_PATCHLEVEL__;
+            public readonly float __GNUC__;
+            public readonly float __GXX_ABI_VERSION;
+            public readonly float __HLSL_VERSION;
+            public readonly float __INCLUDE_LEVEL__;
+            public readonly float __LINE__;
+            public readonly float __LITTLE_ENDIAN__;
+            public readonly float __ORDER_BIG_ENDIAN__;
+            public readonly float __ORDER_LITTLE_ENDIAN__;
+            public readonly float __ORDER_PDP_ENDIAN__;
+            public readonly float __PRETTY_FUNCTION__;
+            public readonly float __SHADER_STAGE_AMPLIFICATION;
+            public readonly float __SHADER_STAGE_COMPUTE;
+            public readonly float __SHADER_STAGE_DOMAIN;
+            public readonly float __SHADER_STAGE_GEOMETRY;
+            public readonly float __SHADER_STAGE_HULL;
+            public readonly float __SHADER_STAGE_LIBRARY;
+            public readonly float __SHADER_STAGE_MESH;
+            public readonly float __SHADER_STAGE_PIXEL;
+            public readonly float __SHADER_STAGE_VERTEX;
+            public readonly float __SHADER_TARGET_MAJOR;
+            public readonly float __SHADER_TARGET_MINOR;
+            public readonly float __SHADER_TARGET_STAGE;
+            public readonly float __TIME__;
+            public readonly float __VERSION__;
+            public readonly float __alignof;
+            public readonly float __alignof__;
+            public readonly float __array_extent;
+            public readonly float __array_rank;
+            public readonly float __asm;
+            public readonly float __asm__;
+            public readonly float __attribute;
+            public readonly float __attribute__;
+            public readonly float __builtin_choose_expr;
+            public readonly float __builtin_convertvector;
+            public readonly float __builtin_offsetof;
+            public readonly float __builtin_omp_required_simd_align;
+            public readonly float __builtin_va_arg;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += __COUNTER__;
+                sum += __DATE__;
+                sum += __DXC_VERSION_COMMITS;
+                sum += __DXC_VERSION_MAJOR;
+                sum += __DXC_VERSION_MINOR;
+                sum += __DXC_VERSION_RELEASE;
+                sum += __FILE__;
+                sum += __FLT_RADIX__;
+                sum += __FUNCTION__;
+                sum += __GNUC_MINOR__;
+                sum += __GNUC_PATCHLEVEL__;
+                sum += __GNUC__;
+                sum += __GXX_ABI_VERSION;
+                sum += __HLSL_VERSION;
+                sum += __INCLUDE_LEVEL__;
+                sum += __LINE__;
+                sum += __LITTLE_ENDIAN__;
+                sum += __ORDER_BIG_ENDIAN__;
+                sum += __ORDER_LITTLE_ENDIAN__;
+                sum += __ORDER_PDP_ENDIAN__;
+                sum += __PRETTY_FUNCTION__;
+                sum += __SHADER_STAGE_AMPLIFICATION;
+                sum += __SHADER_STAGE_COMPUTE;
+                sum += __SHADER_STAGE_DOMAIN;
+                sum += __SHADER_STAGE_GEOMETRY;
+                sum += __SHADER_STAGE_HULL;
+                sum += __SHADER_STAGE_LIBRARY;
+                sum += __SHADER_STAGE_MESH;
+                sum += __SHADER_STAGE_PIXEL;
+                sum += __SHADER_STAGE_VERTEX;
+                sum += __SHADER_TARGET_MAJOR;
+                sum += __SHADER_TARGET_MINOR;
+                sum += __SHADER_TARGET_STAGE;
+                sum += __TIME__;
+                sum += __VERSION__;
+                sum += __alignof;
+                sum += __alignof__;
+                sum += __array_extent;
+                sum += __array_rank;
+                sum += __asm;
+                sum += __asm__;
+                sum += __attribute;
+                sum += __attribute__;
+                sum += __builtin_choose_expr;
+                sum += __builtin_convertvector;
+                sum += __builtin_offsetof;
+                sum += __builtin_omp_required_simd_align;
+                sum += __builtin_va_arg;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader2 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float __builtin_va_list;
+            public readonly float __cdecl;
+            public readonly float __char16_t;
+            public readonly float __char32_t;
+            public readonly float __clang__;
+            public readonly float __clang_major__;
+            public readonly float __clang_minor__;
+            public readonly float __clang_patchlevel__;
+            public readonly float __clang_version__;
+            public readonly float __complex;
+            public readonly float __complex__;
+            public readonly float __const;
+            public readonly float __const__;
+            public readonly float __declspec;
+            public readonly float __decltype;
+            public readonly float __extension__;
+            public readonly float __fastcall;
+            public readonly float __fp16;
+            public readonly float __func__;
+            public readonly float __has_attribute;
+            public readonly float __has_builtin;
+            public readonly float __has_cpp_attribute;
+            public readonly float __has_declspec_attribute;
+            public readonly float __has_extension;
+            public readonly float __has_feature;
+            public readonly float __has_include;
+            public readonly float __has_include_next;
+            public readonly float __has_nothrow_assign;
+            public readonly float __has_nothrow_constructor;
+            public readonly float __has_nothrow_copy;
+            public readonly float __has_nothrow_move_assign;
+            public readonly float __has_trivial_assign;
+            public readonly float __has_trivial_constructor;
+            public readonly float __has_trivial_copy;
+            public readonly float __has_trivial_destructor;
+            public readonly float __has_trivial_move_assign;
+            public readonly float __has_trivial_move_constructor;
+            public readonly float __has_virtual_destructor;
+            public readonly float __has_warning;
+            public readonly float __hlsl_dx_compiler;
+            public readonly float __imag;
+            public readonly float __imag__;
+            public readonly float __inline;
+            public readonly float __inline__;
+            public readonly float __int128;
+            public readonly float __is_abstract;
+            public readonly float __is_arithmetic;
+            public readonly float __is_array;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += __builtin_va_list;
+                sum += __cdecl;
+                sum += __char16_t;
+                sum += __char32_t;
+                sum += __clang__;
+                sum += __clang_major__;
+                sum += __clang_minor__;
+                sum += __clang_patchlevel__;
+                sum += __clang_version__;
+                sum += __complex;
+                sum += __complex__;
+                sum += __const;
+                sum += __const__;
+                sum += __declspec;
+                sum += __decltype;
+                sum += __extension__;
+                sum += __fastcall;
+                sum += __fp16;
+                sum += __func__;
+                sum += __has_attribute;
+                sum += __has_builtin;
+                sum += __has_cpp_attribute;
+                sum += __has_declspec_attribute;
+                sum += __has_extension;
+                sum += __has_feature;
+                sum += __has_include;
+                sum += __has_include_next;
+                sum += __has_nothrow_assign;
+                sum += __has_nothrow_constructor;
+                sum += __has_nothrow_copy;
+                sum += __has_nothrow_move_assign;
+                sum += __has_trivial_assign;
+                sum += __has_trivial_constructor;
+                sum += __has_trivial_copy;
+                sum += __has_trivial_destructor;
+                sum += __has_trivial_move_assign;
+                sum += __has_trivial_move_constructor;
+                sum += __has_virtual_destructor;
+                sum += __has_warning;
+                sum += __hlsl_dx_compiler;
+                sum += __imag;
+                sum += __imag__;
+                sum += __inline;
+                sum += __inline__;
+                sum += __int128;
+                sum += __is_abstract;
+                sum += __is_arithmetic;
+                sum += __is_array;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader3 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float __is_base_of;
+            public readonly float __is_class;
+            public readonly float __is_complete_type;
+            public readonly float __is_compound;
+            public readonly float __is_const;
+            public readonly float __is_constructible;
+            public readonly float __is_convertible;
+            public readonly float __is_convertible_to;
+            public readonly float __is_empty;
+            public readonly float __is_enum;
+            public readonly float __is_final;
+            public readonly float __is_floating_point;
+            public readonly float __is_function;
+            public readonly float __is_fundamental;
+            public readonly float __is_identifier;
+            public readonly float __is_integral;
+            public readonly float __is_literal;
+            public readonly float __is_literal_type;
+            public readonly float __is_lvalue_expr;
+            public readonly float __is_lvalue_reference;
+            public readonly float __is_member_function_pointer;
+            public readonly float __is_member_object_pointer;
+            public readonly float __is_member_pointer;
+            public readonly float __is_nothrow_assignable;
+            public readonly float __is_nothrow_constructible;
+            public readonly float __is_object;
+            public readonly float __is_pod;
+            public readonly float __is_pointer;
+            public readonly float __is_polymorphic;
+            public readonly float __is_reference;
+            public readonly float __is_rvalue_expr;
+            public readonly float __is_rvalue_reference;
+            public readonly float __is_same;
+            public readonly float __is_scalar;
+            public readonly float __is_signed;
+            public readonly float __is_standard_layout;
+            public readonly float __is_trivial;
+            public readonly float __is_trivially_assignable;
+            public readonly float __is_trivially_constructible;
+            public readonly float __is_trivially_copyable;
+            public readonly float __is_union;
+            public readonly float __is_unsigned;
+            public readonly float __is_void;
+            public readonly float __is_volatile;
+            public readonly float __label__;
+            public readonly float __llvm__;
+            public readonly float __module_private__;
+            public readonly float __null;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += __is_base_of;
+                sum += __is_class;
+                sum += __is_complete_type;
+                sum += __is_compound;
+                sum += __is_const;
+                sum += __is_constructible;
+                sum += __is_convertible;
+                sum += __is_convertible_to;
+                sum += __is_empty;
+                sum += __is_enum;
+                sum += __is_final;
+                sum += __is_floating_point;
+                sum += __is_function;
+                sum += __is_fundamental;
+                sum += __is_identifier;
+                sum += __is_integral;
+                sum += __is_literal;
+                sum += __is_literal_type;
+                sum += __is_lvalue_expr;
+                sum += __is_lvalue_reference;
+                sum += __is_member_function_pointer;
+                sum += __is_member_object_pointer;
+                sum += __is_member_pointer;
+                sum += __is_nothrow_assignable;
+                sum += __is_nothrow_constructible;
+                sum += __is_object;
+                sum += __is_pod;
+                sum += __is_pointer;
+                sum += __is_polymorphic;
+                sum += __is_reference;
+                sum += __is_rvalue_expr;
+                sum += __is_rvalue_reference;
+                sum += __is_same;
+                sum += __is_scalar;
+                sum += __is_signed;
+                sum += __is_standard_layout;
+                sum += __is_trivial;
+                sum += __is_trivially_assignable;
+                sum += __is_trivially_constructible;
+                sum += __is_trivially_copyable;
+                sum += __is_union;
+                sum += __is_unsigned;
+                sum += __is_void;
+                sum += __is_volatile;
+                sum += __label__;
+                sum += __llvm__;
+                sum += __module_private__;
+                sum += __null;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct DxcReservedNamesShader4 : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float __nullptr;
+            public readonly float __objc_no;
+            public readonly float __objc_yes;
+            public readonly float __pascal;
+            public readonly float __private_extern__;
+            public readonly float __real;
+            public readonly float __real__;
+            public readonly float __restrict;
+            public readonly float __restrict__;
+            public readonly float __signed;
+            public readonly float __signed__;
+            public readonly float __stdcall;
+            public readonly float __thiscall;
+            public readonly float __thread;
+            public readonly float __typeof;
+            public readonly float __typeof__;
+            public readonly float __underlying_type;
+            public readonly float __vectorcall;
+            public readonly float __volatile;
+            public readonly float __volatile__;
+            public readonly float auto;
+            public readonly float const_cast;
+            public readonly float delete;
+            public readonly float dynamic_cast;
+            public readonly float ext_result_id;
+            public readonly float ext_type;
+            public readonly float float32_t;
+            public readonly float float64_t;
+            public readonly float friend;
+            public readonly float int32_t;
+            public readonly float int64_t;
+            public readonly float int8_t4_packed;
+            public readonly float mutable;
+            public readonly float reinterpret_cast;
+            public readonly float sampler_state;
+            public readonly float signed;
+            public readonly float static_cast;
+            public readonly float std;
+            public readonly float technique10;
+            public readonly float technique11;
+            public readonly float template;
+            public readonly float typeid;
+            public readonly float typename;
+            public readonly float uint32_t;
+            public readonly float uint64_t;
+            public readonly float uint8_t4_packed;
+            public readonly float union;
+            public readonly float wchar_t;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += __nullptr;
+                sum += __objc_no;
+                sum += __objc_yes;
+                sum += __pascal;
+                sum += __private_extern__;
+                sum += __real;
+                sum += __real__;
+                sum += __restrict;
+                sum += __restrict__;
+                sum += __signed;
+                sum += __signed__;
+                sum += __stdcall;
+                sum += __thiscall;
+                sum += __thread;
+                sum += __typeof;
+                sum += __typeof__;
+                sum += __underlying_type;
+                sum += __vectorcall;
+                sum += __volatile;
+                sum += __volatile__;
+                sum += auto;
+                sum += const_cast;
+                sum += delete;
+                sum += dynamic_cast;
+                sum += ext_result_id;
+                sum += ext_type;
+                sum += float32_t;
+                sum += float64_t;
+                sum += friend;
+                sum += int32_t;
+                sum += int64_t;
+                sum += int8_t4_packed;
+                sum += mutable;
+                sum += reinterpret_cast;
+                sum += sampler_state;
+                sum += signed;
+                sum += static_cast;
+                sum += std;
+                sum += technique10;
+                sum += technique11;
+                sum += template;
+                sum += typeid;
+                sum += typename;
+                sum += uint32_t;
+                sum += uint64_t;
+                sum += uint8_t4_packed;
+                sum += union;
+                sum += wchar_t;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
     }
 }
