@@ -334,7 +334,7 @@ partial class ComputeShaderDescriptorGenerator
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
                 // We're only looking for static fields of a valid type for group shared buffers
-                if (memberSymbol is not IFieldSymbol { IsStatic: true, Type: IArrayTypeSymbol { ElementType.IsUnmanagedType: true } typeSymbol } fieldSymbol)
+                if (memberSymbol is not IFieldSymbol { IsStatic: true, Type: IArrayTypeSymbol { ElementType: INamedTypeSymbol { IsUnmanagedType: true } } typeSymbol } fieldSymbol)
                 {
                     continue;
                 }

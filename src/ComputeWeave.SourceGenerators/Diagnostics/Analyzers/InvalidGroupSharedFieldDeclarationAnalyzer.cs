@@ -45,7 +45,7 @@ public sealed class InvalidGroupSharedFieldDeclarationAnalyzer : DiagnosticAnaly
                 }
 
                 // Emit a diagnostic if the field is not valid (it must be static, of an array type with an unmanaged element type, and within a compute shader type)
-                if (fieldSymbol is not { IsStatic: true, Type: IArrayTypeSymbol { ElementType.IsUnmanagedType: true } } ||
+                if (fieldSymbol is not { IsStatic: true, Type: IArrayTypeSymbol { ElementType: INamedTypeSymbol { IsUnmanagedType: true } } } ||
                     !MissingComputeShaderDescriptorOnComputeShaderAnalyzer.IsComputeShaderType(typeSymbol, computeShaderSymbol, pixelShaderSymbol))
                 {
                     context.ReportDiagnostic(Diagnostic.Create(
