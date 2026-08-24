@@ -491,6 +491,15 @@ internal abstract partial class HlslSourceRewriter(
             return true;
         }
 
+        if (value is decimal number)
+        {
+            string text = number.ToString(null, CultureInfo.InvariantCulture);
+
+            literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0" : text;
+
+            return true;
+        }
+
         if (value is IFormattable formattable)
         {
             literal = formattable.ToString(null, CultureInfo.InvariantCulture);
