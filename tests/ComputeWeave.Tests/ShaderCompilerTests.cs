@@ -1381,5 +1381,67 @@ namespace ExternalNamespace
         {
             _ = ReflectionServices.GetShaderInfo<UserDefinedTypeShader>();
         }
+
+        [TestMethod]
+        public void ReservedKeywordsForResourceTypes()
+        {
+            _ = ReflectionServices.GetShaderInfo<ReservedKeywordsForResourceTypesShader>();
+        }
+
+        [AutoConstructor]
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        public readonly partial struct ReservedKeywordsForResourceTypesShader : IComputeShader
+        {
+            public readonly ReadWriteBuffer<float> buffer;
+            public readonly float AppendStructuredBuffer;
+            public readonly float LineStream;
+            public readonly float PointStream;
+            public readonly float min10float;
+            public readonly float min12int;
+            public readonly float min16float;
+            public readonly float min16int;
+            public readonly float min16uint;
+            public readonly float TextureBuffer;
+            public readonly float RayQuery;
+            public readonly float SubpassInput;
+            public readonly float SubpassInputMS;
+            public readonly float FeedbackTexture2D;
+            public readonly float FeedbackTexture2DArray;
+            public readonly float RasterizerOrderedBuffer;
+            public readonly float RasterizerOrderedStructuredBuffer;
+            public readonly float RasterizerOrderedTexture1D;
+            public readonly float RasterizerOrderedTexture2D;
+            public readonly float RasterizerOrderedTexture2DArray;
+            public readonly float RasterizerOrderedTexture3D;
+
+            public void Execute()
+            {
+                float sum = 0;
+
+                sum += AppendStructuredBuffer;
+                sum += LineStream;
+                sum += PointStream;
+                sum += min10float;
+                sum += min12int;
+                sum += min16float;
+                sum += min16int;
+                sum += min16uint;
+                sum += TextureBuffer;
+                sum += RayQuery;
+                sum += SubpassInput;
+                sum += SubpassInputMS;
+                sum += FeedbackTexture2D;
+                sum += FeedbackTexture2DArray;
+                sum += RasterizerOrderedBuffer;
+                sum += RasterizerOrderedStructuredBuffer;
+                sum += RasterizerOrderedTexture1D;
+                sum += RasterizerOrderedTexture2D;
+                sum += RasterizerOrderedTexture2DArray;
+                sum += RasterizerOrderedTexture3D;
+
+                buffer[ThreadIds.X] = sum;
+            }
+        }
     }
 }
