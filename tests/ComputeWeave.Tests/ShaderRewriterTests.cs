@@ -1925,4 +1925,88 @@ public partial class ShaderRewriterTests
             this.buffer[ThreadIds.X] = this.ConstantBuffer;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void NonFiniteFloatingPointConstants(Device device)
+    {
+        using ReadWriteBuffer<float> buffer = device.Get().AllocateReadWriteBuffer<float>(5);
+
+        device.Get().For(1, new NonFiniteConstantShader(buffer));
+
+        float[] result = buffer.ToArray();
+
+        Assert.IsTrue(float.IsNaN(result[0]));
+        Assert.IsTrue(float.IsPositiveInfinity(result[1]));
+        Assert.IsTrue(float.IsNegativeInfinity(result[2]));
+        Assert.IsTrue(float.IsNaN(result[3]));
+        Assert.IsTrue(float.IsPositiveInfinity(result[4]));
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<NonFiniteConstantShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+            #define __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NanFloat asfloat(0xFFC00000)
+            #define __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__PositiveInfinityFloat asfloat(0x7F800000)
+            #define __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NegativeInfinityFloat asfloat(0xFF800000)
+            #define __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NanDouble asdouble(0x00000000, 0xFFF80000)
+            #define __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__PositiveInfinityDouble asdouble(0x00000000, 0x7FF00000)
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<float> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NanFloat;
+                    __reserved__buffer[1] = __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__PositiveInfinityFloat;
+                    __reserved__buffer[2] = __ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NegativeInfinityFloat;
+                    __reserved__buffer[3] = (float)__ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__NanDouble;
+                    __reserved__buffer[4] = (float)__ComputeWeave_Tests_ShaderRewriterTests_NonFiniteConstants__PositiveInfinityDouble;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    internal static class NonFiniteConstants
+    {
+        public const float NanFloat = float.NaN;
+
+        public const float PositiveInfinityFloat = float.PositiveInfinity;
+
+        public const float NegativeInfinityFloat = float.NegativeInfinity;
+
+        public const double NanDouble = double.NaN;
+
+        public const double PositiveInfinityDouble = double.PositiveInfinity;
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct NonFiniteConstantShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float> buffer;
+
+        public void Execute()
+        {
+            this.buffer[0] = NonFiniteConstants.NanFloat;
+            this.buffer[1] = NonFiniteConstants.PositiveInfinityFloat;
+            this.buffer[2] = NonFiniteConstants.NegativeInfinityFloat;
+            this.buffer[3] = (float)NonFiniteConstants.NanDouble;
+            this.buffer[4] = (float)NonFiniteConstants.PositiveInfinityDouble;
+        }
+    }
 }
