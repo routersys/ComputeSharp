@@ -76,7 +76,7 @@ internal static class HlslOperatorsSyntaxProcessor
             // than just replacing '>>>' with '>>', since the former doesn't exist in HLSL.
             if (HlslKnownTypes.IsKnownUnsignedIntegerType(typeName))
             {
-                rewrittenNode = BinaryExpression(SyntaxKind.RightShiftExpression, leftNode, rightNode);
+                rewrittenNode = BinaryExpression(SyntaxKind.RightShiftExpression, leftNode, rightNode.AsOperand());
 
                 WrapRewrittenNodeIfNeeded(updatedNode, operation, ref rewrittenNode);
 
@@ -97,8 +97,8 @@ internal static class HlslOperatorsSyntaxProcessor
                         ParenthesizedExpression(
                             BinaryExpression(
                                 SyntaxKind.RightShiftExpression,
-                                CastExpression(IdentifierName(unsignedTypeName), leftNode),
-                                rightNode)));
+                                CastExpression(IdentifierName(unsignedTypeName), leftNode.AsOperand()),
+                                rightNode.AsOperand())));
 
                 WrapRewrittenNodeIfNeeded(updatedNode, operation, ref rewrittenNode);
 
