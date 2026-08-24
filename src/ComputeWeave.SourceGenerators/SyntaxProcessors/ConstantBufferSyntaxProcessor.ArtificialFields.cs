@@ -14,6 +14,12 @@ partial class ConstantBufferSyntaxProcessor
     }
 
     /// <inheritdoc/>
+    private static partial bool IsArtificialFieldName(string name)
+    {
+        return name is "__x" or "__y" or "__z";
+    }
+
+    /// <inheritdoc/>
     static partial void AppendArtificialFields(IConstantBufferInfo info, IndentedTextWriter writer)
     {
         // The X and Y axes are always present

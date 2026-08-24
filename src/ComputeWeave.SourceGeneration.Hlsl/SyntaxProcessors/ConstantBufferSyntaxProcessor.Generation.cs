@@ -4,6 +4,7 @@ using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Helpers;
 using ComputeWeave.SourceGeneration.Mappings;
 using ComputeWeave.SourceGeneration.Models;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace ComputeWeave.SourceGeneration.SyntaxProcessors;
 
@@ -299,7 +300,7 @@ partial class ConstantBufferSyntaxProcessor
                                 /// <param name="value">The input <see cref="{containingTypeName}"/> value.</param>
                                 /// <returns>A mutable reference to <see cref="{containingTypeName}.{pathPart.Name}"/>.</returns>
                                 [UnsafeAccessor(UnsafeAccessorKind.Field)]
-                                private static extern ref {typeName} {pathPart.Name}(this ref readonly {containingTypeName} value);
+                                private static extern ref {typeName} {GetEscapedName(pathPart.Name)}(this ref readonly {containingTypeName} value);
                                 """, isMultiline: true);
                         }
                         else
@@ -309,7 +310,7 @@ partial class ConstantBufferSyntaxProcessor
                                 /// <param name="value">The input <see cref="{containingTypeName}"/> value.</param>
                                 /// <returns>A mutable reference to the unspeakable field "{pathPart.Name}".</returns>
                                 [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "{pathPart.UnspeakableName}")]
-                                private static extern ref {typeName} {pathPart.Name}(this ref readonly {containingTypeName} value);
+                                private static extern ref {typeName} {GetEscapedName(pathPart.Name)}(this ref readonly {containingTypeName} value);
                                 """, isMultiline: true);
                         }
                     }
@@ -332,7 +333,17 @@ partial class ConstantBufferSyntaxProcessor
     {
         string name = string.Join("_", primitive.FieldPath.Select(static path => path.Name));
 
-        return name is "ConstantBuffer" ? $"__reserved__{name}" : name;
+        if (name is "ConstantBuffer" || IsArtificialFieldName(name))
+        {
+            name = $"__reserved__{name}";
+        }
+
+        return GetEscapedName(name);
+    }
+
+    public static string GetEscapedName(string name)
+    {
+        return SyntaxFacts.GetKeywordKind(name) is SyntaxKind.None ? name : $"@{name}";
     }
 
     /// <summary>
@@ -340,6 +351,13 @@ partial class ConstantBufferSyntaxProcessor
     /// </summary>
     /// <returns>Whether any artificial fields are present.</returns>
     private static partial bool HasArtificialFields();
+
+    /// <summary>
+    /// Checks whether a given name is used by an artificial field in the generated constant buffer type.
+    /// </summary>
+    /// <param name="name">The name to check.</param>
+    /// <returns>Whether <paramref name="name"/> is used by an artificial field.</returns>
+    private static partial bool IsArtificialFieldName(string name);
 
     /// <summary>
     /// Appends any artificial fields to the generated constant buffer type.
@@ -422,7 +440,7 @@ file static class IndentedTextWriterExtensions
         // This simplifies the formatting and makes the code easier to read.
         foreach (FieldPathPart part in fieldInfo.FieldPath)
         {
-            writer.Write($".{part.Name}()");
+            writer.Write($".{ConstantBufferSyntaxProcessor.GetEscapedName(part.Name)}()");
         }
     }
 }

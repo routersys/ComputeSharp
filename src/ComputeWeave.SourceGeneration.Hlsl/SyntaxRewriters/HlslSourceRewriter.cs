@@ -411,10 +411,17 @@ internal abstract partial class HlslSourceRewriter(
         SyntaxToken updatedToken = base.VisitToken(token);
 
         // Replace all identifier tokens when needed, to avoid colliding with HLSL keywords
-        if (updatedToken.IsKind(SyntaxKind.IdentifierToken) &&
-            HlslKnownKeywords.TryGetMappedName(updatedToken.Text, out string? mapped))
+        if (updatedToken.IsKind(SyntaxKind.IdentifierToken))
         {
-            return ParseToken(mapped!);
+            if (HlslKnownKeywords.TryGetMappedName(updatedToken.ValueText, out string? mapped))
+            {
+                return ParseToken(mapped!);
+            }
+
+            if (updatedToken.Text != updatedToken.ValueText)
+            {
+                return Identifier(updatedToken.ValueText);
+            }
         }
 
         return updatedToken.WithoutTrivia();

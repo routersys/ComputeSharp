@@ -13,5 +13,9 @@ internal static partial class HlslKnownKeywords
         knownKeywords.Add(nameof(GroupIds));
         knownKeywords.Add(nameof(GroupSize));
         knownKeywords.Add(nameof(GridIds));
+
+        knownKeywords.Add("__x");
+        knownKeywords.Add("__y");
+        knownKeywords.Add("__z");
     }
 }
