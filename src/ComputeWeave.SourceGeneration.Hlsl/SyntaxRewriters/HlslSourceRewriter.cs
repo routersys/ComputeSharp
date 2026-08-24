@@ -172,7 +172,7 @@ internal abstract partial class HlslSourceRewriter(
 
                     updatedNode = updatedNode.ReplaceNode(
                         updatedNode.ArgumentList!.Arguments[i].Expression,
-                        CastExpression(IdentifierName(HlslKnownTypes.GetMappedName(elementType)), updatedNode.ArgumentList.Arguments[i].Expression));
+                        CastExpression(IdentifierName(HlslKnownTypes.GetMappedName(elementType)), updatedNode.ArgumentList.Arguments[i].Expression.AsOperand()));
                 }
             }
 
