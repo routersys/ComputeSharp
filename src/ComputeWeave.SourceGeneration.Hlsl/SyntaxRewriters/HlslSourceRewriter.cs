@@ -449,7 +449,7 @@ internal abstract partial class HlslSourceRewriter(
             : ParenthesizedExpression(expression);
     }
 
-    protected static bool TryGetConstantLiteral(object? value, out string? literal)
+    protected static unsafe bool TryGetConstantLiteral(object? value, out string? literal)
     {
         if (value is bool flag)
         {
@@ -458,16 +458,38 @@ internal abstract partial class HlslSourceRewriter(
             return true;
         }
 
-        if (value is float or double)
+        if (value is float single)
         {
-            string text = ((IFormattable)value).ToString(null, CultureInfo.InvariantCulture);
-
-            if (text.IndexOfAny(FloatLiteralSpecialCharacters) == -1)
+            if (float.IsNaN(single) || float.IsInfinity(single))
             {
-                text += ".0";
+                uint bits = *(uint*)&single;
+
+                literal = $"asfloat(0x{bits:X8})";
+            }
+            else
+            {
+                string text = single.ToString(null, CultureInfo.InvariantCulture);
+
+                literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0" : text;
             }
 
-            literal = value is double ? text + "L" : text;
+            return true;
+        }
+
+        if (value is double real)
+        {
+            if (double.IsNaN(real) || double.IsInfinity(real))
+            {
+                ulong bits = (ulong)BitConverter.DoubleToInt64Bits(real);
+
+                literal = $"asdouble(0x{(uint)bits:X8}, 0x{(uint)(bits >> 32):X8})";
+            }
+            else
+            {
+                string text = real.ToString(null, CultureInfo.InvariantCulture);
+
+                literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0L" : $"{text}L";
+            }
 
             return true;
         }
