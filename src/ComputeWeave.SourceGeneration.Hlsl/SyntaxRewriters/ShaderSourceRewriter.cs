@@ -70,7 +70,7 @@ internal sealed partial class ShaderSourceRewriter(
     /// <summary>
     /// The collection of processed local functions in the current tree.
     /// </summary>
-    private readonly Dictionary<string, LocalFunctionStatementSyntax> localFunctions = [];
+    private readonly Dictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions = new(SymbolEqualityComparer.Default);
 
     /// <summary>
     /// The list of implicit variables to declare at the start of the body.
@@ -96,7 +96,7 @@ internal sealed partial class ShaderSourceRewriter(
     /// <summary>
     /// Gets the collection of processed local functions in the current tree.
     /// </summary>
-    public IReadOnlyDictionary<string, LocalFunctionStatementSyntax> LocalFunctions => this.localFunctions;
+    public IReadOnlyDictionary<IMethodSymbol, LocalFunctionStatementSyntax> LocalFunctions => this.localFunctions;
 
     /// <inheritdoc cref="CSharpSyntaxRewriter.Visit(SyntaxNode?)"/>
     public ConstructorDeclarationSyntax? Visit(ConstructorDeclarationSyntax? node)
@@ -323,11 +323,13 @@ internal sealed partial class ShaderSourceRewriter(
         {
             this.localFunctionDepth++;
 
+            IMethodSymbol functionSymbol = SemanticModel.For(node).GetDeclaredSymbol(node, CancellationToken)!;
+
             LocalFunctionStatementSyntax updatedNode =
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
                 .WithBlockBody()
                 .WithAttributeLists(List<AttributeListSyntax>())
-                .WithIdentifier(Identifier($"__{this.currentMethodIdentifier.ValueText}__{node.Identifier.ValueText}"));
+                .WithIdentifier(Identifier(GetLocalFunctionIdentifier(functionSymbol)));
 
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.ReturnType, node!.ReturnType, SemanticModel.For(node));
 
@@ -347,9 +349,37 @@ internal sealed partial class ShaderSourceRewriter(
             // them from the current syntax tree completely. These will be added to the shader source
             // as external static method with a special name to avoid conflicts with other methods.
             // The name will simply be in the format: "__<MethodName>__<FunctionName>".
-            this.localFunctions.Add(updatedNode.Identifier.Text, updatedNode);
+            this.localFunctions[functionSymbol] = updatedNode;
 
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the HLSL identifier a local function is declared and invoked with once hoisted.
+    /// </summary>
+    /// <param name="symbol">The <see cref="IMethodSymbol"/> instance for the local function.</param>
+    /// <returns>The identifier for <paramref name="symbol"/> in the resulting HLSL source.</returns>
+    private string GetLocalFunctionIdentifier(IMethodSymbol symbol)
+    {
+        if (symbol.ContainingSymbol is IMethodSymbol containingMethod &&
+            !SymbolEqualityComparer.Default.Equals(containingMethod.ContainingType, this.shaderType))
+        {
+            return $"{containingMethod.GetFullyQualifiedMetadataName().ToHlslIdentifierName()}__{symbol.Name}";
+        }
+
+        return $"__{this.currentMethodIdentifier.ValueText}__{symbol.Name}";
+    }
+
+    /// <summary>
+    /// Merges the local functions gathered by a nested rewriter into the current collection.
+    /// </summary>
+    /// <param name="rewriter">The nested <see cref="ShaderSourceRewriter"/> instance to merge from.</param>
+    private void MergeLocalFunctions(ShaderSourceRewriter rewriter)
+    {
+        foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in rewriter.localFunctions)
+        {
+            this.localFunctions[localFunction.Key] = localFunction.Value;
         }
     }
 
@@ -561,9 +591,7 @@ internal sealed partial class ShaderSourceRewriter(
                 // updated name is detailed in the override handling the local function statement.
                 if (method.MethodKind == MethodKind.LocalFunction)
                 {
-                    string functionIdentifier = $"__{this.currentMethodIdentifier.ValueText}__{method.Name}";
-
-                    return updatedNode.WithExpression(IdentifierName(functionIdentifier));
+                    return updatedNode.WithExpression(IdentifierName(GetLocalFunctionIdentifier(method)));
                 }
 
                 // If the method is an external static method, import and rewrite it as well.
@@ -612,6 +640,8 @@ internal sealed partial class ShaderSourceRewriter(
                             CancellationToken);
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
+
+                        MergeLocalFunctions(shaderSourceRewriter);
 
                         this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
                     }
@@ -669,6 +699,8 @@ internal sealed partial class ShaderSourceRewriter(
                             CancellationToken);
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
+
+                        MergeLocalFunctions(shaderSourceRewriter);
 
                         this.instanceMethods[method] = processedMethod;
                     }
@@ -760,6 +792,8 @@ internal sealed partial class ShaderSourceRewriter(
                     CancellationToken);
 
                 ConstructorDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(constructorNode)!.WithoutTrivia();
+
+                MergeLocalFunctions(shaderSourceRewriter);
 
                 // Extracts the arguments from the list of parameters of the current method
                 ArgumentSyntax[] ExtractArguments()

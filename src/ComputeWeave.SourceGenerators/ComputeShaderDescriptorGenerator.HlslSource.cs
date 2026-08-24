@@ -445,7 +445,7 @@ partial class ComputeShaderDescriptorGenerator
                 isSamplerUsed = isSamplerUsed || shaderSourceRewriter.IsSamplerUsed;
 
                 // Emit the extracted local functions first
-                foreach (KeyValuePair<string, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
+                foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
                 {
                     methods.Add((
                         localFunction.Value.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
