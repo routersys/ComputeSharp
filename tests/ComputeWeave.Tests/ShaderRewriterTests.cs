@@ -2348,4 +2348,78 @@ public partial class ShaderRewriterTests
         }
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void CharacterValues(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(4);
+
+        device.Get().For(1, new CharacterValueShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        Assert.AreEqual('A', result[0]);
+        Assert.AreEqual('A', result[1]);
+        Assert.AreEqual('あ', result[2]);
+        Assert.AreEqual('\n', result[3]);
+
+        ShaderInfo info = ReflectionServices.GetShaderInfo<CharacterValueShader>();
+
+        Assert.AreEqual(
+            """
+            #define __GroupSize__get_X 64
+            #define __GroupSize__get_Y 1
+            #define __GroupSize__get_Z 1
+            #define __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Letter 65
+            #define __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Wide 12354
+            #define __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Newline 10
+
+            cbuffer _ : register(b0)
+            {
+                uint __x;
+                uint __y;
+                uint __z;
+            }
+
+            RWStructuredBuffer<int> __reserved__buffer : register(u0);
+
+            [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
+            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            {
+                if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
+                {
+                    __reserved__buffer[0] = 65;
+                    __reserved__buffer[1] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Letter;
+                    __reserved__buffer[2] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Wide;
+                    __reserved__buffer[3] = __ComputeWeave_Tests_ShaderRewriterTests_CharacterConstants__Newline;
+                }
+            }
+            """,
+            info.HlslSource);
+    }
+
+    internal static class CharacterConstants
+    {
+        public const char Letter = 'A';
+
+        public const char Wide = 'あ';
+
+        public const char Newline = '\n';
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct CharacterValueShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        public void Execute()
+        {
+            this.buffer[0] = 'A';
+            this.buffer[1] = CharacterConstants.Letter;
+            this.buffer[2] = CharacterConstants.Wide;
+            this.buffer[3] = CharacterConstants.Newline;
+        }
+    }
 }
