@@ -391,7 +391,7 @@ internal sealed partial class ShaderSourceRewriter(
                 {
                     if (HlslKnownFields.TryGetMappedName(fieldOperation.Member.ToDisplayString(), out string? constantLiteral))
                     {
-                        return ParseExpression(constantLiteral!);
+                        return ParseMappedExpression(constantLiteral!);
                     }
 
                     if (TryGetConstantLiteral(fieldOperation.Field.ConstantValue, out string? constantValue))
@@ -454,7 +454,7 @@ internal sealed partial class ShaderSourceRewriter(
                 //   - uint3.X (instance) => [arg].x
                 return operation.Member.IsStatic switch
                 {
-                    true => ParseExpression(mapping!),
+                    true => ParseMappedExpression(mapping!),
                     false => updatedNode.WithName(IdentifierName(mapping!))
                 };
             }

@@ -61,7 +61,7 @@ internal sealed partial class StaticFieldRewriter(
             {
                 if (HlslKnownFields.TryGetMappedName(fieldOperation.Member.ToDisplayString(), out string? constantLiteral))
                 {
-                    return ParseExpression(constantLiteral!);
+                    return ParseMappedExpression(constantLiteral!);
                 }
 
                 if (TryGetConstantLiteral(fieldOperation.Field.ConstantValue, out string? constantValue))
@@ -83,7 +83,7 @@ internal sealed partial class StaticFieldRewriter(
                 // Rewrite static and instance mapped members
                 return operation.Member.IsStatic switch
                 {
-                    true => ParseExpression(mapping!),
+                    true => ParseMappedExpression(mapping!),
                     false => updatedNode.WithName(IdentifierName(mapping!))
                 };
             }

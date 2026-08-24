@@ -434,6 +434,21 @@ internal abstract partial class HlslSourceRewriter(
         return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
     }
 
+    protected static ExpressionSyntax ParseMappedExpression(string mapping)
+    {
+        ExpressionSyntax expression = ParseExpression(mapping);
+
+        return expression is
+            IdentifierNameSyntax or
+            LiteralExpressionSyntax or
+            InvocationExpressionSyntax or
+            MemberAccessExpressionSyntax or
+            ElementAccessExpressionSyntax or
+            ParenthesizedExpressionSyntax
+            ? expression
+            : ParenthesizedExpression(expression);
+    }
+
     protected static bool TryGetConstantLiteral(object? value, out string? literal)
     {
         if (value is bool flag)
