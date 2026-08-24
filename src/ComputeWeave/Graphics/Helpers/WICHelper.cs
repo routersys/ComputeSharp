@@ -502,19 +502,6 @@ internal sealed unsafe class WICHelper
                 (byte*)data,
                 wicBitmap.GetAddressOf()).Assert();
 
-            using ComPtr<IWICFormatConverter> wicFormatConverter = default;
-
-            this.wicImagingFactory2.Get()->CreateFormatConverter(wicFormatConverter.GetAddressOf()).Assert();
-
-            // Get a format converter to encode the pixel data
-            wicFormatConverter.Get()->Initialize(
-                (IWICBitmapSource*)wicBitmap.Get(),
-                &intermediateGuid,
-                WICBitmapDitherType.WICBitmapDitherTypeNone,
-                null,
-                0,
-                WICBitmapPaletteType.WICBitmapPaletteTypeMedianCut).Assert();
-
             // Write the encoded image data to the frame
             wicBitmapFrameEncode.Get()->SetPixelFormat(&intermediateGuid).Assert();
             wicBitmapFrameEncode.Get()->WriteSource(
