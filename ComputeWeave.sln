@@ -17,6 +17,20 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Tests.DeviceLo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Tests.GlobalStatements", "tests\ComputeWeave.Tests.GlobalStatements\ComputeWeave.Tests.GlobalStatements.csproj", "{669A414F-3B46-4B55-B587-061AF63C3067}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Tests.NativeLibrariesResolver", "tests\ComputeWeave.Tests.NativeLibrariesResolver\ComputeWeave.Tests.NativeLibrariesResolver.csproj", "{BF52326F-E415-49E6-8595-62762216762B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ComputeWeave.NuGet", "ComputeWeave.NuGet", "{E3403F19-A0D8-4317-8A54-322C7A13F2A2}"
+	ProjectSection(SolutionItems) = preProject
+		tests\ComputeWeave.NuGet\ComputeWeave.NuGet.csproj = tests\ComputeWeave.NuGet\ComputeWeave.NuGet.csproj
+		tests\ComputeWeave.NuGet\Program.cs = tests\ComputeWeave.NuGet\Program.cs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ComputeWeave.Dxc.NuGet", "ComputeWeave.Dxc.NuGet", "{CBA545B4-31EF-4E9F-A1A8-2A1290B54046}"
+	ProjectSection(SolutionItems) = preProject
+		tests\ComputeWeave.Dxc.NuGet\ComputeWeave.Dxc.NuGet.csproj = tests\ComputeWeave.Dxc.NuGet\ComputeWeave.Dxc.NuGet.csproj
+		tests\ComputeWeave.Dxc.NuGet\Program.cs = tests\ComputeWeave.Dxc.NuGet\Program.cs
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_SolutionItems", "_SolutionItems", "{1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -199,6 +213,22 @@ Global
 		{669A414F-3B46-4B55-B587-061AF63C3067}.Release|Any CPU.Build.0 = Release|Any CPU
 		{669A414F-3B46-4B55-B587-061AF63C3067}.Release|x86.ActiveCfg = Release|Any CPU
 		{669A414F-3B46-4B55-B587-061AF63C3067}.Release|x86.Build.0 = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|x64.Build.0 = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Debug|x86.Build.0 = Debug|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|ARM64.Build.0 = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|x64.ActiveCfg = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|x64.Build.0 = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|x86.ActiveCfg = Release|Any CPU
+		{BF52326F-E415-49E6-8595-62762216762B}.Release|x86.Build.0 = Release|Any CPU
 		{EB52CB67-4162-4722-874B-44EA8DA5450E}.Debug|ARM64.ActiveCfg = Debug|Any CPU
 		{EB52CB67-4162-4722-874B-44EA8DA5450E}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{EB52CB67-4162-4722-874B-44EA8DA5450E}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -321,6 +351,9 @@ Global
 		{7C3A1E5B-2D48-4B96-9E1F-5A0C8D3F42B1} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{6153EBB3-51D4-473E-BB83-7FB4CC568B93} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{669A414F-3B46-4B55-B587-061AF63C3067} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
+		{BF52326F-E415-49E6-8595-62762216762B} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
+		{E3403F19-A0D8-4317-8A54-322C7A13F2A2} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
+		{CBA545B4-31EF-4E9F-A1A8-2A1290B54046} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{514FF00E-BBF0-4D55-A47C-EEEB6208ADCE} = {D991153C-A34D-4042-B76F-822ADB111DD0}
 		{B86A48A7-18BD-4946-B995-3CE26B092DDF} = {1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}
 		{B54B6DCA-6EAB-46A8-83D3-15154659F47F} = {1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}
