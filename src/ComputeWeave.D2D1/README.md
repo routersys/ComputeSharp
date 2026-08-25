@@ -1,12 +1,12 @@
-![ComputeWeave cover image](https://user-images.githubusercontent.com/10199417/108635546-3512ea00-7480-11eb-8172-99bc59f4eb6f.png)
+# ComputeWeave.D2D1
 
-# Overview 📖
+English | [日本語](https://github.com/routersys/ComputeWeave/blob/main/src/ComputeWeave.D2D1/README.ja.md)
 
-**ComputeWeave.D2D1** is a library to write D2D1 pixel shaders entirely with C# code, and to easily register and create `ID2D1Effect`-s from them. This shares the same base APIs (primitives, intrinsics, etc.) as **ComputeWeave**, but then adds D2D1 specific support, instead of using DX12 compute shaders like the main package. This means it offers the ability to implement D2D1 pixel shaders, and to then either load them manually, or to register a D2D1 effect using them, optionally with a custom draw transform as well.
+A companion package to [ComputeWeave](https://www.nuget.org/packages/ComputeWeave). It writes Direct2D pixel shaders entirely in C# and registers them as `ID2D1Effect`.
 
-# Quick start 🚀
+This is not an extension of the [ComputeWeave](https://www.nuget.org/packages/ComputeWeave) package and does not reference it. What the two share is the base layer in [ComputeWeave.Core](https://www.nuget.org/packages/ComputeWeave.Core): the primitive types and the `Hlsl` intrinsics. The shaders here are executed by Direct2D rather than on the Direct3D 12 compute queue, so nothing in this package creates or uses a `GraphicsDevice`, and the declarative layer the fork adds does not apply to them.
 
-Here's a simple D2D1 pixel shader written using **ComputeWeave.D2D1**:
+A pixel shader is a `partial struct` implementing `ID2D1PixelShader`.
 
 ```csharp
 [D2DInputCount(1)]
@@ -15,7 +15,6 @@ Here's a simple D2D1 pixel shader written using **ComputeWeave.D2D1**:
 [D2DGeneratedPixelShaderDescriptor]
 public readonly partial struct DifferenceEffect(float amount) : ID2D1PixelShader
 {
-    /// <inheritdoc/>
     public float4 Execute()
     {
         float4 color = D2D.GetInput(0);
@@ -26,14 +25,17 @@ public readonly partial struct DifferenceEffect(float amount) : ID2D1PixelShader
 }
 ```
 
-This can then be used directly to get the shader bytecode and the buffer, like so:
+The bytecode and the constant buffer are then available without a device.
 
 ```csharp
 ReadOnlyMemory<byte> bytecode = D2D1PixelShader.LoadBytecode<DifferenceEffect>();
 ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEffect(1));
 ```
 
-There are also several other APIs to easily register a pixel shader effect from a shader written using **ComputeWeave.D2D1**, and to then create an `ID2D1Effect` instance from it (from the `D2D1PixelShaderEffect` type), as well as for reflecting into a shader and extract information about it, such as its HLSL source code (from the `D2D1ReflectionServices` type).
+`D2D1PixelShaderEffect` registers a shader as a Direct2D effect and creates `ID2D1Effect` instances from it, with a custom draw transform when one is needed. `D2D1ReflectionServices` reports the generated HLSL source and the shader statistics.
 
-# There's more!
-For a complete list of all features available in **ComputeWeave**, check the documentation in the [GitHub repo](https://github.com/routersys/ComputeWeave).
+Shaders are compiled to DXBC with FXC, which is what Direct2D accepts. `d3dcompiler_47.dll` ships with Windows, so this package bundles no compiler of its own.
+
+## More
+
+The complete API reference is in the [repository](https://github.com/routersys/ComputeWeave).
