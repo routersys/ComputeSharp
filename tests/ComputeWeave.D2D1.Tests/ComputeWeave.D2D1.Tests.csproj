@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ComputeWeave.Tests\Helpers\TolerantImageComparer.cs" Link="Helpers\ComputeWeave.Tests\TolerantImageComparer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoConstructor" Version="5.6.0" PrivateAssets="all" />
+    <PackageReference Include="MSTest" Version="3.8.3" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+    <PackageReference Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComputeWeave.Core\ComputeWeave.Core.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.Core.SourceGenerators\ComputeWeave.Core.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1\ComputeWeave.D2D1.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1.CodeFixers\ComputeWeave.D2D1.CodeFixers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1.SourceGenerators\ComputeWeave.D2D1.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="contentfiles;build" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ComputeWeave.Tests\Imaging\Primitives\Complex64.cs" Link="Imaging\Primitives\Complex64.cs" />
+    <Compile Include="..\ComputeWeave.Tests\Imaging\Primitives\ComplexVector4.cs" Link="Imaging\Primitives\ComplexVector4.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Assets\Landscape.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Landscape_CheckerboardClip.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Landscape_Inverted.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Landscape_Pixelate.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Wallpaper0.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Wallpaper1.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\WallpapersStack.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\ZonePlate.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\CityWith1920x1280Resizing.png" Link="Assets\City.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\ColorfulInfinity.png" Link="Assets\ColorfulInfinity.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\ExtrudedTruchetPattern.png" Link="Assets\ExtrudedTruchetPattern.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\FractalTiling.png" Link="Assets\FractalTiling.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\HelloWorld.png" Link="Assets\HelloWorld.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\MengerJourney.png" Link="Assets\MengerJourney.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\Octagrams.png" Link="Assets\Octagrams.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Assets\ProteanClouds.png" Link="Assets\ProteanClouds.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\PyramidPattern.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\TriangleGridContouring.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\TwoTiledTruchet.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\ContouredLayers.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\TerracedHills.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\RadialFadeOut.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Green32x32.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ComputeWeave.Tests\Shaders\Textures\RustyMetal.png" Link="Assets\Textures\RustyMetal.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
