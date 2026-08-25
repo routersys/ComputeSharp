@@ -36,6 +36,9 @@
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Dxc'">
 <![CDATA[An extension library for ComputeWeave that includes the DXC compiler and enables shader reflection.]]>
     </Description>
+
+    <!-- Package tags, where the shared list does not describe the package-->
+    <PackageTags Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D2D1'">dotnet;csharp;gpu;directx;direct2d;d2d1;pixel-shader;hlsl;shader;source-generator;computesharp;windows</PackageTags>
   </PropertyGroup>
 
   <!-- Additional properties for all source projects-->
