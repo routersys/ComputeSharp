@@ -66,6 +66,7 @@ jobs:
           dotnet pack src/ComputeWeave/ComputeWeave.csproj -c Release
           dotnet pack src/ComputeWeave.Dxc/ComputeWeave.Dxc.csproj -c Release
           dotnet pack src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj -c Release
+          dotnet pack src/ComputeWeave.D2D1/ComputeWeave.D2D1.csproj -c Release
 
   # デバイス消失のテストは実デバイスを破棄するため、他のテストとは別のプロセスで実行する。
   test-device-lost:
