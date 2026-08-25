@@ -1,0 +1,99 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);D2D1_SOURCE_GENERATOR</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+
+    <!-- Ignore warnings for ambiguous XML cref attributes (due to some CSharpLang/CsWin32 signature differences) -->
+    <NoWarn>$(NoWarn);CS0419</NoWarn>
+    
+    <!-- Ignore warnings for unresolved XML cref attributes (for imported types, same as in the D3D12 generator) -->
+    <NoWarn>$(NoWarn);CS1574</NoWarn>
+
+    <!-- Ignore warnings for redundant casts (needed in some imported enum types due to CSharpLang/CsWin32 type differences) -->
+    <NoWarn>$(NoWarn);IDE0004</NoWarn>
+  </PropertyGroup>
+
+  <!-- Same setup as ComputeWeave.Core.SourceGenerators, just with also APIs from ComputeWeave -->
+  <ItemGroup>
+
+    <!-- ComputeWeave.Core APIs -->
+    <Compile Include="..\ComputeWeave.Core\Exceptions\InvalidExecutionContextException.cs" Link="ComputeWeave.Core\Exceptions\InvalidExecutionContextException.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Attributes\HlslIntrinsicNameAttribute.cs" Link="ComputeWeave.Core\Intrinsics\Attributes\HlslIntrinsicNameAttribute.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.Casts.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.Casts.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Intrinsics\Hlsl.Void.g.cs" Link="ComputeWeave.Core\Intrinsics\Hlsl.Void.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool2.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool3.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\Bool4.g.cs" Link="ComputeWeave.Core\Primitives\Bool\Bool4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Bool\BoolMxN.g.cs" Link="ComputeWeave.Core\Primitives\Bool\BoolMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double2.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double3.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\Double4.g.cs" Link="ComputeWeave.Core\Primitives\Double\Double4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Double\DoubleMxN.g.cs" Link="ComputeWeave.Core\Primitives\Double\DoubleMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float2.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float3.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\Float4.g.cs" Link="ComputeWeave.Core\Primitives\Float\Float4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Float\FloatMxN.g.cs" Link="ComputeWeave.Core\Primitives\Float\FloatMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int2.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int3.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\Int4.g.cs" Link="ComputeWeave.Core\Primitives\Int\Int4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Int\IntMxN.g.cs" Link="ComputeWeave.Core\Primitives\Int\IntMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\Internals\UndefinedData.cs" Link="ComputeWeave.Core\Primitives\Internals\UndefinedData.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt2.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt2.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt3.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt3.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UInt4.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UInt4.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\UInt\UIntMxN.g.cs" Link="ComputeWeave.Core\Primitives\UInt\UIntMxN.g.cs" />
+    <Compile Include="..\ComputeWeave.Core\Primitives\MatrixIndex.cs" Link="ComputeWeave.Core\Primitives\MatrixIndex.cs" />
+
+    <!-- ComputeWeave APIs -->
+    <Compile Include="..\ComputeWeave\Graphics\Helpers\AlignmentHelper.cs" Link="ComputeWeave\Graphics\Helpers\AlignmentHelper.cs" />
+
+    <!-- ComputeWeave.D2D1 APIs -->
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1ShaderProfile.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1ShaderProfile.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1BufferPrecision.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1BufferPrecision.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1ChannelDepth.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1ChannelDepth.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1CompileOptions.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1CompileOptions.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1Filter.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1Filter.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Attributes\Enums\D2D1PixelOptions.cs" Link="ComputeWeave.D2D1\Attributes\Enums\D2D1PixelOptions.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Intrinsics\D2D.cs" Link="ComputeWeave.D2D1\Intrinsics\D2D.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Intrinsics\Attributes\HlslD2DIntrinsicInputTypeAttribute.cs" Link="ComputeWeave.D2D1\Intrinsics\Attributes\HlslD2DIntrinsicInputTypeAttribute.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Exceptions\FxcCompilationException.cs" Link="ComputeWeave.D2D1\Shaders\Exceptions\FxcCompilationException.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Interop\D2D1PixelShaderInputType.cs" Link="ComputeWeave.D2D1\Shaders\Interop\D2D1PixelShaderInputType.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Interop\Helpers\D2D1AssemblyAssociatedMemory.cs" Link="ComputeWeave.D2D1\Shaders\Interop\Helpers\D2D1AssemblyAssociatedMemory.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Translation\ASCII.cs" Link="ComputeWeave.D2D1\Shaders\Translation\ASCII.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Translation\D3DCompiler.cs" Link="ComputeWeave.D2D1\Shaders\Translation\D3DCompiler.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Translation\D3DCompiler.ID3DInclude.cs" Link="ComputeWeave.D2D1\Shaders\Translation\D3DCompiler.ID3DInclude.cs" />
+    <Compile Include="..\ComputeWeave.D2D1\Shaders\Translation\Headers\D2D1EffectHelpers.cs" Link="ComputeWeave.D2D1\Shaders\Translation\Headers\D2D1EffectHelpers.cs" />
+
+    <!-- ComPtr<T> and HRESULT extension from D3D12 generator -->
+    <Compile Include="..\ComputeWeave.SourceGenerators\Dxc\Windows.Win32\ComPtr{T}.cs" Link="Fxc\Windows.Win32\ComPtr{T}.cs" />
+    <Compile Include="..\ComputeWeave.SourceGenerators\Dxc\Windows.Win32\HRESULT.cs" Link="Fxc\Windows.Win32\HRESULT.cs" />
+
+    <!-- Shared JSON config for CsWin32 from D3D12 generator -->
+    <AdditionalFiles Include="..\ComputeWeave.SourceGenerators\NativeMethods.json" Link="NativeMethods.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" PrivateAssets="all" Pack="false" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.298" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <!-- Shared projects with common helpers -->
+  <Import Project="..\ComputeWeave.SourceGeneration\ComputeWeave.SourceGeneration.projitems" Label="Shared" />
+  <Import Project="..\ComputeWeave.SourceGeneration.Hlsl\ComputeWeave.SourceGeneration.Hlsl.projitems" Label="Shared" />
+
+  <!-- Give access to the code fixers project for the exported diagnostic ids and properties -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ComputeWeave.D2D1.CodeFixers, PublicKey=$(AssemblySignPublicKey)" />
+  </ItemGroup>
+</Project>
