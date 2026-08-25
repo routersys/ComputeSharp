@@ -190,7 +190,8 @@ jobs:
             src/ComputeWeave.Core/ComputeWeave.Core.csproj \
             src/ComputeWeave/ComputeWeave.csproj \
             src/ComputeWeave.Dxc/ComputeWeave.Dxc.csproj \
-            src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj
+            src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj \
+            src/ComputeWeave.D2D1/ComputeWeave.D2D1.csproj
           do
             dotnet pack "$project" -c Release \
               "-p:VersionPrefix=${VERSION_PREFIX}" \
@@ -212,11 +213,12 @@ jobs:
           [void]$expectedPackageIds.Add('ComputeWeave')
           [void]$expectedPackageIds.Add('ComputeWeave.Dxc')
           [void]$expectedPackageIds.Add('ComputeWeave.D3D12MemoryAllocator')
+          [void]$expectedPackageIds.Add('ComputeWeave.D2D1')
           function Test-PackageSet([string]$filter, [string]$description) {
             $actualPackageIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
             $packageFiles = @(Get-ChildItem -LiteralPath artifacts -File -Filter $filter)
             if ($packageFiles.Count -ne $expectedPackageIds.Count) {
-              throw "$descriptionは4個でなければなりません。"
+              throw "$descriptionは$($expectedPackageIds.Count)個でなければなりません。"
             }
             foreach ($packageFile in $packageFiles) {
               $archive = [System.IO.Compression.ZipFile]::OpenRead($packageFile.FullName)
