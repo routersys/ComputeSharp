@@ -124,3 +124,11 @@ CMPW0111 | ComputeWeave.Pipelines | Error | [Documentation](https://github.com/r
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 CMPW0112 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+
+## Release 2.2
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+CMPW0113 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
