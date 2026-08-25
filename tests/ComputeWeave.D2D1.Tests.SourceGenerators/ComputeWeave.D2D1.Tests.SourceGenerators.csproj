@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);D2D1_TESTS</DefineConstants>
+
+    <!--
+      Temporarily suppress warnings about packages with security vulnerabilities coming from
+      transitive dependencies of the 'Microsoft.CodeAnalysis.CSharp' testing packages. This
+      can be removed once new stable releases of those packages are shipped. We don't want
+      to add a new more recent top-level dependency to guard against binary breaking changes.
+    -->
+    <NoWarn>$(NoWarn);NU1903</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Basic.Reference.Assemblies.Net100" Version="1.8.10" />
+    <PackageReference Include="MSTest" Version="3.8.3" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ComputeWeave.Core\ComputeWeave.Core.csproj" Aliases="Core" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1\ComputeWeave.D2D1.csproj" Aliases="D2D1" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1.CodeFixers\ComputeWeave.D2D1.CodeFixers.csproj" />
+    <ProjectReference Include="..\..\src\ComputeWeave.D2D1.SourceGenerators\ComputeWeave.D2D1.SourceGenerators.csproj" />
+  </ItemGroup>
+</Project>
