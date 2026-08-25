@@ -582,6 +582,8 @@ ComputeWeave is a fork, and it will be merged with upstream changes again.
 
 Record every intentional divergence from upstream, with the reason, in the ledger below. A divergence that is not written down is one the next merge will silently undo. If you fix a defect that originates upstream, add a row; if you change a row's behavior, update it. The ledger covers code inherited from upstream where this repository deliberately behaves differently; subsystems that exist only in this fork are not listed.
 
+The Direct2D authoring projects were removed before the first release and restored in August 2026. Restoring them widened what the audit inspects by 212 inherited source files, across `ComputeWeave.D2D1`, `ComputeWeave.D2D1.SourceGenerators`, `ComputeWeave.D2D1.CodeFixers` and `ComputeWeave.Win32.D2D1`. The remaining Direct2D projects at the fork point, the 55 files of the UI integration family, were deliberately not restored and are not inherited code here. The audit counts modifications and not additions, so the restoration itself put nothing in the queue; changes made to those files from now on do.
+
 | Area | Upstream | Here | Commits |
 |---|---|---|---|
 | DXC library extraction | Opens with `CreateNew` and swallows `IOException`; no verification, no atomic publish, no retry | Hash verification, atomic publish, and retry classified by condition | `5694027e`, `52e57264`, `c9325120`, `4c1d8898`, `04f9adeb` |
