@@ -265,7 +265,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 
 ### Direct2D pixel shaders
 
-`ComputeWeave.D2D1` writes Direct2D pixel shaders in C#. It is a companion package rather than an extension: it shares `ComputeWeave.Core` with the compute library and does not reference `ComputeWeave`. Direct2D executes these shaders, not the Direct3D 12 compute queue, so nothing here creates or uses a `GraphicsDevice` and the declarative layer above does not apply to them.
+`ComputeWeave.D2D1` writes Direct2D pixel shaders in C#. It is a companion package rather than an extension: it shares `ComputeWeave.Core` with the compute library and does not reference `ComputeWeave`. Direct2D executes these shaders, not the Direct3D 12 compute queue, so nothing here creates or uses a `GraphicsDevice`, and the declarative layer above does not apply to them.
 
 A pixel shader is a `partial struct` implementing `ID2D1PixelShader`.
 
