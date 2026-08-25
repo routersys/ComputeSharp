@@ -200,14 +200,7 @@ internal sealed unsafe class DxcLibraryLoader
 
                 try
                 {
-                    if (File.Exists(targetFilename))
-                    {
-                        File.Replace(temporaryFilename, targetFilename, null);
-                    }
-                    else
-                    {
-                        File.Move(temporaryFilename, targetFilename);
-                    }
+                    PublishLibrary(temporaryFilename, targetFilename);
 
                     break;
                 }
@@ -239,6 +232,44 @@ internal sealed unsafe class DxcLibraryLoader
                 File.Delete(temporaryFilename);
             }
         }
+    }
+
+    /// <summary>
+    /// Publishes a verified extraction over its cached path, replacing whatever is there.
+    /// </summary>
+    /// <param name="temporaryFilename">The verified temporary file to publish.</param>
+    /// <param name="targetFilename">The cached path to publish <paramref name="temporaryFilename"/> at.</param>
+    /// <exception cref="IOException">Thrown if the publication did not take place.</exception>
+    /// <remarks>
+    /// <see cref="File.Replace(string, string, string)"/> is not used here. It does not rename the replacement
+    /// over the replaced copy: it first renames the replaced copy aside, to a backup of its own naming in the
+    /// cache folder, and deletes that backup afterwards. A concurrent reader holding the replaced copy open
+    /// makes that deletion fail, and the failure is not reported, so the backup is left in the cache folder for
+    /// good. A single rename has no such intermediate file to leak.
+    /// </remarks>
+    private static void PublishLibrary(string temporaryFilename, string targetFilename)
+    {
+        [DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+        static extern int MoveFileExW(ushort* lpExistingFileName, ushort* lpNewFileName, uint dwFlags);
+
+        const uint MoveFileReplaceExisting = 0x00000001;
+
+        int errorCode;
+
+        fixed (char* source = temporaryFilename)
+        fixed (char* destination = targetFilename)
+        {
+            if (MoveFileExW((ushort*)source, (ushort*)destination, MoveFileReplaceExisting) != 0)
+            {
+                return;
+            }
+
+            errorCode = Marshal.GetLastWin32Error();
+        }
+
+        throw new IOException(
+            $"Failed to publish {Path.GetFileName(targetFilename)} into the cache.",
+            unchecked((int)(0x80070000 | (uint)errorCode)));
     }
 
     /// <summary>
@@ -312,7 +343,10 @@ internal sealed unsafe class DxcLibraryLoader
     /// <returns>A read handle over the cached library, or <see langword="null"/> if it is absent or corrupt.</returns>
     /// <remarks>
     /// Another process publishing the library holds it while it does so, so the open is retried before the
-    /// library is reported as absent.
+    /// library is reported as absent. Replacing the cached copy also unlinks the previous one, which leaves the
+    /// cached path denying access for as long as that copy has readers, so a denial is retried on the same
+    /// terms as a sharing violation. Absence is not retried here: the first two callers ask this question
+    /// before the library is published, where absence is the ordinary answer rather than a transient one.
     /// </remarks>
     private static FileStream? TryOpenVerifiedLibrary(string targetFilename, byte[] expectedHash, out bool isAbsent)
     {
@@ -345,7 +379,7 @@ internal sealed unsafe class DxcLibraryLoader
 
                 return null;
             }
-            catch (IOException) when (attempt < CacheOpenRetryCount)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException && attempt < CacheOpenRetryCount)
             {
                 stream?.Dispose();
 
