@@ -470,9 +470,25 @@ internal abstract partial class HlslSourceRewriter(
             }
             else
             {
+#if D3D12_SOURCE_GENERATOR
                 string text = single.ToString(null, CultureInfo.InvariantCulture);
 
                 literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0" : text;
+#else
+                // When compiling for D2D, constants are emitted as their bit pattern for the same reason
+                // literals are (see VisitLiteralExpression): FXC can sometimes emit an incorrect value for
+                // a float literal. Going through 'asfloat' makes the value independent of how FXC parses
+                // decimal text, so that a constant and a literal holding the same value cannot disagree.
+                // For additional context, see: https://github.com/Sergio0694/ComputeSharp/issues/780.
+                //
+                // The sign is left outside the call, which is where a C# unary minus applied to a literal
+                // already leaves it. It also has to be: FXC drops the sign of a value it flushes to zero
+                // when that sign is inside the bit pattern, but keeps it when it is applied afterwards.
+                uint bits = *(uint*)&single;
+                string sign = (bits & 0x80000000) != 0 ? "-" : "";
+
+                literal = $"{sign}asfloat(0x{bits & 0x7FFFFFFF:X8})";
+#endif
             }
 
             return true;
