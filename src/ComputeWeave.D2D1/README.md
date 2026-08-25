@@ -36,4 +36,4 @@ ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEf
 There are also several other APIs to easily register a pixel shader effect from a shader written using **ComputeWeave.D2D1**, and to then create an `ID2D1Effect` instance from it (from the `D2D1PixelShaderEffect` type), as well as for reflecting into a shader and extract information about it, such as its HLSL source code (from the `D2D1ReflectionServices` type).
 
 # There's more!
-For a complete list of all features available in **ComputeWeave**, check the documentation in the [GitHub repo](https://github.com/Sergio0694/ComputeWeave).
+For a complete list of all features available in **ComputeWeave**, check the documentation in the [GitHub repo](https://github.com/routersys/ComputeWeave).

@@ -31,7 +31,7 @@ public sealed class FxcCompilationException : Exception
 
         return
             $"""The FXC compiler encountered one or more errors while trying to compile the shader: "{message}". """ +
-            $"""Make sure to only be using supported features by checking the README file in the ComputeWeave repository: https://github.com/Sergio0694/ComputeWeave. """ +
+            $"""Make sure to only be using supported features by checking the README file in the ComputeWeave repository: https://github.com/routersys/ComputeWeave. """ +
             $"""If you're sure that your C# shader code is valid, please open an issue an include a working repro and this error message.""";
     }
 }
