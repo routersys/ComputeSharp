@@ -28,6 +28,7 @@ The same layer carries shared textures and shared fences across the Direct3D 11 
    - [Read-only buffer views](#read-only-buffer-views)
    - [GPU memory budget](#gpu-memory-budget)
    - [Compile-time validation](#compile-time-validation)
+   - [Direct2D pixel shaders](#direct2d-pixel-shaders)
 5. [API Reference](#api-reference)
    - [Declaration attributes](#declaration-attributes)
    - [Generated members](#generated-members)
@@ -94,7 +95,13 @@ dotnet add package ComputeWeave.Dxc
 dotnet add package ComputeWeave.D3D12MemoryAllocator
 ```
 
-`ComputeWeave.Core` is a transitive dependency and is not referenced directly.
+A companion package for writing Direct2D pixel shaders:
+
+```bash
+dotnet add package ComputeWeave.D2D1
+```
+
+`ComputeWeave.Core` is a transitive dependency and is not referenced directly. `ComputeWeave.D2D1` shares it with the packages above and does not reference `ComputeWeave`.
 
 ---
 
@@ -256,6 +263,43 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 
 ---
 
+### Direct2D pixel shaders
+
+`ComputeWeave.D2D1` writes Direct2D pixel shaders in C#. It is a companion package rather than an extension: it shares `ComputeWeave.Core` with the compute library and does not reference `ComputeWeave`. Direct2D executes these shaders, not the Direct3D 12 compute queue, so nothing here creates or uses a `GraphicsDevice` and the declarative layer above does not apply to them.
+
+A pixel shader is a `partial struct` implementing `ID2D1PixelShader`.
+
+```csharp
+using ComputeWeave;
+using ComputeWeave.D2D1;
+
+[D2DInputCount(1)]
+[D2DInputSimple(0)]
+[D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+[D2DGeneratedPixelShaderDescriptor]
+public readonly partial struct DifferenceEffect(float amount) : ID2D1PixelShader
+{
+    public float4 Execute()
+    {
+        float4 color = D2D.GetInput(0);
+        float3 rgb = Hlsl.Saturate(this.amount - color.RGB);
+
+        return new(rgb, 1);
+    }
+}
+```
+
+The bytecode and the constant buffer are available without a device, and `D2D1PixelShaderEffect` registers a shader as a Direct2D effect and creates `ID2D1Effect` instances from it. `D2D1ReflectionServices` reports the generated HLSL and the shader statistics.
+
+```csharp
+ReadOnlyMemory<byte> bytecode = D2D1PixelShader.LoadBytecode<DifferenceEffect>();
+ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEffect(1));
+```
+
+The declarations are checked by analyzers that report 87 diagnostics with the `CMPWD2D` prefix. Shaders are compiled to DXBC with FXC, which is what Direct2D accepts; `d3dcompiler_47.dll` ships with Windows, so the package bundles no compiler of its own.
+
+---
+
 ## API Reference
 
 ### Declaration attributes
@@ -411,6 +455,7 @@ The declarations above are checked by analyzers that report 95 diagnostics with 
 - `ExternalTextureUsage` declares `Sampled` and `RenderTarget`. It selects how the provider opens the external view and does not change the native descriptor.
 - The body of a compute shader is limited to the C# constructs the generator can translate to HLSL. Anything outside that range is reported as a diagnostic at compile time.
 - `ComputeWeave.Dxc` bundles `dxcompiler.dll` and `dxil.dll` and therefore runs only in x64 and Arm64 processes.
+- `Hlsl.Abort` cannot be used in a Direct2D effect. Effect linking, which the default compile options request, builds the shader as a library, and FXC rejects `abort` there; an effect built without that library compiles but then fails to load.
 
 ---
 
