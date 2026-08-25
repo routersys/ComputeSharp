@@ -346,6 +346,11 @@ internal sealed partial class ShaderSourceRewriter(
                 Diagnostics.Add(UnsafeModifierOnMethodOrFunction, node);
             }
 
+            if (!functionSymbol.IsStatic)
+            {
+                Diagnostics.Add(NonStaticLocalFunction, node);
+            }
+
             this.localFunctionDepth--;
 
             // HLSL doesn't support local functions, so we first process them as usual and then remove

@@ -1444,4 +1444,17 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Some intrinsics declared by the Hlsl type target a rasterization stage or a shader model that the compute shaders compiled by ComputeWeave do not provide, so they cannot be used in a shader.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a local function that is not static.
+    /// </summary>
+    public static readonly DiagnosticDescriptor NonStaticLocalFunction = new(
+        id: "CMPW0113",
+        title: "Non static local function",
+        messageFormat: "Local functions used in a compute shader have to be declared static",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Local functions used in a compute shader are lifted to top level HLSL functions, and HLSL has no closures, so only a static local function can be translated. A local function in a shader cannot read instance members either, because C# does not allow a local function in a struct to capture this.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
