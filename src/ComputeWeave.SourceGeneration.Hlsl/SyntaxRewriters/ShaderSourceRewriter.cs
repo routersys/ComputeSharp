@@ -321,9 +321,12 @@ internal sealed partial class ShaderSourceRewriter(
         }
         else
         {
-            this.localFunctionDepth++;
+            if (SemanticModel.For(node).GetDeclaredSymbol(node, CancellationToken) is not IMethodSymbol functionSymbol)
+            {
+                return base.VisitLocalFunctionStatement(node);
+            }
 
-            IMethodSymbol functionSymbol = SemanticModel.For(node).GetDeclaredSymbol(node, CancellationToken)!;
+            this.localFunctionDepth++;
 
             LocalFunctionStatementSyntax updatedNode =
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
