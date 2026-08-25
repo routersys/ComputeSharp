@@ -91,6 +91,40 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(Source, "ShaderNonStaticLocalFunctionTests", "CMPW0113");
     }
 
+    [TestMethod]
+    public void DeclaringANonStaticLocalFunctionInAnImportedMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helpers
+            {
+                public static float Outer(float value)
+                {
+                    float Inner(float inner) => inner * value;
+
+                    return Inner(2);
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helpers.Outer(3);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderNonStaticLocalFunctionInImportTests", "CMPW0113");
+    }
+
     private static void AssertIsDiagnosedWithoutFaulting(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
