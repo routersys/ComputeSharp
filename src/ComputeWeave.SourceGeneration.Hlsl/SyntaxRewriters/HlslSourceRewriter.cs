@@ -560,8 +560,8 @@ internal abstract partial class HlslSourceRewriter(
                     ParenthesizedExpression(
                         BinaryExpression(
                             SyntaxKind.LogicalAndExpression,
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand()));
 #endif
             // 'Or' invocations are rewritten as follows:
             //
@@ -576,8 +576,8 @@ internal abstract partial class HlslSourceRewriter(
                     ParenthesizedExpression(
                         BinaryExpression(
                             SyntaxKind.LogicalOrExpression,
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand()));
 #endif
             // 'Select' invocations are rewritten as follows:
             //
@@ -591,9 +591,9 @@ internal abstract partial class HlslSourceRewriter(
                 return
                     ParenthesizedExpression(
                         ConditionalExpression(
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression,
-                            updatedNode.ArgumentList.Arguments[2].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[2].Expression.AsOperand()));
 #endif
             default:
                 throw new NotSupportedException($"""Unrecognized intrinsic "{intrinsicName}".""");
