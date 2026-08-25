@@ -167,8 +167,16 @@ internal abstract partial class HlslSourceRewriter(
             {
                 for (int i = 0; i < node.ArgumentList!.Arguments.Count; i++)
                 {
-                    IArgumentOperation argumentOperation = (IArgumentOperation)SemanticModel.For(node).GetOperation(node.ArgumentList.Arguments[i], CancellationToken)!;
-                    INamedTypeSymbol elementType = (INamedTypeSymbol)argumentOperation.Parameter!.Type;
+                    // The element type to cast to is read from the parameter the argument binds to. When
+                    // overload resolution has failed there is no parameter to read, so leave the argument
+                    // alone: the C# compiler is already reporting the call, and all that is needed here is
+                    // for the generator to finish. Faulting would discard the descriptors for every shader
+                    // in the compilation unit and bury that error under the ones that causes.
+                    if (SemanticModel.For(node).GetOperation(node.ArgumentList.Arguments[i], CancellationToken)
+                        is not IArgumentOperation { Parameter.Type: INamedTypeSymbol elementType })
+                    {
+                        continue;
+                    }
 
                     updatedNode = updatedNode.ReplaceNode(
                         updatedNode.ArgumentList!.Arguments[i].Expression,
