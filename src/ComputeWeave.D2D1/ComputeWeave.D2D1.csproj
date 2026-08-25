@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+
+    <!--
+      Ignore warnings for the vtable field of an imported binding never being assigned. The bindings are
+      COM interfaces reached through a pointer cast, so nothing assigns the field in this assembly. The
+      .NET 9 SDK did not report this; the .NET 10 SDK does.
+    -->
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+
+    <!-- Ignore the readonly member suggestion, a rule the .NET 10 SDK added, to keep the sources verbatim -->
+    <NoWarn>$(NoWarn);IDE0251</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ComputeWeave.Core\ComputeWeave.Core.csproj" />
+  </ItemGroup>
+
+  <!-- T4 template generation service (the .tt/.g.cs files are resolved in the .targets file) -->
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <!-- Shared ComputeWeave.Win32.D2D1 with D2D1 bindings -->
+  <Import Project="..\ComputeWeave.Win32.D2D1\ComputeWeave.Win32.D2D1.projitems" Label="Shared" />
+</Project>

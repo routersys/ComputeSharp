@@ -36,6 +36,8 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ComputeWeave.Win32.D2D1", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Dxc", "src\ComputeWeave.Dxc\ComputeWeave.Dxc.csproj", "{76C66257-FDAA-47AB-85E7-EF757EAB10C0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.D2D1", "src\ComputeWeave.D2D1\ComputeWeave.D2D1.csproj", "{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Core", "src\ComputeWeave.Core\ComputeWeave.Core.csproj", "{764BC0F5-0C5E-49AD-ABAA-E3874C0F3286}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Core.SourceGenerators", "src\ComputeWeave.Core.SourceGenerators\ComputeWeave.Core.SourceGenerators.csproj", "{BFB003D1-788B-48DE-8065-39479C162CB0}"
@@ -215,6 +217,22 @@ Global
 		{76C66257-FDAA-47AB-85E7-EF757EAB10C0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{76C66257-FDAA-47AB-85E7-EF757EAB10C0}.Release|x86.ActiveCfg = Release|Any CPU
 		{76C66257-FDAA-47AB-85E7-EF757EAB10C0}.Release|x86.Build.0 = Release|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|ARM64.Build.0 = Debug|ARM64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|x64.ActiveCfg = Debug|x64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|x64.Build.0 = Debug|x64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Debug|x86.Build.0 = Debug|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|ARM64.ActiveCfg = Release|ARM64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|ARM64.Build.0 = Release|ARM64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|x64.ActiveCfg = Release|x64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|x64.Build.0 = Release|x64
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|x86.ActiveCfg = Release|Any CPU
+		{4D7D9BA8-A821-4B1C-9EE2-CBCF5849906E}.Release|x86.Build.0 = Release|Any CPU
 		{764BC0F5-0C5E-49AD-ABAA-E3874C0F3286}.Debug|ARM64.ActiveCfg = Debug|Any CPU
 		{764BC0F5-0C5E-49AD-ABAA-E3874C0F3286}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{764BC0F5-0C5E-49AD-ABAA-E3874C0F3286}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -320,6 +338,7 @@ Global
 		src\ComputeWeave.Win32.D3D12\ComputeWeave.Win32.D3D12.projitems*{314eb353-e7e3-4146-8111-685cc83ec1de}*SharedItemsImports = 5
 		src\ComputeWeave.Win32.D3D12\ComputeWeave.Win32.D3D12.projitems*{514ff00e-bbf0-4d55-a47c-eeeb6208adce}*SharedItemsImports = 13
 		src\ComputeWeave.Win32.D2D1\ComputeWeave.Win32.D2D1.projitems*{9da1da9f-f8b2-4b25-be80-c21f773029e3}*SharedItemsImports = 13
+		src\ComputeWeave.Win32.D2D1\ComputeWeave.Win32.D2D1.projitems*{4d7d9ba8-a821-4b1c-9ee2-cbcf5849906e}*SharedItemsImports = 5
 		src\ComputeWeave.SourceGeneration\ComputeWeave.SourceGeneration.projitems*{51d5a422-d3a5-4c4d-8a6d-a048940bf279}*SharedItemsImports = 13
 		src\ComputeWeave.SourceGeneration.Hlsl\ComputeWeave.SourceGeneration.Hlsl.projitems*{9ac496a3-bbf0-4c8f-a50d-a20bf01c5e05}*SharedItemsImports = 13
 		src\ComputeWeave.CodeFixing\ComputeWeave.CodeFixing.projitems*{9b4448b1-200f-4966-8a13-a508691b3003}*SharedItemsImports = 5
