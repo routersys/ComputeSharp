@@ -32,6 +32,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.SourceGenerato
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ComputeWeave.Win32.D3D12", "src\ComputeWeave.Win32.D3D12\ComputeWeave.Win32.D3D12.shproj", "{514FF00E-BBF0-4D55-A47C-EEEB6208ADCE}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "ComputeWeave.Win32.D2D1", "src\ComputeWeave.Win32.D2D1\ComputeWeave.Win32.D2D1.shproj", "{9DA1DA9F-F8B2-4B25-BE80-C21F773029E3}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Dxc", "src\ComputeWeave.Dxc\ComputeWeave.Dxc.csproj", "{76C66257-FDAA-47AB-85E7-EF757EAB10C0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputeWeave.Core", "src\ComputeWeave.Core\ComputeWeave.Core.csproj", "{764BC0F5-0C5E-49AD-ABAA-E3874C0F3286}"
@@ -303,6 +305,7 @@ Global
 		{7C3A1E5B-2D48-4B96-9E1F-5A0C8D3F42B1} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{6153EBB3-51D4-473E-BB83-7FB4CC568B93} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{514FF00E-BBF0-4D55-A47C-EEEB6208ADCE} = {D991153C-A34D-4042-B76F-822ADB111DD0}
+		{9DA1DA9F-F8B2-4B25-BE80-C21F773029E3} = {D991153C-A34D-4042-B76F-822ADB111DD0}
 		{B86A48A7-18BD-4946-B995-3CE26B092DDF} = {1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}
 		{B54B6DCA-6EAB-46A8-83D3-15154659F47F} = {1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}
 		{79FD7862-4707-4DE0-8777-3872558E4C1C} = {A5013F9B-92EC-419F-B0B3-3D6B721E7104}
@@ -316,6 +319,7 @@ Global
 		src\ComputeWeave.CodeFixing\ComputeWeave.CodeFixing.projitems*{29f6e256-ba0e-4f3b-854e-50839d67c6dd}*SharedItemsImports = 13
 		src\ComputeWeave.Win32.D3D12\ComputeWeave.Win32.D3D12.projitems*{314eb353-e7e3-4146-8111-685cc83ec1de}*SharedItemsImports = 5
 		src\ComputeWeave.Win32.D3D12\ComputeWeave.Win32.D3D12.projitems*{514ff00e-bbf0-4d55-a47c-eeeb6208adce}*SharedItemsImports = 13
+		src\ComputeWeave.Win32.D2D1\ComputeWeave.Win32.D2D1.projitems*{9da1da9f-f8b2-4b25-be80-c21f773029e3}*SharedItemsImports = 13
 		src\ComputeWeave.SourceGeneration\ComputeWeave.SourceGeneration.projitems*{51d5a422-d3a5-4c4d-8a6d-a048940bf279}*SharedItemsImports = 13
 		src\ComputeWeave.SourceGeneration.Hlsl\ComputeWeave.SourceGeneration.Hlsl.projitems*{9ac496a3-bbf0-4c8f-a50d-a20bf01c5e05}*SharedItemsImports = 13
 		src\ComputeWeave.CodeFixing\ComputeWeave.CodeFixing.projitems*{9b4448b1-200f-4966-8a13-a508691b3003}*SharedItemsImports = 5
