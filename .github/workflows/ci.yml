@@ -83,6 +83,10 @@ jobs:
           dotnet pack src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj -c Release
           dotnet pack src/ComputeWeave.D2D1/ComputeWeave.D2D1.csproj -c Release
 
+      # パッケージIDと版だけでは、同梱ライブラリや生成器が失われたことを検出できない。書庫の中身を見る。
+      - name: パッケージの積荷を検証
+        run: pwsh build/verify-package-payload.ps1
+
       # ネイティブライブラリ解決のテストは発行と実行を繰り返すため手元の実測で5分から8分かかり、ここでは回さない。
 
   # デバイス消失のテストは実デバイスを破棄するため、他のテストとは別のプロセスで実行する。
