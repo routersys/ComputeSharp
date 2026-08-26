@@ -118,7 +118,9 @@ function Get-TableReport
     {
         if ($run.Count -ge 2 -and (Test-DelimiterRow $run[1].Text))
         {
-            # The header row is structure rather than content, so only the rest are counted.
+            # The delimiter row is structure rather than content, so it is the one dropped.
+            # What remains, the header plus the data rows, is the number of rows a renderer
+            # emits for this table, which is the number this count was validated against.
             $rows += $run.Count - 1
         }
         else
