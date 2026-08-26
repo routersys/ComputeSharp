@@ -133,8 +133,6 @@ jobs:
         with:
           dotnet-version: "10.x"
 
-      # Platform と CI_RUNNER_DOTNET_TEST_PLATFORM はどちらも設定しない。
-      # ComputeWeave.Dxc はどちらも未設定のときだけネイティブライブラリを runtimes/<RID>/native へ配置する。
       - name: パッケージを作成
         env:
           VERSION_PREFIX: ${{ needs.validate.outputs.version_prefix }}
