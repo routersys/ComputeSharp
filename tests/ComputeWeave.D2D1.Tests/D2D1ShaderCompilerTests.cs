@@ -363,6 +363,54 @@ public partial class D2D1ShaderCompilerTests
         CollectionAssert.AreEqual(bytecode.ToArray(), bytecodeWithMinimumPrecision.ToArray());
     }
 
+    [TestMethod]
+    public void IsWellFormedDxbcContainerRejectsMalformedContainersWithoutThrowing()
+    {
+        // A container that declares a blob offset past its own end. Reading the blob header there
+        // walks off the buffer, and casting the offset to int makes it negative first.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 0xFFFFFFF0, blobSize: 0)));
+
+        // A container that declares more blobs than its own offset table can hold.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 0x0FFFFFFF, blobOffset: 36, blobSize: 0)));
+
+        // A container whose blob header starts inside the buffer but extends past its end.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 36, blobSize: 0, length: 40)));
+
+        // A container whose declared blob size makes the end offset wrap around in 32 bit arithmetic.
+        // Computing the end as uint lands back inside the buffer and reports the container as valid.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 40, blobSize: 0xFFFFFFF0, length: 200)));
+
+        // A well formed container is still accepted, so the checks above cannot pass by rejecting everything.
+        Assert.IsTrue(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 36, blobSize: 4)));
+    }
+
+    /// <summary>
+    /// Builds a DXBC container header for <see cref="IsWellFormedDxbcContainerRejectsMalformedContainersWithoutThrowing"/>.
+    /// </summary>
+    /// <param name="blobCount">The blob count to declare.</param>
+    /// <param name="blobOffset">The single blob offset to declare.</param>
+    /// <param name="blobSize">The blob payload size to declare at <paramref name="blobOffset"/>.</param>
+    /// <param name="length">The total size of the container, which is also declared in its header.</param>
+    /// <returns>The resulting container.</returns>
+    private static byte[] CreateContainer(uint blobCount, uint blobOffset, uint blobSize, int length = 48)
+    {
+        byte[] container = new byte[length];
+
+        "DXBC"u8.CopyTo(container);
+
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(24), (uint)length);
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(28), blobCount);
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(32), blobOffset);
+
+        // Write the blob header too, when the declared offset actually fits in the buffer
+        if (blobOffset + 8 <= (uint)length)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan((int)blobOffset + 4), blobSize);
+        }
+
+        return container;
+    }
+
     /// <summary>
     /// The HLSL source for a simple invert effect, shared by tests comparing compilation options.
     /// </summary>
