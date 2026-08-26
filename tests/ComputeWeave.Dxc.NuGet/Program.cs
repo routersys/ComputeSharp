@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Versioning;
 using ComputeWeave;
@@ -29,6 +31,24 @@ ShaderInfo shaderInfo = ReflectionServices.GetShaderInfo<MultiplyByTwo>();
 // Validate a couple properties as a sanity check
 Trace.Assert(shaderInfo.HlslSource is { Length: > 0 });
 Trace.Assert(shaderInfo.BoundResourceCount == 2);
+
+// Collect the DXC libraries now mapped into the process
+ProcessModule[] dxcModules = [.. Process.GetCurrentProcess().Modules
+    .Cast<ProcessModule>()
+    .Where(static module => module.ModuleName.Equals("dxcompiler.dll", StringComparison.OrdinalIgnoreCase))];
+
+ProcessModule[] dxilModules = [.. Process.GetCurrentProcess().Modules
+    .Cast<ProcessModule>()
+    .Where(static module => module.ModuleName.Equals("dxil.dll", StringComparison.OrdinalIgnoreCase))];
+
+Trace.Assert(dxcModules.Length == 1);
+Trace.Assert(dxilModules.Length == 1);
+
+// The two are deployed as a pair, so a dxil.dll from anywhere else is another copy found on the machine
+Trace.Assert(string.Equals(
+    Path.GetDirectoryName(dxilModules[0].FileName),
+    Path.GetDirectoryName(dxcModules[0].FileName),
+    StringComparison.OrdinalIgnoreCase));
 
 /// <summary>
 /// A sample kernel that requires dynamic compilation, as it's not precompiled.
