@@ -215,6 +215,10 @@ jobs:
           Test-PackageSet '*.nupkg' 'NuGetパッケージ'
           Test-PackageSet '*.snupkg' 'NuGetシンボルパッケージ'
 
+      # 上の検証はパッケージの同一性を見る。積荷が揃っていることは別に確かめる。
+      - name: パッケージの積荷を検証
+        run: pwsh build/verify-package-payload.ps1
+
       - name: パッケージをアーティファクトとして保存
         uses: actions/upload-artifact@v4
         with:
