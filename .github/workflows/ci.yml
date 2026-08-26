@@ -60,6 +60,10 @@ jobs:
       - name: 本体のテストを実行
         run: dotnet test tests/ComputeWeave.Tests/ComputeWeave.Tests.csproj -c Release -p:Platform=x64
 
+      # 最上位ステートメントのテストは Exe でありビルドだけでは実行時の不一致を検出できないため、実際に走らせる。
+      - name: 最上位ステートメントのテストを実行
+        run: dotnet run --project tests/ComputeWeave.Tests.GlobalStatements/ComputeWeave.Tests.GlobalStatements.csproj -c Release -p:Platform=x64
+
       - name: パッケージが正常に作成されるか確認
         run: |
           dotnet pack src/ComputeWeave.Core/ComputeWeave.Core.csproj -c Release
