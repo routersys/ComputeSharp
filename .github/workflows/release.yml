@@ -145,6 +145,10 @@ jobs:
       - name: 最上位ステートメントのテストを実行
         run: dotnet run --project tests/ComputeWeave.Tests.GlobalStatements/ComputeWeave.Tests.GlobalStatements.csproj -c Release -p:Platform=x64
 
+      # 発行と実行を繰り返すため CI では回さない。同梱ライブラリが実際に配られるかを見る唯一の試験なので、出荷前に通す。
+      - name: ネイティブライブラリ解決のテストを実行
+        run: dotnet test tests/ComputeWeave.Tests.NativeLibrariesResolver/ComputeWeave.Tests.NativeLibrariesResolver.csproj -c Release -p:Platform=x64
+
   # デバイス消失のテストは実デバイスを破棄するため、他のテストとは別のプロセスで実行する。
   validate-device-lost:
     name: デバイス消失のテスト
