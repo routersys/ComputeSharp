@@ -5,33 +5,14 @@
     Verifies that every table row in the repository's Markdown renders as a table row.
 
 .DESCRIPTION
-    A GitHub Flavored Markdown table is a header row, a delimiter row, and the rows that
-    follow without interruption. A blank line ends the table. Any row after that blank line
-    is not a row any more: it renders as a paragraph of literal pipe characters.
-
-    Nothing about that is visible in a diff, in a plain text editor, or in a commit that only
-    adds rows. The divergence ledger in CONTRIBUTING.md lost three rows this way, and they
-    were the rows carrying the retirement conditions for the upstream pull requests this fork
-    tracks. They stayed unreadable until the document was rendered and the rendered rows were
-    counted against the source rows.
-
-    This script does that counting without a renderer. It groups contiguous lines beginning
-    with a pipe and reports every group whose second line is not a delimiter row, because such
-    a group never becomes a table. Fenced code blocks are skipped, so pipes inside an example
-    are not mistaken for a table.
-
-    The rule was measured against the GitHub Markdown API rather than assumed. A table may
-    begin directly beneath a paragraph line, so adjacency to text is not what breaks a table;
-    only the blank line is.
+    A blank line ends a Markdown table, so rows placed after one render as literal pipe text.
+    This groups contiguous pipe lines and reports any group whose second line is not a delimiter.
 
 .PARAMETER Path
     The directory to search. Defaults to the repository root.
 
 .EXAMPLE
     pwsh build/verify-markdown-tables.ps1
-
-.EXAMPLE
-    pwsh build/verify-markdown-tables.ps1 -Path docs
 #>
 
 [CmdletBinding()]
@@ -76,8 +57,7 @@ function Get-TableReport
 {
     param([string[]] $Lines)
 
-    # Collect the runs first, classify them after. Keeping the two apart avoids sharing
-    # mutable state with a nested scope, which silently drops the count.
+    # Runs are collected first and classified after, so no count is shared with a nested scope.
     $groups = [System.Collections.Generic.List[object]]::new()
     $group = [System.Collections.Generic.List[object]]::new()
     $inFence = $false
@@ -118,9 +98,7 @@ function Get-TableReport
     {
         if ($run.Count -ge 2 -and (Test-DelimiterRow $run[1].Text))
         {
-            # The delimiter row is structure rather than content, so it is the one dropped.
-            # What remains, the header plus the data rows, is the number of rows a renderer
-            # emits for this table, which is the number this count was validated against.
+            # The delimiter row is dropped; the header and data rows are what a renderer emits.
             $rows += $run.Count - 1
         }
         else
@@ -147,9 +125,7 @@ if (-not (Test-Path $Path))
 
 $root = (Resolve-Path $Path).Path
 
-# The set to check is what the repository publishes, so it comes from the index rather than
-# from the disk. A walk of the disk would also read build output and whatever untracked
-# Markdown a working tree happens to hold, and would fail on files nobody is publishing.
+# The set comes from the index, so build output and untracked Markdown stay out.
 $tracked = @(git -C $root ls-files '*.md' '*.markdown')
 
 if ($LASTEXITCODE -ne 0)

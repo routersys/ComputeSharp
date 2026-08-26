@@ -1,8 +1,6 @@
 name: ドキュメント
 
-# CI は paths-ignore で根の Markdown を除外するため、文書だけを変える変更では1本も走らない。
-# 実際、CONTRIBUTING.md だけを変えたプルリクエストで動いたのは「PRレビュー」だけだった。
-# 文書の検査をそこへ足しても、必要なときに動かない。この軽い経路を分けて持つ。
+# CI は paths-ignore で根の Markdown を除外するため、文書だけの変更では走らない。
 on:
   push:
     branches: ["main"]
