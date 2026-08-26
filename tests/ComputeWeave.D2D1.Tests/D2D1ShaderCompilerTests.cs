@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using ComputeWeave.D2D1.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -361,6 +362,82 @@ public partial class D2D1ShaderCompilerTests
 
         // There is no export function to reach without linking, so the option is ignored
         CollectionAssert.AreEqual(bytecode.ToArray(), bytecodeWithMinimumPrecision.ToArray());
+    }
+
+    [TestMethod]
+    public void DeclareMinimumPrecisionSupportLeavesEveryOriginalBlobUntouched()
+    {
+        ReadOnlyMemory<byte> bytecode = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default);
+
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default | D2D1CompileOptions.DeclareMinimumPrecisionSupport);
+
+        Dictionary<uint, byte[]> original = GetBlobs(bytecode.Span);
+        Dictionary<uint, byte[]> patched = GetBlobs(bytecodeWithMinimumPrecision.Span);
+
+        // The comparison below is only meaningful if the blob holding the compiled instructions is
+        // one of the blobs being compared, so require it rather than assuming it is there.
+        Assert.IsTrue(original.ContainsKey(ShaderCodeSignature), "the container has no shader code blob to compare");
+
+        // The option documents that it only declares a shader feature, and that the compiled shader
+        // instructions are left untouched. That is what makes it safe to enable on a shader that has
+        // already been validated, so assert it directly: every blob the compiler produced, including
+        // the one holding the instructions, has to survive the patching byte for byte.
+        foreach ((uint signature, byte[] payload) in original)
+        {
+            Assert.IsTrue(patched.ContainsKey(signature), $"blob 0x{signature:X8} is missing after patching");
+            CollectionAssert.AreEqual(payload, patched[signature], $"blob 0x{signature:X8} changed while patching");
+        }
+
+        // The only new blob is the shader feature info one, and it declares exactly the minimum
+        // precision feature. Checking the payload keeps this from passing on an empty or unrelated blob.
+        Assert.AreEqual(original.Count + 1, patched.Count);
+        Assert.IsTrue(patched.ContainsKey(ShaderFeatureInfoSignature));
+        Assert.AreEqual(0x0010UL, BinaryPrimitives.ReadUInt64LittleEndian(patched[ShaderFeatureInfoSignature]));
+
+        // Note this says nothing about whether Direct2D then runs the shader at a reduced precision.
+        // That is the documented, deliberately unguaranteed behavior the option exists to trigger.
+    }
+
+    /// <summary>
+    /// The <c>'SFI0'</c> signature of the shader feature info blob.
+    /// </summary>
+    private const uint ShaderFeatureInfoSignature = 0x30494653;
+
+    /// <summary>
+    /// The <c>'SHDR'</c> signature of the blob holding the compiled shader instructions.
+    /// </summary>
+    private const uint ShaderCodeSignature = 0x52444853;
+
+    /// <summary>
+    /// Reads every blob of a DXBC container, keyed by its signature.
+    /// </summary>
+    /// <param name="bytecode">The DXBC container to read.</param>
+    /// <returns>The payload of each blob in <paramref name="bytecode"/>, keyed by signature.</returns>
+    private static Dictionary<uint, byte[]> GetBlobs(ReadOnlySpan<byte> bytecode)
+    {
+        Assert.IsTrue(IsWellFormedDxbcContainer(bytecode));
+
+        Dictionary<uint, byte[]> blobs = [];
+        uint blobCount = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(28));
+
+        for (int i = 0; i < blobCount; i++)
+        {
+            uint blobOffset = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(32 + (i * 4)));
+            uint signature = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset));
+            uint blobSize = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset + 4));
+
+            blobs.Add(signature, bytecode.Slice((int)blobOffset + 8, (int)blobSize).ToArray());
+        }
+
+        return blobs;
     }
 
     [TestMethod]
