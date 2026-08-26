@@ -41,13 +41,6 @@
 
     <!--
       This ignores the following warning:
-      "MSB3270: There was a mismatch between the processor architecture of the project being built "MSIL" and the
-      processor architecture of the reference". It pops up because all samples are only targeting x64/Arm64.
-    -->
-    <NoWarn>$(NoWarn);MSB3270</NoWarn>
-
-    <!--
-      This ignores the following warning:
       "CA1060: Move P/Invokes to NativeMethods class". The whole repository is full of P/Invoke-s everywhere.
       See: https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1060.
     -->
