@@ -71,6 +71,8 @@ jobs:
           dotnet pack src/ComputeWeave.Dxc/ComputeWeave.Dxc.csproj -c Release
           dotnet pack src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj -c Release
 
+      # ネイティブライブラリ解決のテストは発行と実行を繰り返すため手元の実測で5分から8分かかり、ここでは回さない。
+
   # デバイス消失のテストは実デバイスを破棄するため、他のテストとは別のプロセスで実行する。
   test-device-lost:
     name: デバイス消失のテスト
