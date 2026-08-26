@@ -213,6 +213,10 @@ jobs:
           Test-PackageSet '*.nupkg' 'NuGetパッケージ'
           Test-PackageSet '*.snupkg' 'NuGetシンボルパッケージ'
 
+      # 上の検証はパッケージの同一性を見る。積荷が揃っていることは別に確かめる。
+      - name: パッケージの積荷を検証
+        run: pwsh build/verify-package-payload.ps1
+
       - name: パッケージをアーティファクトとして保存
         uses: actions/upload-artifact@v4
         with:
@@ -290,7 +294,7 @@ jobs:
           PACKAGE_BASE=$(curl --fail --location --silent --show-error https://api.nuget.org/v3/index.json \
             | python -c 'import json, sys; resources = json.load(sys.stdin)["resources"]; print(next(item["@id"] for item in resources if item["@type"] == "PackageBaseAddress/3.0.0"))')
           VERSION="${RELEASE_TAG#v}"
-          for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator; do
+          for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator computeweave.d2d1; do
             PACKAGE_STATUS=$(get_package_status "${PACKAGE_ID}")
             if [ "${PACKAGE_STATUS}" = "404" ]; then
               continue
@@ -375,7 +379,7 @@ jobs:
 
           PACKAGE_BASE=$(curl --fail --location --silent --show-error https://api.nuget.org/v3/index.json \
             | python -c 'import json, sys; resources = json.load(sys.stdin)["resources"]; print(next(item["@id"] for item in resources if item["@type"] == "PackageBaseAddress/3.0.0"))')
-          for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator; do
+          for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator computeweave.d2d1; do
             PACKAGE_STATUS=$(get_package_status "${PACKAGE_ID}")
             if [ "${PACKAGE_STATUS}" = "404" ]; then
               continue
@@ -409,7 +413,7 @@ jobs:
           if [ "${ALLOW_DUPLICATES}" = "true" ]; then
             for ATTEMPT in $(seq 1 60); do
               ALL_PACKAGES_VERIFIED=true
-              for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator; do
+              for PACKAGE_ID in computeweave.core computeweave computeweave.dxc computeweave.d3d12memoryallocator computeweave.d2d1; do
                 PACKAGE_STATUS=$(get_package_status "${PACKAGE_ID}")
                 if [ "${PACKAGE_STATUS}" = "404" ]; then
                   ALL_PACKAGES_VERIFIED=false
