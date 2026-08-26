@@ -39,7 +39,7 @@ public partial class ShaderRewriterTests
             #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Number 1.0
             #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Letter 65
             #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__NegativeInfinity asfloat(0xFF800000)
-            #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Whole asfloat(0x3F800000)
+            #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Whole 1.0
 
             struct ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoveragePoint
             {
@@ -79,7 +79,7 @@ public partial class ShaderRewriterTests
                 ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoveragePoint __reserved__point;
                 __reserved__point.X = values._m00;
                 __reserved__point.Y = values._m11;
-                bool correct = shifted == 3 && __reserved__point.X == 3 && __reserved__point.Y == 65 && ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageHelper_Doubled(shifted) == 6 && __Execute__object(1) == 2 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Flag && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Letter == 65 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__NegativeInfinity < 0 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Whole / 2 == asfloat(1056964608U) && (float)__ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Number / 2 == asfloat(1056964608U);
+                bool correct = shifted == 3 && __reserved__point.X == 3 && __reserved__point.Y == 65 && ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageHelper_Doubled(shifted) == 6 && __Execute__object(1) == 2 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Flag && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Letter == 65 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__NegativeInfinity < 0 && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Whole / 2 == 0.5 && (float)__ComputeWeave_D2D1_Tests_ShaderRewriterTests_LedgerCoverageShader__Number / 2 == 0.5;
                 return correct ? float4(0, 1, 0, 1) : float4(1, 0, 0, 1);
             }
             """, shaderInfo.HlslSource);

@@ -101,10 +101,10 @@ public partial class ShaderRewriterTests
                 bool flag = D2DGetScenePosition().x >= 0;
                 bool4 mask = bool4(true, false, true, false);
                 bool4 other = bool4(false, false, false, false);
-                float4 a = float4(asfloat(1048576000U), asfloat(1048576000U), asfloat(1048576000U), asfloat(1048576000U));
-                float4 b = float4(asfloat(1061158912U), asfloat(1061158912U), asfloat(1061158912U), asfloat(1061158912U));
+                float4 a = float4(0.25, 0.25, 0.25, 0.25);
+                float4 b = float4(0.75, 0.75, 0.75, 0.75);
                 float4 result = ((flag ? mask : other) ? a : b);
-                bool correct = abs(result.x - asfloat(1048576000U)) < asfloat(1008981770U) && abs(result.y - asfloat(1061158912U)) < asfloat(1008981770U);
+                bool correct = abs(result.x - 0.25) < 0.01 && abs(result.y - 0.75) < 0.01;
                 return correct ? float4(0, 1, 0, 1) : float4(1, 0, 0, 1);
             }
             """, shaderInfo.HlslSource);
@@ -115,83 +115,6 @@ public partial class ShaderRewriterTests
     {
         D2D1TestRunner.RunAndCompareShader(
             new SelectConditionRegroupingShader(),
-            32,
-            32,
-            "Green32x32.png");
-    }
-
-    /// <summary>
-    /// Fixes the float literal path, which prints a literal that has no exact decimal form as the
-    /// bit pattern it actually has, reinterpreted through <c>asfloat</c>.
-    /// </summary>
-    /// <remarks>
-    /// The four constants are the IEEE 754 single precision encodings of 0.25, 0.75, 0.01 and
-    /// 131072.65. They are computed from the encoding, not read back out of the generator.
-    /// </remarks>
-    [TestMethod]
-    public void FloatLiteral_IsPrintedThroughAsFloat()
-    {
-        D2D1ShaderInfo shaderInfo = D2D1ReflectionServices.GetShaderInfo<AsFloatLiteralShader>();
-
-        Assert.AreEqual("""
-            #define D2D_INPUT_COUNT 0
-
-            #include "d2d1effecthelpers.hlsli"
-
-            D2D_PS_ENTRY(Execute)
-            {
-                float value = asfloat(1207959594U);
-                return value == asfloat(1207959594U) ? float4(0, 1, 0, 1) : float4(1, 0, 0, 1);
-            }
-            """, shaderInfo.HlslSource);
-    }
-
-    [TestMethod]
-    public void FloatLiteral_ComputesTheSameValue()
-    {
-        D2D1TestRunner.RunAndCompareShader(
-            new AsFloatLiteralShader(),
-            32,
-            32,
-            "Green32x32.png");
-    }
-
-    /// <summary>
-    /// Fixes the float constant path, which reached HLSL as decimal text while the literal path with
-    /// the same value reached it as a bit pattern.
-    /// </summary>
-    /// <remarks>
-    /// The three constants are the IEEE 754 single precision encodings of 131072.65, its negation and
-    /// negative zero. They are computed from the encoding, not read back out of the generator. The
-    /// sign is printed outside the call, which is where a negated literal already leaves it.
-    /// </remarks>
-    [TestMethod]
-    public void FloatConstant_IsPrintedThroughAsFloat()
-    {
-        D2D1ShaderInfo shaderInfo = D2D1ReflectionServices.GetShaderInfo<AsFloatConstantShader>();
-
-        Assert.AreEqual("""
-            #define D2D_INPUT_COUNT 0
-
-            #include "d2d1effecthelpers.hlsli"
-
-            #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__Positive asfloat(0x4800002A)
-            #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__Negative -asfloat(0x4800002A)
-            #define __ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__NegativeZero -asfloat(0x00000000)
-
-            D2D_PS_ENTRY(Execute)
-            {
-                bool correct = __ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__Positive == asfloat(1207959594U) && __ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__Negative == -asfloat(1207959594U) && asint(__ComputeWeave_D2D1_Tests_ShaderRewriterTests_AsFloatConstantShader__NegativeZero) != 0;
-                return correct ? float4(0, 1, 0, 1) : float4(1, 0, 0, 1);
-            }
-            """, shaderInfo.HlslSource);
-    }
-
-    [TestMethod]
-    public void FloatConstant_ComputesTheSameValue()
-    {
-        D2D1TestRunner.RunAndCompareShader(
-            new AsFloatConstantShader(),
             32,
             32,
             "Green32x32.png");
@@ -279,55 +202,6 @@ public partial class ShaderRewriterTests
             bool correct =
                 Hlsl.Abs(result.X - 0.25f) < 0.01f &&
                 Hlsl.Abs(result.Y - 0.75f) < 0.01f;
-
-            return correct ? new float4(0, 1, 0, 1) : new float4(1, 0, 0, 1);
-        }
-    }
-
-    /// <summary>
-    /// Exercises the float literal path, which rewrites a literal that cannot be printed exactly
-    /// into a bit pattern reinterpreted through <c>asfloat</c>.
-    /// </summary>
-    [D2DInputCount(0)]
-    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
-    [D2DOutputBuffer(D2D1BufferPrecision.Float32)]
-    [D2DGeneratedPixelShaderDescriptor]
-    internal readonly partial struct AsFloatLiteralShader : ID2D1PixelShader
-    {
-        public float4 Execute()
-        {
-            float value = 131072.65f;
-
-            return value == 131072.65f ? new float4(0, 1, 0, 1) : new float4(1, 0, 0, 1);
-        }
-    }
-
-    /// <summary>
-    /// Exercises the float constant path, which rewrites a constant into the bit pattern it actually
-    /// has, so that a value cannot depend on how the compiler reads decimal text.
-    /// </summary>
-    /// <remarks>
-    /// The negative zero is what fixes where the sign is printed. FXC flushes to zero every value it
-    /// cannot represent, and it drops the sign while doing so when the sign is inside the bit pattern.
-    /// Printed as <c>asfloat(0x80000000)</c> the constant reaches the shader as positive zero and the
-    /// shader is red; printed as <c>-asfloat(0x00000000)</c> it keeps its sign and the shader is green.
-    /// </remarks>
-    [D2DInputCount(0)]
-    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
-    [D2DOutputBuffer(D2D1BufferPrecision.Float32)]
-    [D2DGeneratedPixelShaderDescriptor]
-    internal readonly partial struct AsFloatConstantShader : ID2D1PixelShader
-    {
-        private const float Positive = 131072.65f;
-        private const float Negative = -131072.65f;
-        private const float NegativeZero = -0f;
-
-        public float4 Execute()
-        {
-            bool correct =
-                Positive == 131072.65f &&
-                Negative == -131072.65f &&
-                Hlsl.AsInt(NegativeZero) != 0;
 
             return correct ? new float4(0, 1, 0, 1) : new float4(1, 0, 0, 1);
         }

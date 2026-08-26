@@ -204,7 +204,7 @@ internal abstract partial class HlslSourceRewriter(
     }
 
     /// <inheritdoc/>
-    public sealed override unsafe SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
+    public sealed override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
     {
         CancellationToken.ThrowIfCancellationRequested();
 
@@ -227,7 +227,13 @@ internal abstract partial class HlslSourceRewriter(
             // in HLSL, we can remove the suffix entirely. As for 64 bit values, we simply use the 'L' suffix.
             if (type.SpecialType == SpecialType.System_Single)
             {
-#if D3D12_SOURCE_GENERATOR
+                // The Direct2D path used to write a float literal as 'asfloat' over its bit pattern, to work
+                // around an FXC defect that can give a literal the wrong value (upstream issue 780). That
+                // workaround is not sound here: for the two feature level 9 profiles FXC also emits a second
+                // translation of the shader, and in that translation it folds 'asfloat' of a literal as a
+                // conversion of the number rather than a reinterpretation of its bits, so 1.5 arrives as
+                // 1069547520. Decimal text is correct in both translations, so it is what both the literal
+                // and the constant path write. See the upstream divergence ledger for the measurements.
                 string literal = updatedNode.Token.ValueText;
 
                 // If the numeric literal is neither a decimal nor an exponential, add the ".0" suffix
@@ -237,25 +243,6 @@ internal abstract partial class HlslSourceRewriter(
                 }
 
                 return updatedNode.WithToken(Literal(literal, 0f));
-#else
-                // When compiling for D2D, we need to emit 'asfloat' expressions to work around an FXC
-                // bug that can cause it to sometimes emit incorrect values for float literals. For
-                // additional context, see: https://github.com/Sergio0694/ComputeSharp/issues/780.
-                //
-                // This code rewrites expressions as follows:
-                // C#:   3.14f
-                // HLSL: asfloat(1078523331)
-                float literalValue = (float)operation.ConstantValue.Value!;
-                uint literalValueAsUInt = *(uint*)&literalValue;
-
-                return
-                    InvocationExpression(IdentifierName("asfloat"))
-                    .AddArgumentListArguments(
-                        Argument(
-                            LiteralExpression(
-                                SyntaxKind.NumericLiteralExpression,
-                                Literal(literalValueAsUInt))));
-#endif
             }
             else if (type.SpecialType == SpecialType.System_Double)
             {
@@ -478,25 +465,9 @@ internal abstract partial class HlslSourceRewriter(
             }
             else
             {
-#if D3D12_SOURCE_GENERATOR
                 string text = single.ToString(null, CultureInfo.InvariantCulture);
 
                 literal = text.IndexOfAny(FloatLiteralSpecialCharacters) == -1 ? $"{text}.0" : text;
-#else
-                // When compiling for D2D, constants are emitted as their bit pattern for the same reason
-                // literals are (see VisitLiteralExpression): FXC can sometimes emit an incorrect value for
-                // a float literal. Going through 'asfloat' makes the value independent of how FXC parses
-                // decimal text, so that a constant and a literal holding the same value cannot disagree.
-                // For additional context, see: https://github.com/Sergio0694/ComputeSharp/issues/780.
-                //
-                // The sign is left outside the call, which is where a C# unary minus applied to a literal
-                // already leaves it. It also has to be: FXC drops the sign of a value it flushes to zero
-                // when that sign is inside the bit pattern, but keeps it when it is applied afterwards.
-                uint bits = *(uint*)&single;
-                string sign = (bits & 0x80000000) != 0 ? "-" : "";
-
-                literal = $"{sign}asfloat(0x{bits & 0x7FFFFFFF:X8})";
-#endif
             }
 
             return true;

@@ -33,7 +33,7 @@ public partial class ShaderRewriterTests
 
             D2D_PS_ENTRY(Execute)
             {
-                bool correct = __reserved__Pass == asfloat(1065353216U) && __reserved__technique == asfloat(1073741824U) && __reserved__ASM == asfloat(1077936128U) && __reserved__SamplerState == asfloat(1082130432U) && __reserved__texture2D == asfloat(1084227584U);
+                bool correct = __reserved__Pass == 1.0 && __reserved__technique == 2.0 && __reserved__ASM == 3.0 && __reserved__SamplerState == 4.0 && __reserved__texture2D == 5.0;
                 return correct ? float4(0, 1, 0, 1) : float4(1, 0, 0, 1);
             }
             """, shaderInfo.HlslSource);
