@@ -60,6 +60,11 @@ public abstract class NativeLibrariesResolverTestsBase
     protected static string PackageVersion { get; } = GetPackageVersion();
 
     /// <summary>
+    /// Gets the folder NuGet extracts packages into.
+    /// </summary>
+    private static string GlobalPackagesDirectory { get; } = GetGlobalPackagesDirectory();
+
+    /// <summary>
     /// Gets the directory containing the current test project.
     /// </summary>
     private string SampleProjectDirectory => Path.Combine(TestsDirectory, SampleProjectName);
@@ -200,7 +205,63 @@ public abstract class NativeLibrariesResolverTestsBase
             using Process process = Process.Start("dotnet", $"pack {projectPath} -c Release");
 
             process.WaitForExit();
+
+            EvictFromGlobalPackages(projectName);
         }
+    }
+
+    /// <summary>
+    /// Removes a package from the folder NuGet extracts into, so a restore has to take the one just packed.
+    /// </summary>
+    /// <param name="packageId">The id of the package to remove.</param>
+    /// <remarks>
+    /// The version does not change between runs, and a restore prefers an already extracted copy over any source.
+    /// Without this, the sample projects link against whatever build of that version was extracted first, so the
+    /// suite reports on that build rather than on the working tree, and passes while the tree is broken.
+    /// </remarks>
+    private static void EvictFromGlobalPackages(string packageId)
+    {
+        string directory = Path.Combine(GlobalPackagesDirectory, packageId.ToLowerInvariant(), PackageVersion);
+
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>
+    /// Reads the folder NuGet extracts packages into.
+    /// </summary>
+    /// <returns>The absolute path of that folder.</returns>
+    /// <remarks>
+    /// It is asked of NuGet rather than assembled from the default location, because an environment variable and a
+    /// configuration file can both move it, and guessing wrong would turn the eviction above into a silent no-op.
+    /// </remarks>
+    private static string GetGlobalPackagesDirectory()
+    {
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = "dotnet",
+            Arguments = "nuget locals global-packages --list",
+            RedirectStandardOutput = true,
+            UseShellExecute = false
+        };
+
+        using Process process = Process.Start(startInfo)!;
+
+        string output = process.StandardOutput.ReadToEnd();
+
+        process.WaitForExit();
+
+        int separator = output.IndexOf(':');
+
+        Assert.AreNotEqual(-1, separator, $"Could not read the global packages folder from '{output}'.");
+
+        string directory = output[(separator + 1)..].Trim();
+
+        Assert.IsTrue(Path.IsPathFullyQualified(directory), $"'{directory}' is not a usable global packages folder.");
+
+        return directory;
     }
 
     /// <summary>
