@@ -16,7 +16,7 @@ float[] result = buffer.ToArray();
 
 if (!numbers.SequenceEqual(result))
 {
-    throw new Exception("The processed buffer does not match the expected results.");
+    throw new InvalidOperationException("The processed buffer does not match the expected results.");
 }
 
 Console.WriteLine("Test passed successfully!");
