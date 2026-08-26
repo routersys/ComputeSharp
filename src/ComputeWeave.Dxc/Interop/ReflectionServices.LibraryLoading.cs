@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using ComputeWeave.Win32;
 
 namespace ComputeWeave.Interop;
 
@@ -17,15 +18,35 @@ partial class ReflectionServices
         // libraries from the NuGet directory, if an RID is not in use, or we need to ensure that dxil.dll is
         // loaded correctly in case the program was executed with the host being in another directory.
         // This happens when doing eg. "dotnet bin\Debug\net8.0\MyApp.dll", which would crash at runtime.
-        NativeLibrary.SetDllImportResolver(typeof(ReflectionServices).Assembly, OnDllImport);
+        //
+        // The resolver has to go on the assembly that declares the "dxcompiler" import, which is the one holding
+        // the Win32 bindings and not this one. A resolver only ever runs for P/Invokes declared by the assembly it
+        // is registered on, so registering it here resolved nothing. What this actually buys is the pre-load of
+        // dxil.dll: "dxcompiler" is found by the default probing either way, but "dxil" is never imported from
+        // managed code at all. It is loaded by dxcompiler.dll itself through LoadLibrary, which does not know
+        // about the app directory, so without this the copy sitting next to the app is not the one that is used.
+        try
+        {
+            NativeLibrary.SetDllImportResolver(typeof(DirectX).Assembly, OnDllImport);
+        }
+        catch (InvalidOperationException)
+        {
+            // An assembly can only ever carry one resolver, and consumers may register their own on it. Losing
+            // that race leaves the default probing in charge, which is exactly the behavior without this type.
+            // Letting it propagate would be worse: a failed type initializer is cached, so every later call into
+            // this type would throw TypeInitializationException instead of merely skipping the pre-load.
+        }
     }
 
     /// <summary>
-    /// The custom <see cref="DllImportResolver"/> for this assembly.
+    /// The custom <see cref="DllImportResolver"/> for the assembly declaring the DXC imports.
     /// </summary>
     /// <inheritdoc cref="DllImportResolver"/>
     private static IntPtr OnDllImport(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
+        // This resolver is registered on the assembly holding the Win32 bindings, so it is consulted for every
+        // P/Invoke that assembly declares, not just this one. Returning zero for the others is what keeps them
+        // on the default probing path, so this early return has to stay.
         if (libraryName is not "dxcompiler")
         {
             return IntPtr.Zero;
