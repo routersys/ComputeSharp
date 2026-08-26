@@ -37,6 +37,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ComputeWeave.Dxc.NuGet", "C
 		tests\ComputeWeave.Dxc.NuGet\Program.cs = tests\ComputeWeave.Dxc.NuGet\Program.cs
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ComputeWeave.D2D1.NuGet", "ComputeWeave.D2D1.NuGet", "{9EC6DE31-BD53-43F0-8496-D3D4FFFD8FE6}"
+	ProjectSection(SolutionItems) = preProject
+		tests\ComputeWeave.D2D1.NuGet\ComputeWeave.D2D1.NuGet.csproj = tests\ComputeWeave.D2D1.NuGet\ComputeWeave.D2D1.NuGet.csproj
+		tests\ComputeWeave.D2D1.NuGet\Program.cs = tests\ComputeWeave.D2D1.NuGet\Program.cs
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_SolutionItems", "_SolutionItems", "{1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -467,6 +473,7 @@ Global
 		{BF52326F-E415-49E6-8595-62762216762B} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{E3403F19-A0D8-4317-8A54-322C7A13F2A2} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{CBA545B4-31EF-4E9F-A1A8-2A1290B54046} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
+		{9EC6DE31-BD53-43F0-8496-D3D4FFFD8FE6} = {F8EFBB27-4EE2-4463-A75B-7EFDFB55D0F7}
 		{514FF00E-BBF0-4D55-A47C-EEEB6208ADCE} = {D991153C-A34D-4042-B76F-822ADB111DD0}
 		{9DA1DA9F-F8B2-4B25-BE80-C21F773029E3} = {D991153C-A34D-4042-B76F-822ADB111DD0}
 		{B86A48A7-18BD-4946-B995-3CE26B092DDF} = {1A9C4108-F61A-4ABE-B5CF-F524521EAE2D}
