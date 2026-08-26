@@ -20,6 +20,7 @@ You do not need to read all of it. Start with [Getting Started](#getting-started
 3. [Issues](#issues)
 4. [Pull Requests](#pull-requests)
    - [What the template asks for](#what-the-template-asks-for)
+   - [Labels](#labels)
    - [Automated checks](#automated-checks)
    - [Review, merge and licensing](#review-merge-and-licensing)
    - [Language](#language)
@@ -158,6 +159,10 @@ The template asks for a summary, a linked issue, the kind of change, the observa
 **“Verification”.** The results you actually ran, and how they compare with the same suites before your change. Do not judge a run by its total failure count; see [Reading a test run](#reading-a-test-run).
 
 Throughout, distinguish what you observed, what you derived from reading the code, and what you assume. A defect found by reading code is a real finding — say that it has not been reproduced. Never present analysis as observation. And say what you did not do: if part of the work was skipped, blocked or left unverified, state it plainly rather than letting a passing suite imply completeness.
+
+### Labels
+
+Apply the label that matches each kind you kept in the template. The kinds and the labels correspond one for one: `bug`, `public api`, `behavior change`, `performance`, `analyzer or generator`, `documentation` and `build and ci`. Nothing applies them for you, and the automated check described below does not set them. Labels are how the merged history is filtered by kind, so a pull request that declares a kind and carries no label is invisible to that filter.
 
 ### Automated checks
 
