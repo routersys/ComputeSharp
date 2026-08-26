@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -37,7 +38,7 @@ public abstract class NativeLibrariesResolverTestsBase
     /// This is derived from the tests directory rather than by looking for a folder with a given name, as the
     /// repository is also checked out into working trees whose root folder is named differently.
     /// </remarks>
-    protected static string RepositoryDirectory { get; } = Path.GetDirectoryName(TestsDirectory)!;
+    private static string RepositoryDirectory { get; } = Path.GetDirectoryName(TestsDirectory)!;
 
     /// <summary>
     /// Gets the directory containing the current test project.
@@ -150,6 +151,22 @@ public abstract class NativeLibrariesResolverTestsBase
         string pathToAppHost = Path.Combine("bin", "Release", TargetFramework, "win-x64", "publish", $"{SampleProjectName}.exe");
 
         Assert.AreEqual(0, Exec(SampleProjectDirectory, pathToAppHost, ""));
+    }
+
+    /// <summary>
+    /// Packs the projects the sample project consumes, so that the local NuGet packages are available.
+    /// </summary>
+    /// <param name="projectNames">The names of the projects to pack, which are also their folder and file names.</param>
+    protected static void PackProjects(params ReadOnlySpan<string> projectNames)
+    {
+        foreach (string projectName in projectNames)
+        {
+            string projectPath = Path.Combine(RepositoryDirectory, "src", projectName, $"{projectName}.csproj");
+
+            using Process process = Process.Start("dotnet", $"pack {projectPath} -c Release");
+
+            process.WaitForExit();
+        }
     }
 
     /// <summary>

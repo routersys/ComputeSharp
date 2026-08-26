@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.IO;
 using ComputeWeave.Tests.NativeLibrariesResolver.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -18,10 +16,6 @@ public class NativeLibrariesResolverTests : NativeLibrariesResolverTestsBase
     [ClassInitialize]
     public static void InitializeDynamicDependencies(TestContext _)
     {
-        string coreProjectPath = Path.Combine(RepositoryDirectory, "src", "ComputeWeave.Core", "ComputeWeave.Core.csproj");
-        string projectPath = Path.Combine(RepositoryDirectory, "src", "ComputeWeave", "ComputeWeave.csproj");
-
-        Process.Start("dotnet", $"pack {coreProjectPath} -c Release").WaitForExit();
-        Process.Start("dotnet", $"pack {projectPath} -c Release").WaitForExit();
+        PackProjects("ComputeWeave.Core", "ComputeWeave");
     }
 }
