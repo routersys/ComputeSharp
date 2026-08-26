@@ -1,0 +1,39 @@
+name: ドキュメント
+
+# CI は paths-ignore で根の Markdown を除外するため、文書だけを変える変更では1本も走らない。
+# 実際、CONTRIBUTING.md だけを変えたプルリクエストで動いたのは「PRレビュー」だけだった。
+# 文書の検査をそこへ足しても、必要なときに動かない。この軽い経路を分けて持つ。
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "**.md"
+      - "**.markdown"
+      - ".github/workflows/docs.yml"
+      - "build/verify-markdown-tables.ps1"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "**.md"
+      - "**.markdown"
+      - ".github/workflows/docs.yml"
+      - "build/verify-markdown-tables.ps1"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: 文書の検査
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: ソースコードを取得
+        uses: actions/checkout@v4
+
+      # 空行で切れた表の行は、差分にも編集画面にも現れないまま段落へ落ちる。
+      - name: Markdown の表を検証
+        run: pwsh build/verify-markdown-tables.ps1
