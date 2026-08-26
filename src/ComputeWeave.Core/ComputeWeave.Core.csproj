@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ComputeWeave, PublicKey=$(AssemblySignPublicKey)" />
+    <InternalsVisibleTo Include="ComputeWeave.D2D1, PublicKey=$(AssemblySignPublicKey)" />
     <InternalsVisibleTo Include="ComputeWeave.D3D12MemoryAllocator, PublicKey=$(AssemblySignPublicKey)" />
     <InternalsVisibleTo Include="ComputeWeave.Dxc, PublicKey=$(AssemblySignPublicKey)" />
   </ItemGroup>

@@ -47,6 +47,22 @@ internal static class CompilationHelper
         return compilation;
     }
 
+    /// <summary>
+    /// Creates a compilation without requiring it to be free of errors, for the cases where what is
+    /// being measured is how a generator behaves on source the C# compiler has already rejected.
+    /// </summary>
+    /// <param name="source">The source to compile.</param>
+    /// <param name="assemblyName">The name to give the assembly.</param>
+    /// <returns>The compilation, errors and all.</returns>
+    public static CSharpCompilation CreateCompilationAllowingErrors(string source, string assemblyName)
+    {
+        return CSharpCompilation.Create(
+            assemblyName,
+            [CSharpSyntaxTree.ParseText(source)],
+            References,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+    }
+
     private static ImmutableArray<MetadataReference> CreateReferences()
     {
         string trustedAssemblies = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;

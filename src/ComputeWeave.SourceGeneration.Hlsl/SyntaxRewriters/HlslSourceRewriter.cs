@@ -167,8 +167,16 @@ internal abstract partial class HlslSourceRewriter(
             {
                 for (int i = 0; i < node.ArgumentList!.Arguments.Count; i++)
                 {
-                    IArgumentOperation argumentOperation = (IArgumentOperation)SemanticModel.For(node).GetOperation(node.ArgumentList.Arguments[i], CancellationToken)!;
-                    INamedTypeSymbol elementType = (INamedTypeSymbol)argumentOperation.Parameter!.Type;
+                    // The element type to cast to is read from the parameter the argument binds to. When
+                    // overload resolution has failed there is no parameter to read, so leave the argument
+                    // alone: the C# compiler is already reporting the call, and all that is needed here is
+                    // for the generator to finish. Faulting would discard the descriptors for every shader
+                    // in the compilation unit and bury that error under the ones that causes.
+                    if (SemanticModel.For(node).GetOperation(node.ArgumentList.Arguments[i], CancellationToken)
+                        is not IArgumentOperation { Parameter.Type: INamedTypeSymbol elementType })
+                    {
+                        continue;
+                    }
 
                     updatedNode = updatedNode.ReplaceNode(
                         updatedNode.ArgumentList!.Arguments[i].Expression,
@@ -196,7 +204,7 @@ internal abstract partial class HlslSourceRewriter(
     }
 
     /// <inheritdoc/>
-    public sealed override unsafe SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
+    public sealed override SyntaxNode? VisitLiteralExpression(LiteralExpressionSyntax node)
     {
         CancellationToken.ThrowIfCancellationRequested();
 
@@ -219,7 +227,13 @@ internal abstract partial class HlslSourceRewriter(
             // in HLSL, we can remove the suffix entirely. As for 64 bit values, we simply use the 'L' suffix.
             if (type.SpecialType == SpecialType.System_Single)
             {
-#if D3D12_SOURCE_GENERATOR
+                // The Direct2D path used to write a float literal as 'asfloat' over its bit pattern, to work
+                // around an FXC defect that can give a literal the wrong value (upstream issue 780). That
+                // workaround is not sound here: for the two feature level 9 profiles FXC also emits a second
+                // translation of the shader, and in that translation it folds 'asfloat' of a literal as a
+                // conversion of the number rather than a reinterpretation of its bits, so 1.5 arrives as
+                // 1069547520. Decimal text is correct in both translations, so it is what both the literal
+                // and the constant path write. See the upstream divergence ledger for the measurements.
                 string literal = updatedNode.Token.ValueText;
 
                 // If the numeric literal is neither a decimal nor an exponential, add the ".0" suffix
@@ -229,25 +243,6 @@ internal abstract partial class HlslSourceRewriter(
                 }
 
                 return updatedNode.WithToken(Literal(literal, 0f));
-#else
-                // When compiling for D2D, we need to emit 'asfloat' expressions to work around an FXC
-                // bug that can cause it to sometimes emit incorrect values for float literals. For
-                // additional context, see: https://github.com/Sergio0694/ComputeSharp/issues/780.
-                //
-                // This code rewrites expressions as follows:
-                // C#:   3.14f
-                // HLSL: asfloat(1078523331)
-                float literalValue = (float)operation.ConstantValue.Value!;
-                uint literalValueAsUInt = *(uint*)&literalValue;
-
-                return
-                    InvocationExpression(IdentifierName("asfloat"))
-                    .AddArgumentListArguments(
-                        Argument(
-                            LiteralExpression(
-                                SyntaxKind.NumericLiteralExpression,
-                                Literal(literalValueAsUInt))));
-#endif
             }
             else if (type.SpecialType == SpecialType.System_Double)
             {
@@ -560,8 +555,8 @@ internal abstract partial class HlslSourceRewriter(
                     ParenthesizedExpression(
                         BinaryExpression(
                             SyntaxKind.LogicalAndExpression,
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand()));
 #endif
             // 'Or' invocations are rewritten as follows:
             //
@@ -576,8 +571,8 @@ internal abstract partial class HlslSourceRewriter(
                     ParenthesizedExpression(
                         BinaryExpression(
                             SyntaxKind.LogicalOrExpression,
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand()));
 #endif
             // 'Select' invocations are rewritten as follows:
             //
@@ -591,9 +586,9 @@ internal abstract partial class HlslSourceRewriter(
                 return
                     ParenthesizedExpression(
                         ConditionalExpression(
-                            updatedNode.ArgumentList.Arguments[0].Expression,
-                            updatedNode.ArgumentList.Arguments[1].Expression,
-                            updatedNode.ArgumentList.Arguments[2].Expression));
+                            updatedNode.ArgumentList.Arguments[0].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[1].Expression.AsOperand(),
+                            updatedNode.ArgumentList.Arguments[2].Expression.AsOperand()));
 #endif
             default:
                 throw new NotSupportedException($"""Unrecognized intrinsic "{intrinsicName}".""");

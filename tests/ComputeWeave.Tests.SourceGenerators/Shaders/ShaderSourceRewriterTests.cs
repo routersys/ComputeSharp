@@ -125,6 +125,54 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(Source, "ShaderNonStaticLocalFunctionInImportTests", "CMPW0113");
     }
 
+    /// <summary>
+    /// A matrix constructor whose argument has no conversion to the element type. The generator adds
+    /// an explicit cast to every argument of a matrix constructor, and to know which type to cast to
+    /// it reads the parameter the argument binds to. When overload resolution has failed there is no
+    /// parameter to read, and the generator faulted rather than leaving the argument alone.
+    /// </summary>
+    /// <remarks>
+    /// There is no ComputeWeave diagnostic here. The C# compiler reports the call as unresolved, and
+    /// all the generator has to do is finish, so that the error the author sees is that one and not a
+    /// compilation unit that lost every descriptor it was going to be given.
+    /// </remarks>
+    [TestMethod]
+    public void AMatrixConstructorArgumentThatDoesNotBindDoesNotFaultTheGenerator()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                private const decimal Number = 1m;
+
+                public void Execute()
+                {
+                    Float2x2 values = new(Number, 1, 1, 1);
+
+                    this.buffer[ThreadIds.X] = values.M11;
+                }
+            }
+            """;
+
+        AssertIsNotFaulting(Source, "ShaderUnboundMatrixArgumentTests");
+    }
+
+    private static void AssertIsNotFaulting(string source, string assemblyName)
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilationAllowingErrors(source, assemblyName);
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+    }
+
     private static void AssertIsDiagnosedWithoutFaulting(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper

@@ -28,6 +28,7 @@ ComputeWeave は、DirectX 12 の計算シェーダーを C# だけで記述で�
    - [バッファの読み取り専用ビュー](#バッファの読み取り専用ビュー)
    - [GPUメモリの予算管理](#gpuメモリの予算管理)
    - [コンパイル時の検証](#コンパイル時の検証)
+   - [Direct2Dのピクセルシェーダー](#direct2dのピクセルシェーダー)
 5. [APIリファレンス](#apiリファレンス)
    - [宣言用の属性](#宣言用の属性)
    - [生成されるメンバー](#生成されるメンバー)
@@ -94,7 +95,13 @@ dotnet add package ComputeWeave.Dxc
 dotnet add package ComputeWeave.D3D12MemoryAllocator
 ```
 
-`ComputeWeave.Core` は推移的な依存先なので、直接参照する必要はありません。
+Direct2Dのピクセルシェーダーを書くための併走パッケージです。
+
+```bash
+dotnet add package ComputeWeave.D2D1
+```
+
+`ComputeWeave.Core` は推移的な依存先なので、直接参照する必要はありません。`ComputeWeave.D2D1` はこれを上の各パッケージと共有しますが、`ComputeWeave` は参照しません。
 
 ---
 
@@ -256,6 +263,43 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 
 ---
 
+### Direct2Dのピクセルシェーダー
+
+`ComputeWeave.D2D1` は、Direct2Dのピクセルシェーダーを C# で書くためのパッケージです。拡張ではなく併走するパッケージで、`ComputeWeave.Core` を計算側と共有しますが `ComputeWeave` は参照しません。これらのシェーダーを実行するのは Direct2D であって Direct3D 12 の計算キューではないため、`GraphicsDevice` を作ることも使うこともなく、上に述べた宣言の層も適用されません。
+
+ピクセルシェーダーは `ID2D1PixelShader` を実装した `partial struct` です。
+
+```csharp
+using ComputeWeave;
+using ComputeWeave.D2D1;
+
+[D2DInputCount(1)]
+[D2DInputSimple(0)]
+[D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+[D2DGeneratedPixelShaderDescriptor]
+public readonly partial struct DifferenceEffect(float amount) : ID2D1PixelShader
+{
+    public float4 Execute()
+    {
+        float4 color = D2D.GetInput(0);
+        float3 rgb = Hlsl.Saturate(this.amount - color.RGB);
+
+        return new(rgb, 1);
+    }
+}
+```
+
+バイトコードと定数バッファはデバイス無しで取得できます。`D2D1PixelShaderEffect` はシェーダーを Direct2D の効果として登録し、そこから `ID2D1Effect` を作ります。`D2D1ReflectionServices` は 生成された HLSL とシェーダーの統計を返します。
+
+```csharp
+ReadOnlyMemory<byte> bytecode = D2D1PixelShader.LoadBytecode<DifferenceEffect>();
+ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEffect(1));
+```
+
+これらの宣言は、`CMPWD2D` を接頭辞とする87件の診断を報告するアナライザーが検査します。シェーダーは Direct2D が受け付ける DXBC へ FXC でコンパイルします。`d3dcompiler_47.dll` は Windows に同梱されているため、このパッケージはコンパイラーを同梱しません。
+
+---
+
 ## APIリファレンス
 
 ### 宣言用の属性
@@ -411,6 +455,7 @@ GPUが書いたバッファを、以降のシェーダーへ読み取り専用�
 - `ExternalTextureUsage` は `Sampled` と `RenderTarget` を宣言します。実装が外部ビューを開く方法を選ぶ値であり、ネイティブ記述子を変えません。
 - 計算シェーダーの本体に書ける C# の構文は、ジェネレーターが HLSL へ変換できる範囲に限られます。範囲外の構文はコンパイル時に診断として報告します。
 - `ComputeWeave.Dxc` は `dxcompiler.dll` と `dxil.dll` を同梱するため、x64 と Arm64 以外のプロセスでは動作しません。
+- `Hlsl.Abort` は Direct2D の効果では使えません。既定のコンパイル指定が要求する効果のリンクはシェーダーをライブラリとして構築しますが、FXC はそこで `abort` を受け付けません。リンクを外して構築した効果は、コンパイルできても読み込みに失敗します。
 
 ---
 

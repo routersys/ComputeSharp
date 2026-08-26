@@ -27,12 +27,18 @@
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Core'">
 <![CDATA[A library containing the fundamental types underpinning ComputeWeave. It is not intended for direct use by developers.]]>
     </Description>
+    <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D2D1'">
+<![CDATA[A companion library for ComputeWeave that writes Direct2D pixel shaders entirely in C# and registers them as ID2D1Effect. It shares the primitive types and HLSL intrinsics in ComputeWeave.Core but does not reference ComputeWeave, as these shaders are executed by Direct2D rather than on the Direct3D 12 compute queue.]]>
+    </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D3D12MemoryAllocator'">
 <![CDATA[An extension library for ComputeWeave that uses D3D12MA for graphics resource allocation.]]>
     </Description>
     <Description Condition="'$(MSBuildProjectName)' == 'ComputeWeave.Dxc'">
 <![CDATA[An extension library for ComputeWeave that includes the DXC compiler and enables shader reflection.]]>
     </Description>
+
+    <!-- Package tags, where the shared list does not describe the package-->
+    <PackageTags Condition="'$(MSBuildProjectName)' == 'ComputeWeave.D2D1'">dotnet;csharp;gpu;directx;direct2d;d2d1;pixel-shader;hlsl;shader;source-generator;computesharp;windows</PackageTags>
   </PropertyGroup>
 
   <!-- Additional properties for all source projects-->
