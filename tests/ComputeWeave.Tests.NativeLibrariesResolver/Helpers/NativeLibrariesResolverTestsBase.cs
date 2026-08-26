@@ -45,7 +45,7 @@ public abstract class NativeLibrariesResolverTestsBase
     private string SampleProjectDirectory => Path.Combine(TestsDirectory, SampleProjectName);
 
     /// <summary>
-    /// Gets the directory containing all test projects.
+    /// Walks up from the current test assembly to the directory containing all test projects.
     /// </summary>
     /// <returns>The directory containing all test projects.</returns>
     private static string GetTestsDirectory()
@@ -82,9 +82,9 @@ public abstract class NativeLibrariesResolverTestsBase
         CleanSampleProject(configuration, rid);
         BuildSampleProject(configuration, rid);
 
-        string realtivePathToDll = Path.Combine("bin", $"{configuration}", TargetFramework, $"{ToDirectory(rid)}", $"{SampleProjectName}.dll");
+        string relativePathToDll = Path.Combine("bin", configuration.ToString(), TargetFramework, ToDirectory(rid), $"{SampleProjectName}.dll");
 
-        Assert.AreEqual(0, Exec(SampleProjectDirectory, "dotnet", realtivePathToDll));
+        Assert.AreEqual(0, Exec(SampleProjectDirectory, "dotnet", relativePathToDll));
     }
 
     [TestMethod]
@@ -97,7 +97,7 @@ public abstract class NativeLibrariesResolverTestsBase
         CleanSampleProject(configuration, rid);
         BuildSampleProject(configuration, rid);
 
-        string pathToDllDirectory = Path.Combine(SampleProjectDirectory, "bin", $"{configuration}", TargetFramework, $"{ToDirectory(rid)}");
+        string pathToDllDirectory = Path.Combine(SampleProjectDirectory, "bin", configuration.ToString(), TargetFramework, ToDirectory(rid));
 
         Assert.AreEqual(0, Exec(pathToDllDirectory, "dotnet", $"{SampleProjectName}.dll"));
     }
@@ -112,7 +112,7 @@ public abstract class NativeLibrariesResolverTestsBase
         CleanSampleProject(configuration, rid);
         BuildSampleProject(configuration, rid);
 
-        string relativePathToAppHost = Path.Combine("bin", $"{configuration}", TargetFramework, $"{ToDirectory(rid)}", $"{SampleProjectName}.exe");
+        string relativePathToAppHost = Path.Combine("bin", configuration.ToString(), TargetFramework, ToDirectory(rid), $"{SampleProjectName}.exe");
 
         Assert.AreEqual(0, Exec(SampleProjectDirectory, relativePathToAppHost, ""));
     }
@@ -127,7 +127,7 @@ public abstract class NativeLibrariesResolverTestsBase
         CleanSampleProject(configuration, rid);
         BuildSampleProject(configuration, rid);
 
-        string pathToAppHostDirectory = Path.Combine(SampleProjectDirectory, "bin", $"{configuration}", TargetFramework, $"{ToDirectory(rid)}");
+        string pathToAppHostDirectory = Path.Combine(SampleProjectDirectory, "bin", configuration.ToString(), TargetFramework, ToDirectory(rid));
 
         Assert.AreEqual(0, Exec(pathToAppHostDirectory, $"{SampleProjectName}.exe", ""));
     }
@@ -147,15 +147,15 @@ public abstract class NativeLibrariesResolverTestsBase
 
         _ = Exec(SampleProjectDirectory, "dotnet", $"publish -c Release -r win-x64 {ToOption(publishMode)} {ToOption(deploymentMode)} {ToOption(nativeLibsDeploymentMode)} /bl");
 
-        string pathToAppHost = Path.Combine("bin", $"Release", TargetFramework, "win-x64", "publish", $"{SampleProjectName}.exe");
+        string pathToAppHost = Path.Combine("bin", "Release", TargetFramework, "win-x64", "publish", $"{SampleProjectName}.exe");
 
         Assert.AreEqual(0, Exec(SampleProjectDirectory, pathToAppHost, ""));
     }
 
     /// <summary>
     /// Cleans the sample project's artifacts for a specific configuration and target runtime.
-    /// This method is called at the start of each test method to work around bugs around some up-to-date checks
-    /// Causing certain targets to not run and effectively corrupting the build output.
+    /// This method is called at the start of each test method to work around up-to-date checks that keep certain
+    /// targets from running, which effectively corrupts the build output.
     /// </summary>
     /// <param name="configuration">The configuration for which the output is cleaned.</param>
     /// <param name="rid">The RID for which the output is cleaned.</param>
