@@ -329,7 +329,7 @@ public partial class D2D1ShaderCompilerTests
             D2D1ShaderProfile.PixelShader40Level93,
             D2D1CompileOptions.Default);
 
-        ReadOnlyMemory<byte> bytecodeWithRetention = D2D1ShaderCompiler.Compile(
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
             InvertEffectSource.AsSpan(),
             "PSMain".AsSpan(),
             D2D1ShaderProfile.PixelShader40Level93,
@@ -337,11 +337,11 @@ public partial class D2D1ShaderCompilerTests
 
         // The only difference is the appended shader feature info blob: one entry in the table of
         // blob offsets (4 bytes), the header of the blob (8 bytes), and its payload (8 bytes).
-        Assert.AreEqual(bytecode.Length + 20, bytecodeWithRetention.Length);
+        Assert.AreEqual(bytecode.Length + 20, bytecodeWithMinimumPrecision.Length);
 
         // Compiling succeeds only if D3DSetBlobPart accepted the patched container, and the resulting
         // bytecode is only usable if the checksum was recomputed over the patched contents.
-        Assert.IsTrue(IsWellFormedDxbcContainer(bytecodeWithRetention.Span));
+        Assert.IsTrue(IsWellFormedDxbcContainer(bytecodeWithMinimumPrecision.Span));
     }
 
     [TestMethod]
@@ -353,14 +353,14 @@ public partial class D2D1ShaderCompilerTests
             D2D1ShaderProfile.PixelShader40Level93,
             D2D1CompileOptions.Default & ~D2D1CompileOptions.EnableLinking);
 
-        ReadOnlyMemory<byte> bytecodeWithRetention = D2D1ShaderCompiler.Compile(
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
             InvertEffectSource.AsSpan(),
             "PSMain".AsSpan(),
             D2D1ShaderProfile.PixelShader40Level93,
             (D2D1CompileOptions.Default & ~D2D1CompileOptions.EnableLinking) | D2D1CompileOptions.DeclareMinimumPrecisionSupport);
 
         // There is no export function to reach without linking, so the option is ignored
-        CollectionAssert.AreEqual(bytecode.ToArray(), bytecodeWithRetention.ToArray());
+        CollectionAssert.AreEqual(bytecode.ToArray(), bytecodeWithMinimumPrecision.ToArray());
     }
 
     /// <summary>
@@ -399,12 +399,28 @@ public partial class D2D1ShaderCompilerTests
 
         uint blobCount = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(28));
 
+        // The table of blob offsets follows the fixed header, one 4 bytes entry per blob. A malformed
+        // container can declare more blobs than the buffer can hold, so check the table fits first.
+        if ((long)blobCount * 4 > bytecode.Length - 32)
+        {
+            return false;
+        }
+
         for (int i = 0; i < blobCount; i++)
         {
             uint blobOffset = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(32 + (i * 4)));
+
+            // Every read below is at an offset the container itself declares, so each one has to be
+            // range checked before it happens. This method answers whether a buffer is well formed,
+            // which means a malformed buffer has to come back as false rather than as an exception.
+            if ((long)blobOffset + 8 > bytecode.Length)
+            {
+                return false;
+            }
+
             uint blobSize = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset + 4));
 
-            if (blobOffset + 8 + blobSize > bytecode.Length)
+            if ((long)blobOffset + 8 + blobSize > bytecode.Length)
             {
                 return false;
             }
