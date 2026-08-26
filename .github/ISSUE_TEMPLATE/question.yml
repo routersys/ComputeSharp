@@ -1,5 +1,5 @@
 name: Question
-description: Ask how something is meant to be used, or whether an observed behaviour is intended.
+description: Ask how something is meant to be used, or whether an observed behavior is intended.
 title: "[Question] "
 labels: ["question"]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         If you already believe the library is wrong, open a bug report instead. Use this when you are
-        not yet sure whether the behaviour you see is a defect or the intended contract.
+        not yet sure whether the behavior you see is a defect or the intended contract.
 
   - type: textarea
     id: question

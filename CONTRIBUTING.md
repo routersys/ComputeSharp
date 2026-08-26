@@ -153,7 +153,7 @@ Take particular care when changing:
 
 The template asks for a summary, a linked issue, the kind of change, the observable behavior change and verification. Two of its questions carry more weight than the rest.
 
-**“Behaviour change”.** What an existing caller would observe differently, including exception types and the timing of failures. Write "none" when nothing observable changes; do not leave it blank.
+**“Behavior change”.** What an existing caller would observe differently, including exception types and the timing of failures. Write "none" when nothing observable changes; do not leave it blank.
 
 **“Verification”.** The results you actually ran, and how they compare with the same suites before your change. Do not judge a run by its total failure count; see [Reading a test run](#reading-a-test-run).
 

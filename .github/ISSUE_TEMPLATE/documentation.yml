@@ -47,7 +47,7 @@ body:
       label: What is wrong with it
       description: |
         Whether it is inaccurate, incomplete, or ambiguous, and what a reader would get wrong because
-        of it. If it contradicts the behaviour, say which one you think should change.
+        of it. If it contradicts the behavior, say which one you think should change.
     validations:
       required: true
 
