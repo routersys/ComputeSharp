@@ -1,6 +1,11 @@
 using System;
+using System.Buffers.Binary;
+using System.Collections.Generic;
 using ComputeWeave.D2D1.Interop;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+// These tests are specifically validating the experimental DeclareMinimumPrecisionSupport option
+#pragma warning disable CMPWEXP0001
 
 namespace ComputeWeave.D2D1.Tests;
 
@@ -314,5 +319,238 @@ public partial class D2D1ShaderCompilerTests
             D2D1CompileOptions.Default & ~D2D1CompileOptions.WarningsAreErrors);
 
         Assert.IsTrue(bytecode.Length > 0);
+    }
+
+    [TestMethod]
+    public void CompileInvertEffectWithDeclareMinimumPrecisionSupport()
+    {
+        ReadOnlyMemory<byte> bytecode = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default);
+
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default | D2D1CompileOptions.DeclareMinimumPrecisionSupport);
+
+        // The only difference is the appended shader feature info blob: one entry in the table of
+        // blob offsets (4 bytes), the header of the blob (8 bytes), and its payload (8 bytes).
+        Assert.AreEqual(bytecode.Length + 20, bytecodeWithMinimumPrecision.Length);
+
+        // Compiling succeeds only if D3DSetBlobPart accepted the patched container, and the resulting
+        // bytecode is only usable if the checksum was recomputed over the patched contents.
+        Assert.IsTrue(IsWellFormedDxbcContainer(bytecodeWithMinimumPrecision.Span));
+    }
+
+    [TestMethod]
+    public void CompileInvertEffectWithDeclareMinimumPrecisionSupportAndNoLinking()
+    {
+        ReadOnlyMemory<byte> bytecode = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default & ~D2D1CompileOptions.EnableLinking);
+
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            (D2D1CompileOptions.Default & ~D2D1CompileOptions.EnableLinking) | D2D1CompileOptions.DeclareMinimumPrecisionSupport);
+
+        // There is no export function to reach without linking, so the option is ignored
+        CollectionAssert.AreEqual(bytecode.ToArray(), bytecodeWithMinimumPrecision.ToArray());
+    }
+
+    [TestMethod]
+    public void DeclareMinimumPrecisionSupportLeavesEveryOriginalBlobUntouched()
+    {
+        ReadOnlyMemory<byte> bytecode = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default);
+
+        ReadOnlyMemory<byte> bytecodeWithMinimumPrecision = D2D1ShaderCompiler.Compile(
+            InvertEffectSource.AsSpan(),
+            "PSMain".AsSpan(),
+            D2D1ShaderProfile.PixelShader40Level93,
+            D2D1CompileOptions.Default | D2D1CompileOptions.DeclareMinimumPrecisionSupport);
+
+        Dictionary<uint, byte[]> original = GetBlobs(bytecode.Span);
+        Dictionary<uint, byte[]> patched = GetBlobs(bytecodeWithMinimumPrecision.Span);
+
+        // The comparison below is only meaningful if the blob holding the compiled instructions is
+        // one of the blobs being compared, so require it rather than assuming it is there.
+        Assert.IsTrue(original.ContainsKey(ShaderCodeSignature), "the container has no shader code blob to compare");
+
+        // The option documents that it only declares a shader feature, and that the compiled shader
+        // instructions are left untouched. That is what makes it safe to enable on a shader that has
+        // already been validated, so assert it directly: every blob the compiler produced, including
+        // the one holding the instructions, has to survive the patching byte for byte.
+        foreach ((uint signature, byte[] payload) in original)
+        {
+            Assert.IsTrue(patched.ContainsKey(signature), $"blob 0x{signature:X8} is missing after patching");
+            CollectionAssert.AreEqual(payload, patched[signature], $"blob 0x{signature:X8} changed while patching");
+        }
+
+        // The only new blob is the shader feature info one, and it declares exactly the minimum
+        // precision feature. Checking the payload keeps this from passing on an empty or unrelated blob.
+        Assert.AreEqual(original.Count + 1, patched.Count);
+        Assert.IsTrue(patched.ContainsKey(ShaderFeatureInfoSignature));
+        Assert.AreEqual(0x0010UL, BinaryPrimitives.ReadUInt64LittleEndian(patched[ShaderFeatureInfoSignature]));
+
+        // Note this says nothing about whether Direct2D then runs the shader at a reduced precision.
+        // That is the documented, deliberately unguaranteed behavior the option exists to trigger.
+    }
+
+    /// <summary>
+    /// The <c>'SFI0'</c> signature of the shader feature info blob.
+    /// </summary>
+    private const uint ShaderFeatureInfoSignature = 0x30494653;
+
+    /// <summary>
+    /// The <c>'SHDR'</c> signature of the blob holding the compiled shader instructions.
+    /// </summary>
+    private const uint ShaderCodeSignature = 0x52444853;
+
+    /// <summary>
+    /// Reads every blob of a DXBC container, keyed by its signature.
+    /// </summary>
+    /// <param name="bytecode">The DXBC container to read.</param>
+    /// <returns>The payload of each blob in <paramref name="bytecode"/>, keyed by signature.</returns>
+    private static Dictionary<uint, byte[]> GetBlobs(ReadOnlySpan<byte> bytecode)
+    {
+        Assert.IsTrue(IsWellFormedDxbcContainer(bytecode));
+
+        Dictionary<uint, byte[]> blobs = [];
+        uint blobCount = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(28));
+
+        for (int i = 0; i < blobCount; i++)
+        {
+            uint blobOffset = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(32 + (i * 4)));
+            uint signature = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset));
+            uint blobSize = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset + 4));
+
+            blobs.Add(signature, bytecode.Slice((int)blobOffset + 8, (int)blobSize).ToArray());
+        }
+
+        return blobs;
+    }
+
+    [TestMethod]
+    public void IsWellFormedDxbcContainerRejectsMalformedContainersWithoutThrowing()
+    {
+        // A container that declares a blob offset past its own end. Reading the blob header there
+        // walks off the buffer, and casting the offset to int makes it negative first.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 0xFFFFFFF0, blobSize: 0)));
+
+        // A container that declares more blobs than its own offset table can hold.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 0x0FFFFFFF, blobOffset: 36, blobSize: 0)));
+
+        // A container whose blob header starts inside the buffer but extends past its end.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 36, blobSize: 0, length: 40)));
+
+        // A container whose declared blob size makes the end offset wrap around in 32 bit arithmetic.
+        // Computing the end as uint lands back inside the buffer and reports the container as valid.
+        Assert.IsFalse(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 40, blobSize: 0xFFFFFFF0, length: 200)));
+
+        // A well formed container is still accepted, so the checks above cannot pass by rejecting everything.
+        Assert.IsTrue(IsWellFormedDxbcContainer(CreateContainer(blobCount: 1, blobOffset: 36, blobSize: 4)));
+    }
+
+    /// <summary>
+    /// Builds a DXBC container header for <see cref="IsWellFormedDxbcContainerRejectsMalformedContainersWithoutThrowing"/>.
+    /// </summary>
+    /// <param name="blobCount">The blob count to declare.</param>
+    /// <param name="blobOffset">The single blob offset to declare.</param>
+    /// <param name="blobSize">The blob payload size to declare at <paramref name="blobOffset"/>.</param>
+    /// <param name="length">The total size of the container, which is also declared in its header.</param>
+    /// <returns>The resulting container.</returns>
+    private static byte[] CreateContainer(uint blobCount, uint blobOffset, uint blobSize, int length = 48)
+    {
+        byte[] container = new byte[length];
+
+        "DXBC"u8.CopyTo(container);
+
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(24), (uint)length);
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(28), blobCount);
+        BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan(32), blobOffset);
+
+        // Write the blob header too, when the declared offset actually fits in the buffer
+        if (blobOffset + 8 <= (uint)length)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(container.AsSpan((int)blobOffset + 4), blobSize);
+        }
+
+        return container;
+    }
+
+    /// <summary>
+    /// The HLSL source for a simple invert effect, shared by tests comparing compilation options.
+    /// </summary>
+    private const string InvertEffectSource = """
+        #define D2D_INPUT_COUNT 1
+        #define D2D_INPUT0_SIMPLE
+
+        #include "d2d1effecthelpers.hlsli"
+
+        D2D_PS_ENTRY(PSMain)
+        {
+            float4 color = D2DGetInput(0);
+            float3 rgb = saturate(1.0 - color.rgb);
+            return float4(rgb, 1);
+        }
+        """;
+
+    /// <summary>
+    /// Checks that a buffer is a DXBC container with a consistent size and set of blob offsets.
+    /// </summary>
+    /// <param name="bytecode">The DXBC container to inspect.</param>
+    /// <returns>Whether <paramref name="bytecode"/> is a well formed DXBC container.</returns>
+    private static bool IsWellFormedDxbcContainer(ReadOnlySpan<byte> bytecode)
+    {
+        if (bytecode.Length < 32 || !bytecode.StartsWith("DXBC"u8))
+        {
+            return false;
+        }
+
+        if (BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(24)) != (uint)bytecode.Length)
+        {
+            return false;
+        }
+
+        uint blobCount = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(28));
+
+        // The table of blob offsets follows the fixed header, one 4 bytes entry per blob. A malformed
+        // container can declare more blobs than the buffer can hold, so check the table fits first.
+        if ((long)blobCount * 4 > bytecode.Length - 32)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < blobCount; i++)
+        {
+            uint blobOffset = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice(32 + (i * 4)));
+
+            // Every read below is at an offset the container itself declares, so each one has to be
+            // range checked before it happens. This method answers whether a buffer is well formed,
+            // which means a malformed buffer has to come back as false rather than as an exception.
+            if ((long)blobOffset + 8 > bytecode.Length)
+            {
+                return false;
+            }
+
+            uint blobSize = BinaryPrimitives.ReadUInt32LittleEndian(bytecode.Slice((int)blobOffset + 4));
+
+            if ((long)blobOffset + 8 + blobSize > bytecode.Length)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
