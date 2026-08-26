@@ -249,16 +249,23 @@ unsafe partial struct D2D1ResourceTextureManagerImpl
                 }
             }
 
-            // Free any buffers left over from a previous call that failed partway through (eg. this one
-            // succeeded but a later allocation in that call did not). Retrying must not leak those, and
-            // must not leave a caller-visible resource id or extents from a call that never completed.
+            // Release every staging buffer before building a new set, so that the allocations below always
+            // start from a fully null state. Two kinds of leftovers can reach this point: those from a call
+            // that failed partway through (this allocation succeeded, a later one in the same call did not),
+            // and the extents, extend modes and strides of a call that completed with no data, which leaves
+            // 'data' null and so does not trip the guard in Initialize. Overwriting either kind would leak it.
             NativeMemory.Free(@this->resourceId);
             NativeMemory.Free(@this->resourceTextureProperties.extents);
             NativeMemory.Free(@this->resourceTextureProperties.extendModes);
+            NativeMemory.Free(@this->data);
+            NativeMemory.Free(@this->strides);
 
             @this->resourceId = null;
             @this->resourceTextureProperties.extents = null;
             @this->resourceTextureProperties.extendModes = null;
+            @this->data = null;
+            @this->strides = null;
+            @this->dataSize = 0;
 
             // Allocate a buffer for the resource id, if there is one
             if (resourceId is not null)
