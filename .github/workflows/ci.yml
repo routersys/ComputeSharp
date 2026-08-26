@@ -71,13 +71,21 @@ jobs:
       - name: 最上位ステートメントのテストを実行
         run: dotnet run --project tests/ComputeWeave.Tests.GlobalStatements/ComputeWeave.Tests.GlobalStatements.csproj -c Release -p:Platform=x64
 
+      # ジョブの CI_RUNNER_DOTNET_TEST_PLATFORM は試験の出力へネイティブライブラリを平坦に置くためのもので、
+      # pack へ及ぶと ComputeWeave.Dxc が runtimes/ を一件も持たないパッケージになる。出荷と同じ内容を作る。
       - name: パッケージが正常に作成されるか確認
+        env:
+          CI_RUNNER_DOTNET_TEST_PLATFORM: ""
         run: |
           dotnet pack src/ComputeWeave.Core/ComputeWeave.Core.csproj -c Release
           dotnet pack src/ComputeWeave/ComputeWeave.csproj -c Release
           dotnet pack src/ComputeWeave.Dxc/ComputeWeave.Dxc.csproj -c Release
           dotnet pack src/ComputeWeave.D3D12MemoryAllocator/ComputeWeave.D3D12MemoryAllocator.csproj -c Release
           dotnet pack src/ComputeWeave.D2D1/ComputeWeave.D2D1.csproj -c Release
+
+      # パッケージIDと版だけでは、同梱ライブラリや生成器が失われたことを検出できない。書庫の中身を見る。
+      - name: パッケージの積荷を検証
+        run: pwsh build/verify-package-payload.ps1
 
       # ネイティブライブラリ解決のテストは発行と実行を繰り返すため手元の実測で5分から8分かかり、ここでは回さない。
 
