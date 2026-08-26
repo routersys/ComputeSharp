@@ -217,6 +217,10 @@ jobs:
       - name: パッケージの積荷を検証
         run: pwsh build/verify-package-payload.ps1
 
+      # 文書だけの変更では CI が走らないため、同梱される README を出荷前にここで確かめる。
+      - name: Markdown の表を検証
+        run: pwsh build/verify-markdown-tables.ps1
+
       - name: パッケージをアーティファクトとして保存
         uses: actions/upload-artifact@v4
         with:
