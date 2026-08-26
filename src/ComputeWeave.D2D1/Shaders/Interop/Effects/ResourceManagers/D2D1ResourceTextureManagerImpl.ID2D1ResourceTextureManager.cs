@@ -249,6 +249,17 @@ unsafe partial struct D2D1ResourceTextureManagerImpl
                 }
             }
 
+            // Free any buffers left over from a previous call that failed partway through (eg. this one
+            // succeeded but a later allocation in that call did not). Retrying must not leak those, and
+            // must not leave a caller-visible resource id or extents from a call that never completed.
+            NativeMemory.Free(@this->resourceId);
+            NativeMemory.Free(@this->resourceTextureProperties.extents);
+            NativeMemory.Free(@this->resourceTextureProperties.extendModes);
+
+            @this->resourceId = null;
+            @this->resourceTextureProperties.extents = null;
+            @this->resourceTextureProperties.extendModes = null;
+
             // Allocate a buffer for the resource id, if there is one
             if (resourceId is not null)
             {
@@ -285,6 +296,10 @@ unsafe partial struct D2D1ResourceTextureManagerImpl
             }
             catch (OutOfMemoryException)
             {
+                // The extents buffer above was allocated successfully but never stored anywhere the
+                // caller (or Release) can reach, so it must be freed here or it leaks permanently.
+                NativeMemory.Free(extents);
+
                 return E.E_OUTOFMEMORY;
             }
 
@@ -627,6 +642,14 @@ unsafe partial struct D2D1ResourceTextureManagerImpl
                 }
                 catch (OutOfMemoryException)
                 {
+                    // Roll the data buffer above back too. Leaving @this->data set without @this->strides
+                    // would make Update's "already has a staging buffer" path dereference the still-null
+                    // @this->strides on a retry, since that path only checks @this->data for readiness.
+                    NativeMemory.Free(@this->data);
+
+                    @this->data = null;
+                    @this->dataSize = 0;
+
                     return E.E_OUTOFMEMORY;
                 }
 
