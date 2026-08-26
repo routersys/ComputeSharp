@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.Tests.NativeLibrariesResolver.Helpers;
@@ -41,9 +42,42 @@ public abstract class NativeLibrariesResolverTestsBase
     private static string RepositoryDirectory { get; } = Path.GetDirectoryName(TestsDirectory)!;
 
     /// <summary>
+    /// Gets the directory the projects packed by <see cref="PackProjects"/> are written to.
+    /// </summary>
+    /// <remarks>
+    /// This is the directory 'PackageOutputPath' points at, which is also the directory the sample projects
+    /// restore from.
+    /// </remarks>
+    protected static string PackageDirectory { get; } = Path.Combine(RepositoryDirectory, "artifacts");
+
+    /// <summary>
+    /// Gets the version the packages packed by <see cref="PackProjects"/> carry.
+    /// </summary>
+    /// <remarks>
+    /// Every project in the repository takes its version from a single 'VersionPrefix', so the version the
+    /// current test assembly was built with is also the version those packages carry.
+    /// </remarks>
+    protected static string PackageVersion { get; } = GetPackageVersion();
+
+    /// <summary>
     /// Gets the directory containing the current test project.
     /// </summary>
     private string SampleProjectDirectory => Path.Combine(TestsDirectory, SampleProjectName);
+
+    /// <summary>
+    /// Reads the package version from the informational version of the current test assembly.
+    /// </summary>
+    /// <returns>The version the packed packages carry.</returns>
+    /// <remarks>
+    /// The build metadata source link appends after '+' is not part of a package version, so it is dropped.
+    /// </remarks>
+    private static string GetPackageVersion()
+    {
+        string informationalVersion = typeof(NativeLibrariesResolverTestsBase).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        int buildMetadataIndex = informationalVersion.IndexOf('+');
+
+        return buildMetadataIndex < 0 ? informationalVersion : informationalVersion[..buildMetadataIndex];
+    }
 
     /// <summary>
     /// Walks up from the current test assembly to the directory containing all test projects.
