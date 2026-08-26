@@ -135,26 +135,40 @@ internal unsafe partial struct D2D1ResourceTextureManagerImpl
     /// <param name="requiresMultithread">Indicates whether the current instance requires multithread support to work safely.</param>
     public static void Factory(D2D1ResourceTextureManagerImpl** resourceTextureManager, bool requiresMultithread)
     {
-        D2D1ResourceTextureManagerImpl* @this = (D2D1ResourceTextureManagerImpl*)NativeMemory.Alloc((nuint)sizeof(D2D1ResourceTextureManagerImpl));
+        D2D1ResourceTextureManagerImpl* @this = null;
 
-        *@this = default;
+        try
+        {
+            @this = (D2D1ResourceTextureManagerImpl*)NativeMemory.Alloc((nuint)sizeof(D2D1ResourceTextureManagerImpl));
 
-        @this->lpVtblForID2D1ResourceTextureManager = VtblForID2D1ResourceTextureManager;
-        @this->lpVtblForID2D1ResourceTextureManagerInternal = VtblForID2D1ResourceTextureManagerInternal;
-        @this->referenceCount = 1;
-        @this->d2D1EffectContext = default;
-        @this->d2D1Multithread = default;
-        @this->d2D1ResourceTexture = default;
-        @this->requiresMultithread = requiresMultithread ? 1 : 0;
-        @this->resourceId = null;
-        @this->resourceTextureProperties = default;
-        @this->data = null;
-        @this->strides = null;
-        @this->dataSize = 0;
-        @this->lockHandle = GCHandle.Alloc(new object());
-        @this->expectedDimensions = 0;
+            *@this = default;
 
-        *resourceTextureManager = @this;
+            @this->lpVtblForID2D1ResourceTextureManager = VtblForID2D1ResourceTextureManager;
+            @this->lpVtblForID2D1ResourceTextureManagerInternal = VtblForID2D1ResourceTextureManagerInternal;
+            @this->referenceCount = 1;
+            @this->d2D1EffectContext = default;
+            @this->d2D1Multithread = default;
+            @this->d2D1ResourceTexture = default;
+            @this->requiresMultithread = requiresMultithread ? 1 : 0;
+            @this->resourceId = null;
+            @this->resourceTextureProperties = default;
+            @this->data = null;
+            @this->strides = null;
+            @this->dataSize = 0;
+            @this->lockHandle = GCHandle.Alloc(new object());
+            @this->expectedDimensions = 0;
+
+            *resourceTextureManager = @this;
+        }
+        catch
+        {
+            // If allocating the GCHandle above fails (e.g. because the handle table is exhausted), the
+            // native block allocated for this instance would otherwise never be freed, as its address
+            // was never handed back to the caller. Free it here before letting the exception propagate.
+            NativeMemory.Free(@this);
+
+            throw;
+        }
     }
 
     /// <inheritdoc cref="IUnknown.QueryInterface"/>

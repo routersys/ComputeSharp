@@ -82,15 +82,29 @@ internal unsafe partial struct D2D1DrawTransformMapperImpl
         ID2D1DrawTransformMapperInterop transformMapper,
         D2D1DrawTransformMapperImpl** d2D1TransformMapperProxy)
     {
-        D2D1DrawTransformMapperImpl* @this = (D2D1DrawTransformMapperImpl*)NativeMemory.Alloc((nuint)sizeof(D2D1DrawTransformMapperImpl));
+        D2D1DrawTransformMapperImpl* @this = null;
 
-        @this->lpVtblForID2D1DrawTransformMapper = VtblForID2D1DrawTransformMapper;
-        @this->lpVtblForID2D1DrawTransformMapperInternal = VtblForID2D1DrawTransformMapperInternal;
-        @this->referenceCount = 1;
-        @this->transformMapperHandle = GCHandle.Alloc(transformMapper);
-        @this->spinLock = new SpinLock(enableThreadOwnerTracking: false);
+        try
+        {
+            @this = (D2D1DrawTransformMapperImpl*)NativeMemory.Alloc((nuint)sizeof(D2D1DrawTransformMapperImpl));
 
-        *d2D1TransformMapperProxy = @this;
+            @this->lpVtblForID2D1DrawTransformMapper = VtblForID2D1DrawTransformMapper;
+            @this->lpVtblForID2D1DrawTransformMapperInternal = VtblForID2D1DrawTransformMapperInternal;
+            @this->referenceCount = 1;
+            @this->transformMapperHandle = GCHandle.Alloc(transformMapper);
+            @this->spinLock = new SpinLock(enableThreadOwnerTracking: false);
+
+            *d2D1TransformMapperProxy = @this;
+        }
+        catch
+        {
+            // If allocating the GCHandle above fails (e.g. because the handle table is exhausted), the
+            // native block allocated for this instance would otherwise never be freed, as its address
+            // was never handed back to the caller. Free it here before letting the exception propagate.
+            NativeMemory.Free(@this);
+
+            throw;
+        }
     }
 
     /// <summary>
