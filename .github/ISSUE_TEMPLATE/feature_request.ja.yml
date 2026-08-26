@@ -1,7 +1,7 @@
 name: 機能提案
 description: 新しい機能、新しい公開API、または既存の公開APIの変更を提案します。
 title: "[Proposal] "
-labels: ["proposal"]
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:

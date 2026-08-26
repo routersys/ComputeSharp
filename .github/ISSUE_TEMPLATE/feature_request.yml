@@ -1,7 +1,7 @@
 name: Proposal
 description: Propose a new capability, a new public API, or a change to one that exists.
 title: "[Proposal] "
-labels: ["proposal"]
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
