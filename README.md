@@ -143,7 +143,7 @@ submission.Wait();
 
 ### Owned resource slots
 
-A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` and initialised with `new()`. The `TGroup` of a group slot is a `sealed partial class` marked with `[ComputeResourceGroup]`, whose members are get-only properties annotated with `[ComputePipelineResource]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
+A resource owned by a host is declared as a field of `ComputeResourceSlot<TResource>` or `ComputeResourceGroupSlot<TGroup>`, annotated with `[ComputePipelineResource]` and initialized with `new()`. The `TGroup` of a group slot is a `sealed partial class` marked with `[ComputeResourceGroup]`, whose members are get-only properties annotated with `[ComputePipelineResource]`. The generator emits `TryEnsure<Slot>(in <Plan> plan, out bool changed)` and, for single-resource slots, `Get<Slot>ComputeBinding()` returning a `ComputeResourceBinding<TResource>`.
 
 `TryEnsure` reports whether the owned resources match the requested plan, and `changed` reports whether a new generation was published. `ComputeResourceRecovery` selects what happens to the contents when a generation is replaced: `Discardable`, `RecreateFromHost`, `Recompute` or `CapacityOnly`.
 
@@ -162,7 +162,7 @@ private void Run(
 
 ### Direct3D 11 interoperation
 
-An external API is connected as a domain. One is shipped for the Direct3D 11 immediate context; any other API is connected by implementing `IComputeExternalInteropProvider<TView>` yourself. The provider is asked to initialise a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
+An external API is connected as a domain. One is shipped for the Direct3D 11 immediate context; any other API is connected by implementing `IComputeExternalInteropProvider<TView>` yourself. The provider is asked to initialize a shared timeline, to enqueue signals and waits on its own queue, and to open a shared texture as its own view type.
 
 ```csharp
 using ComputeInteropDomain domain = device.RegisterExternalDomain(provider);
@@ -375,7 +375,7 @@ The declarations are checked by analyzers that report 87 diagnostics with the `C
 | `GraphicsDevice.RegisterExternalDomain<TView>(IComputeExternalInteropProvider<TView> provider)` | Registers an external API and returns its domain. |
 | `GraphicsDevice.TryGetDevice(ExternalAdapterIdentity adapterIdentity, out GraphicsDevice? device)` | Resolves the device running on the adapter with the given identity. |
 | `ComputeInteropDomain.Device` / `Id` / `Capabilities` | Reports the device, the domain identifier and the negotiated capabilities. |
-| `IComputeExternalInteropProvider.Initialize(in ExternalTimelineInitialization)` | Initialises the shared timeline. |
+| `IComputeExternalInteropProvider.Initialize(in ExternalTimelineInitialization)` | Initializes the shared timeline. |
 | `IComputeExternalInteropProvider.EnqueueSignal(ulong)` / `EnqueueWait(ulong)` / `FlushAfterSignal()` | Drives the shared fence on the external queue. |
 | `IComputeExternalInteropProvider.OpenSharedTexture(BorrowedSharedHandle, in ExternalTextureDescriptor)` | Opens a shared texture as the external view type. |
 | `IComputeExternalInteropProvider.OnDeviceTerminal(Exception)` | Reports that the device entered a terminal state. |

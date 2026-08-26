@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -219,6 +221,78 @@ public class DxcLibraryLoaderTests
     }
 
     [TestMethod]
+    public void DeletePendingLibraryDoesNotFailExtraction()
+    {
+        string folder = CreateTemporaryFolder();
+        string targetFilename = Path.Combine(folder, "dxcompiler.dll");
+        byte[] expected = [1, 2, 3];
+        using ManualResetEventSlim extractionStarted = new();
+
+        try
+        {
+            File.WriteAllBytes(targetFilename, expected);
+
+            using FileStream pending = new(
+                targetFilename,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite | FileShare.Delete,
+                4096,
+                FileOptions.DeleteOnClose);
+
+            MarkForDeletion(pending);
+
+            // A cached library that is pending deletion is still enumerated, but denies every open until the
+            // last handle over it is closed. Publishing over a library that has readers leaves it in this state.
+            Assert.AreEqual(1, Directory.EnumerateFiles(folder).Count());
+            _ = Assert.ThrowsException<UnauthorizedAccessException>(
+                () => new FileStream(targetFilename, FileMode.Open, FileAccess.Read, FileShare.Read).Dispose());
+
+            Task<FileStream> extraction = Task.Factory.StartNew(
+                () =>
+                {
+                    using MemoryStream sourceStream = new(expected, false);
+
+                    extractionStarted.Set();
+
+                    return DxcLibraryLoader.ExtractLibraryAtomically(sourceStream, GetHash(expected), targetFilename);
+                },
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                TaskScheduler.Default);
+
+            try
+            {
+                extractionStarted.Wait();
+
+                Assert.IsFalse(SpinWait.SpinUntil(() => extraction.IsCompleted, TimeSpan.FromMilliseconds(25)));
+
+                pending.Dispose();
+
+                using FileStream library = extraction.GetAwaiter().GetResult();
+
+                CollectionAssert.AreEqual(expected, ReadAllBytes(library));
+                CollectionAssert.AreEqual(expected, File.ReadAllBytes(targetFilename));
+                Assert.AreEqual(1, Directory.EnumerateFiles(folder).Count());
+            }
+            finally
+            {
+                pending.Dispose();
+                _ = SpinWait.SpinUntil(() => extraction.IsCompleted, TimeSpan.FromSeconds(10));
+
+                if (extraction.Status is TaskStatus.RanToCompletion)
+                {
+                    extraction.Result.Dispose();
+                }
+            }
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [TestMethod]
     public void FailedExtractionLeavesNoFile()
     {
         string folder = CreateTemporaryFolder();
@@ -311,6 +385,25 @@ public class DxcLibraryLoaderTests
         _ = Directory.CreateDirectory(folder);
 
         return folder;
+    }
+
+    /// <summary>
+    /// Puts the file behind an open handle into the delete-pending state, which is what a cached library that
+    /// has just been replaced is in for as long as readers of the previous copy hold it.
+    /// </summary>
+    private static unsafe void MarkForDeletion(FileStream stream)
+    {
+        [DllImport("kernel32", ExactSpelling = true, SetLastError = true)]
+        static extern int SetFileInformationByHandle(nint hFile, int fileInformationClass, void* lpFileInformation, uint dwBufferSize);
+
+        const int FileDispositionInfo = 4;
+
+        byte deleteFile = 1;
+
+        if (SetFileInformationByHandle(stream.SafeFileHandle.DangerousGetHandle(), FileDispositionInfo, &deleteFile, sizeof(byte)) == 0)
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        }
     }
 
     private static byte[] GetHash(byte[] bytes)

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report behaviour that differs from what the library documents or guarantees.
+description: Report behavior that differs from what the library documents or guarantees.
 title: "[Bug] "
 labels: ["bug"]
 body:
@@ -15,7 +15,7 @@ body:
     id: area
     attributes:
       label: Area
-      description: Where the behaviour appears. Pick the one closest to the failure, not to your own code.
+      description: Where the behavior appears. Pick the one closest to the failure, not to your own code.
       options:
         - Runtime, dispatch and resources
         - Interop domain, shared textures and external views
@@ -46,7 +46,7 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: Expected behaviour
+      label: Expected behavior
       description: What you expected, and where that expectation comes from if the documentation states it.
     validations:
       required: true
@@ -54,7 +54,7 @@ body:
   - type: textarea
     id: actual
     attributes:
-      label: Actual behaviour
+      label: Actual behavior
       description: What happened instead. Paste the exception type, message and stack trace in full if one was thrown.
     validations:
       required: true

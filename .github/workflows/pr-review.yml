@@ -120,9 +120,9 @@ jobs:
                 findings.push('検証の節が空です。走らせた結果を貼ってください。 / The verification section is empty; paste the results you ran.');
               } else if (verify) confirmed.push('検証の結果が書かれています。 / Verification results are present.');
 
-              const behaviour = sectionFilled('Behaviour change');
-              if (behaviour === false && anySource) {
-                findings.push('挙動の変更の節が空です。無ければ「なし」と書いてください。 / The behaviour-change section is empty; write "none" if nothing changes.');
+              const behavior = sectionFilled('Behavior change');
+              if (behavior === false && anySource) {
+                findings.push('挙動の変更の節が空です。無ければ「なし」と書いてください。 / The behavior-change section is empty; write "none" if nothing changes.');
               }
             }
 
@@ -140,7 +140,7 @@ jobs:
             }
 
             if (anySource && !testsOnly) {
-              findings.push('ソースだけが変わり、テストが増えていません。守るべき挙動を動かす試験が要るか検討してください。 / Source changed without any test change; consider whether the guarded behaviour needs one.');
+              findings.push('ソースだけが変わり、テストが増えていません。守るべき挙動を動かす試験が要るか検討してください。 / Source changed without any test change; consider whether the guarded behavior needs one.');
             }
 
             const uncheckedGuard = guarded.length > 0

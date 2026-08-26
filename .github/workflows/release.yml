@@ -141,6 +141,10 @@ jobs:
       - name: 本体のテストを実行
         run: dotnet test tests/ComputeWeave.Tests/ComputeWeave.Tests.csproj -c Release -p:Platform=x64
 
+      # 最上位ステートメントのテストは Exe でありビルドだけでは実行時の不一致を検出できないため、実際に走らせる。
+      - name: 最上位ステートメントのテストを実行
+        run: dotnet run --project tests/ComputeWeave.Tests.GlobalStatements/ComputeWeave.Tests.GlobalStatements.csproj -c Release -p:Platform=x64
+
   # デバイス消失のテストは実デバイスを破棄するため、他のテストとは別のプロセスで実行する。
   validate-device-lost:
     name: デバイス消失のテスト

@@ -153,7 +153,7 @@ Take particular care when changing:
 
 The template asks for a summary, a linked issue, the kind of change, the observable behavior change and verification. Two of its questions carry more weight than the rest.
 
-**“Behaviour change”.** What an existing caller would observe differently, including exception types and the timing of failures. Write "none" when nothing observable changes; do not leave it blank.
+**“Behavior change”.** What an existing caller would observe differently, including exception types and the timing of failures. Write "none" when nothing observable changes; do not leave it blank.
 
 **“Verification”.** The results you actually ran, and how they compare with the same suites before your change. Do not judge a run by its total failure count; see [Reading a test run](#reading-a-test-run).
 
@@ -586,7 +586,7 @@ The Direct2D authoring projects were removed before the first release and restor
 
 | Area | Upstream | Here | Commits |
 |---|---|---|---|
-| DXC library extraction | Opens with `CreateNew` and swallows `IOException`; no verification, no atomic publish, no retry | Hash verification, atomic publish, and retry classified by condition | `5694027e`, `52e57264`, `c9325120`, `4c1d8898`, `04f9adeb` |
+| DXC library extraction | Opens with `CreateNew` and swallows `IOException`; no verification, no atomic publish, no retry | Hash verification, atomic publish, and retry classified by condition | `5694027e`, `52e57264`, `c9325120`, `4c1d8898`, `04f9adeb`, `ca17c3a3` |
 | `GraphicsDevice.WaitForFenceAsync` | Never unregisters the thread-pool wait before closing the event | Registers once and unregisters on both the callback and the failure path | `62f20171`, `be9c04b0` |
 | `GraphicsDevice.UnregisterDeviceLostCallback` | Compares the `BOOL` result of `UnregisterWait` against `S_OK`, inverting the condition | The callback is the single owner of the handle release | `6b75afc5`, `22bfe32a`, `7342cf25` |
 | `DeviceHelper` DXGI factory backcompat shim | Leaves `QueryInterface` and `AddRef` unimplemented; `Release` ignores the reference count | All three implemented; the type is internal so tests can construct it directly | `75106254` |

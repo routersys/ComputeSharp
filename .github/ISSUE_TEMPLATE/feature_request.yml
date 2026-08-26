@@ -1,7 +1,7 @@
 name: Proposal
 description: Propose a new capability, a new public API, or a change to one that exists.
 title: "[Proposal] "
-labels: ["proposal"]
+labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
@@ -21,7 +21,7 @@ body:
         - New public API
         - Change to existing public API
         - New analyzer or runtime diagnostic
-        - Behaviour change with no API change
+        - Behavior change with no API change
         - Tooling, packaging or documentation
     validations:
       required: true
@@ -61,7 +61,7 @@ body:
       label: What it must guarantee
       description: |
         State the guarantees explicitly, and equally the ones it does not make. Lifetime, ordering
-        between queues, thread safety, allocation on the hot path, and behaviour during teardown are
+        between queues, thread safety, allocation on the hot path, and behavior during teardown are
         the ones this library is usually asked about.
     validations:
       required: true
