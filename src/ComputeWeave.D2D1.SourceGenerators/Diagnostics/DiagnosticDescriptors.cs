@@ -1330,4 +1330,19 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "HLSL structs carry fields and no properties, so only a property with an HLSL mapping can be translated. A property declared on a custom type is left out of the generated struct, and without this diagnostic the access is written out as it stands and fails in the HLSL compiler instead, naming generated code the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an operator with no HLSL mapping.
+    /// <para>
+    /// Format: <c>"The operator {0} cannot be used in a D2D1 pixel shader (only the operators declared on the HLSL primitive types are translated, so the operation has to be written as a method call or over the fields directly)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOperatorUse = new(
+        id: "CMPWD2D0089",
+        title: "Invalid operator use",
+        messageFormat: "The operator {0} cannot be used in a D2D1 pixel shader (only the operators declared on the HLSL primitive types are translated, so the operation has to be written as a method call or over the fields directly)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An operator declared on a custom type is not imported into the generated HLSL, so the body the author wrote never runs. Most forms then fail in the HLSL compiler, but a conversion between a struct and a scalar is one HLSL performs on its own, taking the first member or filling every member, so without this diagnostic the shader silently computes a different value.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

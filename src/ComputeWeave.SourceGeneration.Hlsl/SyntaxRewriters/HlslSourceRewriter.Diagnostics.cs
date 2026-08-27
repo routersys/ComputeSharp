@@ -1,4 +1,5 @@
 using ComputeWeave.SourceGeneration.Extensions;
+using ComputeWeave.SourceGeneration.Mappings;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
@@ -24,6 +25,51 @@ partial class HlslSourceRewriter
         if (operation is IPropertyReferenceOperation)
         {
             Diagnostics.Add(InvalidPropertyAccess, node, operation.Member);
+        }
+    }
+
+    /// <summary>
+    /// Reports every operator a rewritten declaration resolves that HLSL cannot express.
+    /// </summary>
+    /// <param name="declaration">The declaration whose body has just been rewritten.</param>
+    /// <remarks>
+    /// <para>
+    /// The operators declared on the HLSL primitive types are either mapped to an intrinsic or left as they
+    /// stand, both of which are correct. An operator declared anywhere else is not imported, so the body the
+    /// author wrote never runs. Most forms then fail in the HLSL compiler, but a conversion between a struct
+    /// and a scalar is one HLSL performs on its own, taking the first member or filling every member, and the
+    /// shader silently computes a different value.
+    /// </para>
+    /// <para>
+    /// The walk is over the resolved operations rather than the syntax, because an implicit conversion has no
+    /// node of its own. Reporting from a visit method would reach every other form and miss that one.
+    /// </para>
+    /// </remarks>
+    protected void ReportUnmappedOperators(SyntaxNode declaration)
+    {
+        if (SemanticModel.For(declaration).GetOperation(declaration, CancellationToken) is not IOperation body)
+        {
+            return;
+        }
+
+        foreach (IOperation operation in body.Descendants())
+        {
+            IMethodSymbol? operatorMethod = operation switch
+            {
+                IBinaryOperation binaryOperation => binaryOperation.OperatorMethod,
+                ICompoundAssignmentOperation compoundAssignmentOperation => compoundAssignmentOperation.OperatorMethod,
+                IUnaryOperation unaryOperation => unaryOperation.OperatorMethod,
+                IIncrementOrDecrementOperation incrementOrDecrementOperation => incrementOrDecrementOperation.OperatorMethod,
+                IConversionOperation conversionOperation => conversionOperation.OperatorMethod,
+                _ => null
+            };
+
+            // An operator is only resolved when it is user defined, so a null one is a built-in operation
+            if (operatorMethod is not null &&
+                !HlslKnownTypes.IsKnownHlslType(operatorMethod.ContainingType.GetFullyQualifiedMetadataName()))
+            {
+                Diagnostics.Add(InvalidOperatorUse, operation.Syntax, operatorMethod);
+            }
         }
     }
 
