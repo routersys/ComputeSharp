@@ -554,6 +554,8 @@ internal sealed partial class ShaderSourceRewriter(
 
                 return InvocationExpression(IdentifierName(methodSyntax.Identifier)).AddArgumentListArguments(Argument(updatedNode.Expression));
             }
+
+            ReportUnmappedMemberAccess(node, operation);
         }
 
         return updatedNode;

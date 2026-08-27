@@ -1314,4 +1314,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Local functions used in a D2D1 pixel shader are lifted to top level HLSL functions, and HLSL has no closures, so only a static local function can be translated. A local function in a shader cannot read instance members either, because C# does not allow a local function in a struct to capture this.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a property access with no HLSL mapping.
+    /// <para>
+    /// Format: <c>"The property {0} cannot be accessed in a D2D1 pixel shader (only properties that map to an HLSL intrinsic are available, so a method or a field has to be used instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidPropertyAccess = new(
+        id: "CMPWD2D0088",
+        title: "Invalid property access",
+        messageFormat: "The property {0} cannot be accessed in a D2D1 pixel shader (only properties that map to an HLSL intrinsic are available, so a method or a field has to be used instead)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "HLSL structs carry fields and no properties, so only a property with an HLSL mapping can be translated. A property declared on a custom type is left out of the generated struct, and without this diagnostic the access is written out as it stands and fails in the HLSL compiler instead, naming generated code the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
