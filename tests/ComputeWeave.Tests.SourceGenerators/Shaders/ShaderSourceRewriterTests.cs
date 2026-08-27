@@ -164,6 +164,164 @@ public class ShaderSourceRewriterTests
         AssertIsNotFaulting(Source, "ShaderUnboundMatrixArgumentTests");
     }
 
+    /// <summary>
+    /// A property read from a custom type. HLSL structs carry fields and no properties, so the property
+    /// is left out of the generated struct, and the access used to be written out as it stands and fail
+    /// in the HLSL compiler, naming generated code the author never wrote.
+    /// </summary>
+    [TestMethod]
+    public void ReadingAPropertyOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public readonly float Doubled => Amount * 2;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Helper helper = default;
+
+                    helper.Amount = 2;
+
+                    this.buffer[ThreadIds.X] = helper.Doubled;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderCustomTypePropertyTests", "CMPW0114");
+    }
+
+    /// <summary>
+    /// The same read, reached through a static field initializer rather than the shader body. The two
+    /// rewriters visit member accesses separately, so both have to answer the same way.
+    /// </summary>
+    [TestMethod]
+    public void ReadingAPropertyOfACustomTypeFromAStaticFieldIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Doubled => 4;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = Helper.Doubled;
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderStaticFieldPropertyTests", "CMPW0114");
+    }
+
+    /// <summary>
+    /// A custom type that declares a property the shader never reads. The type is written to HLSL field
+    /// by field, so nothing is lost, and this has to keep compiling: the diagnostic belongs to the read.
+    /// </summary>
+    [TestMethod]
+    public void DeclaringAPropertyOnACustomTypeThatIsNeverReadIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public readonly float Doubled => Amount * 2;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Helper helper = default;
+
+                    helper.Amount = 2;
+
+                    this.buffer[ThreadIds.X] = helper.Amount;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderUnreadCustomTypePropertyTests", "CMPW0114");
+    }
+
+    /// <summary>
+    /// The properties that do map to HLSL. A swizzle, a vector component and a resource length all reach
+    /// the same fall through, so the diagnostic must not claim them.
+    /// </summary>
+    [TestMethod]
+    public void ReadingAPropertyThatMapsToHlslIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Float4 values = new(1, 2, 3, 4);
+
+                    this.buffer[ThreadIds.X] = values.XY.X + values.W + this.buffer.Length;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderMappedPropertyTests", "CMPW0114");
+    }
+
+    private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
+    {
+        CSharpCompilation compilation = CompilationHelper
+            .CreateCompilation([source], assemblyName)
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+        Assert.IsFalse(
+            result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
+            string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
+    }
+
     private static void AssertIsNotFaulting(string source, string assemblyName)
     {
         CSharpCompilation compilation = CompilationHelper.CreateCompilationAllowingErrors(source, assemblyName);
