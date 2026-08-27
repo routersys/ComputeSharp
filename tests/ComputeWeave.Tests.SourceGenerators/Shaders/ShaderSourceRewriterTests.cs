@@ -308,6 +308,363 @@ public class ShaderSourceRewriterTests
         AssertIsNotDiagnosed(Source, "ShaderMappedPropertyTests", "CMPW0114");
     }
 
+    /// <summary>
+    /// A binary operator declared on a custom type. HLSL has no operator overloads, so the body the author
+    /// wrote never runs, and the operation used to be written out as it stands.
+    /// </summary>
+    [TestMethod]
+    public void UsingABinaryOperatorOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static Value operator +(Value left, float right)
+                {
+                    Value result = default;
+
+                    result.Amount = left.Amount + right;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Value value = default;
+
+                    value = value + 2;
+
+                    this.buffer[ThreadIds.X] = value.Amount;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderBinaryOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// A compound assignment that resolves to a binary operator declared on a custom type.
+    /// </summary>
+    [TestMethod]
+    public void UsingACompoundAssignmentOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static Value operator +(Value left, float right)
+                {
+                    Value result = default;
+
+                    result.Amount = left.Amount + right;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Value value = default;
+
+                    value += 2;
+
+                    this.buffer[ThreadIds.X] = value.Amount;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderCompoundAssignmentOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// A unary operator declared on a custom type.
+    /// </summary>
+    [TestMethod]
+    public void UsingAUnaryOperatorOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static Value operator -(Value operand)
+                {
+                    Value result = default;
+
+                    result.Amount = -operand.Amount;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Value value = default;
+
+                    value = -value;
+
+                    this.buffer[ThreadIds.X] = value.Amount;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderUnaryOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// An increment operator declared on a custom type. It reaches a different operation than the unary
+    /// operators, so it needs its own case.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnIncrementOperatorOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static Value operator ++(Value operand)
+                {
+                    Value result = default;
+
+                    result.Amount = operand.Amount + 1;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Value value = default;
+
+                    value++;
+
+                    this.buffer[ThreadIds.X] = value.Amount;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderIncrementOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// Conversion operators declared on custom types, in both directions and in both forms.
+    /// </summary>
+    /// <remarks>
+    /// This is the one form that used to reach the GPU. HLSL converts between a struct and a scalar on its
+    /// own, taking the first member or filling every member, so the explicit conversion compiled and the
+    /// shader silently computed a different value than the same code in C#.
+    /// </remarks>
+    [TestMethod]
+    public void UsingAConversionOperatorOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Explicit
+            {
+                public float First;
+
+                public float Second;
+
+                public static explicit operator float(Explicit value) => value.Second;
+            }
+
+            internal struct Implicit
+            {
+                public float Amount;
+
+                public static implicit operator float(Implicit value) => value.Amount;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Explicit first = default;
+                    Implicit second = default;
+
+                    this.buffer[0] = (float)first;
+                    this.buffer[1] = second;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderConversionOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// The operators that do reach HLSL. The built-in ones resolve no operator method at all, and the ones
+    /// on the primitive types are either mapped to an intrinsic or left as they stand, so the diagnostic
+    /// must not claim any of them.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnOperatorThatReachesHlslIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    float scalar = 1 + 2;
+                    Float4 vector = new Float4(1, 2, 3, 4) + new Float4(1, 1, 1, 1);
+                    Float2x2 matrix = new Float2x2(1, 0, 0, 1) * new Float2x2(2, 0, 0, 2);
+
+                    this.buffer[ThreadIds.X] = scalar + vector.X + matrix.M11;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderMappedOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// The same operator, reached through a static field initializer rather than the shader body. The two
+    /// rewriters walk their declarations separately, so both have to answer the same way.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnOperatorOfACustomTypeFromAStaticFieldIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static float operator +(Value left, float right) => left.Amount + right;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = default(Value) + 2;
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderStaticFieldOperatorTests", "CMPW0115");
+    }
+
+    /// <summary>
+    /// The same operator, reached through the constructor of a custom type rather than the shader body.
+    /// A constructor is rewritten on its own, so it needs a walk of its own.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnOperatorOfACustomTypeFromAConstructorIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public Value(float amount)
+                {
+                    Value other = default;
+
+                    other = other + amount;
+
+                    this.Amount = other.Amount;
+                }
+
+                public static Value operator +(Value left, float right)
+                {
+                    Value result = default;
+
+                    result.Amount = left.Amount + right;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Value value = new(2);
+
+                    this.buffer[ThreadIds.X] = value.Amount;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderConstructorOperatorTests", "CMPW0115");
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
