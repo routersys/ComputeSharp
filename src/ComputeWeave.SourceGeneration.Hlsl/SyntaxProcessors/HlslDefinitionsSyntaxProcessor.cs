@@ -239,8 +239,10 @@ internal static class HlslDefinitionsSyntaxProcessor
                     // the list of members for the struct declaration, but rather it will be written directly into
                     // the resulting HLSL source (as the implementation of this forward declaration). For the same
                     // reason, we also need to change the identifier to also include the containing type with '::'.
+                    // Parameter default values stay on the forward declaration only, as HLSL rejects repeating them
                     string methodImplementation =
                         methodDeclaration
+                        .WithoutParameterDefaults()
                         .WithIdentifier(Identifier($"{structType}::{methodDeclaration.Identifier.Text}"))
                         .NormalizeWhitespace(eol: "\n")
                         .ToFullString();

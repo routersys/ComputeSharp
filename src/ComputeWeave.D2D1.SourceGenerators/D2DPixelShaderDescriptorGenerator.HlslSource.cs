@@ -392,9 +392,10 @@ partial class D2DPixelShaderDescriptorGenerator
                 // Emit the extracted local functions first
                 foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
                 {
+                    // Parameter default values stay on the forward declaration only, as HLSL rejects repeating them
                     methods.Add((
                         localFunction.Value.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
-                        localFunction.Value.NormalizeWhitespace(eol: "\n").ToFullString()));
+                        localFunction.Value.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
                 }
 
                 // If the method is the shader entry point, do additional processing
@@ -409,7 +410,7 @@ partial class D2DPixelShaderDescriptorGenerator
                 {
                     methods.Add((
                         processedMethod.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
-                        processedMethod.NormalizeWhitespace(eol: "\n").ToFullString()));
+                        processedMethod.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
                 }
             }
 
@@ -420,7 +421,7 @@ partial class D2DPixelShaderDescriptorGenerator
             {
                 methods.Add((
                     staticMethod.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
-                    staticMethod.NormalizeWhitespace(eol: "\n").ToFullString()));
+                    staticMethod.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
             }
 
             return (entryPoint!, methods.ToImmutable());
