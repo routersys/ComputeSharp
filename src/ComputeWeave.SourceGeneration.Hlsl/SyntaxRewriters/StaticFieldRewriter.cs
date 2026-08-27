@@ -87,6 +87,8 @@ internal sealed partial class StaticFieldRewriter(
                     false => updatedNode.WithName(IdentifierName(mapping!))
                 };
             }
+
+            ReportUnmappedMemberAccess(node, operation);
         }
 
         return updatedNode;

@@ -1,6 +1,7 @@
 using ComputeWeave.SourceGeneration.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 
 namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
@@ -8,6 +9,24 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <inheritdoc cref="HlslSourceRewriter"/>
 partial class HlslSourceRewriter
 {
+    /// <summary>
+    /// Reports a member access that every mapping has declined, when HLSL cannot express it.
+    /// </summary>
+    /// <param name="node">The member access that is about to be written out as it stands.</param>
+    /// <param name="operation">The resolved member reference for <paramref name="node"/>.</param>
+    /// <remarks>
+    /// Only a property is reported. A field is written out as it stands on purpose, because HLSL structs
+    /// carry fields, whereas a property is left out of the generated struct entirely. Without this the
+    /// access reaches the HLSL compiler, which names generated code the author never wrote.
+    /// </remarks>
+    protected void ReportUnmappedMemberAccess(MemberAccessExpressionSyntax node, IMemberReferenceOperation operation)
+    {
+        if (operation is IPropertyReferenceOperation)
+        {
+            Diagnostics.Add(InvalidPropertyAccess, node, operation.Member);
+        }
+    }
+
     /// <inheritdoc/>
     public sealed override SyntaxNode? VisitAnonymousObjectCreationExpression(AnonymousObjectCreationExpressionSyntax node)
     {
