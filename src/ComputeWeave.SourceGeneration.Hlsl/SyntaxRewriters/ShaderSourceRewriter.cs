@@ -686,6 +686,18 @@ internal sealed partial class ShaderSourceRewriter(
                         this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
                     }
 
+                    // C# leaves the receiver of an extension method out of the argument list, whereas the
+                    // declaration is imported with the receiver as its first parameter, so it is moved into
+                    // place here. Only the reduced form has a receiver to move, and the target method is the
+                    // unreduced symbol either way, so the semantic model is what tells the two apart
+                    if (SemanticModel.For(node).GetSymbolInfo(node, CancellationToken).Symbol is IMethodSymbol { ReducedFrom: not null } &&
+                        updatedNode.Expression is MemberAccessExpressionSyntax memberAccess)
+                    {
+                        updatedNode = updatedNode.WithArgumentList(
+                            updatedNode.ArgumentList.WithArguments(
+                                updatedNode.ArgumentList.Arguments.Insert(0, Argument(memberAccess.Expression))));
+                    }
+
                     return updatedNode.WithExpression(IdentifierName(methodIdentifier));
                 }
             }
