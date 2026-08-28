@@ -49,6 +49,21 @@ partial class SyntaxNodeExtensions
     }
 
     /// <summary>
+    /// Returns a <see cref="MethodDeclarationSyntax"/> with no default values on its parameters.
+    /// </summary>
+    /// <param name="node">The input <see cref="MethodDeclarationSyntax"/> node.</param>
+    /// <returns>A node like the one in input, but with no default values on its parameters.</returns>
+    /// <remarks>
+    /// HLSL only accepts default values on the first prototype of a function, which is the forward declaration
+    /// produced by <see cref="AsDefinition(MethodDeclarationSyntax)"/>. The implementation written after it must
+    /// not repeat them. Call sites are unaffected, as they bind the defaults from the forward declaration.
+    /// </remarks>
+    public static MethodDeclarationSyntax WithoutParameterDefaults(this MethodDeclarationSyntax node)
+    {
+        return node.WithParameterList(node.ParameterList.WithoutParameterDefaults());
+    }
+
+    /// <summary>
     /// Returns a <see cref="LocalFunctionStatementSyntax"/> with a block body.
     /// </summary>
     /// <param name="node">The input <see cref="LocalFunctionStatementSyntax"/> node.</param>
@@ -89,6 +104,40 @@ partial class SyntaxNodeExtensions
         }
 
         return node.WithBody(null).WithSemicolonToken(Token(SyntaxKind.SemicolonToken));
+    }
+
+    /// <inheritdoc cref="WithoutParameterDefaults(MethodDeclarationSyntax)"/>
+    /// <param name="node">The input <see cref="LocalFunctionStatementSyntax"/> node.</param>
+    /// <returns>A node like the one in input, but with no default values on its parameters.</returns>
+    /// <remarks>
+    /// This method is the same as <see cref="WithoutParameterDefaults(MethodDeclarationSyntax)"/>, but it is
+    /// necessary to duplicate the code because the two types don't have a common base type or interface that
+    /// can be leveraged.
+    /// </remarks>
+    public static LocalFunctionStatementSyntax WithoutParameterDefaults(this LocalFunctionStatementSyntax node)
+    {
+        return node.WithParameterList(node.ParameterList.WithoutParameterDefaults());
+    }
+
+    /// <summary>
+    /// Returns a <see cref="ParameterListSyntax"/> with no default values on its parameters.
+    /// </summary>
+    /// <param name="node">The input <see cref="ParameterListSyntax"/> node.</param>
+    /// <returns>A node like the one in input, but with no default values on its parameters.</returns>
+    private static ParameterListSyntax WithoutParameterDefaults(this ParameterListSyntax node)
+    {
+        SeparatedSyntaxList<ParameterSyntax> parameters = node.Parameters;
+
+        for (int i = 0; i < parameters.Count; i++)
+        {
+            if (parameters[i].Default is not null)
+            {
+                parameters = parameters.Replace(parameters[i], parameters[i].WithDefault(null));
+            }
+        }
+
+        // Roslyn returns the same node when the list is unchanged, so the common case allocates nothing
+        return node.WithParameters(parameters);
     }
 
     /// <summary>
