@@ -108,6 +108,8 @@ internal sealed partial class ShaderSourceRewriter(
 
         this.currentMethodIdentifier = node.Identifier;
 
+        ReportUnmappedOperators(node);
+
         // Constructors have no return type, so there is no return type identifier to replace.
         // We simply track the type of the type being constructed and then continue normally.
         // This is done separately where the constructor operation is being processed.
@@ -138,6 +140,10 @@ internal sealed partial class ShaderSourceRewriter(
         }
 
         this.currentMethodIdentifier = node.Identifier;
+
+        // A local function is reached through the body of the declaration that holds it, so it is
+        // covered here and does not need a walk of its own
+        ReportUnmappedOperators(node);
 
         MethodDeclarationSyntax? updatedNode = (MethodDeclarationSyntax?)base.Visit(node)!;
 
