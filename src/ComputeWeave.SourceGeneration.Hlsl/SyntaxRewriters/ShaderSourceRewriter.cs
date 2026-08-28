@@ -576,6 +576,11 @@ internal sealed partial class ShaderSourceRewriter(
 
         if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IInvocationOperation { TargetMethod: IMethodSymbol method } operation)
         {
+            if (ReportUnmappedGenericMethodCall(node, method))
+            {
+                return updatedNode;
+            }
+
             if (method.IsStatic)
             {
                 string metadataName = method.GetFullyQualifiedMetadataName();

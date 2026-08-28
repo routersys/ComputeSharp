@@ -60,6 +60,32 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
+    /// Reports an invocation of a generic method, which HLSL has no way to express.
+    /// </summary>
+    /// <param name="node">The invocation that is about to be written out as it stands.</param>
+    /// <param name="method">The resolved target of <paramref name="node"/>.</param>
+    /// <returns>Whether the invocation was reported, in which case the caller leaves it alone.</returns>
+    /// <remarks>
+    /// HLSL has no type parameters. A mapped intrinsic is written out under its HLSL name, which drops the
+    /// type arguments and stays correct, so a mapping is asked for first. Every other target is either
+    /// imported by rewriting its declaration, which carries the type parameter list into the generated
+    /// source, or written out as it stands. The resource samplers are matched by a separate table that
+    /// spells out concrete parameter types, so no generic method reaches it.
+    /// </remarks>
+    protected bool ReportUnmappedGenericMethodCall(InvocationExpressionSyntax node, IMethodSymbol method)
+    {
+        if (!method.IsGenericMethod ||
+            HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out _, out _))
+        {
+            return false;
+        }
+
+        Diagnostics.Add(InvalidGenericMethodCall, node, method);
+
+        return true;
+    }
+
+    /// <summary>
     /// Reports every operator a rewritten declaration resolves that HLSL cannot express.
     /// </summary>
     /// <param name="declaration">The declaration whose body has just been rewritten.</param>
