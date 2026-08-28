@@ -39,6 +39,11 @@ partial class HlslSourceRewriter
     /// the author wrote never runs, and the access reaches the HLSL compiler naming a type it never saw.
     /// </para>
     /// <para>
+    /// What is asked is where the indexer is declared, and not just what is being indexed. An extension
+    /// indexer over a type HLSL can index resolves to an accessor of the author's while the access is
+    /// written out as the built-in one, which compiles and computes a different value.
+    /// </para>
+    /// <para>
     /// The report names the type being indexed rather than the indexer, because an inline array has no
     /// indexer of its own: the access resolves through a span that the author never wrote.
     /// </para>
@@ -53,10 +58,13 @@ partial class HlslSourceRewriter
             return;
         }
 
-        if (!HlslKnownTypes.IsKnownIndexableType(type.GetFullyQualifiedMetadataName()))
+        if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IPropertyReferenceOperation operation &&
+            HlslKnownTypes.IsKnownIndexableType(operation.Property.ContainingType.GetFullyQualifiedMetadataName()))
         {
-            Diagnostics.Add(InvalidElementAccess, node, type);
+            return;
         }
+
+        Diagnostics.Add(InvalidElementAccess, node, type);
     }
 
     /// <summary>
