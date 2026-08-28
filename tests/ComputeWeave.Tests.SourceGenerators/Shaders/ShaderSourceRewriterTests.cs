@@ -665,6 +665,58 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(Source, "ShaderConstructorOperatorTests", "CMPW0115");
     }
 
+    /// <summary>
+    /// The same operator, reached through a local function rather than the body that holds it. A local
+    /// function is lifted to a top level HLSL function but is rewritten from within its declaration, so
+    /// what this pins is that the walk of that declaration reaches into it.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnOperatorOfACustomTypeFromALocalFunctionIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Value
+            {
+                public float Amount;
+
+                public static Value operator +(Value left, float right)
+                {
+                    Value result = default;
+
+                    result.Amount = left.Amount + right;
+
+                    return result;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    static float Inner()
+                    {
+                        Value value = default;
+
+                        value = value + 2;
+
+                        return value.Amount;
+                    }
+
+                    this.buffer[ThreadIds.X] = Inner();
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderLocalFunctionOperatorTests", "CMPW0115");
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
