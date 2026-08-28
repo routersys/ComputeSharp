@@ -497,9 +497,11 @@ The debug-layer suite is where an illegal barrier or an incompatible layout is r
 
 ### Continuous integration
 
-CI ([`.github/workflows/ci.yml`](/.github/workflows/ci.yml)) builds the solution and runs four suites: source generators, internals, the main suite, and device-lost in a separate job. The debug-layer suite is **not** run by CI. Run it locally whenever you change command ordering, resource states, barriers, queue selection or interoperation; nothing else will catch those defects.
+CI ([`.github/workflows/ci.yml`](/.github/workflows/ci.yml)) builds the solution and runs the source generator, internals and main suites, both Direct2D suites that need no adapter, and the top-level statement program, with device-lost in a separate job. Three suites are left out, each for a reason recorded where it is skipped: the Direct2D runtime suite creates a device and does not fall back to WARP, the debug-layer suite needs a real device, and the native library resolver suite packs and runs repeatedly. Run the debug-layer suite locally whenever you change command ordering, resource states, barriers, queue selection or interoperation; nothing else will catch those defects.
 
-For changes to `src/ComputeWeave`, run all five. For documentation-only or otherwise isolated changes, run the verification appropriate to the affected area.
+The release workflow ([`.github/workflows/release.yml`](/.github/workflows/release.yml)) runs everything CI runs and adds the native library resolver suite. The quick release workflow ([`.github/workflows/quick-release.yml`](/.github/workflows/quick-release.yml)) runs no tests of its own and refuses to publish unless CI concluded successfully on the same commit, so nothing reaches a feed without having been tested.
+
+**Choose what to run by what the change can break, not by a count.** Suites are added over time, and a number written here goes stale without anything failing. For a change to `src/ComputeWeave`, run what CI runs and add the debug-layer suite when the change touches the areas named above. For a documentation-only or otherwise isolated change, run the verification appropriate to the affected area.
 
 If you could not run a suite — no adapter of the required kind, no Windows machine, a run that never finished — say so in the pull request and say why. A stated gap is information; silence reads as a claim you never verified.
 

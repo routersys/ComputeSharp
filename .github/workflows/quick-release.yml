@@ -34,6 +34,10 @@ jobs:
   validate:
     name: バージョン検証
     runs-on: ubuntu-latest
+    # CI の結論を読むために actions を足す。
+    permissions:
+      contents: read
+      actions: read
     defaults:
       run:
         shell: bash
@@ -55,6 +59,40 @@ jobs:
             echo "高速リリースは既定ブランチからだけ実行できます。" >&2
             exit 1
           fi
+
+      # このワークフローはテストを回さないので、同じコミットで CI が緑であることを要求する。
+      - name: 対象コミットの CI が成功していることを検証
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 再実行や取り消しがあっても、最新の実行がそのコミットの結論である。
+          summary=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&per_page=1" \
+            --jq '"\(.workflow_runs[0].status // "none") \(.workflow_runs[0].conclusion // "none")"')
+          status=${summary%% *}
+          conclusion=${summary##* }
+
+          if [ "${status}" = "completed" ] && [ "${conclusion}" = "success" ]; then
+            echo "対象コミット ${GITHUB_SHA} の CI は成功しています。"
+            exit 0
+          fi
+
+          echo "対象コミット ${GITHUB_SHA} の CI が成功していません。" >&2
+
+          case "${status}" in
+            none)
+              echo "CI の実行がありません。文書だけの変更では CI が起動しないため、この経路からは発行できません。" >&2
+              ;;
+            completed)
+              echo "CI は完了していますが結論は ${conclusion} です。" >&2
+              ;;
+            *)
+              echo "CI はまだ ${status} です。完了を待ってから実行してください。" >&2
+              ;;
+          esac
+
+          echo "テストを自ら回すリリース経路（バージョンタグの push）を使うこともできます。" >&2
+          exit 1
 
       - name: バージョン番号を決定
         id: version
