@@ -29,6 +29,37 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
+    /// Reports an element access that every mapping has declined, when HLSL has no indexer for the target.
+    /// </summary>
+    /// <param name="node">The element access that is about to be written out as it stands.</param>
+    /// <remarks>
+    /// <para>
+    /// The indexers HLSL provides are the ones on its vector and matrix types, the ones on the resource
+    /// types, and the one on an array. An indexer declared anywhere else is not imported, so the accessor
+    /// the author wrote never runs, and the access reaches the HLSL compiler naming a type it never saw.
+    /// </para>
+    /// <para>
+    /// The report names the type being indexed rather than the indexer, because an inline array has no
+    /// indexer of its own: the access resolves through a span that the author never wrote.
+    /// </para>
+    /// </remarks>
+    protected void ReportUnmappedElementAccess(ElementAccessExpressionSyntax node)
+    {
+        ITypeSymbol? type = SemanticModel.For(node).GetTypeInfo(node.Expression, CancellationToken).Type;
+
+        // A group shared array is declared in HLSL as an array, so its element access needs no mapping
+        if (type is null or IArrayTypeSymbol)
+        {
+            return;
+        }
+
+        if (!HlslKnownTypes.IsKnownIndexableType(type.GetFullyQualifiedMetadataName()))
+        {
+            Diagnostics.Add(InvalidElementAccess, node, type);
+        }
+    }
+
+    /// <summary>
     /// Reports every operator a rewritten declaration resolves that HLSL cannot express.
     /// </summary>
     /// <param name="declaration">The declaration whose body has just been rewritten.</param>

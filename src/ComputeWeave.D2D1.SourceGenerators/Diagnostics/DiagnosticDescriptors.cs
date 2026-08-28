@@ -1345,4 +1345,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "An operator declared on a custom type is not imported into the generated HLSL, so the body the author wrote never runs. Most forms then fail in the HLSL compiler, but a conversion between a struct and a scalar is one HLSL performs on its own, taking the first member or filling every member, so without this diagnostic the shader silently computes a different value.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an element access with no HLSL indexer.
+    /// <para>
+    /// Format: <c>"The type {0} cannot be indexed in a D2D1 pixel shader (only the HLSL vector and matrix types, the resource types and arrays provide an element access, so the element has to be reached through a field or a method instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidElementAccess = new(
+        id: "CMPWD2D0090",
+        title: "Invalid element access",
+        messageFormat: "The type {0} cannot be indexed in a D2D1 pixel shader (only the HLSL vector and matrix types, the resource types and arrays provide an element access, so the element has to be reached through a field or a method instead)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "HLSL provides an element access over its own vector and matrix types, over the resource types and over an array. An indexer declared on any other type is not imported, so the accessor the author wrote never runs, and without this diagnostic the access is written out as it stands and fails in the HLSL compiler instead, naming a type it never saw. An inline array is reported the same way, because its element access resolves through a span the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

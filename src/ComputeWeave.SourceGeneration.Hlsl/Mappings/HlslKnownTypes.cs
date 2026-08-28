@@ -193,6 +193,13 @@ internal static partial class HlslKnownTypes
     }
 
     /// <summary>
+    /// Checks whether HLSL provides an element access over a given type.
+    /// </summary>
+    /// <param name="typeName">The input type name to check.</param>
+    /// <returns>Whether an element access over <paramref name="typeName"/> is written out as it stands.</returns>
+    public static partial bool IsKnownIndexableType(string typeName);
+
+    /// <summary>
     /// Checks whether or not a given type name matches a vector type.
     /// </summary>
     /// <param name="typeName">The input type name to check.</param>

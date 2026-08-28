@@ -145,6 +145,12 @@ partial class HlslKnownTypes
     }
 
     /// <inheritdoc/>
+    public static partial bool IsKnownIndexableType(string typeName)
+    {
+        return IsKnownHlslType(typeName) || IsTypedResourceType(typeName);
+    }
+
+    /// <inheritdoc/>
     public static partial string GetMappedName(INamedTypeSymbol typeSymbol)
     {
         // Delegate types just return an empty string, as they're not actually
