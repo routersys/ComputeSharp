@@ -337,6 +337,8 @@ internal abstract partial class HlslSourceRewriter(
             }
         }
 
+        ReportUnmappedElementAccess(node);
+
         return updatedNode;
     }
 

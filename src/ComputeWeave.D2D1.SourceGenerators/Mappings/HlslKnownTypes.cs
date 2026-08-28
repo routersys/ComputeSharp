@@ -24,6 +24,12 @@ partial class HlslKnownTypes
     }
 
     /// <inheritdoc/>
+    public static partial bool IsKnownIndexableType(string typeName)
+    {
+        return IsKnownHlslType(typeName) || IsResourceTextureType(typeName);
+    }
+
+    /// <inheritdoc/>
     public static partial string GetMappedName(INamedTypeSymbol typeSymbol)
     {
         string typeName = typeSymbol.GetFullyQualifiedMetadataName();

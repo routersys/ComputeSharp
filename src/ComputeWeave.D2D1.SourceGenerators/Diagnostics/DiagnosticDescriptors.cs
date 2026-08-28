@@ -1345,4 +1345,36 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "An operator declared on a custom type is not imported into the generated HLSL, so the body the author wrote never runs. Most forms then fail in the HLSL compiler, but a conversion between a struct and a scalar is one HLSL performs on its own, taking the first member or filling every member, so without this diagnostic the shader silently computes a different value.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an element access that HLSL does not provide.
+    /// <para>
+    /// Format: <c>"The element access on {0} cannot be used in a D2D1 pixel shader (only an element access that HLSL itself provides is translated, and an indexer declared in source is not imported, so the element has to be reached through a field or a method instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidElementAccess = new(
+        id: "CMPWD2D0090",
+        title: "Invalid element access",
+        messageFormat: "The element access on {0} cannot be used in a D2D1 pixel shader (only an element access that HLSL itself provides is translated, and an indexer declared in source is not imported, so the element has to be reached through a field or a method instead)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "HLSL provides an element access on its own vector and matrix types, on the resource types and on an array, and on nothing else. An indexer declared in source is not imported, so the accessor the author wrote never runs. Most of these accesses then fail in the HLSL compiler, naming a type it never saw, but an extension indexer over a type HLSL can index resolves to the built-in element access instead and the shader silently computes a different value. An inline array is reported the same way, its element access resolving through a span the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an invocation of a generic method.
+    /// <para>
+    /// Format: <c>"The method {0} cannot be called in a D2D1 pixel shader (HLSL has no type parameters, so a generic method cannot be translated and the method has to be declared for the concrete type instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidGenericMethodCall = new(
+        id: "CMPWD2D0091",
+        title: "Invalid generic method call",
+        messageFormat: "The method {0} cannot be called in a D2D1 pixel shader (HLSL has no type parameters, so a generic method cannot be translated and the method has to be declared for the concrete type instead)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "HLSL has no type parameters, so a generic method is neither mapped to an intrinsic nor importable: rewriting its declaration carries the type parameter list into the generated source. Without this diagnostic that declaration reaches the HLSL compiler, which reports it under a generated name the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

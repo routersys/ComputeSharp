@@ -29,6 +29,71 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
+    /// Reports an element access that every mapping has declined, when HLSL has no indexer for the target.
+    /// </summary>
+    /// <param name="node">The element access that is about to be written out as it stands.</param>
+    /// <remarks>
+    /// <para>
+    /// The indexers HLSL provides are the ones on its vector and matrix types, the ones on the resource
+    /// types, and the one on an array. An indexer declared anywhere else is not imported, so the accessor
+    /// the author wrote never runs, and the access reaches the HLSL compiler naming a type it never saw.
+    /// </para>
+    /// <para>
+    /// What is asked is where the indexer is declared, and not just what is being indexed. An extension
+    /// indexer over a type HLSL can index resolves to an accessor of the author's while the access is
+    /// written out as the built-in one, which compiles and computes a different value.
+    /// </para>
+    /// <para>
+    /// The report names the type being indexed rather than the indexer, because an inline array has no
+    /// indexer of its own: the access resolves through a span that the author never wrote.
+    /// </para>
+    /// </remarks>
+    protected void ReportUnmappedElementAccess(ElementAccessExpressionSyntax node)
+    {
+        ITypeSymbol? type = SemanticModel.For(node).GetTypeInfo(node.Expression, CancellationToken).Type;
+
+        // A group shared array is declared in HLSL as an array, so its element access needs no mapping
+        if (type is null or IArrayTypeSymbol)
+        {
+            return;
+        }
+
+        if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IPropertyReferenceOperation operation &&
+            HlslKnownTypes.IsKnownIndexableType(operation.Property.ContainingType.GetFullyQualifiedMetadataName()))
+        {
+            return;
+        }
+
+        Diagnostics.Add(InvalidElementAccess, node, type);
+    }
+
+    /// <summary>
+    /// Reports an invocation of a generic method, which HLSL has no way to express.
+    /// </summary>
+    /// <param name="node">The invocation that is about to be written out as it stands.</param>
+    /// <param name="method">The resolved target of <paramref name="node"/>.</param>
+    /// <returns>Whether the invocation was reported, in which case the caller leaves it alone.</returns>
+    /// <remarks>
+    /// HLSL has no type parameters. A mapped intrinsic is written out under its HLSL name, which drops the
+    /// type arguments and stays correct, so a mapping is asked for first. Every other target is either
+    /// imported by rewriting its declaration, which carries the type parameter list into the generated
+    /// source, or written out as it stands. The resource samplers are matched by a separate table that
+    /// spells out concrete parameter types, so no generic method reaches it.
+    /// </remarks>
+    protected bool ReportUnmappedGenericMethodCall(InvocationExpressionSyntax node, IMethodSymbol method)
+    {
+        if (!method.IsGenericMethod ||
+            HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out _, out _))
+        {
+            return false;
+        }
+
+        Diagnostics.Add(InvalidGenericMethodCall, node, method);
+
+        return true;
+    }
+
+    /// <summary>
     /// Reports every operator a rewritten declaration resolves that HLSL cannot express.
     /// </summary>
     /// <param name="declaration">The declaration whose body has just been rewritten.</param>

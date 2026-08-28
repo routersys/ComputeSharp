@@ -102,12 +102,16 @@ internal sealed partial class StaticFieldRewriter(
     {
         InvocationExpressionSyntax updatedNode = (InvocationExpressionSyntax)base.VisitInvocationExpression(node)!;
 
-        if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IInvocationOperation operation &&
-            operation.TargetMethod is IMethodSymbol method &&
-            method.IsStatic)
+        if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IInvocationOperation { TargetMethod: IMethodSymbol method })
         {
+            if (ReportUnmappedGenericMethodCall(node, method))
+            {
+                return updatedNode;
+            }
+
             // Rewrite HLSL intrinsic methods
-            if (HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out string? mapping, out bool requiresParametersMapping))
+            if (method.IsStatic &&
+                HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out string? mapping, out bool requiresParametersMapping))
             {
                 if (requiresParametersMapping)
                 {
