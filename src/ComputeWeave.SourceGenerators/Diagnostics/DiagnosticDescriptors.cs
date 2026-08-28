@@ -1504,6 +1504,7 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "HLSL provides an element access on its own vector and matrix types, on the resource types and on an array, and on nothing else. An indexer declared in source is not imported, so the accessor the author wrote never runs. Most of these accesses then fail in the HLSL compiler, naming a type it never saw, but an extension indexer over a type HLSL can index resolves to the built-in element access instead and the shader silently computes a different value. An inline array is reported the same way, its element access resolving through a span the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
     /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for an invocation of a generic method.
     /// <para>
@@ -1519,6 +1520,7 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "HLSL has no type parameters, so a generic method is neither mapped to an intrinsic nor importable: rewriting its declaration carries the type parameter list into the generated source. Without this diagnostic that declaration reaches the HLSL compiler, which reports it under a generated name the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
     /// <summary>
     /// Gets a <see cref="DiagnosticDescriptor"/> for a size accessor read on a constant buffer.
     /// <para>
