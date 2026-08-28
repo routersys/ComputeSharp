@@ -717,6 +717,489 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(Source, "ShaderLocalFunctionOperatorTests", "CMPW0115");
     }
 
+    /// <summary>
+    /// An indexer declared on a custom type. HLSL has no indexers of its own, so the accessor the author
+    /// wrote never runs, and the access used to be written out as it stands.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnIndexerOfACustomTypeIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Values
+            {
+                public float Amount;
+
+                public readonly float this[int index] => Amount;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Values values = default;
+
+                    this.buffer[ThreadIds.X] = values[0];
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderCustomTypeIndexerTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// An inline array, which has no indexer of its own: the access resolves through a span. The report is
+    /// keyed on the type being indexed rather than on the indexer, so this shape is reached the same way.
+    /// </summary>
+    [TestMethod]
+    public void UsingAnInlineArrayIndexerIsDiagnosed()
+    {
+        const string Source = """
+            using System.Runtime.CompilerServices;
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [InlineArray(4)]
+            internal struct Values
+            {
+                private float element;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Values values = default;
+
+                    values[0] = 2.0f;
+
+                    this.buffer[ThreadIds.X] = values[0];
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderInlineArrayIndexerTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// The resource indexers. Only the ones taking separate coordinates are rewritten, so the rest share the
+    /// fall through with the indexers that have to be reported, and the report has to tell them apart.
+    /// </summary>
+    [TestMethod]
+    public void IndexingAResourceIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                private readonly ReadOnlyBuffer<float> source;
+
+                private readonly ConstantBuffer<float> constants;
+
+                private readonly ReadWriteTexture2D<float> surface;
+
+                private readonly ReadWriteTexture3D<float> volume;
+
+                public void Execute()
+                {
+                    float value = this.source[0] + this.constants[0];
+
+                    value += this.surface[0, 0] + this.surface[new Int2(0, 0)];
+                    value += this.volume[0, 0, 0] + this.volume[new Int3(0, 0, 0)];
+
+                    this.buffer[ThreadIds.X] = value;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderResourceIndexerTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// The element access on a vector, the row access on a matrix and the swizzled indexer on a matrix.
+    /// </summary>
+    [TestMethod]
+    public void IndexingAVectorOrAMatrixIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Float4 vector = default;
+                    Float2x2 matrix = new(1, 2, 3, 4);
+
+                    float value = vector[0] + matrix[0].X + matrix[MatrixIndex.M11, MatrixIndex.M12].Y;
+
+                    this.buffer[ThreadIds.X] = value;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderVectorAndMatrixIndexerTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// A group shared array, which is declared in HLSL as an array and needs no mapping.
+    /// </summary>
+    [TestMethod]
+    public void IndexingAGroupSharedArrayIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                [GroupShared]
+                private static readonly float[] Cache = new float[64];
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Cache[ThreadIds.X] = 2.0f;
+
+                    this.buffer[ThreadIds.X] = Cache[ThreadIds.X];
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderGroupSharedArrayIndexerTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// A swizzled matrix indexer whose arguments are not constants. That already has a diagnostic of its own,
+    /// and the branch reporting it falls through to the element access report, which must not add a second.
+    /// </summary>
+    [TestMethod]
+    public void IndexingAMatrixWithANonConstantSwizzleIsNotReportedTwice()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Float2x2 matrix = new(1, 2, 3, 4);
+                    MatrixIndex row = MatrixIndex.M11;
+
+                    this.buffer[ThreadIds.X] = matrix[row, MatrixIndex.M12].X;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderNonConstantSwizzleTests", "CMPW0037");
+        AssertIsNotDiagnosed(Source, "ShaderNonConstantSwizzleTests", "CMPW0116");
+    }
+
+    /// <summary>
+    /// A generic static method. HLSL has no type parameters, so importing the declaration used to carry the
+    /// type parameter list into the generated source.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float First<T>(T value)
+                    where T : unmanaged
+                {
+                    return 1.0f;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.First(1.0f);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderGenericMethodTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// A generic instance method on a custom struct, which takes the other branch of the invocation path.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericInstanceMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Values
+            {
+                public float Amount;
+
+                public readonly float First<T>(T value)
+                    where T : unmanaged
+                {
+                    return Amount;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Values values = default;
+
+                    this.buffer[ThreadIds.X] = values.First(1.0f);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderGenericInstanceMethodTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// A generic local function, which is lifted to a top level HLSL function under a rewritten name.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericLocalFunctionIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    static float First<T>(T value)
+                        where T : unmanaged
+                    {
+                        return 1.0f;
+                    }
+
+                    this.buffer[ThreadIds.X] = First(1.0f);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderGenericLocalFunctionTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// The same call, reached through a static field initializer rather than the shader body. The two
+    /// rewriters walk their invocations separately, so both have to answer the same way.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericMethodFromAStaticFieldIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float First<T>(T value)
+                    where T : unmanaged
+                {
+                    return 1.0f;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = Helper.First(2.0f);
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderStaticFieldGenericMethodTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// An intrinsic and a method of the author that are not generic. The check runs before any mapping is
+    /// tried, so an intrinsic has to stay untouched by it.
+    /// </summary>
+    [TestMethod]
+    public void CallingANonGenericMethodIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Twice(float value) => value * 2;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Hlsl.Abs(-2.0f) + Helper.Twice(1.0f);
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderNonGenericMethodTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// The length of a constant buffer, which is written to HLSL as the value it holds and has no dimensions.
+    /// </summary>
+    [TestMethod]
+    public void ReadingTheLengthOfAConstantBufferIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                private readonly ConstantBuffer<float> constants;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = this.constants.Length;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderConstantBufferLengthTests", "CMPW0118");
+    }
+
+    /// <summary>
+    /// The same read, after a structured buffer in the same shader has claimed the accessor the two types
+    /// share. The report is before the cache that claim fills, so the order of the two reads cannot matter.
+    /// </summary>
+    [TestMethod]
+    public void ReadingTheLengthOfAConstantBufferAfterABufferIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                private readonly ConstantBuffer<float> constants;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = this.buffer.Length + this.constants.Length;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderConstantBufferLengthAfterBufferTests", "CMPW0118");
+    }
+
+    /// <summary>
+    /// The dimensions of the resources that do carry them, which are read through a generated helper.
+    /// </summary>
+    [TestMethod]
+    public void ReadingTheDimensionsOfAResourceIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                private readonly ReadWriteTexture2D<float> surface;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = this.buffer.Length + this.surface.Width + this.surface.Height;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderResourceDimensionTests", "CMPW0118");
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
