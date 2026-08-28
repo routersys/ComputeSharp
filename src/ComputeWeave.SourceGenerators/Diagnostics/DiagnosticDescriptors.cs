@@ -1519,4 +1519,19 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "HLSL has no type parameters, so a generic method is neither mapped to an intrinsic nor importable: rewriting its declaration carries the type parameter list into the generated source. Without this diagnostic that declaration reaches the HLSL compiler, which reports it under a generated name the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a size accessor read on a constant buffer.
+    /// <para>
+    /// Format: <c>"The property {0} cannot be accessed on a constant buffer in a compute shader (a constant buffer is written to HLSL as the value it holds and not as a resource, so it has no dimensions to query)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidConstantBufferSizeAccess = new(
+        id: "CMPW0118",
+        title: "Invalid constant buffer size access",
+        messageFormat: "The property {0} cannot be accessed on a constant buffer in a compute shader (a constant buffer is written to HLSL as the value it holds and not as a resource, so it has no dimensions to query)",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A constant buffer becomes the value it holds in the generated HLSL, so it carries none of the dimension queries a resource has. Without this diagnostic the read is written out as it stands, and when a structured buffer in the same shader has already claimed the accessor the two types share, it is written out instead as a call to a generated helper that does not accept it, naming generated code the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
