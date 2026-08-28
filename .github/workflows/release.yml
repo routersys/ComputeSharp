@@ -141,6 +141,13 @@ jobs:
       - name: 本体のテストを実行
         run: dotnet test tests/ComputeWeave.Tests/ComputeWeave.Tests.csproj -c Release -p:Platform=x64
 
+      # D2D1 の本体のテストは装置を作り WARP へ退避しないため、アダプターの無い runner では実行しない。
+      - name: D2D1のソースジェネレーターのテストを実行
+        run: dotnet test tests/ComputeWeave.D2D1.Tests.SourceGenerators/ComputeWeave.D2D1.Tests.SourceGenerators.csproj -c Release -p:Platform=x64
+
+      - name: D2D1のアセンブリ属性のテストを実行
+        run: dotnet test tests/ComputeWeave.D2D1.Tests.AssemblyLevelAttributes/ComputeWeave.D2D1.Tests.AssemblyLevelAttributes.csproj -c Release -p:Platform=x64
+
       # 最上位ステートメントのテストは Exe でありビルドだけでは実行時の不一致を検出できないため、実際に走らせる。
       - name: 最上位ステートメントのテストを実行
         run: dotnet run --project tests/ComputeWeave.Tests.GlobalStatements/ComputeWeave.Tests.GlobalStatements.csproj -c Release -p:Platform=x64
