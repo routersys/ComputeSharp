@@ -81,7 +81,7 @@ jobs:
 
           case "${status}" in
             none)
-              echo "CI の実行がありません。文書だけの変更では CI が起動しないため、この経路からは発行できません。" >&2
+              echo "CI の実行がありません。CI が起動しない変更では、この経路から発行できません。" >&2
               ;;
             completed)
               echo "CI は完了していますが結論は ${conclusion} です。" >&2
