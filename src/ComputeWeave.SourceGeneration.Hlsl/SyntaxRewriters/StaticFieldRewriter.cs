@@ -38,6 +38,9 @@ internal sealed partial class StaticFieldRewriter(
     {
         if (node?.Initializer is EqualsValueClauseSyntax fieldInitializer)
         {
+            // The operation of a field lives on the initializer, not on the declarator that holds it
+            ReportUnmappedOperators(fieldInitializer);
+
             return ((EqualsValueClauseSyntax)Visit(fieldInitializer))!.Value;
         }
 

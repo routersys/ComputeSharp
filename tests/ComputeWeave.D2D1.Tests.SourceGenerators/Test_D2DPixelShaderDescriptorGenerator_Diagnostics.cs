@@ -107,4 +107,53 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0088", "CMPWD2D0034");
     }
+    /// <summary>
+    /// A conversion operator declared on a custom type. The rewriters are shared with the compute generator,
+    /// so what this pins is that the pixel shader generator answers with its own identifier.
+    /// </summary>
+    /// <remarks>
+    /// No compile error is named alongside it, unlike the other rewriter diagnostics. HLSL converts between
+    /// a struct and a scalar on its own, so this shader used to compile and then compute a different value
+    /// than the same code in C#. The diagnostic is the only signal there is.
+    /// </remarks>
+    [TestMethod]
+    public void UsingAConversionOperatorOfACustomTypeIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal struct Value
+            {
+                public float First;
+
+                public float Second;
+
+                public static explicit operator float(Value value) => value.Second;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    Value value = default;
+
+                    value.First = time;
+                    value.Second = time * 2;
+
+                    return (float)value;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0089");
+    }
 }
