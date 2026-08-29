@@ -82,7 +82,8 @@ internal abstract partial class HlslSourceRewriter(
     {
         VariableDeclarationSyntax updatedNode = (VariableDeclarationSyntax)base.VisitVariableDeclaration(node)!;
 
-        if (SemanticModel.For(node).GetTypeInfo(node.Type, CancellationToken).Type is ITypeSymbol { IsUnmanagedType: false } type)
+        // Look through 'scoped' so a scoped local is reported the same as the one without the modifier
+        if (SemanticModel.For(node).GetTypeInfo(UnwrapScopedType(node.Type), CancellationToken).Type is ITypeSymbol { IsUnmanagedType: false } type)
         {
             Diagnostics.Add(InvalidObjectDeclaration, node, type);
         }
