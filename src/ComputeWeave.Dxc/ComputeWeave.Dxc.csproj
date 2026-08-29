@@ -29,19 +29,25 @@
     <None Include="..\..\libs\arm64\dxil.dll" Pack="true" PackagePath="\runtimes\win-arm64\native" Visible="False" />
   </ItemGroup>
 
+  <!-- An explicit 'Platform' decides; the environment variable is only the default when none was given. -->
+  <PropertyGroup>
+    <ComputeWeaveDxcNativeLibraryPlatform Condition="'$(Platform)' == 'x64' OR '$(Platform)' == 'ARM64'">$(Platform)</ComputeWeaveDxcNativeLibraryPlatform>
+    <ComputeWeaveDxcNativeLibraryPlatform Condition="'$(ComputeWeaveDxcNativeLibraryPlatform)' == ''">$(CI_RUNNER_DOTNET_TEST_PLATFORM)</ComputeWeaveDxcNativeLibraryPlatform>
+  </PropertyGroup>
+
   <Choose>
 
     <!--
       When building locally for x64/ARM64 (using the project through a project reference),
       just copy the right native libraries to the output directory, with no subfolders.
     -->
-    <When Condition="'$(Platform)' == 'x64' OR '$(CI_RUNNER_DOTNET_TEST_PLATFORM)' == 'x64'">
+    <When Condition="'$(ComputeWeaveDxcNativeLibraryPlatform)' == 'x64'">
       <ItemGroup>
         <None Update="..\..\libs\x64\dxcompiler.dll" Link="dxcompiler.dll" CopyToOutputDirectory="PreserveNewest" />
         <None Update="..\..\libs\x64\dxil.dll" Link="dxil.dll" CopyToOutputDirectory="PreserveNewest" />
       </ItemGroup>
     </When>
-    <When Condition="'$(Platform)' == 'ARM64' OR '$(CI_RUNNER_DOTNET_TEST_PLATFORM)' == 'x64'">
+    <When Condition="'$(ComputeWeaveDxcNativeLibraryPlatform)' == 'ARM64'">
       <ItemGroup>
         <None Update="..\..\libs\arm64\dxcompiler.dll" Link="dxcompiler.dll" CopyToOutputDirectory="PreserveNewest" />
         <None Update="..\..\libs\arm64\dxil.dll" Link="dxil.dll" CopyToOutputDirectory="PreserveNewest" />
