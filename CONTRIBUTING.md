@@ -443,9 +443,9 @@ Follow the repository's [`.editorconfig`](/.editorconfig) and the conventions al
 
 The build treats warnings as errors and enforces code style. Do not work around either; fix the underlying issue.
 
-For new internal runtime code, follow the local convention for implementation comments. Do not add comments unless the surrounding code uses them for the same purpose.
+Do not add comments to code, and do not leave commented-out code behind. When you change a file that already carries comments, keep them.
 
-Public and protected APIs must carry the XML documentation the repository requires, including the contracts named in [Public API and diagnostics](#public-api-and-diagnostics). Preserve existing documentation comments when modifying existing code, and keep the documentation and comment conventions of the source generators and analyzers when working there.
+The exception is the XML documentation the repository requires on public and protected APIs, including the contracts named in [Public API and diagnostics](#public-api-and-diagnostics). The build enforces it rather than leaving it to review: documentation generation is on and warnings are errors, so a public or protected member without documentation does not compile. That requirement does not reach internal members or test code, so do not add documentation there.
 
 ---
 
