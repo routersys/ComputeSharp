@@ -65,7 +65,7 @@ internal sealed class CSharpAnalyzerTest<TAnalyzer> : CSharpAnalyzerTest<TAnalyz
     public static Task VerifyAnalyzerAsync(
         string source,
         bool allowUnsafeBlocks = true,
-        LanguageVersion languageVersion = LanguageVersion.CSharp12)
+        LanguageVersion languageVersion = LanguageVersion.CSharp14)
     {
         CSharpAnalyzerTest<TAnalyzer> test = new(allowUnsafeBlocks, languageVersion) { TestCode = source };
 
