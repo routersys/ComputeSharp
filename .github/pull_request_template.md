@@ -83,9 +83,9 @@ Adapter and driver tested / 試したアダプターとドライバー:
 - [ ] Implementation changes and their verification tests are separate commits. / 実装の変更と検証テストを別のコミットに分けた。
 - [ ] No commit already merged into the default branch or referenced by a release tag was rewritten. / 既定ブランチへ入った、またはリリースタグが指すコミットを書き換えていない。
 - [ ] The change follows the implementation pattern already established in the subsystem. / 変更は、その部分で既に確立された実装パターンに従っている。
+- [ ] No comment was added to the code, and no commented-out code was left behind. / コードへコメントを追加しておらず、コメントアウトしたコードを残していない。
 - [ ] Public and protected APIs carry the XML documentation the repository requires. / public と protected のAPIに、リポジトリが求めるXMLドキュメントを付けた。
 - [ ] Existing documentation comments were preserved. / 既存のドキュメントコメントを維持した。
-- [ ] New internal runtime code follows the local convention for implementation comments. / 新しい内部の実行時コードは、その場所の実装コメントの作法に従っている。
 - [ ] No silent fallback behavior or compatibility shim was introduced. / 暗黙の代替動作や互換性のための繕いを持ち込んでいない。
 - [ ] No unrelated dependency was updated. / 無関係な依存関係を更新していない。
 - [ ] If a file inherited from upstream changed, the divergence ledger in CONTRIBUTING.md was updated, or the change was judged not to be a divergence. / 上流から受け継いだファイルを変更した場合、CONTRIBUTING.md の乖離台帳を更新したか、乖離ではないと判断した。
