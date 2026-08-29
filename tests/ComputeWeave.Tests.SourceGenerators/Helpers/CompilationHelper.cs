@@ -11,25 +11,31 @@ namespace ComputeWeave.Tests.SourceGenerators.Helpers;
 
 internal static class CompilationHelper
 {
+    public const LanguageVersion DefaultLanguageVersion = LanguageVersion.CSharp14;
+
     private static readonly ImmutableArray<MetadataReference> References = CreateReferences();
 
-    public static CSharpCompilation CreateCompilation(string source, string assemblyName)
+    public static CSharpCompilation CreateCompilation(string source, string assemblyName, LanguageVersion languageVersion = DefaultLanguageVersion)
     {
-        return CreateCompilation([source], assemblyName);
+        return CreateCompilation([source], assemblyName, languageVersion);
     }
 
-    public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName)
+    public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName, LanguageVersion languageVersion = DefaultLanguageVersion)
     {
-        return CreateCompilation(sources, assemblyName, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        return CreateCompilation(sources, assemblyName, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary), languageVersion);
     }
 
-    public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName, CSharpCompilationOptions options)
+    public static CSharpCompilation CreateCompilation(
+        string[] sources,
+        string assemblyName,
+        CSharpCompilationOptions options,
+        LanguageVersion languageVersion = DefaultLanguageVersion)
     {
         SyntaxTree[] syntaxTrees = new SyntaxTree[sources.Length];
 
         for (int i = 0; i < sources.Length; i++)
         {
-            syntaxTrees[i] = CSharpSyntaxTree.ParseText(sources[i]);
+            syntaxTrees[i] = ParseTree(sources[i], languageVersion);
         }
 
         CSharpCompilation compilation = CSharpCompilation.Create(
@@ -53,14 +59,23 @@ internal static class CompilationHelper
     /// </summary>
     /// <param name="source">The source to compile.</param>
     /// <param name="assemblyName">The name to give the assembly.</param>
+    /// <param name="languageVersion">The language version to compile <paramref name="source"/> with.</param>
     /// <returns>The compilation, errors and all.</returns>
-    public static CSharpCompilation CreateCompilationAllowingErrors(string source, string assemblyName)
+    public static CSharpCompilation CreateCompilationAllowingErrors(
+        string source,
+        string assemblyName,
+        LanguageVersion languageVersion = DefaultLanguageVersion)
     {
         return CSharpCompilation.Create(
             assemblyName,
-            [CSharpSyntaxTree.ParseText(source)],
+            [ParseTree(source, languageVersion)],
             References,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+    }
+
+    public static SyntaxTree ParseTree(string source, LanguageVersion languageVersion = DefaultLanguageVersion)
+    {
+        return CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithLanguageVersion(languageVersion));
     }
 
     private static ImmutableArray<MetadataReference> CreateReferences()
