@@ -40,24 +40,26 @@ public unsafe class ResourceGenerationLifecycleRaceTests
 
     private const int RoundCount = 128;
 
+    // The most ManualResetEventSlim accepts; a smaller count stops catching the race.
+    private const int ReleaseSpinCount = 2047;
+
     private static int RunSimultaneously(Func<bool> body)
     {
         Thread[] threads = new Thread[ThreadCount];
 
         int successCount = 0;
-        int readyCount = 0;
-        bool isStarted = false;
+
+        // The waiters spin before they block: tight where processors allow, no starvation where they do not.
+        using CountdownEvent ready = new(ThreadCount);
+        using ManualResetEventSlim start = new(false, ReleaseSpinCount);
 
         for (int i = 0; i < ThreadCount; i++)
         {
             threads[i] = new Thread(() =>
             {
-                _ = Interlocked.Increment(ref readyCount);
+                _ = ready.Signal();
 
-                while (!Volatile.Read(ref isStarted))
-                {
-                    Thread.SpinWait(1);
-                }
+                start.Wait();
 
                 if (body())
                 {
@@ -68,12 +70,8 @@ public unsafe class ResourceGenerationLifecycleRaceTests
             threads[i].Start();
         }
 
-        while (Volatile.Read(ref readyCount) < ThreadCount)
-        {
-            Thread.SpinWait(1);
-        }
-
-        Volatile.Write(ref isStarted, true);
+        ready.Wait();
+        start.Set();
 
         foreach (Thread thread in threads)
         {
