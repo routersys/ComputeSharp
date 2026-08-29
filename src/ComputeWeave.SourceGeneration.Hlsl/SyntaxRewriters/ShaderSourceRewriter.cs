@@ -586,6 +586,11 @@ internal sealed partial class ShaderSourceRewriter(
                 return updatedNode;
             }
 
+            if (ReportUnmappedExtensionMemberCall(node, method))
+            {
+                return updatedNode;
+            }
+
             if (method.IsStatic)
             {
                 string metadataName = method.GetFullyQualifiedMetadataName();
