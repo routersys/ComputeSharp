@@ -51,6 +51,10 @@ jobs:
       - name: ソリューションをビルド
         run: dotnet build ComputeWeave.sln -c Release -p:Platform=x64
 
+      # 明示した Platform より環境変数が優先されると、ARM64 の構築が x64 のライブラリを置く。
+      - name: DXCの複製先を検証
+        run: pwsh build/verify-dxc-native-copy.ps1
+
       - name: ソースジェネレーターのテストを実行
         run: dotnet test tests/ComputeWeave.Tests.SourceGenerators/ComputeWeave.Tests.SourceGenerators.csproj -c Release -p:Platform=x64
 
