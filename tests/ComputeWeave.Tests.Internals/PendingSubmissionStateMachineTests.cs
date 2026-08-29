@@ -9,6 +9,9 @@ namespace ComputeWeave.Tests.Internals;
 [TestClass]
 public class PendingSubmissionStateMachineTests
 {
+    // The most ManualResetEventSlim accepts; a smaller count stops catching the race.
+    private const int ReleaseSpinCount = 2047;
+
     private sealed class RecordHolder
     {
         public PendingSubmissionRecord Record;
@@ -198,21 +201,20 @@ public class PendingSubmissionStateMachineTests
             holder.Record.State = SubmissionState.CompletionReady;
 
             int claimCount = 0;
-            int readyCount = 0;
-            bool isStarted = false;
 
             Thread[] threads = new Thread[8];
+
+            // The waiters spin before they block: tight where processors allow, no starvation where they do not.
+            using CountdownEvent ready = new(threads.Length);
+            using ManualResetEventSlim start = new(false, ReleaseSpinCount);
 
             for (int i = 0; i < threads.Length; i++)
             {
                 threads[i] = new Thread(() =>
                 {
-                    _ = Interlocked.Increment(ref readyCount);
+                    _ = ready.Signal();
 
-                    while (!Volatile.Read(ref isStarted))
-                    {
-                        Thread.SpinWait(1);
-                    }
+                    start.Wait();
 
                     if (holder.Record.TryClaimForReturn())
                     {
@@ -223,12 +225,8 @@ public class PendingSubmissionStateMachineTests
                 threads[i].Start();
             }
 
-            while (Volatile.Read(ref readyCount) < threads.Length)
-            {
-                Thread.SpinWait(1);
-            }
-
-            Volatile.Write(ref isStarted, true);
+            ready.Wait();
+            start.Set();
 
             foreach (Thread thread in threads)
             {
