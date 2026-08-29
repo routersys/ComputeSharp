@@ -10,6 +10,20 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 partial class HlslSourceRewriter
 {
     /// <summary>
+    /// Gets the type a given type node refers to, looking through the <see langword="scoped"/> modifier.
+    /// </summary>
+    /// <param name="type">The input <see cref="SyntaxNode"/> for a type to unwrap.</param>
+    /// <returns>The <see cref="SyntaxNode"/> for the type the input refers to.</returns>
+    /// <remarks>
+    /// The <see langword="scoped"/> modifier only constrains the lifetime of a local, and the semantic model binds no
+    /// type to the wrapper itself. Any code resolving the type of a local declaration has to look through it first.
+    /// </remarks>
+    protected static SyntaxNode UnwrapScopedType(SyntaxNode type)
+    {
+        return type is ScopedTypeSyntax scopedType ? scopedType.Type : type;
+    }
+
+    /// <summary>
     /// Tracks the associated type for a <see cref="SyntaxNode"/> value and returns the HLSL compatible <see cref="TypeSyntax"/>.
     /// </summary>
     /// <param name="node">The input <see cref="SyntaxNode"/> to check.</param>
@@ -70,19 +84,22 @@ partial class HlslSourceRewriter
     protected TRoot ReplaceAndTrackType<TRoot>(TRoot node, TypeSyntax targetType, SyntaxNode sourceType, SemanticModel semanticModel)
         where TRoot : SyntaxNode
     {
+        // Look through 'scoped' before inspecting the type node
+        SyntaxNode unwrappedType = UnwrapScopedType(sourceType);
+
         // Skip immediately for function pointers
-        if (sourceType is FunctionPointerTypeSyntax)
+        if (unwrappedType is FunctionPointerTypeSyntax)
         {
             return node.ReplaceNode(targetType, ParseTypeName("void*"));
         }
 
         // Handle the various possible type kinds
-        ITypeSymbol typeSymbol = sourceType switch
+        ITypeSymbol typeSymbol = unwrappedType switch
         {
             RefTypeSyntax refType => semanticModel.GetTypeInfo(refType.Type, CancellationToken).Type!,
             PointerTypeSyntax pointerType => semanticModel.GetTypeInfo(pointerType.ElementType, CancellationToken).Type!,
             ArrayTypeSyntax arrayType => semanticModel.GetTypeInfo(arrayType.ElementType, CancellationToken).Type!,
-            _ => semanticModel.GetTypeInfo(sourceType, CancellationToken).Type!
+            _ => semanticModel.GetTypeInfo(unwrappedType, CancellationToken).Type!
         };
 
         // Do nothing if the type is just void
