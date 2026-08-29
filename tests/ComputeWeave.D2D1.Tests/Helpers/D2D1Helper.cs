@@ -53,7 +53,7 @@ internal static class D2D1Helper
         D3D_FEATURE_LEVEL d3DFeatureLevel;
 
         // Create the Direct3D 11 API device and context
-        DirectX.D3D11CreateDevice(
+        HRESULT result = DirectX.D3D11CreateDevice(
             pAdapter: null,
             DriverType: D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_HARDWARE,
             Software: HMODULE.NULL,
@@ -63,7 +63,27 @@ internal static class D2D1Helper
             SDKVersion: D3D11.D3D11_SDK_VERSION,
             ppDevice: d3D11Device.GetAddressOf(),
             pFeatureLevel: &d3DFeatureLevel,
-            ppImmediateContext: null).Assert();
+            ppImmediateContext: null);
+
+        // A runner with no adapter has no hardware device to create, and without a fallback the first line
+        // of the fixture fails every test in the suite. The suite was measured on WARP and reports the same
+        // results as on hardware, so falling back runs the tests rather than leaving the suite out.
+        if (result.FAILED)
+        {
+            result = DirectX.D3D11CreateDevice(
+                pAdapter: null,
+                DriverType: D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_WARP,
+                Software: HMODULE.NULL,
+                Flags: (uint)D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+                pFeatureLevels: featureLevels,
+                FeatureLevels: 7,
+                SDKVersion: D3D11.D3D11_SDK_VERSION,
+                ppDevice: d3D11Device.GetAddressOf(),
+                pFeatureLevel: &d3DFeatureLevel,
+                ppImmediateContext: null);
+        }
+
+        result.Assert();
 
         using ComPtr<IDXGIDevice3> dxgiDevice3 = default;
 
