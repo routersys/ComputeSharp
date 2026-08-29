@@ -366,4 +366,35 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0093");
     }
+
+    /// <summary>
+    /// A native integer type has no HLSL counterpart. The rule that refuses it is shared with the compute
+    /// path, which covers the pair; what this reads is the diagnostic the Direct2D path maps it to.
+    /// </summary>
+    [TestMethod]
+    public void NativeIntegerType()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                public float4 Execute()
+                {
+                    nint value = 1000;
+
+                    return new float4((float)value, 0, 0, 0);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0041", "CMPWD2D0034");
+    }
 }

@@ -345,12 +345,13 @@ internal static partial class HlslKnownTypes
                 return;
             }
 
-            // Check if the type is unsupported
+            // Check if the type is unsupported. The metadata name is the one the lookup above uses, and a
+            // native integer type displays as a keyword rather than as the name it carries in metadata.
             if (!type.IsUnmanagedType ||
                 type.TypeKind is TypeKind.Enum ||
                 type.IsGenericType ||
                 type.IsRefLikeType ||
-                type.GetFullyQualifiedName().StartsWith("System.", StringComparison.InvariantCulture))
+                type.GetFullyQualifiedMetadataName().StartsWith("System.", StringComparison.InvariantCulture))
             {
                 _ = invalidTypes.Add(type);
 
