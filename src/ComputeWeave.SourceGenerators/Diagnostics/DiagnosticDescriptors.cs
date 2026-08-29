@@ -1552,4 +1552,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A member declared in an extension block belongs to a type the author cannot name, and the import path only reaches a static method or an instance method on a struct, so the declaration is never rewritten. Without this diagnostic the call is written out as it stands and fails in the HLSL compiler, naming a member it never saw. An extension method declared with a 'this' parameter is imported and is unaffected, as is a static method declared inside an extension block, which belongs to the enclosing static class.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for the construction of a type declaring a primary constructor.
+    /// <para>
+    /// Format: <c>"The type {0} cannot be constructed in a compute shader (it declares a primary constructor, and the way its captured parameters reach the members of the type cannot be tracked while preserving the same semantics, so an explicit constructor has to be declared instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidPrimaryConstructorUse = new(
+        id: "CMPW0120",
+        title: "Invalid primary constructor use",
+        messageFormat: "The type {0} cannot be constructed in a compute shader (it declares a primary constructor, and the way its captured parameters reach the members of the type cannot be tracked while preserving the same semantics, so an explicit constructor has to be declared instead)",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A primary constructor is refused on purpose, and not for want of source. Its parameters are captured, and a capture can be reached from any member of the type in ways the rewriting cannot follow while preserving the same semantics. The shader type's own primary constructor is unaffected, its captures becoming the shader fields. Without this diagnostic the refusal is reported as a constructor with no source to analyze, which the author cannot act on, the source being right there.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

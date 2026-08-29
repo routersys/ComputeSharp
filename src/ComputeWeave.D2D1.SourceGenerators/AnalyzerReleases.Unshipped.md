@@ -10,3 +10,4 @@ CMPWD2D0089 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github
 CMPWD2D0090 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPWD2D0091 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPWD2D0092 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0093 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
