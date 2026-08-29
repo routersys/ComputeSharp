@@ -73,10 +73,54 @@ public class ExtensionMemberTests
         }
         """;
 
+    /// <summary>
+    /// The other half of the block, an operator. It is declared on the same unnameable type, and the walk
+    /// over resolved operators already reports it, so this pins which of the two diagnostics answers.
+    /// </summary>
+    private const string OperatorSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal struct Value
+        {
+            public float Amount;
+        }
+
+        internal static class Ext
+        {
+            extension(Value value)
+            {
+                public static Value operator +(Value left, Value right) => left;
+            }
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                Value left = default;
+                Value right = default;
+
+                this.buffer[0] = (left + right).Amount;
+            }
+        }
+        """;
+
     [TestMethod]
     public void CallingAnExtensionMemberIsDiagnosed()
     {
         AssertIsDiagnosed(InstanceMemberSource, "ShaderExtensionMemberTests", "CMPW0119");
+    }
+
+    [TestMethod]
+    public void UsingAnExtensionOperatorIsDiagnosed()
+    {
+        AssertIsDiagnosed(OperatorSource, "ShaderExtensionOperatorTests", "CMPW0115");
     }
 
     [TestMethod]
