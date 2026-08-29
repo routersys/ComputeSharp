@@ -1200,6 +1200,64 @@ public class ShaderSourceRewriterTests
         AssertIsNotDiagnosed(Source, "ShaderResourceDimensionTests", "CMPW0118");
     }
 
+    [TestMethod]
+    [DataRow("ref float value = ref local", "ShaderRefLocalTests", "CMPW0022")]
+    [DataRow("scoped ref float value = ref local", "ShaderScopedRefLocalTests", "CMPW0022")]
+    public void DeclaringARefLocalIsDiagnosedWithoutFaultingTheGenerator(string declaration, string assemblyName, string diagnosticId)
+    {
+        string source = $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    float local = 1;
+
+                    {{declaration}};
+
+                    this.buffer[ThreadIds.X] = value;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(source, assemblyName, diagnosticId);
+    }
+
+    [TestMethod]
+    [DataRow("System.Span<int> values = default", "ShaderSpanLocalTests", "CMPW0031")]
+    [DataRow("scoped System.Span<int> values = default", "ShaderScopedSpanLocalTests", "CMPW0031")]
+    public void DeclaringARefStructLocalIsDiagnosedWithoutFaultingTheGenerator(string declaration, string assemblyName, string diagnosticId)
+    {
+        string source = $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    {{declaration}};
+
+                    this.buffer[ThreadIds.X] = values.Length;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(source, assemblyName, diagnosticId);
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
