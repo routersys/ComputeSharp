@@ -324,4 +324,46 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
+
+    /// <summary>
+    /// A type declaring a primary constructor. The rewriters are shared with the compute generator, so what
+    /// this pins is that the pixel shader generator answers with its own identifier.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the other rewriter diagnostics here, no compile error follows it. The construction falls back
+    /// to a default value, which is valid HLSL, so the shader still compiles and only this one is reported.
+    /// </remarks>
+    [TestMethod]
+    public void ConstructingATypeWithAPrimaryConstructorIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal readonly struct Helper(float value)
+            {
+                public readonly float Doubled() => value * 2;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    Helper helper = new(this.time);
+
+                    return new float4(helper.Doubled(), 0, 0, 0);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0093");
+    }
 }
