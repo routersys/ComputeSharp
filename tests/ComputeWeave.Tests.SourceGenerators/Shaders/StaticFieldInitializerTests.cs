@@ -89,6 +89,40 @@ public class StaticFieldInitializerTests
         }
         """;
 
+    /// <summary>
+    /// An imported method that declares a local function. HLSL has no nested functions, so the rewriter
+    /// lifts them to top level, and an initializer has to carry them out the same way a body does.
+    /// </summary>
+    private const string LocalFunctionSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal static class Helper
+        {
+            public static float Twice(float value)
+            {
+                static float Inner(float inner) => inner * 2;
+
+                return Inner(value);
+            }
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Twice(2.0f);
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
     [TestMethod]
     public void AnIntrinsicIsWrittenUnderItsHlslName()
     {
@@ -122,6 +156,19 @@ public class StaticFieldInitializerTests
         Assert.IsFalse(generated.Contains("Helper.Twice"), $"the call is written out as it stands:\n{generated}");
         Assert.IsTrue(generated.Contains("Shaders_Helper_Twice(2.0)"), $"the call is not renamed to the import:\n{generated}");
         Assert.IsTrue(generated.Contains("float Shaders_Helper_Twice(float value)"), $"the declaration is not imported:\n{generated}");
+    }
+
+    /// <summary>
+    /// The local functions of an imported method are written too. Without that, the initializer would call
+    /// a function the generated HLSL never declares, which the shader compiler reports as a diagnostic.
+    /// </summary>
+    [TestMethod]
+    public void ALocalFunctionOfAnImportedMethodIsWritten()
+    {
+        string generated = Generate(LocalFunctionSource, "StaticFieldLocalFunctionTests");
+
+        Assert.IsTrue(generated.Contains("Shaders_Helper_Twice(2.0)"), $"the call is not renamed to the import:\n{generated}");
+        Assert.IsTrue(generated.Contains("Inner"), $"the local function is not written:\n{generated}");
     }
 
     private static string Generate(string source, string assemblyName)
