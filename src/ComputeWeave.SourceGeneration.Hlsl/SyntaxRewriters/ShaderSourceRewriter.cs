@@ -821,7 +821,17 @@ internal sealed partial class ShaderSourceRewriter(
                 // rewrite all of them correctly to exactly preserve the same semantics. So we just block such cases entirely as well.
                 if (!constructor.TryGetSyntaxNode(CancellationToken, out ConstructorDeclarationSyntax? constructorNode))
                 {
-                    Diagnostics.Add(InvalidMethodOrConstructorCall, node, constructor);
+                    // The two cases are told apart by whether the constructor is declared in source at all. A primary
+                    // constructor is, on the type declaration rather than on one of its own, so reporting it as having
+                    // no source to analyze would name a reason the author can see is not the one.
+                    if (constructor.DeclaringSyntaxReferences.IsEmpty)
+                    {
+                        Diagnostics.Add(InvalidMethodOrConstructorCall, node, constructor);
+                    }
+                    else
+                    {
+                        Diagnostics.Add(InvalidPrimaryConstructorUse, node, typeSymbol);
+                    }
 
                     return base.VisitUserDefinedObjectCreationExpression(node, updatedNode, targetType);
                 }

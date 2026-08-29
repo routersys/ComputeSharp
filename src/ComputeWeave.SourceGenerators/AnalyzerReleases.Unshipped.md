@@ -11,3 +11,4 @@ CMPW0116 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/rou
 CMPW0117 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0118 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0119 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0120 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
