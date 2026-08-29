@@ -125,7 +125,7 @@ public class PipelineDescriptorGeneratorTests
 
         string clean = GeneratorHelper.GetGeneratedSource(GeneratorHelper.Run(driver, compilation, out GeneratorDriver cleanDriver), "Ukiyoe.Host");
 
-        CSharpCompilation updatedCompilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("""
+        CSharpCompilation updatedCompilation = compilation.AddSyntaxTrees(CompilationHelper.ParseTree("""
             namespace Ukiyoe;
 
             public sealed class Unrelated
@@ -165,7 +165,7 @@ public class PipelineDescriptorGeneratorTests
 
         _ = GeneratorHelper.Run(driver, compilation, out GeneratorDriver cleanDriver);
 
-        CSharpCompilation updatedCompilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("""
+        CSharpCompilation updatedCompilation = compilation.AddSyntaxTrees(CompilationHelper.ParseTree("""
             namespace Ukiyoe;
 
             public sealed class Other
