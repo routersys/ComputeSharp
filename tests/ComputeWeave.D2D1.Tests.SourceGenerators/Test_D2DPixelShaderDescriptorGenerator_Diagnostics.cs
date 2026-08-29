@@ -288,4 +288,40 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0092", "CMPWD2D0034");
     }
+
+    /// <summary>
+    /// A static field initializer calling a method the generator wrote. FXC accepts it, the forward
+    /// declarations being written ahead of the static fields, so the same holds on this path as on the
+    /// compute one. This is pinned because what an initializer may call decides how it can be rewritten.
+    /// </summary>
+    [TestMethod]
+    public void AStaticFieldInitializerMayCallAShaderMethod()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float Scale = Member(2.0f);
+
+                private readonly float time;
+
+                private static float Member(float value) => value * 2;
+
+                public float4 Execute()
+                {
+                    return new float4(Scale, this.time, 0, 0);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
+    }
 }
