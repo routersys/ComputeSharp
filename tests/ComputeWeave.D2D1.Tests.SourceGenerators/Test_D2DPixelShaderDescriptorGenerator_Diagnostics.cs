@@ -245,4 +245,47 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0091", "CMPWD2D0034");
     }
+
+    /// <summary>
+    /// A method declared in a C# extension block. The rewriters are shared with the compute generator, so
+    /// what this pins is that the pixel shader generator answers with its own identifier.
+    /// </summary>
+    /// <remarks>
+    /// The shader is still handed to FXC after the diagnostic, as it is for every other rewriter
+    /// diagnostic, so the compile error it raises on the same call is named here too.
+    /// </remarks>
+    [TestMethod]
+    public void CallingAnExtensionMemberIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                extension(float value)
+                {
+                    public float Doubled() => value * 2;
+                }
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return this.time.Doubled();
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0092", "CMPWD2D0034");
+    }
 }
