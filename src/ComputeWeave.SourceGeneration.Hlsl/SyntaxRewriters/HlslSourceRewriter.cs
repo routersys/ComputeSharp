@@ -261,6 +261,18 @@ internal abstract partial class HlslSourceRewriter(
 
                 return updatedNode.WithToken(Literal(literal, 0d));
             }
+            else if (type.SpecialType is SpecialType.System_Int32 or SpecialType.System_UInt32)
+            {
+                // Written from the value, so the spelling the author used does not reach the shader compiler.
+                string literal = updatedNode.Token.ValueText;
+
+                if (type.SpecialType == SpecialType.System_UInt32)
+                {
+                    literal += "u";
+                }
+
+                return updatedNode.WithToken(Literal(literal, 0));
+            }
         }
         else if (updatedNode.IsKind(SyntaxKind.CharacterLiteralExpression) &&
                  updatedNode.Token.Value is char character)
