@@ -87,15 +87,28 @@ partial class D2DPixelShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
+            Dictionary<IMethodSymbol, LocalFunctionStatementSyntax> initializerLocalFunctions = new(SymbolEqualityComparer.Default);
+
             ImmutableArray<HlslStaticField> staticFields = GetStaticFields(
                 diagnostics,
                 semanticModelProvider,
                 structDeclarationSymbol,
                 discoveredTypes,
+                staticMethods,
+                instanceMethods,
+                constructors,
                 constantDefinitions,
                 staticFieldDefinitions,
+                initializerLocalFunctions,
                 token,
                 out bool fieldsNeedD2D1RequiresScenePosition);
+
+            token.ThrowIfCancellationRequested();
+
+            // The static methods are gathered after the static fields, because an initializer can import one
+            // of its own. Where they land among the methods does not matter: every forward declaration is
+            // written before any of the definitions, and before the static fields that call them.
+            processedMethods = AppendImportedMethods(processedMethods, staticMethods, initializerLocalFunctions);
 
             token.ThrowIfCancellationRequested();
 
@@ -239,14 +252,52 @@ partial class D2DPixelShaderDescriptorGenerator
         }
 
         /// <summary>
+        /// Appends the imported static methods, and the local functions lifted out of them, to the processed ones.
+        /// </summary>
+        /// <param name="processedMethods">The methods gathered while rewriting the shader.</param>
+        /// <param name="staticMethods">The collection of discovered static methods.</param>
+        /// <param name="localFunctions">The local functions lifted out of methods imported into an initializer.</param>
+        /// <returns>The full sequence of methods to write.</returns>
+        private static ImmutableArray<HlslMethod> AppendImportedMethods(
+            ImmutableArray<HlslMethod> processedMethods,
+            IReadOnlyDictionary<IMethodSymbol, MethodDeclarationSyntax> staticMethods,
+            IReadOnlyDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions)
+        {
+            using ImmutableArrayBuilder<HlslMethod> builder = new();
+
+            builder.AddRange(processedMethods.AsSpan());
+
+            foreach (LocalFunctionStatementSyntax localFunction in localFunctions.Values)
+            {
+                // Parameter default values stay on the forward declaration only, as HLSL rejects repeating them
+                builder.Add((
+                    localFunction.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
+                    localFunction.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
+            }
+
+            foreach (MethodDeclarationSyntax staticMethod in staticMethods.Values)
+            {
+                builder.Add((
+                    staticMethod.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
+                    staticMethod.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
+            }
+
+            return builder.ToImmutable();
+        }
+
+        /// <summary>
         /// Gets a sequence of shader static fields and their mapped names.
         /// </summary>
         /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
         /// <param name="semanticModel">The <see cref="SemanticModelProvider"/> instance for the type to process.</param>
         /// <param name="structDeclarationSymbol">The type symbol for the shader type.</param>
         /// <param name="discoveredTypes">The collection of currently discovered types.</param>
+        /// <param name="staticMethods">The collection of discovered static methods.</param>
+        /// <param name="instanceMethods">The collection of discovered instance methods for custom struct types.</param>
+        /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
         /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
         /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+        /// <param name="localFunctions">The collection to receive the local functions lifted out of imported methods.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <param name="needsD2D1RequiresScenePosition">Whether or not the shader needs the <c>[D2DRequiresScenePosition]</c> annotation.</param>
         /// <returns>A sequence of static constant fields in <paramref name="structDeclarationSymbol"/>.</returns>
@@ -255,8 +306,12 @@ partial class D2DPixelShaderDescriptorGenerator
             SemanticModelProvider semanticModel,
             INamedTypeSymbol structDeclarationSymbol,
             ICollection<INamedTypeSymbol> discoveredTypes,
+            IDictionary<IMethodSymbol, MethodDeclarationSyntax> staticMethods,
+            IDictionary<IMethodSymbol, MethodDeclarationSyntax> instanceMethods,
+            IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
             IDictionary<IFieldSymbol, string> constantDefinitions,
             IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+            IDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions,
             CancellationToken token,
             out bool needsD2D1RequiresScenePosition)
         {
@@ -276,6 +331,9 @@ partial class D2DPixelShaderDescriptorGenerator
                     fieldSymbol,
                     semanticModel,
                     discoveredTypes,
+                    staticMethods,
+                    instanceMethods,
+                    constructors,
                     constantDefinitions,
                     staticFieldDefinitions,
                     diagnostics,
@@ -288,6 +346,13 @@ partial class D2DPixelShaderDescriptorGenerator
                     needsD2D1RequiresScenePosition |= staticFieldRewriter.NeedsD2DRequiresScenePositionAttribute;
 
                     builder.Add((name, typeDeclaration, assignmentExpression));
+
+                    // An initializer may import a method that declares a local function, which HLSL cannot
+                    // nest, so the ones lifted out of it are carried up to be written like any other
+                    foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in staticFieldRewriter.LocalFunctions)
+                    {
+                        localFunctions[localFunction.Key] = localFunction.Value;
+                    }
                 }
             }
 
@@ -415,14 +480,6 @@ partial class D2DPixelShaderDescriptorGenerator
             }
 
             token.ThrowIfCancellationRequested();
-
-            // Process static methods as well
-            foreach (MethodDeclarationSyntax staticMethod in staticMethods.Values)
-            {
-                methods.Add((
-                    staticMethod.AsDefinition().NormalizeWhitespace(eol: "\n").ToFullString(),
-                    staticMethod.WithoutParameterDefaults().NormalizeWhitespace(eol: "\n").ToFullString()));
-            }
 
             return (entryPoint!, methods.ToImmutable());
         }

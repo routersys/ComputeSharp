@@ -9,6 +9,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 #pragma warning disable IDE0051
@@ -18,21 +19,53 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <summary>
 /// A custom <see cref="CSharpSyntaxRewriter"/> type that processes C# static field to convert to HLSL static fields (possibly constant).
 /// </summary>
+/// <param name="shaderType">The type symbol for the shader type.</param>
 /// <param name="semanticModel">The <see cref="SemanticModelProvider"/> instance for the target syntax tree.</param>
 /// <param name="discoveredTypes">The set of discovered custom types.</param>
+/// <param name="staticMethods">The collection of discovered static methods.</param>
+/// <param name="instanceMethods">The collection of discovered instance methods for custom struct types.</param>
+/// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
 /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
 /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
 /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
 /// <param name="token">The <see cref="CancellationToken"/> value for the current operation.</param>
 internal sealed partial class StaticFieldRewriter(
+    INamedTypeSymbol shaderType,
     SemanticModelProvider semanticModel,
     ICollection<INamedTypeSymbol> discoveredTypes,
+    IDictionary<IMethodSymbol, MethodDeclarationSyntax> staticMethods,
+    IDictionary<IMethodSymbol, MethodDeclarationSyntax> instanceMethods,
+    IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
     IDictionary<IFieldSymbol, string> constantDefinitions,
     IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token)
     : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, diagnostics, token)
 {
+    /// <summary>
+    /// The type symbol for the shader type.
+    /// </summary>
+    private readonly INamedTypeSymbol shaderType = shaderType;
+
+    /// <summary>
+    /// The collection of discovered static methods.
+    /// </summary>
+    private readonly IDictionary<IMethodSymbol, MethodDeclarationSyntax> staticMethods = staticMethods;
+
+    /// <summary>
+    /// The local functions produced while importing methods into an initializer.
+    /// </summary>
+    /// <remarks>
+    /// An imported method may declare one, and HLSL has no nested functions, so the rewriter that imports
+    /// it lifts them to top level. They are carried out to the caller here to be written like any other.
+    /// </remarks>
+    private readonly Dictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions = new(SymbolEqualityComparer.Default);
+
+    /// <summary>
+    /// Gets the collection of local functions lifted out of the methods imported into an initializer.
+    /// </summary>
+    public IReadOnlyDictionary<IMethodSymbol, LocalFunctionStatementSyntax> LocalFunctions => this.localFunctions;
+
     /// <inheritdoc cref="CSharpSyntaxRewriter.Visit(SyntaxNode?)"/>
     public ExpressionSyntax? Visit(VariableDeclaratorSyntax? node)
     {
@@ -141,9 +174,80 @@ internal sealed partial class StaticFieldRewriter(
 
                 return updatedNode.WithExpression(IdentifierName(mapping!));
             }
+
+            // A static method with no mapping is imported by rewriting its declaration, the same way the
+            // shader body imports one. HLSL accepts a call in a static field initializer because every
+            // forward declaration is written ahead of the static fields. A method on the shader type is
+            // left alone, as the generator writes those out through its own path.
+            if (method.IsStatic &&
+                !SymbolEqualityComparer.Default.Equals(this.shaderType, method.ContainingType))
+            {
+                return VisitImportedStaticMethodInvocation(node, updatedNode, method);
+            }
         }
 
         return updatedNode;
+    }
+
+    /// <summary>
+    /// Imports the declaration of a static method called from an initializer, and renames the call to it.
+    /// </summary>
+    /// <param name="node">The original invocation.</param>
+    /// <param name="updatedNode">The invocation as rewritten so far.</param>
+    /// <param name="method">The resolved target of <paramref name="node"/>.</param>
+    /// <returns>The invocation, renamed to the imported declaration when one could be produced.</returns>
+    private InvocationExpressionSyntax VisitImportedStaticMethodInvocation(
+        InvocationExpressionSyntax node,
+        InvocationExpressionSyntax updatedNode,
+        IMethodSymbol method)
+    {
+        string methodIdentifier = method.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
+
+        if (!this.staticMethods.ContainsKey(method))
+        {
+            if (!method.TryGetSyntaxNode(CancellationToken, out MethodDeclarationSyntax? methodNode))
+            {
+                Diagnostics.Add(InvalidMethodOrConstructorCall, node, method);
+
+                return updatedNode;
+            }
+
+            // Claim the entry before rewriting, so that a method reaching itself terminates
+            this.staticMethods.Add(method, null!);
+
+            ShaderSourceRewriter shaderSourceRewriter = new(
+                this.shaderType,
+                SemanticModel,
+                DiscoveredTypes,
+                this.staticMethods,
+                instanceMethods,
+                constructors,
+                ConstantDefinitions,
+                StaticFieldDefinitions,
+                Diagnostics,
+                CancellationToken);
+
+            MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
+
+            foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
+            {
+                this.localFunctions[localFunction.Key] = localFunction.Value;
+            }
+
+            this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
+        }
+
+        // C# leaves the receiver of an extension method out of the argument list, whereas the declaration
+        // is imported with the receiver as its first parameter, so it is moved into place here
+        if (SemanticModel.For(node).GetSymbolInfo(node, CancellationToken).Symbol is IMethodSymbol { ReducedFrom: not null } &&
+            updatedNode.Expression is MemberAccessExpressionSyntax memberAccess)
+        {
+            updatedNode = updatedNode.WithArgumentList(
+                updatedNode.ArgumentList.WithArguments(
+                    updatedNode.ArgumentList.Arguments.Insert(0, Argument(memberAccess.Expression))));
+        }
+
+        return updatedNode.WithExpression(IdentifierName(methodIdentifier));
     }
 
     /// <inheritdoc/>

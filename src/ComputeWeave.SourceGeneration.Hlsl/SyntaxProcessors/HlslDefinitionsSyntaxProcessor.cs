@@ -48,6 +48,9 @@ internal static class HlslDefinitionsSyntaxProcessor
     /// <param name="fieldSymbol">The symbol for the field to analyze.</param>
     /// <param name="semanticModel">The <see cref="SemanticModelProvider"/> instance for the type to process.</param>
     /// <param name="discoveredTypes">The collection of currently discovered types.</param>
+    /// <param name="staticMethods">The collection of discovered static methods.</param>
+    /// <param name="instanceMethods">The collection of discovered instance methods for custom struct types.</param>
+    /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
     /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
     /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
     /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
@@ -62,6 +65,9 @@ internal static class HlslDefinitionsSyntaxProcessor
         IFieldSymbol fieldSymbol,
         SemanticModelProvider semanticModel,
         ICollection<INamedTypeSymbol> discoveredTypes,
+        IDictionary<IMethodSymbol, MethodDeclarationSyntax> staticMethods,
+        IDictionary<IMethodSymbol, MethodDeclarationSyntax> instanceMethods,
+        IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
         IDictionary<IFieldSymbol, string> constantDefinitions,
         IDictionary<IFieldSymbol, (string, string, string?)> staticFieldDefinitions,
         ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
@@ -111,8 +117,12 @@ internal static class HlslDefinitionsSyntaxProcessor
         // Create the rewriter to use, which is also returned to callers so they can extract any additional
         // info if needed. For instance, the D2D generator will check if the dispatch position is required.
         staticFieldRewriter = new StaticFieldRewriter(
+            structDeclarationSymbol,
             semanticModel,
             discoveredTypes,
+            staticMethods,
+            instanceMethods,
+            constructors,
             constantDefinitions,
             staticFieldDefinitions,
             diagnostics,

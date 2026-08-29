@@ -936,6 +936,9 @@ internal sealed partial class ShaderSourceRewriter(
                 fieldSymbol,
                 SemanticModel,
                 DiscoveredTypes,
+                this.staticMethods,
+                this.instanceMethods,
+                this.constructors,
                 ConstantDefinitions,
                 StaticFieldDefinitions,
                 Diagnostics,
@@ -943,8 +946,15 @@ internal sealed partial class ShaderSourceRewriter(
                 out _,
                 out string? typeDeclaration,
                 out string? assignmentExpression,
-                out _))
+                out StaticFieldRewriter? staticFieldRewriter))
             {
+                // An initializer may import a method of its own, whose local functions are lifted the same
+                // way as the ones reached from a method body, so they are carried up here
+                foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in staticFieldRewriter.LocalFunctions)
+                {
+                    this.localFunctions[localFunction.Key] = localFunction.Value;
+                }
+
                 fieldInfo.Name = fieldSymbol.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
 
                 StaticFieldDefinitions.Add(fieldSymbol, (fieldInfo.Name, typeDeclaration, assignmentExpression));
