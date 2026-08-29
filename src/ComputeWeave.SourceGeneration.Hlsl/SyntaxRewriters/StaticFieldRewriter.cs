@@ -109,6 +109,11 @@ internal sealed partial class StaticFieldRewriter(
                 return updatedNode;
             }
 
+            if (ReportUnmappedExtensionMemberCall(node, method))
+            {
+                return updatedNode;
+            }
+
             // Rewrite HLSL intrinsic methods
             if (method.IsStatic &&
                 HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out string? mapping, out bool requiresParametersMapping))

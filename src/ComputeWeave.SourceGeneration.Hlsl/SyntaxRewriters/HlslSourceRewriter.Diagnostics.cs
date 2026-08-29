@@ -94,6 +94,42 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
+    /// Reports an invocation of a member declared in a C# extension block, which is never imported.
+    /// </summary>
+    /// <param name="node">The invocation that is about to be written out as it stands.</param>
+    /// <param name="method">The resolved target of <paramref name="node"/>.</param>
+    /// <returns>Whether the invocation was reported, in which case the caller leaves it alone.</returns>
+    /// <remarks>
+    /// <para>
+    /// An extension block declares its members on a type of its own, which the import path never reaches:
+    /// that path takes a static method, or an instance method on a struct, and an extension member is an
+    /// instance member of neither. The body the author wrote therefore never runs, and the call is written
+    /// out as it stands, naming a member the HLSL compiler never saw.
+    /// </para>
+    /// <para>
+    /// The type is asked whether it can be referenced by name rather than for its kind. The kind for an
+    /// extension declaration was added to Roslyn after the version these generators compile against, so it
+    /// cannot be named here, whereas a type the author cannot write is what an extension declaration is.
+    /// </para>
+    /// <para>
+    /// An extension method declared with a <see langword="this"/> parameter is unaffected, its target being
+    /// a static method on the enclosing class. So is a static method declared inside an extension block,
+    /// which belongs to that same enclosing class and is imported through the static path.
+    /// </para>
+    /// </remarks>
+    protected bool ReportUnmappedExtensionMemberCall(InvocationExpressionSyntax node, IMethodSymbol method)
+    {
+        if (method.ContainingType.CanBeReferencedByName)
+        {
+            return false;
+        }
+
+        Diagnostics.Add(InvalidExtensionMemberCall, node, method);
+
+        return true;
+    }
+
+    /// <summary>
     /// Reports every operator a rewritten declaration resolves that HLSL cannot express.
     /// </summary>
     /// <param name="declaration">The declaration whose body has just been rewritten.</param>

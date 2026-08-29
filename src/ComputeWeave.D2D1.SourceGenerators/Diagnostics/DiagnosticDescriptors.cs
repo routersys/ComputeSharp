@@ -1377,4 +1377,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "HLSL has no type parameters, so a generic method is neither mapped to an intrinsic nor importable: rewriting its declaration carries the type parameter list into the generated source. Without this diagnostic that declaration reaches the HLSL compiler, which reports it under a generated name the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an invocation of a C# extension member.
+    /// <para>
+    /// Format: <c>"The method {0} cannot be called in a D2D1 pixel shader (it is declared in an extension block, which is not imported into the generated HLSL, so the body it declares would never run)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidExtensionMemberCall = new(
+        id: "CMPWD2D0092",
+        title: "Invalid extension member call",
+        messageFormat: "The method {0} cannot be called in a D2D1 pixel shader (it is declared in an extension block, which is not imported into the generated HLSL, so the body it declares would never run)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A member declared in an extension block belongs to a type the author cannot name, and the import path only reaches a static method or an instance method on a struct, so the declaration is never rewritten. Without this diagnostic the call is written out as it stands and fails in the HLSL compiler, naming a member it never saw. An extension method declared with a 'this' parameter is imported and is unaffected, as is a static method declared inside an extension block, which belongs to the enclosing static class.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

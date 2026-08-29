@@ -1536,4 +1536,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A constant buffer becomes the value it holds in the generated HLSL, so it carries none of the dimension queries a resource has. Without this diagnostic the read is written out as it stands, and when a structured buffer in the same shader has already claimed the accessor the two types share, it is written out instead as a call to a generated helper that does not accept it, naming generated code the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an invocation of a C# extension member.
+    /// <para>
+    /// Format: <c>"The method {0} cannot be called in a compute shader (it is declared in an extension block, which is not imported into the generated HLSL, so the body it declares would never run)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidExtensionMemberCall = new(
+        id: "CMPW0119",
+        title: "Invalid extension member call",
+        messageFormat: "The method {0} cannot be called in a compute shader (it is declared in an extension block, which is not imported into the generated HLSL, so the body it declares would never run)",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A member declared in an extension block belongs to a type the author cannot name, and the import path only reaches a static method or an instance method on a struct, so the declaration is never rewritten. Without this diagnostic the call is written out as it stands and fails in the HLSL compiler, naming a member it never saw. An extension method declared with a 'this' parameter is imported and is unaffected, as is a static method declared inside an extension block, which belongs to the enclosing static class.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
