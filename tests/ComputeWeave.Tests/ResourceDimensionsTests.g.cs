@@ -47,6 +47,40 @@ public partial class ResourceDimensionsTests
     [Data(64)]
     [Data(128)]
     [Data(376)]
+    public void ReadOnlyBuffer_T1_AsIReadOnlyBuffer(Device device, int axis0)
+    {
+        using ReadOnlyBuffer<float> resource = device.Get().AllocateReadOnlyBuffer<float>(axis0);
+        using ReadWriteBuffer<int> result = device.Get().AllocateReadWriteBuffer<int>(1);
+
+        device.Get().For(1, new ReadOnlyBuffer_T1_AsIReadOnlyBufferShader(resource, result));
+
+        int[] dimensions = result.ToArray();
+
+        CollectionAssert.AreEqual(
+            expected: new[] { axis0 },
+            actual: dimensions);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ReadOnlyBuffer_T1_AsIReadOnlyBufferShader : IComputeShader
+    {
+        public readonly IReadOnlyBuffer<float> source;
+        public readonly ReadWriteBuffer<int> result;
+
+        public void Execute()
+        {
+            result[0] = source.Length;
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    [Data(8)]
+    [Data(64)]
+    [Data(128)]
+    [Data(376)]
     public void ReadWriteBuffer_T1_AsReadWriteBuffer(Device device, int axis0)
     {
         using ReadWriteBuffer<float> resource = device.Get().AllocateReadWriteBuffer<float>(axis0);

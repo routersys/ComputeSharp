@@ -36,6 +36,7 @@ var typesMap = new Dictionary<string, string[]>
 // Map of all resource types that also have a supported interface
 var interfacesMap = new Dictionary<string, string>
 {
+    ["ReadOnlyBuffer<float>"] = "IReadOnlyBuffer<float>",
     ["ReadWriteTexture1D<float>"] = "IReadOnlyTexture1D<float>",
     ["ReadOnlyTexture1D<Rgba32, float4>"] = "IReadOnlyNormalizedTexture1D<float4>",
     ["ReadWriteTexture1D<Rgba32, float4>"] = "IReadWriteNormalizedTexture1D<float4>",
