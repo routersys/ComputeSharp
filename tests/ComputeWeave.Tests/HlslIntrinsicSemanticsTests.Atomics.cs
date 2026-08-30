@@ -9,27 +9,15 @@ namespace ComputeWeave.Tests;
 /// <inheritdoc/>
 partial class HlslIntrinsicSemanticsTests
 {
-    /// <summary>
-    /// Runs an atomic probe over a seeded buffer and returns what it left behind.
-    /// </summary>
-    /// <param name="device">The device to run on.</param>
-    /// <param name="seed">The values the buffer starts with.</param>
-    /// <param name="run">The dispatch to perform.</param>
-    /// <returns>The contents of the buffer after the dispatch.</returns>
-    private static int[] RunAtomic(Device device, int[] seed, System.Action<ReadWriteBuffer<int>> run)
-    {
-        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer(seed);
-
-        run(buffer);
-
-        return buffer.ToArray();
-    }
-
     [CombinatorialTestMethod]
     [AllDevices]
     public void Verify_InterlockedAnd(Device device)
     {
-        int[] result = RunAtomic(device, [12], buffer => device.Get().For(1, new InterlockedAndShader(buffer, 10)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12]);
+
+        device.Get().For(1, new InterlockedAndShader(buffer, 10));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(8, result[0]);
     }
@@ -58,7 +46,11 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_InterlockedOr(Device device)
     {
-        int[] result = RunAtomic(device, [12], buffer => device.Get().For(1, new InterlockedOrShader(buffer, 10)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12]);
+
+        device.Get().For(1, new InterlockedOrShader(buffer, 10));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(14, result[0]);
     }
@@ -86,7 +78,11 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_InterlockedXor(Device device)
     {
-        int[] result = RunAtomic(device, [12], buffer => device.Get().For(1, new InterlockedXorShader(buffer, 10)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12]);
+
+        device.Get().For(1, new InterlockedXorShader(buffer, 10));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(6, result[0]);
     }
@@ -115,7 +111,11 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_InterlockedMin(Device device)
     {
-        int[] result = RunAtomic(device, [12], buffer => device.Get().For(1, new InterlockedMinShader(buffer, 10)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12]);
+
+        device.Get().For(1, new InterlockedMinShader(buffer, 10));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(10, result[0]);
     }
@@ -142,7 +142,11 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_InterlockedMax(Device device)
     {
-        int[] result = RunAtomic(device, [12], buffer => device.Get().For(1, new InterlockedMaxShader(buffer, 10)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12]);
+
+        device.Get().For(1, new InterlockedMaxShader(buffer, 10));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(12, result[0]);
     }
@@ -170,7 +174,11 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_InterlockedCompareStore(Device device)
     {
-        int[] result = RunAtomic(device, [12, 12], buffer => device.Get().For(1, new InterlockedCompareStoreShader(buffer, 12, 7, 99)));
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>([12, 12]);
+
+        device.Get().For(1, new InterlockedCompareStoreShader(buffer, 12, 7, 99));
+
+        int[] result = buffer.ToArray();
 
         Assert.AreEqual(99, result[0]);
         Assert.AreEqual(12, result[1]);
