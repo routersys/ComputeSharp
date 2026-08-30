@@ -1563,4 +1563,82 @@ public class Test_D2DPixelShaderDescriptorGenerator_Analyzers
 
         await CSharpAnalyzerTest<NonConstantD2DInputArgumentAnalyzer>.VerifyAnalyzerAsync(source);
     }
+
+    [TestMethod]
+    public async Task InvalidD2DResourceTextureIndexAttributeLocation_FieldIsNotAResourceTexture()
+    {
+        const string source = """
+            using ComputeWeave.D2D1;
+            using float4 = ComputeWeave.Float4;
+
+            [D2DInputCount(0)]
+            internal partial struct MyType : ID2D1PixelShader
+            {
+                [D2DResourceTextureIndex(0)]
+                public float {|CMPWD2D0049:scale|};
+
+                public float4 Execute()
+                {
+                    return 0;
+                }
+            }
+            """;
+
+        await CSharpAnalyzerTest<InvalidD2DResourceTextureIndexAttributeLocationAnalyzer>.VerifyAnalyzerAsync(source);
+    }
+
+    [TestMethod]
+    public async Task NotAccessibleTargetTypeForD2DGeneratedPixelShaderDescriptorAttribute_PrivateNestedType()
+    {
+        const string source = """
+            using ComputeWeave.D2D1;
+            using float4 = ComputeWeave.Float4;
+
+            internal class Container
+            {
+                [D2DInputCount(0)]
+                [{|CMPWD2D0067:D2DGeneratedPixelShaderDescriptor|}]
+                private readonly partial struct MyType : ID2D1PixelShader
+                {
+                    public float4 Execute()
+                    {
+                        return 0;
+                    }
+                }
+            }
+            """;
+
+        await CSharpAnalyzerTest<NotAccessibleD2DGeneratedPixelShaderDescriptorAttributeTargetAnalyzer>.VerifyAnalyzerAsync(source);
+    }
+
+    [TestMethod]
+    public async Task NotAccessibleFieldTypeInTargetTypeForD2DGeneratedPixelShaderDescriptorAttribute_PrivateFieldType()
+    {
+        const string source = """
+            using ComputeWeave.D2D1;
+            using float4 = ComputeWeave.Float4;
+
+            internal class Container
+            {
+                private struct Hidden
+                {
+                    public float Value;
+                }
+
+                [D2DInputCount(0)]
+                [{|CMPWD2D0068:D2DGeneratedPixelShaderDescriptor|}]
+                internal readonly partial struct MyType : ID2D1PixelShader
+                {
+                    private readonly Hidden hidden;
+
+                    public float4 Execute()
+                    {
+                        return 0;
+                    }
+                }
+            }
+            """;
+
+        await CSharpAnalyzerTest<NotAccessibleFieldTypeInD2DGeneratedShaderDescriptorAttributeTargetAnalyzer>.VerifyAnalyzerAsync(source);
+    }
 }
