@@ -22,7 +22,13 @@ internal static class CompilationHelper
 
     public static CSharpCompilation CreateCompilation(string[] sources, string assemblyName, LanguageVersion languageVersion = DefaultLanguageVersion)
     {
-        return CreateCompilation(sources, assemblyName, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary), languageVersion);
+        // Unsafe blocks are enabled because CMPW0052 refuses a shader compiled without them, so a compilation
+        // that lacks them models a configuration no consumer can ship, and the shader generators return at once
+        return CreateCompilation(
+            sources,
+            assemblyName,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true),
+            languageVersion);
     }
 
     public static CSharpCompilation CreateCompilation(
