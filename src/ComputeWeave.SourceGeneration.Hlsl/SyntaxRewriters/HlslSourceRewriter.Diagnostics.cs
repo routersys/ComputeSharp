@@ -24,10 +24,11 @@ partial class HlslSourceRewriter
     /// set, so nothing is passed over that the set does not already answer for.
     /// </para>
     /// <para>
-    /// The set is measured rather than designed, so a kind outside it is one with no recorded verdict and not
-    /// one known to be wrong. The report records it and does nothing else: the input is not refused, and the
-    /// severity is the one that changes no build. Nodes are what reaches here, so a modifier or any other
-    /// token keeps whatever diagnostic it already has.
+    /// The set is measured rather than designed, so a kind outside it is one the set records no verdict for.
+    /// That is not the same as one nothing has judged: a kind a visit method always refuses is outside the set
+    /// as well, because refusing it keeps it out of what the measurement sees. The report records the kind and
+    /// does nothing else: the input is not refused, and the severity is the one that changes no build. Nodes
+    /// are what reaches here, so a modifier or any other token keeps whatever diagnostic it already has.
     /// </para>
     /// <para>
     /// A kind is reported once per rewriter, which is once per method, so a construct used many times gives
