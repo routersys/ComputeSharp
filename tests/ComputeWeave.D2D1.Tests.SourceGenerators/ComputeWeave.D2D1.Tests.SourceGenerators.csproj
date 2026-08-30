@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\ComputeWeave.Tests.SourceGenerators\Helpers\AssemblyStringHelper.cs" Link="Helpers\AssemblyStringHelper.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\ComputeWeave.Core\ComputeWeave.Core.csproj" Aliases="Core" />
     <ProjectReference Include="..\..\src\ComputeWeave.D2D1\ComputeWeave.D2D1.csproj" Aliases="D2D1" />
     <ProjectReference Include="..\..\src\ComputeWeave.D2D1.CodeFixers\ComputeWeave.D2D1.CodeFixers.csproj" />

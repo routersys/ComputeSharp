@@ -5,6 +5,7 @@ using System.Reflection;
 using ComputeWeave.Interop;
 using ComputeWeave.Tests.Attributes;
 using ComputeWeave.Tests.Extensions;
+using ComputeWeave.Tests.SourceGenerators.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.Tests.Internals;
@@ -182,8 +183,8 @@ public class ComputeDiagnosticTests
     [TestMethod]
     public void EveryIdentifierTheRuntimeProducesIsNamedByATest()
     {
-        HashSet<string> produced = StringsOf(typeof(ComputeDiagnosticIds).Assembly);
-        HashSet<string> named = StringsOf(typeof(ComputeDiagnosticTests).Assembly);
+        HashSet<string> produced = AssemblyStringHelper.GetLoadableStrings(typeof(ComputeDiagnosticIds).Assembly);
+        HashSet<string> named = AssemblyStringHelper.GetLoadableStrings(typeof(ComputeDiagnosticTests).Assembly);
 
         string[] missing = [.. Identifiers().Where(id => produced.Contains(id) && !named.Contains(id)).Order()];
 
@@ -201,65 +202,6 @@ public class ComputeDiagnosticTests
             if (field.FieldType == typeof(string))
             {
                 yield return (string)field.GetValue(null)!;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Every string an assembly's instructions can load.
-    /// </summary>
-    /// <param name="assembly">The assembly to read.</param>
-    /// <returns>The strings the assembly's instructions can load.</returns>
-    /// <remarks>
-    /// The scan tries every byte offset, so it can resolve a value that is not an operand. Such a value is
-    /// still one the assembly holds, because a token only resolves to a string that is already there, so a
-    /// constant no code names cannot appear this way.
-    /// </remarks>
-    private static HashSet<string> StringsOf(Assembly assembly)
-    {
-        const BindingFlags Members =
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-
-        HashSet<string> strings = [];
-
-        foreach (Type type in assembly.GetTypes())
-        {
-            foreach (MethodBase method in type.GetMethods(Members).Cast<MethodBase>().Concat(type.GetConstructors(Members)))
-            {
-                Collect(method, strings);
-            }
-        }
-
-        return strings;
-    }
-
-    /// <summary>
-    /// Adds every string a method body can load.
-    /// </summary>
-    /// <param name="method">The method to scan.</param>
-    /// <param name="strings">The set to add to.</param>
-    private static void Collect(MethodBase method, HashSet<string> strings)
-    {
-        byte[]? body = method.GetMethodBody()?.GetILAsByteArray();
-
-        if (body is null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < body.Length - 4; i++)
-        {
-            if (body[i] != 0x72)
-            {
-                continue;
-            }
-
-            try
-            {
-                _ = strings.Add(method.Module.ResolveString(BitConverter.ToInt32(body, i + 1)));
-            }
-            catch (ArgumentException)
-            {
             }
         }
     }
