@@ -1409,4 +1409,24 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A primary constructor is refused on purpose, and not for want of source. Its parameters are captured, and a capture can be reached from any member of the type in ways the rewriting cannot follow while preserving the same semantics. The shader type's own primary constructor is unaffected, its captures becoming the shader fields. Without this diagnostic the refusal is reported as a constructor with no source to analyze, which the author cannot act on, the source being right there.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for syntax outside the set a shader body may use.
+    /// <para>
+    /// Format: <c>"The C# syntax {0} is not in the set a shader body may use"</c>.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// This is the Direct2D counterpart of the compute diagnostic. The rewriter that reports it is shared, so
+    /// leaving one of the two out would report the same syntax on one path and not the other.
+    /// </remarks>
+    public static readonly DiagnosticDescriptor UnknownShaderSyntax = new(
+        id: "CMPWD2D0094",
+        title: "Shader syntax outside the accepted set",
+        messageFormat: "The C# syntax {0} is not in the set a shader body may use",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it has no recorded verdict, so the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
