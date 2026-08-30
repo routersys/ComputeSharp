@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
 using ComputeWeave.SourceGeneration.Extensions;
@@ -40,6 +41,11 @@ internal abstract partial class HlslSourceRewriter(
     private static readonly char[] FloatLiteralSpecialCharacters = ['.', 'E'];
 
     /// <summary>
+    /// The syntax kinds this rewriter has already reported as being outside the accepted set.
+    /// </summary>
+    private readonly HashSet<SyntaxKind> reportedSyntaxKinds = [];
+
+    /// <summary>
     /// Gets the <see cref="SemanticModelProvider"/> instance with semantic info on the target syntax tree.
     /// </summary>
     protected SemanticModelProvider SemanticModel { get; } = semanticModel;
@@ -68,6 +74,22 @@ internal abstract partial class HlslSourceRewriter(
     /// Gets the <see cref="System.Threading.CancellationToken"/> value for the current operation.
     /// </summary>
     protected CancellationToken CancellationToken { get; } = token;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The annotation matches the one on the base method. Without it the callers that pass a non null node and
+    /// use the result without a check stop compiling, because overriding drops the inherited annotation.
+    /// </remarks>
+    [return: NotNullIfNotNull(nameof(node))]
+    public override SyntaxNode? Visit(SyntaxNode? node)
+    {
+        if (node is not null)
+        {
+            ReportSyntaxOutsideTheAcceptedSet(node);
+        }
+
+        return base.Visit(node);
+    }
 
     /// <inheritdoc/>
     public sealed override SyntaxNode VisitCastExpression(CastExpressionSyntax node)

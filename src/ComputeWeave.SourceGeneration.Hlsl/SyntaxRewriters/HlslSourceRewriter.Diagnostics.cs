@@ -1,6 +1,7 @@
 using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Mappings;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
@@ -10,6 +11,39 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <inheritdoc cref="HlslSourceRewriter"/>
 partial class HlslSourceRewriter
 {
+    /// <summary>
+    /// Reports a syntax kind that is outside the set a shader body may use.
+    /// </summary>
+    /// <param name="node">The node that is about to be written out with nothing recorded about its kind.</param>
+    /// <remarks>
+    /// <para>
+    /// This is called from <see cref="Visit"/>, which every node the rewriting reaches passes through, so what
+    /// is seen here does not depend on which visit methods happen to exist. The declaration a rewriting starts
+    /// from is the one exception: the typed overloads take a method or a constructor to the base method
+    /// directly, and the one for a variable declarator forwards its initializer. Those three kinds are in the
+    /// set, so nothing is passed over that the set does not already answer for.
+    /// </para>
+    /// <para>
+    /// The set is measured rather than designed, so a kind outside it is one with no recorded verdict and not
+    /// one known to be wrong. The report records it and does nothing else: the input is not refused, and the
+    /// severity is the one that changes no build. Nodes are what reaches here, so a modifier or any other
+    /// token keeps whatever diagnostic it already has.
+    /// </para>
+    /// <para>
+    /// A kind is reported once per rewriter, which is once per method, so a construct used many times gives
+    /// one report rather than one per use.
+    /// </para>
+    /// </remarks>
+    protected void ReportSyntaxOutsideTheAcceptedSet(SyntaxNode node)
+    {
+        SyntaxKind kind = node.Kind();
+
+        if (!HlslKnownSyntax.IsAccepted(kind) && this.reportedSyntaxKinds.Add(kind))
+        {
+            Diagnostics.Add(UnknownShaderSyntax, node, kind.ToString());
+        }
+    }
+
     /// <summary>
     /// Reports a member access that every mapping has declined, when HLSL cannot express it.
     /// </summary>
