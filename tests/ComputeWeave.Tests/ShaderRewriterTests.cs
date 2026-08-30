@@ -18,18 +18,11 @@ public partial class ShaderRewriterTests
     [AllDevices]
     public void NanAndInfinite(Device device)
     {
-        if (!device.Get().IsDoublePrecisionSupportAvailable())
-        {
-            Assert.Inconclusive();
-        }
-
         using ReadWriteBuffer<float> buffer1 = device.Get().AllocateReadWriteBuffer<float>(16);
-        using ReadWriteBuffer<double> buffer2 = device.Get().AllocateReadWriteBuffer<double>(16);
 
-        device.Get().For(1, new NanAndInfiniteShader(buffer1, buffer2));
+        device.Get().For(1, new NanAndInfiniteShader(buffer1));
 
         float[] results1 = buffer1.ToArray();
-        double[] results2 = buffer2.ToArray();
 
         Assert.IsTrue(float.IsNaN(results1[0]));
         Assert.IsTrue(float.IsPositiveInfinity(results1[1]));
@@ -43,30 +36,21 @@ public partial class ShaderRewriterTests
         Assert.AreEqual(results1[9], 1);
         Assert.AreEqual(results1[10], 1);
         Assert.AreEqual(results1[11], 1);
-
-        Assert.IsTrue(double.IsNaN(results2[0]));
-        Assert.IsTrue(double.IsPositiveInfinity(results2[1]));
-        Assert.IsTrue(double.IsNegativeInfinity(results2[2]));
-        Assert.IsTrue(double.IsNaN(results2[3]));
-        Assert.IsTrue(double.IsPositiveInfinity(results2[4]));
-        Assert.IsTrue(double.IsNegativeInfinity(results2[5]));
     }
 
+    // The single precision constants are mapped to their own bit patterns, which need no double support to
+    // read back. Keeping them in the probe below would tie them to a gate they do not need, and an adapter
+    // without double support would skip them along with it.
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
-    [RequiresDoublePrecisionSupport]
     [GeneratedComputeShaderDescriptor]
     internal readonly partial struct NanAndInfiniteShader : IComputeShader
     {
         public readonly ReadWriteBuffer<float> buffer1;
-        public readonly ReadWriteBuffer<double> buffer2;
 
         static readonly float float1 = float.NaN;
         static readonly float float2 = float.PositiveInfinity;
         static readonly float float3 = float.NegativeInfinity;
-        static readonly double double1 = double.NaN;
-        static readonly double double2 = double.PositiveInfinity;
-        static readonly double double3 = double.NegativeInfinity;
 
         public void Execute()
         {
@@ -82,7 +66,46 @@ public partial class ShaderRewriterTests
             buffer1[9] = Hlsl.IsNaN(buffer1[6]) ? 1 : 0;
             buffer1[10] = Hlsl.IsInfinite(buffer1[7]) ? 1 : 0;
             buffer1[11] = Hlsl.IsInfinite(buffer1[8]) ? 1 : 0;
+        }
+    }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void NanAndInfiniteDoublePrecision(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double> buffer2 = device.Get().AllocateReadWriteBuffer<double>(16);
+
+        device.Get().For(1, new NanAndInfiniteDoublePrecisionShader(buffer2));
+
+        double[] results2 = buffer2.ToArray();
+
+        Assert.IsTrue(double.IsNaN(results2[0]));
+        Assert.IsTrue(double.IsPositiveInfinity(results2[1]));
+        Assert.IsTrue(double.IsNegativeInfinity(results2[2]));
+        Assert.IsTrue(double.IsNaN(results2[3]));
+        Assert.IsTrue(double.IsPositiveInfinity(results2[4]));
+        Assert.IsTrue(double.IsNegativeInfinity(results2[5]));
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct NanAndInfiniteDoublePrecisionShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double> buffer2;
+
+        static readonly double double1 = double.NaN;
+        static readonly double double2 = double.PositiveInfinity;
+        static readonly double double3 = double.NegativeInfinity;
+
+        public void Execute()
+        {
             buffer2[0] = double.NaN;
             buffer2[1] = double.PositiveInfinity;
             buffer2[2] = double.NegativeInfinity;
@@ -91,7 +114,6 @@ public partial class ShaderRewriterTests
             buffer2[5] = double3;
         }
     }
-
     // See https://github.com/Sergio0694/ComputeSharp/issues/233
     [CombinatorialTestMethod]
     [AllDevices]
