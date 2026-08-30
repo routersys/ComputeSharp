@@ -397,4 +397,41 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0041", "CMPWD2D0034");
     }
+
+    /// <summary>
+    /// Syntax outside the set a shader body may use. The rewriter that reports it is shared with the compute
+    /// generator, so what this pins is that the pixel shader generator answers with its own identifier.
+    /// </summary>
+    /// <remarks>
+    /// The shader is handed to FXC after the report, the report recording the syntax rather than refusing it,
+    /// so the compile error raised on the same construct is named here too.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxOutsideTheAcceptedSetIsReported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly int index;
+
+                public float4 Execute()
+                {
+                    float value = this.index switch { 0 => 1.0f, _ => 2.0f };
+
+                    return new float4(value, 0, 0, 0);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0094", "CMPWD2D0034");
+    }
 }
