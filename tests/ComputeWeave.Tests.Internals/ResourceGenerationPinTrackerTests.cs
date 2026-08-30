@@ -200,4 +200,63 @@ public unsafe class ResourceGenerationPinTrackerTests
     {
         return ((IResourceGenerationOwner)resource).GetResourceRecord(0).PendingSubmissionReferenceCount;
     }
+
+    /// <summary>
+    /// A pin that names a generation the record no longer carries is refused with its own identifier.
+    /// </summary>
+    /// <remarks>
+    /// A generation is never replaced while it is pinned, so the condition is made at the guard's own input:
+    /// the stored pin is replaced by one naming a generation the record never carried. The real pin is put
+    /// back afterwards, so the recording reference it holds is still released.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RejectsAPinWhoseGenerationTheRecordNoLongerCarries(Device device)
+    {
+        GraphicsDevice graphicsDevice = device.Get();
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry, parameterCount: 1);
+
+        using ReadWriteBuffer<int> buffer = graphicsDevice.AllocateReadWriteBuffer<int>(64);
+
+        try
+        {
+            Assert.IsTrue(host.RecordingBundles.TryRent(out int bundleIndex));
+
+            PipelineSubmissionSetup.Pin(host, bundleIndex, buffer);
+
+            Span<ResourceGenerationPin> pins = ResourceGenerationPinTracker.GetPins(
+                host.RecordingBundles.Storage,
+                in host.RecordingBundles.GetBundle(bundleIndex));
+
+            ResourceGenerationPin pinned = pins[0];
+
+            pins[0] = new ResourceGenerationPin(
+                pinned.Handle,
+                new ResourceGenerationId(pinned.GenerationId.Value + 1),
+                pinned.ResourceIndex);
+
+            ComputeDiagnosticException rejection = Assert.ThrowsExactly<ComputeDiagnosticException>(
+                () => ResourceGenerationPinTracker.Rollback(
+                    graphicsDevice,
+                    host.RecordingBundles.Storage,
+                    ref host.RecordingBundles.GetBundle(bundleIndex)));
+
+            Assert.AreEqual("CMPW1003", rejection.DiagnosticId);
+
+            pins[0] = pinned;
+
+            ResourceGenerationPinTracker.Rollback(
+                graphicsDevice,
+                host.RecordingBundles.Storage,
+                ref host.RecordingBundles.GetBundle(bundleIndex));
+
+            Assert.AreEqual(0, RecordingReferenceCount(buffer));
+
+            host.RecordingBundles.Return(bundleIndex);
+        }
+        finally
+        {
+            registry.Dispose();
+        }
+    }
 }

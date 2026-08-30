@@ -94,6 +94,25 @@ public partial class ComputePipelineInvokerTests
         }
     }
 
+    /// <summary>
+    /// An invocation that must never be reached. The permit is checked before anything is bound or
+    /// recorded, so a call into either member would mean the refusal came from somewhere else.
+    /// </summary>
+    private readonly struct RefusedInvocation : IComputePipelineInvocation
+    {
+        public static int PipelineOrdinal => 0;
+
+        public void Bind(ref ComputePipelineBinder binder)
+        {
+            Assert.Fail("The invocation was bound after the permit was refused.");
+        }
+
+        public void Record(in ComputeContext context)
+        {
+            Assert.Fail("The invocation was recorded after the permit was refused.");
+        }
+    }
+
     [CombinatorialTestMethod]
     [AllDevices]
     public void ReleasesTheSlotOwnedGenerationAfterTheSubmissionCompletes(Device device)
@@ -213,6 +232,47 @@ public partial class ComputePipelineInvokerTests
         finally
         {
             PipelineInvocationSetup.Release(host);
+        }
+    }
+
+    /// <summary>
+    /// A host that has no concurrent invocation permit left refuses the next submission with its own
+    /// identifier, before the invocation is bound or recorded.
+    /// </summary>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void RefusesASubmissionWhenNoInvocationPermitIsLeft(Device device)
+    {
+        PipelineHostRuntime host = PipelineSubmissionSetup.Host(device, out DeviceRegistrationRegistry registry);
+
+        try
+        {
+            int acquired = 0;
+
+            while (host.TryAcquireInvocation())
+            {
+                acquired++;
+
+                Assert.IsTrue(acquired < 64, "The host never ran out of invocation permits.");
+            }
+
+            Assert.AreNotEqual(0, acquired);
+
+            RefusedInvocation invocation = default;
+
+            ComputeDiagnosticException rejection = Assert.ThrowsExactly<ComputeDiagnosticException>(
+                () => ComputePipelineInvoker.Submit(registry, host, 0, in invocation));
+
+            Assert.AreEqual("CMPW1004", rejection.DiagnosticId);
+
+            for (int i = 0; i < acquired; i++)
+            {
+                host.ReleaseInvocation();
+            }
+        }
+        finally
+        {
+            registry.Dispose();
         }
     }
 }
