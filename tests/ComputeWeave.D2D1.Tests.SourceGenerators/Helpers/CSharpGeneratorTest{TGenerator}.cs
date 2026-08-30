@@ -53,6 +53,24 @@ internal static class CSharpGeneratorTest<TGenerator>
     }
 
     /// <summary>
+    /// Verifies that a source generator reports a given diagnostic, without requiring the whole set to match.
+    /// </summary>
+    /// <param name="source">The input source to process.</param>
+    /// <param name="diagnosticId">The diagnostic id expected to be among the reported ones.</param>
+    /// <remarks>
+    /// A refused input is still handed to the shader compiler, so the set carries whatever comes back from
+    /// there as well. Asserting the set would tie every caller to that, and it is the subject of separate work.
+    /// </remarks>
+    public static void VerifyDiagnosticIsReported(string source, string diagnosticId)
+    {
+        RunGenerator(source, out _, out ImmutableArray<Diagnostic> diagnostics);
+
+        Assert.IsTrue(
+            diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
+            $"{diagnosticId} is not reported: {string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.Id).Distinct())}");
+    }
+
+    /// <summary>
     /// Verifies the resulting sources produced by a source generator.
     /// </summary>
     /// <param name="source">The input source to process.</param>
