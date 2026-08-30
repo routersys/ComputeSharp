@@ -208,10 +208,10 @@ partial class HlslIntrinsicSemanticsTests
     }
 
     /// <summary>
-    /// Asserts that a group shared exchange carried out around a barrier moved every value.
+    /// Asserts that every thread of a probe carrying a barrier still wrote its own index.
     /// </summary>
     /// <param name="results">The buffer the probe wrote.</param>
-    private static void AssertExchanged(ReadWriteBuffer<int> results)
+    private static void AssertEveryThreadWrote(ReadWriteBuffer<int> results)
     {
         int[] values = results.ToArray();
 
@@ -227,16 +227,18 @@ partial class HlslIntrinsicSemanticsTests
     {
         using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
 
-        device.Get().For(256, new AllMemoryBarrierShader(buffer));
+        device.Get().For(128, new AllMemoryBarrierShader(buffer));
 
-        AssertExchanged(buffer);
+        AssertEveryThreadWrote(buffer);
     }
 
-    // The five barriers have no value of their own to compare. What these probes establish is that each name
-    // reaches an intrinsic the shader compiler accepts, and that the exchange around it still computes
-    // correctly. They do not establish that the barrier ordered anything: a group running in lockstep would
-    // produce the same answer without one. A name that stopped mapping to a real intrinsic would fail to
-    // compile, which is what the coverage here is worth
+    // The five barriers have no value of their own to compare, and nothing they order can be asserted here:
+    // the generated entry point wraps every body in a dispatch range check, so a barrier always sits inside a
+    // branch. A barrier that synchronizes the group needs every thread of the group to reach it, which a
+    // branch on the thread index does not promise. See issue #69. What these probes establish is that each
+    // name reaches an intrinsic the shader compiler accepts, and that a thread still computes correctly with
+    // one in the way. A name that stopped mapping to a real intrinsic would fail to compile, which is what
+    // the coverage here is worth
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
@@ -244,26 +246,14 @@ partial class HlslIntrinsicSemanticsTests
     {
         public readonly ReadWriteBuffer<int> buffer;
 
-        [GroupShared(128)]
-        private static readonly int[] cache;
-
         /// <inheritdoc/>
         public void Execute()
         {
-            int index = ThreadIds.X / 2;
-            bool isWriting = ThreadIds.X % 2 == 0;
-
-            if (isWriting)
-            {
-                cache[index] = index;
-            }
+            int value = ThreadIds.X;
 
             Hlsl.AllMemoryBarrier();
 
-            if (!isWriting)
-            {
-                this.buffer[index] = cache[index];
-            }
+            this.buffer[ThreadIds.X] = value;
         }
     }
 
@@ -273,13 +263,11 @@ partial class HlslIntrinsicSemanticsTests
     {
         using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
 
-        device.Get().For(256, new AllMemoryBarrierWithGroupSyncShader(buffer));
+        device.Get().For(128, new AllMemoryBarrierWithGroupSyncShader(buffer));
 
-        AssertExchanged(buffer);
+        AssertEveryThreadWrote(buffer);
     }
 
-    // the barriers that synchronize the group are called outside the branch, since every thread has to reach
-    // them for the group to meet
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
@@ -287,26 +275,14 @@ partial class HlslIntrinsicSemanticsTests
     {
         public readonly ReadWriteBuffer<int> buffer;
 
-        [GroupShared(128)]
-        private static readonly int[] cache;
-
         /// <inheritdoc/>
         public void Execute()
         {
-            int index = ThreadIds.X / 2;
-            bool isWriting = ThreadIds.X % 2 == 0;
-
-            if (isWriting)
-            {
-                cache[index] = index;
-            }
+            int value = ThreadIds.X;
 
             Hlsl.AllMemoryBarrierWithGroupSync();
 
-            if (!isWriting)
-            {
-                this.buffer[index] = cache[index];
-            }
+            this.buffer[ThreadIds.X] = value;
         }
     }
 
@@ -316,9 +292,9 @@ partial class HlslIntrinsicSemanticsTests
     {
         using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
 
-        device.Get().For(256, new DeviceMemoryBarrierShader(buffer));
+        device.Get().For(128, new DeviceMemoryBarrierShader(buffer));
 
-        AssertExchanged(buffer);
+        AssertEveryThreadWrote(buffer);
     }
 
     [AutoConstructor]
@@ -328,26 +304,14 @@ partial class HlslIntrinsicSemanticsTests
     {
         public readonly ReadWriteBuffer<int> buffer;
 
-        [GroupShared(128)]
-        private static readonly int[] cache;
-
         /// <inheritdoc/>
         public void Execute()
         {
-            int index = ThreadIds.X / 2;
-            bool isWriting = ThreadIds.X % 2 == 0;
-
-            if (isWriting)
-            {
-                cache[index] = index;
-            }
+            int value = ThreadIds.X;
 
             Hlsl.DeviceMemoryBarrier();
 
-            if (!isWriting)
-            {
-                this.buffer[index] = cache[index];
-            }
+            this.buffer[ThreadIds.X] = value;
         }
     }
 
@@ -357,9 +321,9 @@ partial class HlslIntrinsicSemanticsTests
     {
         using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
 
-        device.Get().For(256, new DeviceMemoryBarrierWithGroupSyncShader(buffer));
+        device.Get().For(128, new DeviceMemoryBarrierWithGroupSyncShader(buffer));
 
-        AssertExchanged(buffer);
+        AssertEveryThreadWrote(buffer);
     }
 
     [AutoConstructor]
@@ -369,26 +333,14 @@ partial class HlslIntrinsicSemanticsTests
     {
         public readonly ReadWriteBuffer<int> buffer;
 
-        [GroupShared(128)]
-        private static readonly int[] cache;
-
         /// <inheritdoc/>
         public void Execute()
         {
-            int index = ThreadIds.X / 2;
-            bool isWriting = ThreadIds.X % 2 == 0;
-
-            if (isWriting)
-            {
-                cache[index] = index;
-            }
+            int value = ThreadIds.X;
 
             Hlsl.DeviceMemoryBarrierWithGroupSync();
 
-            if (!isWriting)
-            {
-                this.buffer[index] = cache[index];
-            }
+            this.buffer[ThreadIds.X] = value;
         }
     }
 
@@ -398,9 +350,9 @@ partial class HlslIntrinsicSemanticsTests
     {
         using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
 
-        device.Get().For(256, new GroupMemoryBarrierWithGroupSyncShader(buffer));
+        device.Get().For(128, new GroupMemoryBarrierWithGroupSyncShader(buffer));
 
-        AssertExchanged(buffer);
+        AssertEveryThreadWrote(buffer);
     }
 
     [AutoConstructor]
@@ -410,26 +362,14 @@ partial class HlslIntrinsicSemanticsTests
     {
         public readonly ReadWriteBuffer<int> buffer;
 
-        [GroupShared(128)]
-        private static readonly int[] cache;
-
         /// <inheritdoc/>
         public void Execute()
         {
-            int index = ThreadIds.X / 2;
-            bool isWriting = ThreadIds.X % 2 == 0;
-
-            if (isWriting)
-            {
-                cache[index] = index;
-            }
+            int value = ThreadIds.X;
 
             Hlsl.GroupMemoryBarrierWithGroupSync();
 
-            if (!isWriting)
-            {
-                this.buffer[index] = cache[index];
-            }
+            this.buffer[ThreadIds.X] = value;
         }
     }
 }
