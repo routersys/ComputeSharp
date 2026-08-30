@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\ComputeWeave.Tests.SourceGenerators\Helpers\AssemblyStringHelper.cs" Link="Helpers\AssemblyStringHelper.cs" />
     <Compile Include="..\ComputeWeave.Tests\Attributes\AdditionalDataAttribute.cs" Link="Attributes\AdditionalDataAttribute.cs" />
     <Compile Include="..\ComputeWeave.Tests\Attributes\AdditionalResourceAttribute.cs" Link="Attributes\AdditionalResourceAttribute.cs" />
     <Compile Include="..\ComputeWeave.Tests\Attributes\AllDevicesAttribute.cs" Link="Attributes\AllDevicesAttribute.cs" />
