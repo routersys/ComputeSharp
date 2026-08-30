@@ -1,3 +1,4 @@
+using System.Linq;
 using ComputeWeave.SourceGenerators;
 using ComputeWeave.Tests.SourceGenerators.Helpers;
 using Microsoft.CodeAnalysis;
@@ -54,5 +55,20 @@ public class AllowUnsafeBlocksTests
             [Source],
             "ShaderWithAllowUnsafeBlocksTests",
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+    }
+
+    [TestMethod]
+    public void TheCompilationTheHelperMakesReachesTheShaderBody()
+    {
+        // A helper that left the option off would run the generator to an empty result, and a test asserting
+        // the absence of something would then pass without the generator having looked at the shader at all
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation([Source], "ShaderDefaultOptionsTests");
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+        Assert.IsTrue(
+            result.GeneratedSources.Any(static source => source.HintName.Contains("Shaders.Shader")),
+            string.Join(", ", result.GeneratedSources.Select(static source => source.HintName)));
     }
 }
