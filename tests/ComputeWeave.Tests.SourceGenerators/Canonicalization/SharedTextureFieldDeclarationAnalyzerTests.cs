@@ -41,6 +41,17 @@ public class SharedTextureFieldDeclarationAnalyzerTests
                     ComputeResourceRecovery.RecreateFromHost)]
         """;
 
+    private const string ReadOnlyAttribute = """
+                [ComputeSharedTexture(
+                    ComputeResourceResizePolicy.Exact,
+                    ComputeResourceAccess.Read,
+                    ExternalResourceAccess.Write,
+                    ExternalTextureUsage.RenderTarget,
+                    ComputeAlphaMode.Premultiplied,
+                    ComputeSharedTextureInitialOwner.External,
+                    ComputeResourceRecovery.RecreateFromHost)]
+        """;
+
     private static void AssertGeneratedMemberConflict(string member, string testName)
     {
         AnalyzerHelper.AssertDiagnostics(
@@ -67,6 +78,23 @@ public class SharedTextureFieldDeclarationAnalyzerTests
                     private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
                 """)],
             "SharedTextureFieldDeclarationAnalyzerTests");
+    }
+
+    /// <summary>
+    /// A slot the compute queue may only read from. The declaration itself is well formed, so this is the
+    /// second thing the analyzer looks at and the only way to reach its second identifier.
+    /// </summary>
+    [TestMethod]
+    public void RejectsASlotThatIsNotReadWriteFromTheComputeQueue()
+    {
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidComputeSharedTextureFieldDeclarationAnalyzer(),
+            [ResourceSet($$"""
+                {{ReadOnlyAttribute}}
+                    private readonly SharedTextureSlot<Bgra32, Float4, ExternalView> source;
+                """)],
+            "RejectsReadOnlyComputeAccess",
+            "CMPW0076");
     }
 
     [TestMethod]
