@@ -44,29 +44,36 @@ partial class HlslIntrinsicSemanticsTests
     [AllDevices]
     public void Verify_Modf(Device device)
     {
-        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(2);
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(4);
 
-        device.Get().For(1, new ModfShader(results, 3.75f));
+        device.Get().For(1, new ModfShader(results, 3.75f, -3.75f, -3.0f));
 
         AssertAgrees(results, 0.0f);
     }
 
-    // the two parts must add back to the input, and the written one must be the integer part
+    // The two parts must add back to the input, and the written one must be the integer part. A negative
+    // input is probed as well: the split runs toward zero, so the integer part of -3.75 is -3 and not -4.
+    // Comparing it against the truncation of a positive number would not have shown that
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
     internal readonly partial struct ModfShader : IComputeShader
     {
         public readonly ReadWriteBuffer<float2> results;
-        public readonly float x;
+        public readonly float positive;
+        public readonly float negative;
+        public readonly float expectedNegativeIntegral;
 
         /// <inheritdoc/>
         public void Execute()
         {
-            float fractional = Hlsl.Modf(this.x, out float integral);
+            float positiveFraction = Hlsl.Modf(this.positive, out float positiveIntegral);
+            float negativeFraction = Hlsl.Modf(this.negative, out float negativeIntegral);
 
-            this.results[0] = new float2(fractional + integral, this.x);
-            this.results[1] = new float2(integral, Hlsl.Trunc(this.x));
+            this.results[0] = new float2(positiveFraction + positiveIntegral, this.positive);
+            this.results[1] = new float2(positiveIntegral, Hlsl.Floor(this.positive));
+            this.results[2] = new float2(negativeFraction + negativeIntegral, this.negative);
+            this.results[3] = new float2(negativeIntegral, this.expectedNegativeIntegral);
         }
     }
 
