@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ComputeWeave.Interop;
@@ -161,5 +162,105 @@ public class ComputeDiagnosticTests
             .Single(static candidate => candidate.GetParameters() is [{ ParameterType.Name: nameof(String) }]);
 
         return constructor.Invoke(["message"]);
+    }
+
+    /// <summary>
+    /// Every identifier the runtime can produce is named by a test.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The identifiers are constants, so a use inlines the value into the method that carries it and an
+    /// identifier no code names appears in no string of the assembly. The produced set is therefore readable
+    /// from the compiled form, and what is produced is what a consumer can catch on.
+    /// </para>
+    /// <para>
+    /// The identifiers that appear nowhere are the ones section 19.2 of the specification records as having
+    /// no reachable path, each with its reason. They need no test, and this assertion does not ask for one.
+    /// Surfacing one of them without writing a test makes this fail.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    public void EveryIdentifierTheRuntimeProducesIsNamedByATest()
+    {
+        HashSet<string> produced = StringsOf(typeof(ComputeDiagnosticIds).Assembly);
+        HashSet<string> named = StringsOf(typeof(ComputeDiagnosticTests).Assembly);
+
+        string[] missing = [.. Identifiers().Where(id => produced.Contains(id) && !named.Contains(id)).Order()];
+
+        Assert.AreEqual(0, missing.Length, $"Produced but no test names: {string.Join(", ", missing)}");
+    }
+
+    /// <summary>
+    /// The identifier of every runtime diagnostic the table declares.
+    /// </summary>
+    /// <returns>The declared identifiers.</returns>
+    private static IEnumerable<string> Identifiers()
+    {
+        foreach (FieldInfo field in typeof(ComputeDiagnosticIds).GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (field.FieldType == typeof(string))
+            {
+                yield return (string)field.GetValue(null)!;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Every string an assembly's instructions can load.
+    /// </summary>
+    /// <param name="assembly">The assembly to read.</param>
+    /// <returns>The strings the assembly's instructions can load.</returns>
+    /// <remarks>
+    /// The scan tries every byte offset, so it can resolve a value that is not an operand. Such a value is
+    /// still one the assembly holds, because a token only resolves to a string that is already there, so a
+    /// constant no code names cannot appear this way.
+    /// </remarks>
+    private static HashSet<string> StringsOf(Assembly assembly)
+    {
+        const BindingFlags Members =
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
+        HashSet<string> strings = [];
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            foreach (MethodBase method in type.GetMethods(Members).Cast<MethodBase>().Concat(type.GetConstructors(Members)))
+            {
+                Collect(method, strings);
+            }
+        }
+
+        return strings;
+    }
+
+    /// <summary>
+    /// Adds every string a method body can load.
+    /// </summary>
+    /// <param name="method">The method to scan.</param>
+    /// <param name="strings">The set to add to.</param>
+    private static void Collect(MethodBase method, HashSet<string> strings)
+    {
+        byte[]? body = method.GetMethodBody()?.GetILAsByteArray();
+
+        if (body is null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < body.Length - 4; i++)
+        {
+            if (body[i] != 0x72)
+            {
+                continue;
+            }
+
+            try
+            {
+                _ = strings.Add(method.Module.ResolveString(BitConverter.ToInt32(body, i + 1)));
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
     }
 }
