@@ -25085,6 +25085,18 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("transpose")]
+    public static Float1x1 Transpose(Float1x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
     public static Float2x1 Transpose(Float1x2 x) => default;
 
     /// <summary>
@@ -25122,6 +25134,18 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("transpose")]
     public static Float1x2 Transpose(Float2x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Float2x2 Transpose(Float2x2 x) => default;
 
     /// <summary>
     /// Transposes the specified input matrix.
@@ -25181,6 +25205,18 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("transpose")]
+    public static Float3x3 Transpose(Float3x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
     public static Float4x3 Transpose(Float3x4 x) => default;
 
     /// <summary>
@@ -25218,6 +25254,30 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("transpose")]
     public static Float3x4 Transpose(Float4x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Float4x4 Transpose(Float4x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Int1x1 Transpose(Int1x1 x) => default;
 
     /// <summary>
     /// Transposes the specified input matrix.
@@ -25277,6 +25337,18 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("transpose")]
+    public static Int2x2 Transpose(Int2x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
     public static Int3x2 Transpose(Int2x3 x) => default;
 
     /// <summary>
@@ -25314,6 +25386,18 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("transpose")]
     public static Int2x3 Transpose(Int3x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Int3x3 Transpose(Int3x3 x) => default;
 
     /// <summary>
     /// Transposes the specified input matrix.
@@ -25373,6 +25457,30 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("transpose")]
+    public static Int4x4 Transpose(Int4x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Bool1x1 Transpose(Bool1x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
     public static Bool2x1 Transpose(Bool1x2 x) => default;
 
     /// <summary>
@@ -25410,6 +25518,18 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("transpose")]
     public static Bool1x2 Transpose(Bool2x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Bool2x2 Transpose(Bool2x2 x) => default;
 
     /// <summary>
     /// Transposes the specified input matrix.
@@ -25469,6 +25589,18 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("transpose")]
+    public static Bool3x3 Transpose(Bool3x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
     public static Bool4x3 Transpose(Bool3x4 x) => default;
 
     /// <summary>
@@ -25506,6 +25638,402 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("transpose")]
     public static Bool3x4 Transpose(Bool4x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Bool4x4 Transpose(Bool4x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt1x1 Transpose(UInt1x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt2x1 Transpose(UInt1x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt3x1 Transpose(UInt1x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt4x1 Transpose(UInt1x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt1x2 Transpose(UInt2x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt2x2 Transpose(UInt2x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt3x2 Transpose(UInt2x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt4x2 Transpose(UInt2x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt1x3 Transpose(UInt3x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt2x3 Transpose(UInt3x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt3x3 Transpose(UInt3x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt4x3 Transpose(UInt3x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt1x4 Transpose(UInt4x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt2x4 Transpose(UInt4x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt3x4 Transpose(UInt4x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static UInt4x4 Transpose(UInt4x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double1x1 Transpose(Double1x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double2x1 Transpose(Double1x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double3x1 Transpose(Double1x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double4x1 Transpose(Double1x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double1x2 Transpose(Double2x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double2x2 Transpose(Double2x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double3x2 Transpose(Double2x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double4x2 Transpose(Double2x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double1x3 Transpose(Double3x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double2x3 Transpose(Double3x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double3x3 Transpose(Double3x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double4x3 Transpose(Double3x4 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double1x4 Transpose(Double4x1 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double2x4 Transpose(Double4x2 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double3x4 Transpose(Double4x3 x) => default;
+
+    /// <summary>
+    /// Transposes the specified input matrix.
+    /// </summary>
+    /// <param name="x">The specified matrix.</param>
+    /// <returns>The transposed value of the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-transpose"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("transpose")]
+    public static Double4x4 Transpose(Double4x4 x) => default;
 
     /// <summary>
     /// Truncates a floating-point value to the integer component.
