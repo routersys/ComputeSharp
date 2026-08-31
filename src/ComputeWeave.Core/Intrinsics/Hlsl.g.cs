@@ -2681,6 +2681,240 @@ partial class Hlsl
     public static Double2 AsDouble(UInt2 lowbits, UInt2 highbits) => default;
 
     /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double3 AsDouble(UInt3 lowbits, UInt3 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double4 AsDouble(UInt4 lowbits, UInt4 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double1x1 AsDouble(UInt1x1 lowbits, UInt1x1 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double1x2 AsDouble(UInt1x2 lowbits, UInt1x2 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double1x3 AsDouble(UInt1x3 lowbits, UInt1x3 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double1x4 AsDouble(UInt1x4 lowbits, UInt1x4 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double2x1 AsDouble(UInt2x1 lowbits, UInt2x1 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double2x2 AsDouble(UInt2x2 lowbits, UInt2x2 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double2x3 AsDouble(UInt2x3 lowbits, UInt2x3 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double2x4 AsDouble(UInt2x4 lowbits, UInt2x4 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double3x1 AsDouble(UInt3x1 lowbits, UInt3x1 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double3x2 AsDouble(UInt3x2 lowbits, UInt3x2 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double3x3 AsDouble(UInt3x3 lowbits, UInt3x3 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double3x4 AsDouble(UInt3x4 lowbits, UInt3x4 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double4x1 AsDouble(UInt4x1 lowbits, UInt4x1 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double4x2 AsDouble(UInt4x2 lowbits, UInt4x2 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double4x3 AsDouble(UInt4x3 lowbits, UInt4x3 highbits) => default;
+
+    /// <summary>
+    /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
+    /// </summary>
+    /// <param name="lowbits">The low 32-bit pattern of the input value.</param>
+    /// <param name="highbits">The high 32-bit pattern of the input value.</param>
+    /// <returns>The input (two 32-bit values) recast as a double precision floating-point number.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/asdouble"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("asdouble")]
+    public static Double4x4 AsDouble(UInt4x4 lowbits, UInt4x4 highbits) => default;
+
+    /// <summary>
     /// Interprets the bit pattern of an input value as a floating-point number.
     /// </summary>
     /// <param name="x">The input value.</param>

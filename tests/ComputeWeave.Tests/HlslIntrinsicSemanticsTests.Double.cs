@@ -311,4 +311,128 @@ partial class HlslIntrinsicSemanticsTests
             this.results[15] = new double2(t4x4.M41, m4x4.M14);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_AsDoubleShapes(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(18);
+
+        device.Get().For(1, new AsDoubleShapesShader(results, 0x00000000u, 0x3FF00000u, 1.0));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // Every shape this change added, one slot each. The last element is the one read, so a shape
+    // that reinterpreted fewer components than it declares would not agree
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct AsDoubleShapesShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly uint low;
+        public readonly uint high;
+        public readonly double expected;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            uint3 low3 = new(this.low, this.low, this.low);
+            uint3 high3 = new(this.high, this.high, this.high);
+            double3 v3 = Hlsl.AsDouble(low3, high3);
+            this.results[0] = new double2(v3.Z, this.expected);
+
+            uint4 low4 = new(this.low, this.low, this.low, this.low);
+            uint4 high4 = new(this.high, this.high, this.high, this.high);
+            double4 v4 = Hlsl.AsDouble(low4, high4);
+            this.results[1] = new double2(v4.W, this.expected);
+
+            uint1x1 low1x1 = new(this.low);
+            uint1x1 high1x1 = new(this.high);
+            double1x1 v1x1 = Hlsl.AsDouble(low1x1, high1x1);
+            this.results[2] = new double2(v1x1.M11, this.expected);
+
+            uint1x2 low1x2 = new(this.low, this.low);
+            uint1x2 high1x2 = new(this.high, this.high);
+            double1x2 v1x2 = Hlsl.AsDouble(low1x2, high1x2);
+            this.results[3] = new double2(v1x2.M12, this.expected);
+
+            uint1x3 low1x3 = new(this.low, this.low, this.low);
+            uint1x3 high1x3 = new(this.high, this.high, this.high);
+            double1x3 v1x3 = Hlsl.AsDouble(low1x3, high1x3);
+            this.results[4] = new double2(v1x3.M13, this.expected);
+
+            uint1x4 low1x4 = new(this.low, this.low, this.low, this.low);
+            uint1x4 high1x4 = new(this.high, this.high, this.high, this.high);
+            double1x4 v1x4 = Hlsl.AsDouble(low1x4, high1x4);
+            this.results[5] = new double2(v1x4.M14, this.expected);
+
+            uint2x1 low2x1 = new(this.low, this.low);
+            uint2x1 high2x1 = new(this.high, this.high);
+            double2x1 v2x1 = Hlsl.AsDouble(low2x1, high2x1);
+            this.results[6] = new double2(v2x1.M21, this.expected);
+
+            uint2x2 low2x2 = new(this.low, this.low, this.low, this.low);
+            uint2x2 high2x2 = new(this.high, this.high, this.high, this.high);
+            double2x2 v2x2 = Hlsl.AsDouble(low2x2, high2x2);
+            this.results[7] = new double2(v2x2.M22, this.expected);
+
+            uint2x3 low2x3 = new(this.low, this.low, this.low, this.low, this.low, this.low);
+            uint2x3 high2x3 = new(this.high, this.high, this.high, this.high, this.high, this.high);
+            double2x3 v2x3 = Hlsl.AsDouble(low2x3, high2x3);
+            this.results[8] = new double2(v2x3.M23, this.expected);
+
+            uint2x4 low2x4 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint2x4 high2x4 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double2x4 v2x4 = Hlsl.AsDouble(low2x4, high2x4);
+            this.results[9] = new double2(v2x4.M24, this.expected);
+
+            uint3x1 low3x1 = new(this.low, this.low, this.low);
+            uint3x1 high3x1 = new(this.high, this.high, this.high);
+            double3x1 v3x1 = Hlsl.AsDouble(low3x1, high3x1);
+            this.results[10] = new double2(v3x1.M31, this.expected);
+
+            uint3x2 low3x2 = new(this.low, this.low, this.low, this.low, this.low, this.low);
+            uint3x2 high3x2 = new(this.high, this.high, this.high, this.high, this.high, this.high);
+            double3x2 v3x2 = Hlsl.AsDouble(low3x2, high3x2);
+            this.results[11] = new double2(v3x2.M32, this.expected);
+
+            uint3x3 low3x3 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint3x3 high3x3 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double3x3 v3x3 = Hlsl.AsDouble(low3x3, high3x3);
+            this.results[12] = new double2(v3x3.M33, this.expected);
+
+            uint3x4 low3x4 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint3x4 high3x4 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double3x4 v3x4 = Hlsl.AsDouble(low3x4, high3x4);
+            this.results[13] = new double2(v3x4.M34, this.expected);
+
+            uint4x1 low4x1 = new(this.low, this.low, this.low, this.low);
+            uint4x1 high4x1 = new(this.high, this.high, this.high, this.high);
+            double4x1 v4x1 = Hlsl.AsDouble(low4x1, high4x1);
+            this.results[14] = new double2(v4x1.M41, this.expected);
+
+            uint4x2 low4x2 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint4x2 high4x2 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double4x2 v4x2 = Hlsl.AsDouble(low4x2, high4x2);
+            this.results[15] = new double2(v4x2.M42, this.expected);
+
+            uint4x3 low4x3 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint4x3 high4x3 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double4x3 v4x3 = Hlsl.AsDouble(low4x3, high4x3);
+            this.results[16] = new double2(v4x3.M43, this.expected);
+
+            uint4x4 low4x4 = new(this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low, this.low);
+            uint4x4 high4x4 = new(this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high, this.high);
+            double4x4 v4x4 = Hlsl.AsDouble(low4x4, high4x4);
+            this.results[17] = new double2(v4x4.M44, this.expected);
+        }
+    }
 }
