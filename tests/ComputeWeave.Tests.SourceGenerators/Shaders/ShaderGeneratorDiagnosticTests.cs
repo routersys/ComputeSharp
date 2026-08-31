@@ -124,15 +124,20 @@ public class ShaderGeneratorDiagnosticTests
 
             namespace Shaders;
 
-            [ThreadGroupSize(1024, 1024, 64)]
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
             [GeneratedComputeShaderDescriptor]
             internal readonly partial struct Shader : IComputeShader
             {
                 private readonly ReadWriteBuffer<float> buffer;
 
+                [GroupShared(16384)]
+                private static readonly float[] cache;
+
                 public void Execute()
                 {
-                    this.buffer[ThreadIds.X] = 1;
+                    cache[ThreadIds.X] = 1;
+
+                    this.buffer[ThreadIds.X] = cache[ThreadIds.X];
                 }
             }
             """;
