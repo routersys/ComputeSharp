@@ -108,14 +108,89 @@ public class RefusedConstructTests
             }
             """;
 
-        CSharpCompilation compilation = CompilationHelper.CreateCompilation([Source], "ShaderChainedConstructorTests");
-        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
-        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+        AssertIsRefused(Source, "ShaderChainedConstructorTests", "CMPW0061");
+    }
 
-        Assert.IsNull(result.Exception, result.Exception?.ToString());
-        Assert.IsTrue(
-            result.Diagnostics.Any(static diagnostic => diagnostic.Id == "CMPW0061"),
-            string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
+    /// <summary>
+    /// The shader the report was written around, kept as it was written.
+    /// </summary>
+    /// <remarks>
+    /// The construct is one the rows above already cover. What this pins is the shape the report carried: the
+    /// captured resource arrives through a primary constructor rather than a field, which is a different path
+    /// through the generator, and it is the source a reader will reach for when checking the behavior.
+    /// </remarks>
+    [TestMethod]
+    public void TheShaderTheReportWasWrittenAroundIsRefused()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Case(ReadWriteBuffer<float> buffer) : IComputeShader
+            {
+                public void Execute()
+                {
+                    int[] values = [1, 2, 3];
+
+                    buffer[ThreadIds.X] = values[0];
+                }
+            }
+            """;
+
+        AssertIsRefused(Source, "ShaderReportedShapeTests", "CMPW0060");
+    }
+
+    /// <summary>
+    /// A shader the rewriter accepts and the HLSL compiler refuses.
+    /// </summary>
+    /// <remarks>
+    /// Recursion is what the HLSL compiler refuses, and the rewriter has nothing to say about the local
+    /// function carrying it, so a refusal is the only thing that keeps a shader from reaching the compiler.
+    /// Without this row, removing the forwarding outright would leave every row above passing.
+    /// </remarks>
+    [TestMethod]
+    public void AnInputTheRewriterAcceptsCarriesTheCompilerFailure()
+    {
+        Diagnostic[] reported = Report(
+            Shader("static int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2); k += Fib(3);", isUnsafe: false),
+            "ShaderAcceptedCompilerFailureTests");
+
+        Assert.AreEqual("CMPW0046", Ids(reported));
+    }
+
+    /// <summary>
+    /// A shader carrying syntax the accepted set does not cover.
+    /// </summary>
+    /// <remarks>
+    /// The report is an Info and refuses nothing, so the shader is built and the failure the HLSL compiler
+    /// raises still reaches the author. That is what keeps syntax with no recorded verdict visible while the
+    /// set is being measured: were an Info to stop the build, such syntax would pass in silence instead.
+    /// The failure is made to come from the recursion, which HLSL cannot express under any profile, so the
+    /// row does not rest on how one version of one compiler happens to treat the reported construct.
+    /// </remarks>
+    [TestMethod]
+    public void AReportThatRefusesNothingCarriesTheCompilerFailure()
+    {
+        Diagnostic[] reported = Report(
+            Shader(
+                """
+                float v = 5;
+
+                goto done;
+
+                done: v += 1;
+
+                static int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
+
+                k += Fib(3) + (int)v;
+                """,
+                isUnsafe: false),
+            "ShaderReportedCompilerFailureTests");
+
+        Assert.AreEqual("CMPW0046, CMPW0121", Ids(reported));
     }
 
     /// <summary>
@@ -127,7 +202,52 @@ public class RefusedConstructTests
     /// <param name="isUnsafe">Whether the entry point needs an unsafe context.</param>
     private static void AssertIsDiagnosed(string body, string assemblyName, string expectedId, bool isUnsafe)
     {
-        string source = $$"""
+        AssertIsRefused(Shader(body, isUnsafe), assemblyName, expectedId);
+    }
+
+    /// <summary>
+    /// Runs the generator over a shader and asserts the refusal is reported and the HLSL compiler is not reached.
+    /// </summary>
+    /// <param name="source">The source of the shader to run the generator over.</param>
+    /// <param name="assemblyName">The assembly name to compile under.</param>
+    /// <param name="expectedId">The identifier the refusal is expected to carry.</param>
+    private static void AssertIsRefused(string source, string assemblyName, string expectedId)
+    {
+        Diagnostic[] reported = Report(source, assemblyName);
+
+        // The refusal is asserted by identifier and not as a set, one body being able to trip several of them
+        Assert.IsTrue(reported.Any(diagnostic => diagnostic.Id == expectedId), Ids(reported));
+
+        // Nothing arrives from the HLSL compiler, which would name generated code the author never wrote
+        Assert.IsFalse(reported.Any(static diagnostic => diagnostic.Id == "CMPW0046"), Ids(reported));
+    }
+
+    /// <summary>
+    /// Runs the generator over a shader and gets the diagnostics it reports.
+    /// </summary>
+    /// <param name="source">The source of the shader to run the generator over.</param>
+    /// <param name="assemblyName">The assembly name to compile under.</param>
+    /// <returns>The diagnostics the generator reported for <paramref name="source"/>.</returns>
+    private static Diagnostic[] Report(string source, string assemblyName)
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation([source], assemblyName);
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+
+        return [.. result.Diagnostics];
+    }
+
+    /// <summary>
+    /// Builds a shader around a body.
+    /// </summary>
+    /// <param name="body">The statements to put in the shader body.</param>
+    /// <param name="isUnsafe">Whether the entry point needs an unsafe context.</param>
+    /// <returns>The source of a shader carrying <paramref name="body"/>.</returns>
+    private static string Shader(string body, bool isUnsafe)
+    {
+        return $$"""
             using System.Linq;
             using ComputeWeave;
 
@@ -149,16 +269,15 @@ public class RefusedConstructTests
                 }
             }
             """;
+    }
 
-        CSharpCompilation compilation = CompilationHelper.CreateCompilation([source], assemblyName);
-        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
-        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
-
-        // The refusal is asserted by identifier and not as a set: a refused input is still handed to the HLSL
-        // compiler, and what comes back from there is the subject of a separate change
-        Assert.IsNull(result.Exception, result.Exception?.ToString());
-        Assert.IsTrue(
-            result.Diagnostics.Any(diagnostic => diagnostic.Id == expectedId),
-            string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
+    /// <summary>
+    /// Joins the identifiers of the reported diagnostics, for the message an assertion fails with.
+    /// </summary>
+    /// <param name="reported">The diagnostics the generator reported.</param>
+    /// <returns>The distinct identifiers of <paramref name="reported"/>, in order.</returns>
+    private static string Ids(Diagnostic[] reported)
+    {
+        return string.Join(", ", reported.Select(static diagnostic => diagnostic.Id).Distinct().OrderBy(static id => id));
     }
 }

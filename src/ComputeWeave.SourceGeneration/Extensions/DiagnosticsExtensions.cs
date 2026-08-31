@@ -42,6 +42,28 @@ internal static class DiagnosticsExtensions
     }
 
     /// <summary>
+    /// Checks whether the target builder holds a diagnostic that refuses the input it was produced for.
+    /// </summary>
+    /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
+    /// <returns>Whether any diagnostic in <paramref name="diagnostics"/> refuses the input.</returns>
+    /// <remarks>
+    /// What is read is the default severity and not the effective one, because it records whether the construct
+    /// can be translated at all, which a consumer lowering the severity in configuration does not change.
+    /// </remarks>
+    public static bool HasAnyErrors(this ImmutableArrayBuilder<DiagnosticInfo> diagnostics)
+    {
+        foreach (DiagnosticInfo diagnostic in diagnostics.WrittenSpan)
+        {
+            if (diagnostic.Descriptor.DefaultSeverity == DiagnosticSeverity.Error)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Registers an output node into an <see cref="IncrementalGeneratorInitializationContext"/> to output diagnostics.
     /// </summary>
     /// <param name="context">The input <see cref="IncrementalGeneratorInitializationContext"/> instance.</param>

@@ -66,10 +66,6 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     /// A property read from a custom type. The rewriters are shared with the compute generator, so what
     /// this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>
-    /// <remarks>
-    /// The shader is still handed to FXC after the diagnostic, as it is for every other rewriter
-    /// diagnostic, so the compile error it raises on the same read is named here too.
-    /// </remarks>
     [TestMethod]
     public void ReadingAPropertyOfACustomTypeIsDiagnosed()
     {
@@ -105,7 +101,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0088", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0088");
     }
     /// <summary>
     /// A conversion operator declared on a custom type. The rewriters are shared with the compute generator,
@@ -160,10 +156,6 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     /// An indexer declared on a custom type. The rewriters are shared with the compute generator, so what
     /// this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>
-    /// <remarks>
-    /// The shader is still handed to FXC after the diagnostic, as it is for every other rewriter
-    /// diagnostic, so the compile error it raises on the same access is named here too.
-    /// </remarks>
     [TestMethod]
     public void UsingAnIndexerOfACustomTypeIsDiagnosed()
     {
@@ -199,17 +191,13 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0090", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0090");
     }
 
     /// <summary>
     /// A generic method. The rewriters are shared with the compute generator, so what this pins is that the
     /// pixel shader generator answers with its own identifier.
     /// </summary>
-    /// <remarks>
-    /// The shader is still handed to FXC after the diagnostic, as it is for every other rewriter
-    /// diagnostic, so the compile error it raises on the same call is named here too.
-    /// </remarks>
     [TestMethod]
     public void CallingAGenericMethodIsDiagnosed()
     {
@@ -243,17 +231,13 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0091", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0091");
     }
 
     /// <summary>
     /// A method declared in a C# extension block. The rewriters are shared with the compute generator, so
     /// what this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>
-    /// <remarks>
-    /// The shader is still handed to FXC after the diagnostic, as it is for every other rewriter
-    /// diagnostic, so the compile error it raises on the same call is named here too.
-    /// </remarks>
     [TestMethod]
     public void CallingAnExtensionMemberIsDiagnosed()
     {
@@ -286,7 +270,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0092", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0092");
     }
 
     /// <summary>
@@ -395,7 +379,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0041", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0041");
     }
 
     /// <summary>

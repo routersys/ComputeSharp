@@ -58,8 +58,7 @@ internal static class CSharpGeneratorTest<TGenerator>
     /// <param name="source">The input source to process.</param>
     /// <param name="diagnosticId">The diagnostic id expected to be among the reported ones.</param>
     /// <remarks>
-    /// A refused input is still handed to the shader compiler, so the set carries whatever comes back from
-    /// there as well. Asserting the set would tie every caller to that, and it is the subject of separate work.
+    /// One input can trip several diagnostics, so the whole set is not asserted here.
     /// </remarks>
     public static void VerifyDiagnosticIsReported(string source, string diagnosticId)
     {
@@ -68,6 +67,18 @@ internal static class CSharpGeneratorTest<TGenerator>
         Assert.IsTrue(
             diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
             $"{diagnosticId} is not reported: {string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.Id).Distinct())}");
+    }
+
+    /// <summary>
+    /// Runs a source generator over a source and gets the diagnostics it reports.
+    /// </summary>
+    /// <param name="source">The input source to process.</param>
+    /// <returns>The diagnostics the generator reported for <paramref name="source"/>.</returns>
+    public static ImmutableArray<Diagnostic> GetReportedDiagnostics(string source)
+    {
+        RunGenerator(source, out _, out ImmutableArray<Diagnostic> diagnostics);
+
+        return diagnostics;
     }
 
     /// <summary>
