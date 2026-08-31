@@ -138,7 +138,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor LockStatement = new(
         id: "CMPWD2D0010",
-        title: "Foreach statement",
+        title: "Lock statement",
         messageFormat: "A lock statement cannot be used in a pixel shader",
         category: "ComputeWeave.D2D1.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -151,7 +151,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor QueryExpression = new(
         id: "CMPWD2D0011",
-        title: "Foreach statement",
+        title: "Query expression",
         messageFormat: "A LINQ query expression cannot be used in a pixel shader",
         category: "ComputeWeave.D2D1.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -837,12 +837,12 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor InvalidD2DPixelShaderSourceMethodReturnType = new(
         id: "CMPWD2D0057",
-        title: "Missing compile options for D2D pixel shader source",
+        title: "Invalid return type for D2D pixel shader source",
         messageFormat: """The method "{0}" (in type {1}) is using [D2DPixelShaderSource] but has an invalid return type {2} (it must return a ReadOnlySpan<byte>)""",
         category: "ComputeWeave.D2D1.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "Methods using using [D2DPixelShaderSource] must use ReadOnlySpan<byte> as the return type.",
+        description: "Methods using [D2DPixelShaderSource] must use ReadOnlySpan<byte> as the return type.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
@@ -853,7 +853,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor MissingD2DInputCountAttribute = new(
         id: "CMPWD2D0058",
-        title: "Missing [D2DResourceTextureIndex] attribute",
+        title: "Missing [D2DInputCount] attribute",
         messageFormat: "The D2D1 shader of type {0} is not annotated with the [D2DInputCount] attribute (it is mandatory for all D2D1 shader types)",
         category: "ComputeWeave.D2D1.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,

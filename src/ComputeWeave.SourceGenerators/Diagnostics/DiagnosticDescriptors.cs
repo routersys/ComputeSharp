@@ -254,7 +254,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor LockStatement = new(
         id: "CMPW0018",
-        title: "Foreach statement",
+        title: "Lock statement",
         messageFormat: "A lock statement cannot be used in a compute shader",
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -267,7 +267,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor QueryExpression = new(
         id: "CMPW0019",
-        title: "Foreach statement",
+        title: "Query expression",
         messageFormat: "A LINQ query expression cannot be used in a compute shader",
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
