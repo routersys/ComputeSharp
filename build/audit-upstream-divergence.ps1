@@ -60,12 +60,15 @@ if (-not $Watermark)
     $Watermark = $Matches[1]
 }
 
-# Commits already cited by a ledger row.
-$cited = [System.Collections.Generic.HashSet[string]]::new()
+# The identifiers a ledger row can be citing. Every row writes an abbreviation, and how many
+# characters git prints for one depends on the size of the object database at the moment it
+# asks, so the width in the document and the width of a fresh listing need not agree. These
+# are resolved to full hashes below and compared at that width.
+$citations = [System.Collections.Generic.List[string]]::new()
 
-foreach ($match in [regex]::Matches($guide, '`([0-9a-f]{8})`'))
+foreach ($match in [regex]::Matches($guide, '`([0-9a-f]{8,40})`'))
 {
-    [void]$cited.Add($match.Groups[1].Value)
+    $citations.Add($match.Groups[1].Value)
 }
 
 Push-Location $repository
@@ -77,6 +80,21 @@ try
         if ((git cat-file -t $commit 2>$null) -ne 'commit')
         {
             throw "$commit is not a commit in this repository."
+        }
+    }
+
+    # A citation is an identifier that names a commit here. A hexadecimal string in the
+    # document that names nothing, a byte count for instance, resolves to "missing" and is
+    # dropped, so reading every one of them costs nothing.
+    $cited = [System.Collections.Generic.HashSet[string]]::new()
+
+    foreach ($line in ($citations | git cat-file --batch-check="%(objectname) %(objecttype)"))
+    {
+        $parts = $line.Split(' ')
+
+        if ($parts.Count -ge 2 -and $parts[1] -eq 'commit')
+        {
+            [void]$cited.Add($parts[0])
         }
     }
 
@@ -93,7 +111,7 @@ try
     $queue = [System.Collections.Generic.List[object]]::new()
     $current = $null
 
-    foreach ($line in (git log --no-merges --name-status --format='C|%h|%ad|%s' --date=short "$Watermark..HEAD"))
+    foreach ($line in (git log --no-merges --name-status --format='C|%H|%ad|%s' --date=short "$Watermark..HEAD"))
     {
         if ($line.StartsWith('C|'))
         {
@@ -143,7 +161,7 @@ try
 
     foreach ($commit in $queue)
     {
-        Write-Host "  $($commit.Hash)  $($commit.Date)  $($commit.Subject)"
+        Write-Host "  $($commit.Hash.Substring(0, 8))  $($commit.Date)  $($commit.Subject)"
 
         foreach ($file in $commit.Files)
         {
