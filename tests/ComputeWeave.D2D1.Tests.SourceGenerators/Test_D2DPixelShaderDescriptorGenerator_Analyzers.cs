@@ -1138,6 +1138,57 @@ public class Test_D2DPixelShaderDescriptorGenerator_Analyzers
     }
 
     [TestMethod]
+    public async Task TrivialSamplingWithComplexInputAtTheInputLimit_Warns()
+    {
+        const string source = """
+            using ComputeWeave.D2D1;
+            using float4 = ComputeWeave.Float4;
+
+            [D2DInputCount(8)]
+            [D2DInputComplex(7)]
+            [{|CMPWD2D0069:D2DPixelOptions(D2D1PixelOptions.TrivialSampling)|}]
+            internal readonly partial struct MyType : ID2D1PixelShader
+            {
+                public float4 Execute()
+                {
+                    return 0;
+                }
+            }
+            """;
+
+        await CSharpAnalyzerTest<InvalidD2D1PixelOptionsTrivialSamplingOnShaderTypeAnalyzer>.VerifyAnalyzerAsync(source);
+    }
+
+    [TestMethod]
+    public async Task TrivialSamplingWithSimpleInputsAtTheInputLimit_DoesNotWarn()
+    {
+        const string source = """
+            using ComputeWeave.D2D1;
+            using float4 = ComputeWeave.Float4;
+
+            [D2DInputCount(8)]
+            [D2DInputSimple(0)]
+            [D2DInputSimple(1)]
+            [D2DInputSimple(2)]
+            [D2DInputSimple(3)]
+            [D2DInputSimple(4)]
+            [D2DInputSimple(5)]
+            [D2DInputSimple(6)]
+            [D2DInputSimple(7)]
+            [D2DPixelOptions(D2D1PixelOptions.TrivialSampling)]
+            internal readonly partial struct MyType : ID2D1PixelShader
+            {
+                public float4 Execute()
+                {
+                    return 0;
+                }
+            }
+            """;
+
+        await CSharpAnalyzerTest<InvalidD2D1PixelOptionsTrivialSamplingOnShaderTypeAnalyzer>.VerifyAnalyzerAsync(source);
+    }
+
+    [TestMethod]
     public async Task TrivialSamplingWithComplexInput_Warns()
     {
         const string source = """
