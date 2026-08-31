@@ -602,4 +602,232 @@ partial class HlslIntrinsicSemanticsTests
             this.results[3] = new float2(t4x4AsFloat.M41, m4x4AsFloat.M14);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_ClampAndExtremesUnsigned(Device device)
+    {
+        using ReadWriteBuffer<uint2> results = device.Get().AllocateReadWriteBuffer<uint2>(60);
+
+        device.Get().For(1, new ClampAndExtremesUnsignedShader(results, 5u, 2u, 8u));
+
+        AssertAgreesExactly(results);
+    }
+
+    // Every unsigned shape of the three, one slot each per intrinsic. The middle value lies inside
+    // the bounds, so clamping returns it while the two extremes return the bounds themselves
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ClampAndExtremesUnsignedShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<uint2> results;
+        public readonly uint middle;
+        public readonly uint lowest;
+        public readonly uint highest;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            uint midscalar = this.middle;
+            uint loscalar = this.lowest;
+            uint hiscalar = this.highest;
+            uint clampedscalar = Hlsl.Clamp(midscalar, loscalar, hiscalar);
+            uint biggestscalar = Hlsl.Max(loscalar, hiscalar);
+            uint smallestscalar = Hlsl.Min(loscalar, hiscalar);
+            this.results[0] = new uint2(clampedscalar, this.middle);
+            this.results[1] = new uint2(biggestscalar, this.highest);
+            this.results[2] = new uint2(smallestscalar, this.lowest);
+
+            uint2 midv2 = new(this.middle, this.middle);
+            uint2 lov2 = new(this.lowest, this.lowest);
+            uint2 hiv2 = new(this.highest, this.highest);
+            uint2 clampedv2 = Hlsl.Clamp(midv2, lov2, hiv2);
+            uint2 biggestv2 = Hlsl.Max(lov2, hiv2);
+            uint2 smallestv2 = Hlsl.Min(lov2, hiv2);
+            this.results[3] = new uint2(clampedv2.Y, this.middle);
+            this.results[4] = new uint2(biggestv2.Y, this.highest);
+            this.results[5] = new uint2(smallestv2.Y, this.lowest);
+
+            uint3 midv3 = new(this.middle, this.middle, this.middle);
+            uint3 lov3 = new(this.lowest, this.lowest, this.lowest);
+            uint3 hiv3 = new(this.highest, this.highest, this.highest);
+            uint3 clampedv3 = Hlsl.Clamp(midv3, lov3, hiv3);
+            uint3 biggestv3 = Hlsl.Max(lov3, hiv3);
+            uint3 smallestv3 = Hlsl.Min(lov3, hiv3);
+            this.results[6] = new uint2(clampedv3.Z, this.middle);
+            this.results[7] = new uint2(biggestv3.Z, this.highest);
+            this.results[8] = new uint2(smallestv3.Z, this.lowest);
+
+            uint4 midv4 = new(this.middle, this.middle, this.middle, this.middle);
+            uint4 lov4 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            uint4 hiv4 = new(this.highest, this.highest, this.highest, this.highest);
+            uint4 clampedv4 = Hlsl.Clamp(midv4, lov4, hiv4);
+            uint4 biggestv4 = Hlsl.Max(lov4, hiv4);
+            uint4 smallestv4 = Hlsl.Min(lov4, hiv4);
+            this.results[9] = new uint2(clampedv4.W, this.middle);
+            this.results[10] = new uint2(biggestv4.W, this.highest);
+            this.results[11] = new uint2(smallestv4.W, this.lowest);
+
+            uint1x1 midm1x1 = new(this.middle);
+            uint1x1 lom1x1 = new(this.lowest);
+            uint1x1 him1x1 = new(this.highest);
+            uint1x1 clampedm1x1 = Hlsl.Clamp(midm1x1, lom1x1, him1x1);
+            uint1x1 biggestm1x1 = Hlsl.Max(lom1x1, him1x1);
+            uint1x1 smallestm1x1 = Hlsl.Min(lom1x1, him1x1);
+            this.results[12] = new uint2(clampedm1x1.M11, this.middle);
+            this.results[13] = new uint2(biggestm1x1.M11, this.highest);
+            this.results[14] = new uint2(smallestm1x1.M11, this.lowest);
+
+            uint1x2 midm1x2 = new(this.middle, this.middle);
+            uint1x2 lom1x2 = new(this.lowest, this.lowest);
+            uint1x2 him1x2 = new(this.highest, this.highest);
+            uint1x2 clampedm1x2 = Hlsl.Clamp(midm1x2, lom1x2, him1x2);
+            uint1x2 biggestm1x2 = Hlsl.Max(lom1x2, him1x2);
+            uint1x2 smallestm1x2 = Hlsl.Min(lom1x2, him1x2);
+            this.results[15] = new uint2(clampedm1x2.M12, this.middle);
+            this.results[16] = new uint2(biggestm1x2.M12, this.highest);
+            this.results[17] = new uint2(smallestm1x2.M12, this.lowest);
+
+            uint1x3 midm1x3 = new(this.middle, this.middle, this.middle);
+            uint1x3 lom1x3 = new(this.lowest, this.lowest, this.lowest);
+            uint1x3 him1x3 = new(this.highest, this.highest, this.highest);
+            uint1x3 clampedm1x3 = Hlsl.Clamp(midm1x3, lom1x3, him1x3);
+            uint1x3 biggestm1x3 = Hlsl.Max(lom1x3, him1x3);
+            uint1x3 smallestm1x3 = Hlsl.Min(lom1x3, him1x3);
+            this.results[18] = new uint2(clampedm1x3.M13, this.middle);
+            this.results[19] = new uint2(biggestm1x3.M13, this.highest);
+            this.results[20] = new uint2(smallestm1x3.M13, this.lowest);
+
+            uint1x4 midm1x4 = new(this.middle, this.middle, this.middle, this.middle);
+            uint1x4 lom1x4 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            uint1x4 him1x4 = new(this.highest, this.highest, this.highest, this.highest);
+            uint1x4 clampedm1x4 = Hlsl.Clamp(midm1x4, lom1x4, him1x4);
+            uint1x4 biggestm1x4 = Hlsl.Max(lom1x4, him1x4);
+            uint1x4 smallestm1x4 = Hlsl.Min(lom1x4, him1x4);
+            this.results[21] = new uint2(clampedm1x4.M14, this.middle);
+            this.results[22] = new uint2(biggestm1x4.M14, this.highest);
+            this.results[23] = new uint2(smallestm1x4.M14, this.lowest);
+
+            uint2x1 midm2x1 = new(this.middle, this.middle);
+            uint2x1 lom2x1 = new(this.lowest, this.lowest);
+            uint2x1 him2x1 = new(this.highest, this.highest);
+            uint2x1 clampedm2x1 = Hlsl.Clamp(midm2x1, lom2x1, him2x1);
+            uint2x1 biggestm2x1 = Hlsl.Max(lom2x1, him2x1);
+            uint2x1 smallestm2x1 = Hlsl.Min(lom2x1, him2x1);
+            this.results[24] = new uint2(clampedm2x1.M21, this.middle);
+            this.results[25] = new uint2(biggestm2x1.M21, this.highest);
+            this.results[26] = new uint2(smallestm2x1.M21, this.lowest);
+
+            uint2x2 midm2x2 = new(this.middle, this.middle, this.middle, this.middle);
+            uint2x2 lom2x2 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            uint2x2 him2x2 = new(this.highest, this.highest, this.highest, this.highest);
+            uint2x2 clampedm2x2 = Hlsl.Clamp(midm2x2, lom2x2, him2x2);
+            uint2x2 biggestm2x2 = Hlsl.Max(lom2x2, him2x2);
+            uint2x2 smallestm2x2 = Hlsl.Min(lom2x2, him2x2);
+            this.results[27] = new uint2(clampedm2x2.M22, this.middle);
+            this.results[28] = new uint2(biggestm2x2.M22, this.highest);
+            this.results[29] = new uint2(smallestm2x2.M22, this.lowest);
+
+            uint2x3 midm2x3 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint2x3 lom2x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint2x3 him2x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint2x3 clampedm2x3 = Hlsl.Clamp(midm2x3, lom2x3, him2x3);
+            uint2x3 biggestm2x3 = Hlsl.Max(lom2x3, him2x3);
+            uint2x3 smallestm2x3 = Hlsl.Min(lom2x3, him2x3);
+            this.results[30] = new uint2(clampedm2x3.M23, this.middle);
+            this.results[31] = new uint2(biggestm2x3.M23, this.highest);
+            this.results[32] = new uint2(smallestm2x3.M23, this.lowest);
+
+            uint2x4 midm2x4 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint2x4 lom2x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint2x4 him2x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint2x4 clampedm2x4 = Hlsl.Clamp(midm2x4, lom2x4, him2x4);
+            uint2x4 biggestm2x4 = Hlsl.Max(lom2x4, him2x4);
+            uint2x4 smallestm2x4 = Hlsl.Min(lom2x4, him2x4);
+            this.results[33] = new uint2(clampedm2x4.M24, this.middle);
+            this.results[34] = new uint2(biggestm2x4.M24, this.highest);
+            this.results[35] = new uint2(smallestm2x4.M24, this.lowest);
+
+            uint3x1 midm3x1 = new(this.middle, this.middle, this.middle);
+            uint3x1 lom3x1 = new(this.lowest, this.lowest, this.lowest);
+            uint3x1 him3x1 = new(this.highest, this.highest, this.highest);
+            uint3x1 clampedm3x1 = Hlsl.Clamp(midm3x1, lom3x1, him3x1);
+            uint3x1 biggestm3x1 = Hlsl.Max(lom3x1, him3x1);
+            uint3x1 smallestm3x1 = Hlsl.Min(lom3x1, him3x1);
+            this.results[36] = new uint2(clampedm3x1.M31, this.middle);
+            this.results[37] = new uint2(biggestm3x1.M31, this.highest);
+            this.results[38] = new uint2(smallestm3x1.M31, this.lowest);
+
+            uint3x2 midm3x2 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint3x2 lom3x2 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint3x2 him3x2 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint3x2 clampedm3x2 = Hlsl.Clamp(midm3x2, lom3x2, him3x2);
+            uint3x2 biggestm3x2 = Hlsl.Max(lom3x2, him3x2);
+            uint3x2 smallestm3x2 = Hlsl.Min(lom3x2, him3x2);
+            this.results[39] = new uint2(clampedm3x2.M32, this.middle);
+            this.results[40] = new uint2(biggestm3x2.M32, this.highest);
+            this.results[41] = new uint2(smallestm3x2.M32, this.lowest);
+
+            uint3x3 midm3x3 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint3x3 lom3x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint3x3 him3x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint3x3 clampedm3x3 = Hlsl.Clamp(midm3x3, lom3x3, him3x3);
+            uint3x3 biggestm3x3 = Hlsl.Max(lom3x3, him3x3);
+            uint3x3 smallestm3x3 = Hlsl.Min(lom3x3, him3x3);
+            this.results[42] = new uint2(clampedm3x3.M33, this.middle);
+            this.results[43] = new uint2(biggestm3x3.M33, this.highest);
+            this.results[44] = new uint2(smallestm3x3.M33, this.lowest);
+
+            uint3x4 midm3x4 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint3x4 lom3x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint3x4 him3x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint3x4 clampedm3x4 = Hlsl.Clamp(midm3x4, lom3x4, him3x4);
+            uint3x4 biggestm3x4 = Hlsl.Max(lom3x4, him3x4);
+            uint3x4 smallestm3x4 = Hlsl.Min(lom3x4, him3x4);
+            this.results[45] = new uint2(clampedm3x4.M34, this.middle);
+            this.results[46] = new uint2(biggestm3x4.M34, this.highest);
+            this.results[47] = new uint2(smallestm3x4.M34, this.lowest);
+
+            uint4x1 midm4x1 = new(this.middle, this.middle, this.middle, this.middle);
+            uint4x1 lom4x1 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            uint4x1 him4x1 = new(this.highest, this.highest, this.highest, this.highest);
+            uint4x1 clampedm4x1 = Hlsl.Clamp(midm4x1, lom4x1, him4x1);
+            uint4x1 biggestm4x1 = Hlsl.Max(lom4x1, him4x1);
+            uint4x1 smallestm4x1 = Hlsl.Min(lom4x1, him4x1);
+            this.results[48] = new uint2(clampedm4x1.M41, this.middle);
+            this.results[49] = new uint2(biggestm4x1.M41, this.highest);
+            this.results[50] = new uint2(smallestm4x1.M41, this.lowest);
+
+            uint4x2 midm4x2 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint4x2 lom4x2 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint4x2 him4x2 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint4x2 clampedm4x2 = Hlsl.Clamp(midm4x2, lom4x2, him4x2);
+            uint4x2 biggestm4x2 = Hlsl.Max(lom4x2, him4x2);
+            uint4x2 smallestm4x2 = Hlsl.Min(lom4x2, him4x2);
+            this.results[51] = new uint2(clampedm4x2.M42, this.middle);
+            this.results[52] = new uint2(biggestm4x2.M42, this.highest);
+            this.results[53] = new uint2(smallestm4x2.M42, this.lowest);
+
+            uint4x3 midm4x3 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint4x3 lom4x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint4x3 him4x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint4x3 clampedm4x3 = Hlsl.Clamp(midm4x3, lom4x3, him4x3);
+            uint4x3 biggestm4x3 = Hlsl.Max(lom4x3, him4x3);
+            uint4x3 smallestm4x3 = Hlsl.Min(lom4x3, him4x3);
+            this.results[54] = new uint2(clampedm4x3.M43, this.middle);
+            this.results[55] = new uint2(biggestm4x3.M43, this.highest);
+            this.results[56] = new uint2(smallestm4x3.M43, this.lowest);
+
+            uint4x4 midm4x4 = new(this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle, this.middle);
+            uint4x4 lom4x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            uint4x4 him4x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            uint4x4 clampedm4x4 = Hlsl.Clamp(midm4x4, lom4x4, him4x4);
+            uint4x4 biggestm4x4 = Hlsl.Max(lom4x4, him4x4);
+            uint4x4 smallestm4x4 = Hlsl.Min(lom4x4, him4x4);
+            this.results[57] = new uint2(clampedm4x4.M44, this.middle);
+            this.results[58] = new uint2(biggestm4x4.M44, this.highest);
+            this.results[59] = new uint2(smallestm4x4.M44, this.lowest);
+        }
+    }
 }
