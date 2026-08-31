@@ -112,15 +112,15 @@ public class RefusedConstructTests
     }
 
     /// <summary>
-    /// The shader the report of this behavior was written around, kept as it was written.
+    /// The shader the report was written around, kept as it was written.
     /// </summary>
     /// <remarks>
-    /// The construct is the one the row above already covers. What this pins is the shape the report carried:
-    /// the captured resource arrives through a primary constructor rather than a field, which is a different
-    /// path through the generator, and it is the source a reader will reach for when checking the behavior.
+    /// The construct is one the rows above already cover. What this pins is the shape the report carried: the
+    /// captured resource arrives through a primary constructor rather than a field, which is a different path
+    /// through the generator, and it is the source a reader will reach for when checking the behavior.
     /// </remarks>
     [TestMethod]
-    public void TheShaderTheBehaviorWasReportedWithIsRefusedWithoutACompilerFailure()
+    public void TheShaderTheReportWasWrittenAroundIsRefused()
     {
         const string Source = """
             using ComputeWeave;
