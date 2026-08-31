@@ -6984,6 +6984,198 @@ partial class Hlsl
     public static Float4 DerivativeOfDxLowPrecision(Float4 x) => default;
 
     /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float1x1 DerivativeOfDxLowPrecision(Float1x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float1x2 DerivativeOfDxLowPrecision(Float1x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float1x3 DerivativeOfDxLowPrecision(Float1x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float1x4 DerivativeOfDxLowPrecision(Float1x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float2x1 DerivativeOfDxLowPrecision(Float2x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float2x2 DerivativeOfDxLowPrecision(Float2x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float2x3 DerivativeOfDxLowPrecision(Float2x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float2x4 DerivativeOfDxLowPrecision(Float2x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float3x1 DerivativeOfDxLowPrecision(Float3x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float3x2 DerivativeOfDxLowPrecision(Float3x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float3x3 DerivativeOfDxLowPrecision(Float3x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float3x4 DerivativeOfDxLowPrecision(Float3x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float4x1 DerivativeOfDxLowPrecision(Float4x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float4x2 DerivativeOfDxLowPrecision(Float4x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float4x3 DerivativeOfDxLowPrecision(Float4x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-ddx"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_coarse")]
+    public static Float4x4 DerivativeOfDxLowPrecision(Float4x4 x) => default;
+
+    /// <summary>
     /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
     /// </summary>
     /// <param name="x">The specified value.</param>
@@ -7030,6 +7222,198 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("ddx_fine")]
     public static Float4 DerivativeOfDxHighPrecision(Float4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float1x1 DerivativeOfDxHighPrecision(Float1x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float1x2 DerivativeOfDxHighPrecision(Float1x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float1x3 DerivativeOfDxHighPrecision(Float1x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float1x4 DerivativeOfDxHighPrecision(Float1x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float2x1 DerivativeOfDxHighPrecision(Float2x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float2x2 DerivativeOfDxHighPrecision(Float2x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float2x3 DerivativeOfDxHighPrecision(Float2x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float2x4 DerivativeOfDxHighPrecision(Float2x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float3x1 DerivativeOfDxHighPrecision(Float3x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float3x2 DerivativeOfDxHighPrecision(Float3x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float3x3 DerivativeOfDxHighPrecision(Float3x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float3x4 DerivativeOfDxHighPrecision(Float3x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float4x1 DerivativeOfDxHighPrecision(Float4x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float4x2 DerivativeOfDxHighPrecision(Float4x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float4x3 DerivativeOfDxHighPrecision(Float4x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space x-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddx-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddx_fine")]
+    public static Float4x4 DerivativeOfDxHighPrecision(Float4x4 x) => default;
 
     /// <summary>
     /// Returns the partial derivative of the specified value with respect to the screen-space y-coordinate.
@@ -7320,6 +7704,198 @@ partial class Hlsl
     public static Float4 DerivativeOfDyLowPrecision(Float4 x) => default;
 
     /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float1x1 DerivativeOfDyLowPrecision(Float1x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float1x2 DerivativeOfDyLowPrecision(Float1x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float1x3 DerivativeOfDyLowPrecision(Float1x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float1x4 DerivativeOfDyLowPrecision(Float1x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float2x1 DerivativeOfDyLowPrecision(Float2x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float2x2 DerivativeOfDyLowPrecision(Float2x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float2x3 DerivativeOfDyLowPrecision(Float2x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float2x4 DerivativeOfDyLowPrecision(Float2x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float3x1 DerivativeOfDyLowPrecision(Float3x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float3x2 DerivativeOfDyLowPrecision(Float3x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float3x3 DerivativeOfDyLowPrecision(Float3x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float3x4 DerivativeOfDyLowPrecision(Float3x4 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float4x1 DerivativeOfDyLowPrecision(Float4x1 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float4x2 DerivativeOfDyLowPrecision(Float4x2 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float4x3 DerivativeOfDyLowPrecision(Float4x3 x) => default;
+
+    /// <summary>
+    /// Computes a low precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The low precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-coarse"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_coarse")]
+    public static Float4x4 DerivativeOfDyLowPrecision(Float4x4 x) => default;
+
+    /// <summary>
     /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
     /// </summary>
     /// <param name="x">The specified value.</param>
@@ -7366,6 +7942,198 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("ddy_fine")]
     public static Float4 DerivativeOfDyHighPrecision(Float4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float1x1 DerivativeOfDyHighPrecision(Float1x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float1x2 DerivativeOfDyHighPrecision(Float1x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float1x3 DerivativeOfDyHighPrecision(Float1x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float1x4 DerivativeOfDyHighPrecision(Float1x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float2x1 DerivativeOfDyHighPrecision(Float2x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float2x2 DerivativeOfDyHighPrecision(Float2x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float2x3 DerivativeOfDyHighPrecision(Float2x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float2x4 DerivativeOfDyHighPrecision(Float2x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float3x1 DerivativeOfDyHighPrecision(Float3x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float3x2 DerivativeOfDyHighPrecision(Float3x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float3x3 DerivativeOfDyHighPrecision(Float3x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float3x4 DerivativeOfDyHighPrecision(Float3x4 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float4x1 DerivativeOfDyHighPrecision(Float4x1 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float4x2 DerivativeOfDyHighPrecision(Float4x2 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float4x3 DerivativeOfDyHighPrecision(Float4x3 x) => default;
+
+    /// <summary>
+    /// Computes a high precision partial derivative with respect to the screen-space y-coordinate.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>The high precision partial derivative with respect to the input parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/ddy-fine"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("ddy_fine")]
+    public static Float4x4 DerivativeOfDyHighPrecision(Float4x4 x) => default;
 
     /// <summary>
     /// Converts the specified value from radians to degrees.
