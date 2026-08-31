@@ -9,8 +9,9 @@ namespace ComputeWeave.SourceGeneration.Mappings;
 /// The set is measured, not designed. It is the union of the kinds the rewriter walks when the whole
 /// solution is built, and the kinds of the constructs that were built one at a time and shown to compute
 /// the same value on a device. Widening it requires the same measurement: see the shader language surface
-/// specification. A kind that is not here has no recorded verdict, so the generator must not silently
-/// write it into HLSL.
+/// specification. A kind that is not here is one the set records no verdict for, which is not the same as
+/// one nothing has judged: a kind the rewriter always refuses is not here either. Where nothing else answers
+/// for it, the generator must not silently write it into HLSL.
 /// </remarks>
 internal static class HlslKnownSyntax
 {
