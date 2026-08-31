@@ -166,14 +166,28 @@ public class RefusedConstructTests
     /// </summary>
     /// <remarks>
     /// The report is an Info and refuses nothing, so the shader is built and the failure the HLSL compiler
-    /// raises on it still reaches the author. That is what keeps syntax with no recorded verdict visible while
-    /// the set is being measured: were an Info to stop the build, such syntax would pass in silence instead.
+    /// raises still reaches the author. That is what keeps syntax with no recorded verdict visible while the
+    /// set is being measured: were an Info to stop the build, such syntax would pass in silence instead.
+    /// The failure is made to come from the recursion, which HLSL cannot express under any profile, so the
+    /// row does not rest on how one version of one compiler happens to treat the reported construct.
     /// </remarks>
     [TestMethod]
     public void AReportThatRefusesNothingCarriesTheCompilerFailure()
     {
         Diagnostic[] reported = Report(
-            Shader("float v = 5; goto done; done: v += 1; k += (int)v;", isUnsafe: false),
+            Shader(
+                """
+                float v = 5;
+
+                goto done;
+
+                done: v += 1;
+
+                static int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
+
+                k += Fib(3) + (int)v;
+                """,
+                isUnsafe: false),
             "ShaderReportedCompilerFailureTests");
 
         Assert.AreEqual("CMPW0046, CMPW0121", Ids(reported));

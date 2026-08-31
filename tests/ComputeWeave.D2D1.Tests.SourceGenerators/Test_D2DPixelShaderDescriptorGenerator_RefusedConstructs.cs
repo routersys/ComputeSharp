@@ -104,15 +104,29 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     /// A pixel shader carrying syntax the accepted set does not cover.
     /// </summary>
     /// <remarks>
-    /// The report is an Info and refuses nothing, so the shader is built and the failure FXC raises on it
-    /// still reaches the author. That is what keeps syntax with no recorded verdict visible while the set is
-    /// being measured: were an Info to stop the build, such syntax would pass in silence instead.
+    /// The report is an Info and refuses nothing, so the shader is built and the failure FXC raises still
+    /// reaches the author. That is what keeps syntax with no recorded verdict visible while the set is being
+    /// measured: were an Info to stop the build, such syntax would pass in silence instead. The failure is
+    /// made to come from the recursion, which HLSL cannot express under any profile, so the row does not rest
+    /// on how one version of one compiler happens to treat the reported construct.
     /// </remarks>
     [TestMethod]
     public void AReportThatRefusesNothingCarriesTheCompilerFailure()
     {
         ImmutableArray<Diagnostic> reported = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(
-            Shader("float v = 5; goto done; done: v += 1; k += (int)v;", isUnsafe: false));
+            Shader(
+                """
+                float v = 5;
+
+                goto done;
+
+                done: v += 1;
+
+                static int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
+
+                k += Fib(3) + (int)v;
+                """,
+                isUnsafe: false));
 
         Assert.AreEqual("CMPWD2D0034, CMPWD2D0094", Ids(reported));
     }
