@@ -165,4 +165,55 @@ partial class HlslIntrinsicSemanticsTests
             this.results[0] = new double2(Hlsl.FusedMultiplyAdd(this.a, this.b, this.c), (this.a * this.b) + this.c);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeDouble(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(6);
+
+        device.Get().For(1, new TransposeDoubleShader(results, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // A double matrix had no overload at all, square or otherwise, so both shapes are probed. The elements
+    // are carried through unchanged, so the two sides have to agree to the last bit
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeDoubleShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly double m11;
+        public readonly double m12;
+        public readonly double m13;
+        public readonly double m21;
+        public readonly double m22;
+        public readonly double m23;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            double2x2 square = new(this.m11, this.m12, this.m21, this.m22);
+            double2x2 transposedSquare = Hlsl.Transpose(square);
+
+            this.results[0] = new double2(transposedSquare.M12, this.m21);
+            this.results[1] = new double2(transposedSquare.M21, this.m12);
+
+            double2x3 wide = new(this.m11, this.m12, this.m13, this.m21, this.m22, this.m23);
+            double3x2 transposedWide = Hlsl.Transpose(wide);
+
+            this.results[2] = new double2(transposedWide.M11, this.m11);
+            this.results[3] = new double2(transposedWide.M12, this.m21);
+            this.results[4] = new double2(transposedWide.M21, this.m12);
+            this.results[5] = new double2(transposedWide.M32, this.m23);
+        }
+    }
 }
