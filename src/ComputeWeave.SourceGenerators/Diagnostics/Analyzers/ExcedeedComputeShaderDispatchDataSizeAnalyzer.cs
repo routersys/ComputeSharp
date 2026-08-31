@@ -69,10 +69,11 @@ public sealed class ExcedeedComputeShaderDispatchDataSizeAnalyzer : DiagnosticAn
                 //  - Root constants cost 1 DWORD each, since they are 32-bit values.
                 //  - Descriptor tables cost 1 DWORD each.
                 //  - Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
+                // A pixel shader like type binds the implicit output texture as one more descriptor table.
                 // So here we check whether the current signature respects that constraint,
                 // and emit a build error otherwise. For more info on this, see the docs here:
                 // https://docs.microsoft.com/windows/win32/direct3d12/root-signature-limits.
-                int numberOfDwordConstants = (constantBufferSizeInBytes / sizeof(int)) + resourceCount;
+                int numberOfDwordConstants = (constantBufferSizeInBytes / sizeof(int)) + resourceCount + (isPixelShaderLike ? 1 : 0);
 
                 // Emit an error in case we have in fact exceeded that limit
                 if (numberOfDwordConstants > 64)
