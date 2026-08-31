@@ -48,6 +48,55 @@ public class ConstantBufferSizeTests
             """;
     }
 
+    private static string CreatePixelShaderSource(int fieldCount)
+    {
+        string fields = string.Join("\n", Enumerable.Range(0, fieldCount).Select(static i => $"    private readonly float f{i};"));
+        string sums = string.Join("\n", Enumerable.Range(0, fieldCount).Select(static i => $"        sum += this.f{i};"));
+
+        return $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct PixelShader : IComputeShader<Float4>
+            {
+            {{fields}}
+
+                public Float4 Execute()
+                {
+                    float sum = 0;
+
+            {{sums}}
+
+                    return new Float4(sum, 0, 0, 1);
+                }
+            }
+            """;
+    }
+
+    [TestMethod]
+    public void APixelShaderAtTheLimitIsNotReported()
+    {
+        // Two artificial values, 61 captured values and the implicit output texture make exactly 64
+        AnalyzerHelper.AssertDiagnostics(
+            new ExcedeedComputeShaderDispatchDataSizeAnalyzer(),
+            [CreatePixelShaderSource(61)],
+            "PixelShaderDispatchDataSizeAtLimitTests");
+    }
+
+    [TestMethod]
+    public void APixelShaderPastTheLimitIsReported()
+    {
+        // One more captured value takes the root signature to 65, which D3D12 refuses
+        AnalyzerHelper.AssertDiagnostics(
+            new ExcedeedComputeShaderDispatchDataSizeAnalyzer(),
+            [CreatePixelShaderSource(62)],
+            "PixelShaderDispatchDataSizeExceededTests",
+            "CMPW0041");
+    }
+
     [TestMethod]
     public void AFieldOfAnInaccessibleTypeIsNotCountedTowardsTheSize()
     {
