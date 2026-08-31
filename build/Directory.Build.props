@@ -1,7 +1,16 @@
 <Project>
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>preview</LangVersion>
+
+    <!--
+      Pinned rather than 'preview' or 'latest'. This governs how the sources in this repository are compiled,
+      and nothing else: what a consumer may write in a shader body is governed by the consumer's own setting,
+      which is why the accepted syntax set exists and is measured separately. 'preview' would put shipping code
+      on an unsettled specification, and any floating value lets an SDK update change how this builds with no
+      commit to review and no test to fail. Bumping this is a deliberate change, and the language version the
+      shader fixtures compile under is a separate decision that carries the accepted syntax set with it.
+    -->
+    <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
