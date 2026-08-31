@@ -216,4 +216,99 @@ partial class HlslIntrinsicSemanticsTests
             this.results[5] = new double2(transposedWide.M32, this.m23);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeDoubleShapes(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(16);
+
+        device.Get().For(1, new TransposeDoubleShapesShader(results, 10.0));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // Every double shape, one slot each, on the same plan as the unsigned probe
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeDoubleShapesShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly double seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            double1x1 m1x1 = new(this.seed + 1);
+            double1x1 t1x1 = Hlsl.Transpose(m1x1);
+            this.results[0] = new double2(t1x1.M11, m1x1.M11);
+
+            double1x2 m1x2 = new(this.seed + 1, this.seed + 2);
+            double2x1 t1x2 = Hlsl.Transpose(m1x2);
+            this.results[1] = new double2(t1x2.M21, m1x2.M12);
+
+            double1x3 m1x3 = new(this.seed + 1, this.seed + 2, this.seed + 3);
+            double3x1 t1x3 = Hlsl.Transpose(m1x3);
+            this.results[2] = new double2(t1x3.M31, m1x3.M13);
+
+            double1x4 m1x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            double4x1 t1x4 = Hlsl.Transpose(m1x4);
+            this.results[3] = new double2(t1x4.M41, m1x4.M14);
+
+            double2x1 m2x1 = new(this.seed + 1, this.seed + 2);
+            double1x2 t2x1 = Hlsl.Transpose(m2x1);
+            this.results[4] = new double2(t2x1.M12, m2x1.M21);
+
+            double2x2 m2x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            double2x2 t2x2 = Hlsl.Transpose(m2x2);
+            this.results[5] = new double2(t2x2.M21, m2x2.M12);
+
+            double2x3 m2x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6);
+            double3x2 t2x3 = Hlsl.Transpose(m2x3);
+            this.results[6] = new double2(t2x3.M31, m2x3.M13);
+
+            double2x4 m2x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8);
+            double4x2 t2x4 = Hlsl.Transpose(m2x4);
+            this.results[7] = new double2(t2x4.M41, m2x4.M14);
+
+            double3x1 m3x1 = new(this.seed + 1, this.seed + 2, this.seed + 3);
+            double1x3 t3x1 = Hlsl.Transpose(m3x1);
+            this.results[8] = new double2(t3x1.M13, m3x1.M31);
+
+            double3x2 m3x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6);
+            double2x3 t3x2 = Hlsl.Transpose(m3x2);
+            this.results[9] = new double2(t3x2.M21, m3x2.M12);
+
+            double3x3 m3x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9);
+            double3x3 t3x3 = Hlsl.Transpose(m3x3);
+            this.results[10] = new double2(t3x3.M31, m3x3.M13);
+
+            double3x4 m3x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12);
+            double4x3 t3x4 = Hlsl.Transpose(m3x4);
+            this.results[11] = new double2(t3x4.M41, m3x4.M14);
+
+            double4x1 m4x1 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            double1x4 t4x1 = Hlsl.Transpose(m4x1);
+            this.results[12] = new double2(t4x1.M14, m4x1.M41);
+
+            double4x2 m4x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8);
+            double2x4 t4x2 = Hlsl.Transpose(m4x2);
+            this.results[13] = new double2(t4x2.M21, m4x2.M12);
+
+            double4x3 m4x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12);
+            double3x4 t4x3 = Hlsl.Transpose(m4x3);
+            this.results[14] = new double2(t4x3.M31, m4x3.M13);
+
+            double4x4 m4x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12, this.seed + 13, this.seed + 14, this.seed + 15, this.seed + 16);
+            double4x4 t4x4 = Hlsl.Transpose(m4x4);
+            this.results[15] = new double2(t4x4.M41, m4x4.M14);
+        }
+    }
 }
