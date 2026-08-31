@@ -385,6 +385,65 @@ public partial class DispatchTests
         }
     }
 
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_Dispatch_WithManyResources(Device device)
+    {
+        using ReadWriteBuffer<int> buffer0 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer1 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer2 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer3 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer4 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer5 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer6 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer7 = device.Get().AllocateReadWriteBuffer<int>(64);
+        using ReadWriteBuffer<int> buffer8 = device.Get().AllocateReadWriteBuffer<int>(64);
+
+        device.Get().For(64, new ManyResourcesShader(buffer0, buffer1, buffer2, buffer3, buffer4, buffer5, buffer6, buffer7, buffer8));
+
+        ReadWriteBuffer<int>[] buffers = [buffer0, buffer1, buffer2, buffer3, buffer4, buffer5, buffer6, buffer7, buffer8];
+
+        // Each buffer gets a distinct offset, so a resource bound to the wrong slot changes the values
+        for (int i = 0; i < buffers.Length; i++)
+        {
+            int[] result = buffers[i].ToArray();
+
+            for (int j = 0; j < result.Length; j++)
+            {
+                Assert.AreEqual(j + (i * 100), result[j]);
+            }
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ManyResourcesShader : IComputeShader
+    {
+        private readonly ReadWriteBuffer<int> buffer0;
+        private readonly ReadWriteBuffer<int> buffer1;
+        private readonly ReadWriteBuffer<int> buffer2;
+        private readonly ReadWriteBuffer<int> buffer3;
+        private readonly ReadWriteBuffer<int> buffer4;
+        private readonly ReadWriteBuffer<int> buffer5;
+        private readonly ReadWriteBuffer<int> buffer6;
+        private readonly ReadWriteBuffer<int> buffer7;
+        private readonly ReadWriteBuffer<int> buffer8;
+
+        public void Execute()
+        {
+            this.buffer0[ThreadIds.X] = ThreadIds.X;
+            this.buffer1[ThreadIds.X] = ThreadIds.X + 100;
+            this.buffer2[ThreadIds.X] = ThreadIds.X + 200;
+            this.buffer3[ThreadIds.X] = ThreadIds.X + 300;
+            this.buffer4[ThreadIds.X] = ThreadIds.X + 400;
+            this.buffer5[ThreadIds.X] = ThreadIds.X + 500;
+            this.buffer6[ThreadIds.X] = ThreadIds.X + 600;
+            this.buffer7[ThreadIds.X] = ThreadIds.X + 700;
+            this.buffer8[ThreadIds.X] = ThreadIds.X + 800;
+        }
+    }
+
     [AutoConstructor]
     [ThreadGroupSize(32, 1, 1)]
     [GeneratedComputeShaderDescriptor]
