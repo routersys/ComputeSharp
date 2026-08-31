@@ -46,6 +46,25 @@ public interface IComputeShaderDescriptor<T>
     static abstract bool IsStaticSamplerRequired { get; }
 
     /// <summary>
+    /// Gets whether every thread group of a dispatch has to fall entirely inside the requested range.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The generated entry point runs the shader body only for the threads inside the requested range, the
+    /// dispatch being rounded up to whole thread groups. A shader that waits for every thread of its group,
+    /// through one of the barriers that synchronize the group, cannot be run that way when the range leaves
+    /// part of a group out: the threads outside it never reach the barrier, and never write the group shared
+    /// state the ones inside it read.
+    /// </para>
+    /// <para>
+    /// The generator sets this for a shader that reaches such a barrier. Every other shader leaves it at
+    /// <see langword="false"/>, which is what this default says, so a descriptor written by hand keeps
+    /// compiling and keeps the behavior it had.
+    /// </para>
+    /// </remarks>
+    static virtual bool RequiresFullThreadGroups => false;
+
+    /// <summary>
     /// Gets the resource descriptor ranges for all resources that should be bound to this shader.
     /// </summary>
     static abstract ReadOnlyMemory<ResourceDescriptorRange> ResourceDescriptorRanges { get; }

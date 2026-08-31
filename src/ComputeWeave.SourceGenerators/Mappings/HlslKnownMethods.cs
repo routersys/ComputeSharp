@@ -5,6 +5,25 @@ namespace ComputeWeave.SourceGeneration.Mappings;
 /// <inheritdoc/>
 partial class HlslKnownMethods
 {
+    /// <summary>
+    /// Checks whether a method name, previously matched with <see cref="TryGetMappedName(string, out string?)"/>,
+    /// maps to an HLSL barrier that every thread of a thread group has to reach.
+    /// </summary>
+    /// <param name="name">The fully qualified metadata name.</param>
+    /// <returns>Whether the method maps to a barrier that synchronizes the whole thread group.</returns>
+    /// <remarks>
+    /// The three barriers without the group synchronization are deliberately not here. They order memory
+    /// operations and do not wait, so a thread group missing some of its threads still gives them their
+    /// meaning. It is waiting for the whole group that a partial group cannot give.
+    /// </remarks>
+    public static bool SynchronizesTheWholeThreadGroup(string name)
+    {
+        return name is
+            "ComputeWeave.Hlsl.AllMemoryBarrierWithGroupSync" or
+            "ComputeWeave.Hlsl.DeviceMemoryBarrierWithGroupSync" or
+            "ComputeWeave.Hlsl.GroupMemoryBarrierWithGroupSync";
+    }
+
     /// <inheritdoc/>
     private static partial Dictionary<string, string?> BuildKnownResourceSamplers()
     {

@@ -472,4 +472,144 @@ public partial class DispatchTests
             }
         }
     }
+
+    /// <summary>
+    /// A shader that waits for its whole thread group, run over a range that holds whole groups.
+    /// </summary>
+    /// <remarks>
+    /// Every thread writes its own slot of the group shared array, waits, and reads the slot of the thread
+    /// at the other end of the group. The read only has an answer if every thread of the group ran, which
+    /// is what the range being a multiple of the thread group size gives.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_WholeGroupsAreHandedOver(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
+
+        device.Get().For(128, new GroupHandoffShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        for (int i = 0; i < 128; i++)
+        {
+            Assert.AreEqual((i / 64 * 64) + 63 - (i % 64), result[i]);
+        }
+    }
+
+    /// <summary>
+    /// The same shader over a range that leaves the last thread group partly outside it.
+    /// </summary>
+    /// <remarks>
+    /// Before the range was rejected, this produced wrong values rather than an error: the threads outside
+    /// the range never wrote their slot, so the ones inside it read a slot nothing had written. Measured on
+    /// 2026-08-31 over a range of 100, 28 of the 100 values disagreed, on both devices and on every run.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    [Data(100, "x")]
+    [Data(65, "x")]
+    public void Verify_FullThreadGroups_PartialGroupIsRejected(Device device, int x, string parameterName)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(x);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(x, new GroupHandoffShader(buffer)));
+
+        Assert.AreEqual(parameterName, exception.ParamName);
+    }
+
+    /// <summary>
+    /// The axis the range is rejected for is the one that is not a multiple.
+    /// </summary>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheReportedAxisIsTheOneAtFault(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(64, 3, new PlanarGroupHandoffShader(buffer)));
+
+        Assert.AreEqual("y", exception.ParamName);
+    }
+
+    /// <summary>
+    /// The control. A shader that does not wait for its group keeps taking a range of any size.
+    /// </summary>
+    /// <remarks>
+    /// Without this row, rejecting every range that is not a multiple would pass the rows above just as well,
+    /// and the requirement would reach shaders that have no need of it.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_AShaderThatDoesNotWaitTakesAnyRange(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(100);
+
+        device.Get().For(100, new PerThreadShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        for (int i = 0; i < 100; i++)
+        {
+            Assert.AreEqual(i, result[i]);
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct GroupHandoffShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        [GroupShared(64)]
+        private static readonly int[] cache;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            cache[GroupIds.X] = ThreadIds.X;
+
+            Hlsl.GroupMemoryBarrierWithGroupSync();
+
+            this.buffer[ThreadIds.X] = cache[63 - GroupIds.X];
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(64, 2, 1)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct PlanarGroupHandoffShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        [GroupShared(128)]
+        private static readonly int[] cache;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            cache[GroupIds.X] = ThreadIds.X;
+
+            Hlsl.GroupMemoryBarrierWithGroupSync();
+
+            this.buffer[ThreadIds.X] = cache[63 - GroupIds.X];
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct PerThreadShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            this.buffer[ThreadIds.X] = ThreadIds.X;
+        }
+    }
 }

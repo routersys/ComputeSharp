@@ -105,6 +105,7 @@ public sealed partial class ComputeShaderDescriptorGenerator : IIncrementalGener
                         token,
                         out bool isImplicitTextureUsed,
                         out bool isSamplerUsed,
+                        out bool synchronizesTheWholeThreadGroup,
                         out string hlslSource);
 
                     token.ThrowIfCancellationRequested();
@@ -145,6 +146,7 @@ public sealed partial class ComputeShaderDescriptorGenerator : IIncrementalGener
                         ThreadsZ: threadsZ,
                         IsPixelShaderLike: isPixelShaderLike,
                         IsSamplerUsed: isSamplerUsed,
+                        SynchronizesTheWholeThreadGroup: synchronizesTheWholeThreadGroup,
                         ConstantBufferSizeInBytes: constantBufferSizeInBytes,
                         Fields: fieldInfos,
                         Resources: resourceInfo,
@@ -182,6 +184,14 @@ public sealed partial class ComputeShaderDescriptorGenerator : IIncrementalGener
             declaredMembers.Add(NumThreads.WriteThreadsZSyntax);
             declaredMembers.Add(MetadataProperties.WriteConstantBufferSizeSyntax);
             declaredMembers.Add(MetadataProperties.WriteIsStaticSamplerRequiredSyntax);
+
+            // Only a shader that waits for its whole thread group declares the requirement, the interface
+            // carrying the value every other shader has
+            if (item.SynchronizesTheWholeThreadGroup)
+            {
+                declaredMembers.Add(MetadataProperties.WriteRequiresFullThreadGroupsSyntax);
+            }
+
             declaredMembers.Add(ResourceDescriptorRanges.WriteSyntax);
             declaredMembers.Add(HlslSource.WriteSyntax);
             declaredMembers.Add(HlslBytecode.WriteSyntax);

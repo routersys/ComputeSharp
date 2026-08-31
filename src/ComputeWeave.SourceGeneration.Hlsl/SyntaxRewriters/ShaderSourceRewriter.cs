@@ -389,12 +389,16 @@ internal sealed partial class ShaderSourceRewriter(
     /// Merges the local functions gathered by a nested rewriter into the current collection.
     /// </summary>
     /// <param name="rewriter">The nested <see cref="ShaderSourceRewriter"/> instance to merge from.</param>
-    private void MergeLocalFunctions(ShaderSourceRewriter rewriter)
+    private void MergeNestedRewriter(ShaderSourceRewriter rewriter)
     {
         foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in rewriter.localFunctions)
         {
             this.localFunctions[localFunction.Key] = localFunction.Value;
         }
+
+        // Everything a nested rewriter found is taken here, so a new piece of state cannot be merged at some
+        // of the three call sites and forgotten at the others
+        TrackNestedRewriter(rewriter);
     }
 
     /// <inheritdoc/>
@@ -686,7 +690,7 @@ internal sealed partial class ShaderSourceRewriter(
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
 
-                        MergeLocalFunctions(shaderSourceRewriter);
+                        MergeNestedRewriter(shaderSourceRewriter);
 
                         this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
                     }
@@ -757,7 +761,7 @@ internal sealed partial class ShaderSourceRewriter(
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
 
-                        MergeLocalFunctions(shaderSourceRewriter);
+                        MergeNestedRewriter(shaderSourceRewriter);
 
                         this.instanceMethods[method] = processedMethod;
                     }
@@ -860,7 +864,7 @@ internal sealed partial class ShaderSourceRewriter(
 
                 ConstructorDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(constructorNode)!.WithoutTrivia();
 
-                MergeLocalFunctions(shaderSourceRewriter);
+                MergeNestedRewriter(shaderSourceRewriter);
 
                 // Extracts the arguments from the list of parameters of the current method
                 ArgumentSyntax[] ExtractArguments()
@@ -1008,4 +1012,11 @@ internal sealed partial class ShaderSourceRewriter(
     /// </summary>
     /// <param name="staticFieldRewriter">The <see cref="StaticFieldRewriter"/> instance used to rewrite the field expression.</param>
     partial void TrackExternalStaticField(StaticFieldRewriter staticFieldRewriter);
+
+    /// <summary>
+    /// Tracks the state a nested <see cref="ShaderSourceRewriter"/> gathered while rewriting a method the
+    /// shader calls, if the specialized type has any.
+    /// </summary>
+    /// <param name="rewriter">The nested <see cref="ShaderSourceRewriter"/> that rewrote the called method.</param>
+    partial void TrackNestedRewriter(ShaderSourceRewriter rewriter);
 }

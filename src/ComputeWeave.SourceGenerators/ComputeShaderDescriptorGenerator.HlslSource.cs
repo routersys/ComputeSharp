@@ -39,6 +39,7 @@ partial class ComputeShaderDescriptorGenerator
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <param name="isImplicitTextureUsed">Indicates whether the current shader uses an implicit texture.</param>
         /// <param name="isSamplerUsed">Whether or not the static sampler is used.</param>
+        /// <param name="synchronizesTheWholeThreadGroup">Whether the shader waits for every thread of its thread group.</param>
         /// <param name="hlslSource">The resulting HLSL source for the current shader.</param>
         public static void GetInfo(
             ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
@@ -52,6 +53,7 @@ partial class ComputeShaderDescriptorGenerator
             CancellationToken token,
             out bool isImplicitTextureUsed,
             out bool isSamplerUsed,
+            out bool synchronizesTheWholeThreadGroup,
             out string hlslSource)
         {
             // Detect any invalid properties
@@ -89,7 +91,7 @@ partial class ComputeShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
-            (string entryPoint, ImmutableArray<HlslMethod> processedMethods, isSamplerUsed) = GetProcessedMethods(
+            (string entryPoint, ImmutableArray<HlslMethod> processedMethods, isSamplerUsed, synchronizesTheWholeThreadGroup) = GetProcessedMethods(
                 diagnostics,
                 structDeclarationSymbol,
                 shaderInterfaceType,
@@ -437,7 +439,7 @@ partial class ComputeShaderDescriptorGenerator
         /// <param name="isComputeShader">Indicates whether or not <paramref name="structDeclarationSymbol"/> represents a compute shader.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <returns>A sequence of processed methods in <paramref name="structDeclarationSymbol"/>, and the entry point.</returns>
-        private static (string EntryPoint, ImmutableArray<HlslMethod> Methods, bool IsSamplerUser) GetProcessedMethods(
+        private static (string EntryPoint, ImmutableArray<HlslMethod> Methods, bool IsSamplerUser, bool SynchronizesTheWholeThreadGroup) GetProcessedMethods(
             ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
             INamedTypeSymbol structDeclarationSymbol,
             INamedTypeSymbol shaderInterfaceType,
@@ -456,6 +458,7 @@ partial class ComputeShaderDescriptorGenerator
             IMethodSymbol entryPointInterfaceMethod = shaderInterfaceType.GetMethod("Execute")!;
             string? entryPoint = null;
             bool isSamplerUsed = false;
+            bool synchronizesTheWholeThreadGroup = false;
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -507,6 +510,9 @@ partial class ComputeShaderDescriptorGenerator
                 // Track the implicit sampler, if used
                 isSamplerUsed = isSamplerUsed || shaderSourceRewriter.IsSamplerUsed;
 
+                // Track whether the whole thread group is waited for, which the dispatch has to honor
+                synchronizesTheWholeThreadGroup = synchronizesTheWholeThreadGroup || shaderSourceRewriter.SynchronizesTheWholeThreadGroup;
+
                 // Emit the extracted local functions first
                 foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
                 {
@@ -537,7 +543,7 @@ partial class ComputeShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
-            return (entryPoint!, methods.ToImmutable(), isSamplerUsed);
+            return (entryPoint!, methods.ToImmutable(), isSamplerUsed, synchronizesTheWholeThreadGroup);
         }
 
         /// <summary>
