@@ -146,6 +146,37 @@ public class ShaderGeneratorDiagnosticTests
     }
 
     /// <summary>
+    /// A thread group the hardware cannot hold, which an analyzer refuses at the attribute.
+    /// </summary>
+    /// <remarks>
+    /// The generator carries the same bound so that the shader never reaches the compiler. Without it the
+    /// author reads two refusals for one attribute, the second of them naming a line of generated code.
+    /// </remarks>
+    [TestMethod]
+    public void AThreadGroupWithTooManyThreadsIsNotHandedToTheCompiler()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(32, 32, 2)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = 1;
+                }
+            }
+            """;
+
+        AssertDoesNotReport(Source, "ShaderThreadGroupTooManyThreadsCompilerTests", "CMPW0046");
+    }
+
+    /// <summary>
     /// A shader that operates on a value of double precision without declaring that it needs the support.
     /// </summary>
     /// <remarks>
@@ -229,6 +260,13 @@ public class ShaderGeneratorDiagnosticTests
         string[] actualIds = Run(source, assemblyName);
 
         Assert.IsTrue(actualIds.Contains(expectedId), $"{expectedId} is not reported: {string.Join(", ", actualIds)}");
+    }
+
+    private static void AssertDoesNotReport(string source, string assemblyName, string unexpectedId)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        Assert.IsFalse(actualIds.Contains(unexpectedId), $"{unexpectedId} is reported: {string.Join(", ", actualIds)}");
     }
 
     private static string[] Run(string source, string assemblyName)
