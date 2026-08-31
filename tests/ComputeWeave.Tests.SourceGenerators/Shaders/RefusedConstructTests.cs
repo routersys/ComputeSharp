@@ -112,6 +112,38 @@ public class RefusedConstructTests
     }
 
     /// <summary>
+    /// The shader the report of this behavior was written around, kept as it was written.
+    /// </summary>
+    /// <remarks>
+    /// The construct is the one the row above already covers. What this pins is the shape the report carried:
+    /// the captured resource arrives through a primary constructor rather than a field, which is a different
+    /// path through the generator, and it is the source a reader will reach for when checking the behavior.
+    /// </remarks>
+    [TestMethod]
+    public void TheShaderTheBehaviorWasReportedWithIsRefusedWithoutACompilerFailure()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Case(ReadWriteBuffer<float> buffer) : IComputeShader
+            {
+                public void Execute()
+                {
+                    int[] values = [1, 2, 3];
+
+                    buffer[ThreadIds.X] = values[0];
+                }
+            }
+            """;
+
+        AssertIsRefused(Source, "ShaderReportedShapeTests", "CMPW0060");
+    }
+
+    /// <summary>
     /// A shader the rewriter accepts and the HLSL compiler refuses.
     /// </summary>
     /// <remarks>
