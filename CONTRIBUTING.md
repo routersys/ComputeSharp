@@ -603,6 +603,7 @@ The Direct2D authoring projects were removed before the first release and restor
 | `WICFormatHelper.GetForFilename` | Uses a 4-character buffer, making `.jpeg`, `.jfif`, `.exif` and `.tiff` unreachable and throwing instead | Uses 5 characters | `1965f274` |
 | `StructuredBuffer<T>` byte length | Multiplies as `int` before widening, while adjacent code widens first | Widens to `nint` before multiplying | `4001e9a7` |
 | `Hlsl.Lit` | Declares a `float` return, though the HLSL `lit` intrinsic returns four components | Declares `Float4` | `f8acc01f` |
+| `Hlsl.Transpose` | Declares only the 36 non-square overloads of `Bool`, `Float` and `Int`, though the HLSL `transpose` intrinsic accepts any matrix | Declares all 80, one for each public matrix type | `1383d273` |
 | `WICFormatHelper`, saving `R16` | Encodes through an 8-bit grayscale intermediate, discarding the low byte of every pixel | Keeps the 16-bit format | `21c54a22` |
 | `Rg32` and `Rgba64` documentation | Describe their 16-bit components as ranging from 0 to 255 | 0 to 65535; a documentation correction only, with no behavioral change | `bb3bfe75` |
 | `WICHelper`, size mismatch | Reports the failure with `nameof(texture.Width)`, naming a property instead of the parameter | Names the parameter and states which dimension differs | `4bb55543` |
