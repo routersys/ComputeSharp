@@ -186,7 +186,7 @@ partial class HlslIntrinsicSemanticsTests
         AssertAgrees(results, 0.0f);
     }
 
-    // A two by three matrix pins the non-square shape. Every element is distinct, so each slot pins one
+    // A two by three matrix covers the non-square shape. Every element is distinct, so each slot pins one
     // position of the result against the position it must have come from
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
@@ -225,13 +225,9 @@ partial class HlslIntrinsicSemanticsTests
         AssertAgrees(results, 0.0f);
     }
 
-    // A square shape is the case the intrinsic had no overload for. The off-diagonal elements differ, so a
-    // call that returned its argument unchanged would disagree in every slot below. Three by three is here
-    // because a two by two swap alone would not catch a transpose confined to the leading block, and four by
-    // four pins the largest shape. One by one is different in kind: its transpose is itself, so no value can
-    // separate a real transpose from one that returns its argument. That slot pins only that the shape is
-    // accepted and runs, which is worth holding because a single element matrix is the one most likely to
-    // be collapsed into a scalar
+    // A square shape is the case the intrinsic had no overload for. Three by three catches a transpose
+    // confined to the leading block, and one by one only pins that the shape is accepted and runs, its
+    // transpose being itself
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
@@ -384,11 +380,8 @@ partial class HlslIntrinsicSemanticsTests
         AssertAgrees(results, 0.0f);
     }
 
-    // A boolean matrix had no square overload either, and like the signed one it had never been run. The two
-    // values come from a field rather than from literals, so the pattern cannot be folded away before the
-    // transpose runs. Reading both sides of a slot through the same conversion compares positions but says
-    // nothing about the conversion, so the last two slots pin the conversion itself against literals: without
-    // them, a conversion that collapsed to a single value would let every other slot agree with itself
+    // A boolean matrix had no square overload either, and had never been run. Both sides of a slot go
+    // through the same conversion, so the last two slots pin that conversion against literals
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
