@@ -210,6 +210,12 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         int groupsY = Math.DivRem(y, T.ThreadsY, out int modY) + (modY == 0 ? 0 : 1);
         int groupsZ = Math.DivRem(z, T.ThreadsZ, out int modZ) + (modZ == 0 ? 0 : 1);
 
+        // A shader that waits for its whole thread group needs every group to be inside the requested range
+        if (T.RequiresFullThreadGroups && (modX != 0 || modY != 0 || modZ != 0))
+        {
+            ThrowForPartialThreadGroup(modX != 0 ? nameof(x) : modY != 0 ? nameof(y) : nameof(z));
+        }
+
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsX, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsY, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsZ, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
@@ -253,6 +259,12 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         int y = texture.Height;
         int groupsX = Math.DivRem(x, T.ThreadsX, out int modX) + (modX == 0 ? 0 : 1);
         int groupsY = Math.DivRem(y, T.ThreadsY, out int modY) + (modY == 0 ? 0 : 1);
+
+        // Same requirement as above, with the range coming from the texture rather than from an argument
+        if (T.RequiresFullThreadGroups && (modX != 0 || modY != 0))
+        {
+            ThrowForPartialThreadGroup(nameof(texture));
+        }
 
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsX, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsY, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
@@ -602,6 +614,20 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         resourceLeases.Add(lease);
 
         lease = default;
+    }
+
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> for a dispatch that would leave a thread group partly outside the range.
+    /// </summary>
+    /// <param name="parameterName">The name of the argument the range came from.</param>
+    /// <exception cref="ArgumentException">Thrown for <paramref name="parameterName"/>.</exception>
+    [DoesNotReturn]
+    private static void ThrowForPartialThreadGroup(string parameterName)
+    {
+        default(ArgumentException).Throw(
+            parameterName,
+            "The shader waits for every thread of its thread group, so the range has to be a multiple of the thread group size on every axis. " +
+            "A range that is not leaves the last group partly outside it, and the threads left out never reach the barrier the others wait at.");
     }
 
     private enum ContextState

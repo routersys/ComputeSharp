@@ -12,6 +12,7 @@ namespace ComputeWeave.SourceGenerators.Models;
 /// <param name="ThreadsZ">The thread ids value for the Z axis.</param>
 /// <param name="IsPixelShaderLike">Whether the compute shader is "pixel shader like", ie. outputting a pixel into a target texture.</param>
 /// <param name="IsSamplerUsed">Whether or not the static sampler is used.</param>
+/// <param name="SynchronizesTheWholeThreadGroup">Whether the shader waits for every thread of its thread group.</param>
 /// <param name="ConstantBufferSizeInBytes">The size of the shader constant buffer.</param>
 /// <param name="Fields">The description on shader instance fields.</param>
 /// <param name="Resources">The description on shader captured resources.</param>
@@ -26,6 +27,7 @@ internal sealed record ShaderInfo(
     int ThreadsZ,
     bool IsPixelShaderLike,
     bool IsSamplerUsed,
+    bool SynchronizesTheWholeThreadGroup,
     int ConstantBufferSizeInBytes,
     EquatableArray<FieldInfo> Fields,
     EquatableArray<ResourceInfo> Resources,
