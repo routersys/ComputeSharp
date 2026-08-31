@@ -1,0 +1,110 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using ComputeWeave.SourceGenerators;
+using Microsoft.CodeAnalysis;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace ComputeWeave.Tests.SourceGenerators.Diagnostics;
+
+/// <summary>
+/// Holds the metadata of every shipped diagnostic of the compute generators to describing the diagnostic it belongs to.
+/// </summary>
+/// <remarks>
+/// A title that names a different diagnostic breaks no build and fails no other test. The title is the name
+/// the tooling shows for the rule, and nothing here read it until now: six titles had been carrying another
+/// diagnostic's name since the fork point, and one description had a word written twice.
+/// </remarks>
+[TestClass]
+public class DiagnosticMetadataTests
+{
+    /// <summary>
+    /// A word written twice in a row, which every one of these strings would carry to an author.
+    /// </summary>
+    private static readonly Regex RepeatedWord = new(@"\b(\w+)\s+\1\b", RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Two diagnostics sharing a title means at least one of them is named after the other.
+    /// </summary>
+    /// <remarks>
+    /// Roslyn does not require titles to be unique. What makes uniqueness the right rule here is that every
+    /// title in this repository names the construct or the condition it reports, so two that match are a copy
+    /// that was not finished rather than two rules that happen to share a name.
+    /// </remarks>
+    [TestMethod]
+    public void NoTwoDiagnosticsShareATitle()
+    {
+        string[] shared =
+        [
+            .. Declared()
+                .GroupBy(static descriptor => descriptor.Title.ToString(), StringComparer.Ordinal)
+                .Where(static group => group.Count() > 1)
+                .Select(static group => $"{group.Key}: {string.Join(", ", group.Select(static descriptor => descriptor.Id).Order())}")
+                .Order()
+        ];
+
+        Assert.AreEqual(0, shared.Length, string.Join(" | ", shared));
+    }
+
+    /// <summary>
+    /// The title, the message and the description all reach an author, so a slip of the pen in one is shipped.
+    /// </summary>
+    [TestMethod]
+    public void NoShippedTextRepeatsAWord()
+    {
+        string[] repeated =
+        [
+            .. Declared()
+                .SelectMany(static descriptor => new[]
+                {
+                    (descriptor.Id, Text: descriptor.Title.ToString()),
+                    (descriptor.Id, Text: descriptor.MessageFormat.ToString()),
+                    (descriptor.Id, Text: descriptor.Description.ToString())
+                })
+                .Select(static pair => (pair.Id, Match: RepeatedWord.Match(pair.Text)))
+                .Where(static pair => pair.Match.Success)
+                .Select(static pair => $"{pair.Id}: {pair.Match.Value}")
+                .Order()
+        ];
+
+        Assert.AreEqual(0, repeated.Length, string.Join(" | ", repeated));
+    }
+
+    /// <summary>
+    /// The population has to be non-empty, or both rules above pass for having read nothing.
+    /// </summary>
+    /// <remarks>
+    /// The bound is a floor against reading nothing or reading one type, and not a count of the population.
+    /// Descriptors are added over time, so a bound near the current number would fail for the wrong reason.
+    /// </remarks>
+    [TestMethod]
+    public void TheDeclaredDiagnosticsAreRead()
+    {
+        int declared = Declared().Count();
+
+        Assert.IsTrue(declared >= 50, declared.ToString());
+    }
+
+    /// <summary>
+    /// Every <see cref="DiagnosticDescriptor"/> the generators declare.
+    /// </summary>
+    /// <returns>The declared descriptors.</returns>
+    private static IEnumerable<DiagnosticDescriptor> Declared()
+    {
+        const BindingFlags Fields = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+        foreach (Type type in typeof(ComputeShaderDescriptorGenerator).Assembly.GetTypes())
+        {
+            foreach (FieldInfo field in type.GetFields(Fields))
+            {
+                if (field.FieldType == typeof(DiagnosticDescriptor) &&
+                    field.GetValue(null) is DiagnosticDescriptor descriptor)
+                {
+                    yield return descriptor;
+                }
+            }
+        }
+    }
+}

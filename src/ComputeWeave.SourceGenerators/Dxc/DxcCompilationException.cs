@@ -21,13 +21,13 @@ internal sealed class DxcCompilationException : Exception
     /// <summary>
     /// Gets a formatted exception message for a given compilation error.
     /// </summary>
-    /// <param name="error">The input compilatin error message from the DXC compiler.</param>
+    /// <param name="error">The input compilation error message from the DXC compiler.</param>
     /// <returns>A formatted error message for a new <see cref="DxcCompilationException"/> instance.</returns>
     private static string GetExceptionMessage(string error)
     {
         return
             $"""The DXC compiler encountered one or more errors while trying to compile the shader: "{error.Trim()}". """ +
             $"""Make sure to only be using supported features by checking the README file in the ComputeWeave repository: https://github.com/routersys/ComputeWeave. """ +
-            $"""If you're sure that your C# shader code is valid, please open an issue an include a working repro and this error message.""";
+            $"""If you're sure that your C# shader code is valid, please open an issue and include a working repro and this error message.""";
     }
 }

@@ -254,7 +254,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor LockStatement = new(
         id: "CMPW0018",
-        title: "Foreach statement",
+        title: "Lock statement",
         messageFormat: "A lock statement cannot be used in a compute shader",
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -267,7 +267,7 @@ partial class DiagnosticDescriptors
     /// </summary>
     public static readonly DiagnosticDescriptor QueryExpression = new(
         id: "CMPW0019",
-        title: "Foreach statement",
+        title: "Query expression",
         messageFormat: "A LINQ query expression cannot be used in a compute shader",
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
@@ -1577,8 +1577,10 @@ partial class DiagnosticDescriptors
     /// </summary>
     /// <remarks>
     /// This is reported and nothing more. The set is measured rather than designed, so a kind outside it is one
-    /// with no recorded verdict, not one known to be wrong. Raising the severity is a separate change, and the
-    /// build that raises it has to show that no shader in this repository reports this first.
+    /// the set records no verdict for. That is not the same as one nothing has judged: a kind the rewriter
+    /// always refuses is outside the set as well, because refusing it keeps it out of what the measurement
+    /// sees. Raising the severity is a separate change, and the build that raises it has to show that no
+    /// shader in this repository reports this first.
     /// </remarks>
     public static readonly DiagnosticDescriptor UnknownShaderSyntax = new(
         id: "CMPW0121",
@@ -1587,6 +1589,6 @@ partial class DiagnosticDescriptors
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it has no recorded verdict, so the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
+        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for. That is not the same as syntax nothing has judged: a construct the rewriter always refuses is outside the set as well, because refusing it keeps it out of what the measurement sees. Where nothing else answers for it, the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
