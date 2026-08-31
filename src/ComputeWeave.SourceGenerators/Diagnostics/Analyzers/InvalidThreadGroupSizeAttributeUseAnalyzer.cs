@@ -86,10 +86,12 @@ public sealed class InvalidThreadGroupSizeAttributeUseAnalyzer : DiagnosticAnaly
                 }
 
                 // If there are three arguments, validate that they are also valid thread group sizes
+                // The axes are bounded on their own, and a thread group is also bounded as a whole
                 if (attributeData.ConstructorArguments is not [{ Value: int threadsX }, { Value: int threadsY }, { Value: int threadsZ }] ||
                     threadsX is < 1 or > 1024 ||
                     threadsY is < 1 or > 1024 ||
-                    threadsZ is < 1 or > 64)
+                    threadsZ is < 1 or > 64 ||
+                    threadsX * threadsY * threadsZ > 1024)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(
                         InvalidThreadGroupSizeAttributeValues,

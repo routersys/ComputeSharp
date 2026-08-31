@@ -53,10 +53,12 @@ partial class ComputeShaderDescriptorGenerator
                 // Only enable compilation if we have valid thread group size values
                 isCompilationEnabled = (threadsX, threadsY, threadsZ) is not (0, 0, 0);
             }
+            // The axes are bounded on their own, and a thread group is also bounded as a whole
             else if (attribute.ConstructorArguments is not [{ Value: int explicitThreadsX }, { Value: int explicitThreadsY }, { Value: int explicitThreadsZ }] ||
                      explicitThreadsX is < 1 or > 1024 ||
                      explicitThreadsY is < 1 or > 1024 ||
-                     explicitThreadsZ is < 1 or > 64)
+                     explicitThreadsZ is < 1 or > 64 ||
+                     explicitThreadsX * explicitThreadsY * explicitThreadsZ > 1024)
             {
                 // Also disable compilation if we have no valid explicit sizes
                 threadsX = threadsY = threadsZ = 0;

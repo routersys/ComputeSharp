@@ -124,7 +124,43 @@ public class ShaderGeneratorDiagnosticTests
 
             namespace Shaders;
 
-            [ThreadGroupSize(1024, 1024, 64)]
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                [GroupShared(16384)]
+                private static readonly float[] cache;
+
+                public void Execute()
+                {
+                    cache[ThreadIds.X] = 1;
+
+                    this.buffer[ThreadIds.X] = cache[ThreadIds.X];
+                }
+            }
+            """;
+
+        AssertReports(Source, "ShaderCompilerFailureTests", "CMPW0046");
+    }
+
+    /// <summary>
+    /// A thread group the hardware cannot hold, which an analyzer refuses at the attribute.
+    /// </summary>
+    /// <remarks>
+    /// The generator carries the same bound so that the shader never reaches the compiler. Without it the
+    /// author reads two refusals for one attribute, the second of them naming a line of generated code.
+    /// </remarks>
+    [TestMethod]
+    public void AThreadGroupWithTooManyThreadsIsNotHandedToTheCompiler()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(32, 32, 2)]
             [GeneratedComputeShaderDescriptor]
             internal readonly partial struct Shader : IComputeShader
             {
@@ -137,7 +173,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertReports(Source, "ShaderCompilerFailureTests", "CMPW0046");
+        AssertDoesNotReport(Source, "ShaderThreadGroupTooManyThreadsCompilerTests", "CMPW0046");
     }
 
     /// <summary>
@@ -224,6 +260,13 @@ public class ShaderGeneratorDiagnosticTests
         string[] actualIds = Run(source, assemblyName);
 
         Assert.IsTrue(actualIds.Contains(expectedId), $"{expectedId} is not reported: {string.Join(", ", actualIds)}");
+    }
+
+    private static void AssertDoesNotReport(string source, string assemblyName, string unexpectedId)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        Assert.IsFalse(actualIds.Contains(unexpectedId), $"{unexpectedId} is reported: {string.Join(", ", actualIds)}");
     }
 
     private static string[] Run(string source, string assemblyName)

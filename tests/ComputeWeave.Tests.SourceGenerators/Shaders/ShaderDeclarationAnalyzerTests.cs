@@ -312,6 +312,57 @@ public class ShaderDeclarationAnalyzerTests
     }
 
     [TestMethod]
+    public void AThreadGroupWithTooManyThreadsIsDiagnosed()
+    {
+        // Every axis is inside its own bound, and the group holds 2048 threads
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(32, 32, 2)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                public void Execute()
+                {
+                }
+            }
+            """;
+
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidThreadGroupSizeAttributeUseAnalyzer(),
+            [Source],
+            "ShaderThreadGroupTooManyThreadsAnalyzerTests",
+            "CMPW0044");
+    }
+
+    [TestMethod]
+    public void AThreadGroupAtTheThreadLimitIsNotDiagnosed()
+    {
+        // The same shape one thread group smaller, which the hardware accepts
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(32, 32, 1)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                public void Execute()
+                {
+                }
+            }
+            """;
+
+        AnalyzerHelper.AssertDiagnostics(
+            new InvalidThreadGroupSizeAttributeUseAnalyzer(),
+            [Source],
+            "ShaderThreadGroupAtThreadLimitAnalyzerTests");
+    }
+
+    [TestMethod]
     public void EveryAnalyzerIsQuietOnAWellFormedShader()
     {
         // Without this, each test above would pass for an analyzer that reported on everything it saw
