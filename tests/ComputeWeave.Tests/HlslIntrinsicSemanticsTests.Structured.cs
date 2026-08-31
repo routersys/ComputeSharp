@@ -186,8 +186,8 @@ partial class HlslIntrinsicSemanticsTests
         AssertAgrees(results, 0.0f);
     }
 
-    // A two by three matrix is used because the intrinsic has no overload for a square one. Every element is
-    // distinct, so each slot pins one position of the result against the position it must have come from
+    // A two by three matrix covers the non-square shape. Every element is distinct, so each slot pins one
+    // position of the result against the position it must have come from
     [AutoConstructor]
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
     [GeneratedComputeShaderDescriptor]
@@ -211,6 +211,395 @@ partial class HlslIntrinsicSemanticsTests
             this.results[1] = new float2(transposed.M12, this.m21);
             this.results[2] = new float2(transposed.M21, this.m12);
             this.results[3] = new float2(transposed.M32, this.m23);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeSquare(Device device)
+    {
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(13);
+
+        device.Get().For(1, new TransposeSquareShader(results, 1.0f, 2.0f, 3.0f, 4.0f));
+
+        AssertAgrees(results, 0.0f);
+    }
+
+    // A square shape is the case the intrinsic had no overload for. Three by three catches a transpose
+    // confined to the leading block, and one by one only pins that the shape is accepted and runs, its
+    // transpose being itself
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeSquareShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float2> results;
+        public readonly float m11;
+        public readonly float m12;
+        public readonly float m21;
+        public readonly float m22;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            float2x2 square2 = new(this.m11, this.m12, this.m21, this.m22);
+            float2x2 transposed2 = Hlsl.Transpose(square2);
+
+            this.results[0] = new float2(transposed2.M11, this.m11);
+            this.results[1] = new float2(transposed2.M12, this.m21);
+            this.results[2] = new float2(transposed2.M21, this.m12);
+            this.results[3] = new float2(transposed2.M22, this.m22);
+
+            float3x3 square3 = new(
+                this.m11, this.m12, this.m21,
+                this.m22, this.m11 + this.m22, this.m12 + this.m21,
+                this.m11 - this.m22, this.m12 - this.m21, this.m21 - this.m11);
+            float3x3 transposed3 = Hlsl.Transpose(square3);
+
+            this.results[4] = new float2(transposed3.M13, square3.M31);
+            this.results[5] = new float2(transposed3.M31, square3.M13);
+            this.results[6] = new float2(transposed3.M23, square3.M32);
+            this.results[7] = new float2(transposed3.M32, square3.M23);
+
+            float1x1 square1 = new(this.m11);
+            float1x1 transposed1 = Hlsl.Transpose(square1);
+
+            this.results[8] = new float2(transposed1.M11, this.m11);
+
+            float4x4 square4 = new(
+                this.m11, this.m12, this.m21, this.m22,
+                this.m11 + 4.0f, this.m12 + 4.0f, this.m21 + 4.0f, this.m22 + 4.0f,
+                this.m11 + 8.0f, this.m12 + 8.0f, this.m21 + 8.0f, this.m22 + 8.0f,
+                this.m11 + 12.0f, this.m12 + 12.0f, this.m21 + 12.0f, this.m22 + 12.0f);
+            float4x4 transposed4 = Hlsl.Transpose(square4);
+
+            this.results[9] = new float2(transposed4.M14, square4.M41);
+            this.results[10] = new float2(transposed4.M41, square4.M14);
+            this.results[11] = new float2(transposed4.M23, square4.M32);
+            this.results[12] = new float2(transposed4.M32, square4.M23);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeUInt(Device device)
+    {
+        using ReadWriteBuffer<uint2> results = device.Get().AllocateReadWriteBuffer<uint2>(6);
+
+        device.Get().For(1, new TransposeUIntShader(results, 11u, 22u, 33u, 44u, 55u, 66u));
+
+        AssertAgreesExactly(results);
+    }
+
+    // An unsigned matrix had no overload at all, square or otherwise, so both shapes are probed. The
+    // comparison is exact because the elements travel through the transpose without arithmetic
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeUIntShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<uint2> results;
+        public readonly uint m11;
+        public readonly uint m12;
+        public readonly uint m13;
+        public readonly uint m21;
+        public readonly uint m22;
+        public readonly uint m23;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            uint2x2 square = new(this.m11, this.m12, this.m21, this.m22);
+            uint2x2 transposedSquare = Hlsl.Transpose(square);
+
+            this.results[0] = new uint2(transposedSquare.M12, this.m21);
+            this.results[1] = new uint2(transposedSquare.M21, this.m12);
+
+            uint2x3 wide = new(this.m11, this.m12, this.m13, this.m21, this.m22, this.m23);
+            uint3x2 transposedWide = Hlsl.Transpose(wide);
+
+            this.results[2] = new uint2(transposedWide.M11, this.m11);
+            this.results[3] = new uint2(transposedWide.M12, this.m21);
+            this.results[4] = new uint2(transposedWide.M21, this.m12);
+            this.results[5] = new uint2(transposedWide.M32, this.m23);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeInt(Device device)
+    {
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(5);
+
+        device.Get().For(1, new TransposeIntShader(results, 1, 2, 3, 4, 5, 6));
+
+        AssertAgrees(results, 0.0f);
+    }
+
+    // A signed matrix had no square overload, and no shape of it had ever been run through the intrinsic,
+    // so both a square and a non-square shape are probed here
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeIntShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float2> results;
+        public readonly int m11;
+        public readonly int m12;
+        public readonly int m13;
+        public readonly int m21;
+        public readonly int m22;
+        public readonly int m23;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            int2x2 square = new(this.m11, this.m12, this.m21, this.m22);
+            int2x2 transposedSquare = Hlsl.Transpose(square);
+
+            this.results[0] = new float2(transposedSquare.M12, this.m21);
+            this.results[1] = new float2(transposedSquare.M21, this.m12);
+
+            int2x3 wide = new(this.m11, this.m12, this.m13, this.m21, this.m22, this.m23);
+            int3x2 transposedWide = Hlsl.Transpose(wide);
+
+            this.results[2] = new float2(transposedWide.M12, this.m21);
+            this.results[3] = new float2(transposedWide.M21, this.m12);
+            this.results[4] = new float2(transposedWide.M32, this.m23);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeBool(Device device)
+    {
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(8);
+
+        device.Get().For(1, new TransposeBoolShader(results, 1.0f));
+
+        AssertAgrees(results, 0.0f);
+    }
+
+    // A boolean matrix had no square overload either, and had never been run. Both sides of a slot go
+    // through the same conversion, so the last two slots pin that conversion against literals
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeBoolShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float2> results;
+        public readonly float seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            bool yes = this.seed > 0.0f;
+            bool no = this.seed < 0.0f;
+
+            bool2x2 square = new(yes, no, yes, yes);
+            bool2x2 transposedSquare = Hlsl.Transpose(square);
+            float2x2 squareAsFloat = Hlsl.BoolToFloat(square);
+            float2x2 transposedAsFloat = Hlsl.BoolToFloat(transposedSquare);
+
+            this.results[0] = new float2(transposedAsFloat.M12, squareAsFloat.M21);
+            this.results[1] = new float2(transposedAsFloat.M21, squareAsFloat.M12);
+
+            bool2x3 wide = new(yes, no, no, no, yes, yes);
+            bool3x2 transposedWide = Hlsl.Transpose(wide);
+            float2x3 wideAsFloat = Hlsl.BoolToFloat(wide);
+            float3x2 transposedWideAsFloat = Hlsl.BoolToFloat(transposedWide);
+
+            this.results[2] = new float2(transposedWideAsFloat.M11, wideAsFloat.M11);
+            this.results[3] = new float2(transposedWideAsFloat.M12, wideAsFloat.M21);
+            this.results[4] = new float2(transposedWideAsFloat.M21, wideAsFloat.M12);
+            this.results[5] = new float2(transposedWideAsFloat.M32, wideAsFloat.M23);
+
+            this.results[6] = new float2(squareAsFloat.M11, 1.0f);
+            this.results[7] = new float2(squareAsFloat.M12, 0.0f);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeUIntShapes(Device device)
+    {
+        using ReadWriteBuffer<uint2> results = device.Get().AllocateReadWriteBuffer<uint2>(16);
+
+        device.Get().For(1, new TransposeUIntShapesShader(results, 10u));
+
+        AssertAgreesExactly(results);
+    }
+
+    // Every unsigned shape, one slot each. The elements are consecutive, so the slot disagrees
+    // unless the element travelled from the position the transpose says it came from
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeUIntShapesShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<uint2> results;
+        public readonly uint seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            uint1x1 m1x1 = new(this.seed + 1);
+            uint1x1 t1x1 = Hlsl.Transpose(m1x1);
+            this.results[0] = new uint2(t1x1.M11, m1x1.M11);
+
+            uint1x2 m1x2 = new(this.seed + 1, this.seed + 2);
+            uint2x1 t1x2 = Hlsl.Transpose(m1x2);
+            this.results[1] = new uint2(t1x2.M21, m1x2.M12);
+
+            uint1x3 m1x3 = new(this.seed + 1, this.seed + 2, this.seed + 3);
+            uint3x1 t1x3 = Hlsl.Transpose(m1x3);
+            this.results[2] = new uint2(t1x3.M31, m1x3.M13);
+
+            uint1x4 m1x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            uint4x1 t1x4 = Hlsl.Transpose(m1x4);
+            this.results[3] = new uint2(t1x4.M41, m1x4.M14);
+
+            uint2x1 m2x1 = new(this.seed + 1, this.seed + 2);
+            uint1x2 t2x1 = Hlsl.Transpose(m2x1);
+            this.results[4] = new uint2(t2x1.M12, m2x1.M21);
+
+            uint2x2 m2x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            uint2x2 t2x2 = Hlsl.Transpose(m2x2);
+            this.results[5] = new uint2(t2x2.M21, m2x2.M12);
+
+            uint2x3 m2x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6);
+            uint3x2 t2x3 = Hlsl.Transpose(m2x3);
+            this.results[6] = new uint2(t2x3.M31, m2x3.M13);
+
+            uint2x4 m2x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8);
+            uint4x2 t2x4 = Hlsl.Transpose(m2x4);
+            this.results[7] = new uint2(t2x4.M41, m2x4.M14);
+
+            uint3x1 m3x1 = new(this.seed + 1, this.seed + 2, this.seed + 3);
+            uint1x3 t3x1 = Hlsl.Transpose(m3x1);
+            this.results[8] = new uint2(t3x1.M13, m3x1.M31);
+
+            uint3x2 m3x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6);
+            uint2x3 t3x2 = Hlsl.Transpose(m3x2);
+            this.results[9] = new uint2(t3x2.M21, m3x2.M12);
+
+            uint3x3 m3x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9);
+            uint3x3 t3x3 = Hlsl.Transpose(m3x3);
+            this.results[10] = new uint2(t3x3.M31, m3x3.M13);
+
+            uint3x4 m3x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12);
+            uint4x3 t3x4 = Hlsl.Transpose(m3x4);
+            this.results[11] = new uint2(t3x4.M41, m3x4.M14);
+
+            uint4x1 m4x1 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            uint1x4 t4x1 = Hlsl.Transpose(m4x1);
+            this.results[12] = new uint2(t4x1.M14, m4x1.M41);
+
+            uint4x2 m4x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8);
+            uint2x4 t4x2 = Hlsl.Transpose(m4x2);
+            this.results[13] = new uint2(t4x2.M21, m4x2.M12);
+
+            uint4x3 m4x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12);
+            uint3x4 t4x3 = Hlsl.Transpose(m4x3);
+            this.results[14] = new uint2(t4x3.M31, m4x3.M13);
+
+            uint4x4 m4x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12, this.seed + 13, this.seed + 14, this.seed + 15, this.seed + 16);
+            uint4x4 t4x4 = Hlsl.Transpose(m4x4);
+            this.results[15] = new uint2(t4x4.M41, m4x4.M14);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeIntSquares(Device device)
+    {
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(4);
+
+        device.Get().For(1, new TransposeIntSquaresShader(results, 10));
+
+        AssertAgrees(results, 0.0f);
+    }
+
+    // The signed squares, which are the shapes this change added for that kind
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeIntSquaresShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float2> results;
+        public readonly int seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            int1x1 m1x1 = new(this.seed + 1);
+            int1x1 t1x1 = Hlsl.Transpose(m1x1);
+            this.results[0] = new float2(t1x1.M11, m1x1.M11);
+
+            int2x2 m2x2 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4);
+            int2x2 t2x2 = Hlsl.Transpose(m2x2);
+            this.results[1] = new float2(t2x2.M21, m2x2.M12);
+
+            int3x3 m3x3 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9);
+            int3x3 t3x3 = Hlsl.Transpose(m3x3);
+            this.results[2] = new float2(t3x3.M31, m3x3.M13);
+
+            int4x4 m4x4 = new(this.seed + 1, this.seed + 2, this.seed + 3, this.seed + 4, this.seed + 5, this.seed + 6, this.seed + 7, this.seed + 8, this.seed + 9, this.seed + 10, this.seed + 11, this.seed + 12, this.seed + 13, this.seed + 14, this.seed + 15, this.seed + 16);
+            int4x4 t4x4 = Hlsl.Transpose(m4x4);
+            this.results[3] = new float2(t4x4.M41, m4x4.M14);
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_TransposeBoolSquares(Device device)
+    {
+        using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(4);
+
+        device.Get().For(1, new TransposeBoolSquaresShader(results, 1.0f));
+
+        AssertAgrees(results, 0.0f);
+    }
+
+    // The boolean squares. A two-valued element cannot be made distinct, so an upper triangle of
+    // true over a lower triangle of false is what makes a position tell itself apart
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct TransposeBoolSquaresShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<float2> results;
+        public readonly float seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            bool yes = this.seed > 0.0f;
+            bool no = this.seed < 0.0f;
+
+            bool1x1 m1x1 = new(yes);
+            bool1x1 t1x1 = Hlsl.Transpose(m1x1);
+            float1x1 t1x1AsFloat = Hlsl.BoolToFloat(t1x1);
+            float1x1 m1x1AsFloat = Hlsl.BoolToFloat(m1x1);
+            this.results[0] = new float2(t1x1AsFloat.M11, m1x1AsFloat.M11);
+
+            bool2x2 m2x2 = new(yes, yes, no, yes);
+            bool2x2 t2x2 = Hlsl.Transpose(m2x2);
+            float2x2 t2x2AsFloat = Hlsl.BoolToFloat(t2x2);
+            float2x2 m2x2AsFloat = Hlsl.BoolToFloat(m2x2);
+            this.results[1] = new float2(t2x2AsFloat.M21, m2x2AsFloat.M12);
+
+            bool3x3 m3x3 = new(yes, yes, yes, no, yes, yes, no, no, yes);
+            bool3x3 t3x3 = Hlsl.Transpose(m3x3);
+            float3x3 t3x3AsFloat = Hlsl.BoolToFloat(t3x3);
+            float3x3 m3x3AsFloat = Hlsl.BoolToFloat(m3x3);
+            this.results[2] = new float2(t3x3AsFloat.M31, m3x3AsFloat.M13);
+
+            bool4x4 m4x4 = new(yes, yes, yes, yes, no, yes, yes, yes, no, no, yes, yes, no, no, no, yes);
+            bool4x4 t4x4 = Hlsl.Transpose(m4x4);
+            float4x4 t4x4AsFloat = Hlsl.BoolToFloat(t4x4);
+            float4x4 m4x4AsFloat = Hlsl.BoolToFloat(m4x4);
+            this.results[3] = new float2(t4x4AsFloat.M41, m4x4AsFloat.M14);
         }
     }
 }
