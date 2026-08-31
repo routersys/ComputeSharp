@@ -160,7 +160,7 @@ public sealed partial class D2DPixelShaderDescriptorGenerator : IIncrementalGene
                         hlslSource,
                         effectiveShaderProfile,
                         effectiveCompileOptions,
-                        isCompilationEnabled);
+                        isCompilationEnabled && !diagnostics.HasAnyErrors());
 
                     // Get the existing compiled shader, or compile the processed HLSL code
                     HlslBytecodeInfo hlslInfo = HlslBytecodeSyntaxProcessor.GetInfo(ref hlslInfoKey, token);
