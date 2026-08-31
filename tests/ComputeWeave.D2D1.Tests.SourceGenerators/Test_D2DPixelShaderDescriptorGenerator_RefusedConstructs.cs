@@ -1,5 +1,8 @@
+using System.Collections.Immutable;
+using System.Linq;
 using ComputeWeave.D2D1.SourceGenerators;
 using ComputeWeave.Tests.SourceGenerators.Helpers;
+using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ComputeWeave.D2D1.Tests.SourceGenerators;
@@ -81,6 +84,40 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     }
 
     /// <summary>
+    /// A pixel shader the rewriter accepts and FXC refuses.
+    /// </summary>
+    /// <remarks>
+    /// Recursion is what FXC refuses, and the rewriter has nothing to say about the local function carrying
+    /// it, so a refusal is the only thing that keeps a shader from reaching FXC. Without this row, removing
+    /// the forwarding outright would leave every row above passing.
+    /// </remarks>
+    [TestMethod]
+    public void AnInputTheRewriterAcceptsCarriesTheCompilerFailure()
+    {
+        ImmutableArray<Diagnostic> reported = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(
+            Shader("static int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2); k += Fib(3);", isUnsafe: false));
+
+        Assert.AreEqual("CMPWD2D0034", Ids(reported));
+    }
+
+    /// <summary>
+    /// A pixel shader carrying syntax the accepted set does not cover.
+    /// </summary>
+    /// <remarks>
+    /// The report is an Info and refuses nothing, so the shader is built and the failure FXC raises on it
+    /// still reaches the author. That is what keeps syntax with no recorded verdict visible while the set is
+    /// being measured: were an Info to stop the build, such syntax would pass in silence instead.
+    /// </remarks>
+    [TestMethod]
+    public void AReportThatRefusesNothingCarriesTheCompilerFailure()
+    {
+        ImmutableArray<Diagnostic> reported = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(
+            Shader("float v = 5; goto done; done: v += 1; k += (int)v;", isUnsafe: false));
+
+        Assert.AreEqual("CMPWD2D0034, CMPWD2D0094", Ids(reported));
+    }
+
+    /// <summary>
     /// A swizzled matrix indexer whose arguments are not constants.
     /// </summary>
     [TestMethod]
@@ -140,7 +177,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(Source, "CMPWD2D0073");
+        AssertIsRefused(Source, "CMPWD2D0073");
     }
 
     [TestMethod]
@@ -170,9 +207,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(
-            Template.Replace("MEMBER", member),
-            expectedId);
+        AssertIsRefused(Template.Replace("MEMBER", member), expectedId);
     }
 
     /// <summary>
@@ -210,7 +245,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(Source, "CMPWD2D0031");
+        AssertIsRefused(Source, "CMPWD2D0031");
     }
 
     /// <summary>
@@ -221,7 +256,33 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     /// <param name="isUnsafe">Whether the entry point needs an unsafe context.</param>
     private static void AssertIsDiagnosed(string body, string expectedId, bool isUnsafe)
     {
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(Shader(body, isUnsafe), expectedId);
+        AssertIsRefused(Shader(body, isUnsafe), expectedId);
+    }
+
+    /// <summary>
+    /// Runs the generator over a source and asserts the refusal is reported and FXC is not reached.
+    /// </summary>
+    /// <param name="source">The source of the pixel shader to run the generator over.</param>
+    /// <param name="expectedId">The identifier the refusal is expected to carry.</param>
+    private static void AssertIsRefused(string source, string expectedId)
+    {
+        ImmutableArray<Diagnostic> reported = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(source);
+
+        // The refusal is asserted by identifier and not as a set, one body being able to trip several of them
+        Assert.IsTrue(reported.Any(diagnostic => diagnostic.Id == expectedId), Ids(reported));
+
+        // Nothing arrives from FXC, which would name generated code the author never wrote
+        Assert.IsFalse(reported.Any(static diagnostic => diagnostic.Id == "CMPWD2D0034"), Ids(reported));
+    }
+
+    /// <summary>
+    /// Joins the identifiers of the reported diagnostics, for the message an assertion fails with.
+    /// </summary>
+    /// <param name="reported">The diagnostics the generator reported.</param>
+    /// <returns>The distinct identifiers of <paramref name="reported"/>, in order.</returns>
+    private static string Ids(ImmutableArray<Diagnostic> reported)
+    {
+        return string.Join(", ", reported.Select(static diagnostic => diagnostic.Id).Distinct().OrderBy(static id => id));
     }
 
     /// <summary>
