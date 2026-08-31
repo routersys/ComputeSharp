@@ -1,6 +1,7 @@
 name: ドキュメント
 
 # CI は paths-ignore で根の Markdown を除外するため、文書だけの変更では走らない。
+# 記述子の側だけが変わっても件数の検査が要るので、その経路もここで拾う。
 on:
   push:
     branches: ["main"]
@@ -9,6 +10,9 @@ on:
       - "**.markdown"
       - ".github/workflows/docs.yml"
       - "build/verify-markdown-tables.ps1"
+      - "build/verify-readme-counts.ps1"
+      - "src/ComputeWeave.SourceGenerators/Diagnostics/DiagnosticDescriptors.cs"
+      - "src/ComputeWeave.D2D1.SourceGenerators/Diagnostics/DiagnosticDescriptors.cs"
   pull_request:
     branches: ["main"]
     paths:
@@ -16,6 +20,9 @@ on:
       - "**.markdown"
       - ".github/workflows/docs.yml"
       - "build/verify-markdown-tables.ps1"
+      - "build/verify-readme-counts.ps1"
+      - "src/ComputeWeave.SourceGenerators/Diagnostics/DiagnosticDescriptors.cs"
+      - "src/ComputeWeave.D2D1.SourceGenerators/Diagnostics/DiagnosticDescriptors.cs"
 
 permissions:
   contents: read
@@ -35,3 +42,7 @@ jobs:
       # 空行で切れた表の行は、差分にも編集画面にも現れないまま段落へ落ちる。
       - name: Markdown の表を検証
         run: pwsh build/verify-markdown-tables.ps1
+
+      # 記述子を足したPRが README の件数を置き去りにしても、差分だけでは気付けない。
+      - name: README の件数を検証
+        run: pwsh build/verify-readme-counts.ps1
