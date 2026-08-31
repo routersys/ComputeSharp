@@ -233,4 +233,53 @@ public partial class ComputeOnlyIntrinsicsTests
             return new float4(0, 1, 0, 1);
         }
     }
+
+    [TestMethod]
+    public void MatrixDerivatives_ReachTheHlslWithTheirShape()
+    {
+        D2D1ShaderInfo shaderInfo = D2D1ReflectionServices.GetShaderInfo<MatrixDerivativesShader>();
+
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("ddx_fine("), "ddx_fine did not reach the HLSL");
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("ddx_coarse("), "ddx_coarse did not reach the HLSL");
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("ddy_fine("), "ddy_fine did not reach the HLSL");
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("ddy_coarse("), "ddy_coarse did not reach the HLSL");
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("float2x2"), "the square shape did not reach the HLSL");
+        Assert.IsTrue(shaderInfo.HlslSource.Contains("float3x4"), "the non-square shape did not reach the HLSL");
+    }
+
+    [TestMethod]
+    public void MatrixDerivatives_ComputeTheSameValue()
+    {
+        D2D1TestRunner.RunAndCompareShader(
+            new MatrixDerivativesShader(),
+            32,
+            32,
+            "Green32x32.png");
+    }
+
+    /// <summary>
+    /// Uses the four coarse and fine derivatives on a matrix, which only the plain two accepted before.
+    /// </summary>
+    [D2DInputCount(0)]
+    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+    [D2DRequiresScenePosition]
+    [D2DGeneratedPixelShaderDescriptor]
+    internal readonly partial struct MatrixDerivativesShader : ID2D1PixelShader
+    {
+        public float4 Execute()
+        {
+            float x = D2D.GetScenePosition().X;
+            float2x2 square = new(x, x, x, x);
+            float3x4 wide = new(x, x, x, x, x, x, x, x, x, x, x, x);
+
+            float2x2 fineX = Hlsl.DerivativeOfDxHighPrecision(square);
+            float2x2 coarseX = Hlsl.DerivativeOfDxLowPrecision(square);
+            float3x4 fineY = Hlsl.DerivativeOfDyHighPrecision(wide);
+            float3x4 coarseY = Hlsl.DerivativeOfDyLowPrecision(wide);
+
+            float sum = fineX.M22 + coarseX.M11 + fineY.M34 + coarseY.M21;
+
+            return sum > -1000000.0f ? new float4(0, 1, 0, 1) : new float4(1, 0, 0, 1);
+        }
+    }
 }
