@@ -184,8 +184,7 @@ public partial class D2D1PixelShaderEffectTests
 
         D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
 
-        // The accepted range must end where the properties of the effect end: two always available
-        // properties, plus one resource texture manager property per declared resource texture
+        // The accepted range must end where the properties of the effect end
         Assert.AreEqual(
             (uint)(2 + D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>()),
             d2D1Effect.Get()->GetPropertyCount());
@@ -230,63 +229,83 @@ public partial class D2D1PixelShaderEffectTests
             () => D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, 16));
     }
 
-    // Declares as many resource textures as there are ResourceTextureManager properties
-    [D2DInputCount(0)]
-    [D2DGeneratedPixelShaderDescriptor]
-    [AutoConstructor]
-    internal readonly partial struct ShaderWithMaximumResourceTextures : ID2D1PixelShader
+    [TestMethod]
+    public unsafe void SetResourceTextureManagerForD2D1Effect_EveryIndexReachesItsOwnSlot()
     {
-        [D2DResourceTextureIndex(0)]
-        public readonly D2D1ResourceTexture1D<float> t0;
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
 
-        [D2DResourceTextureIndex(1)]
-        public readonly D2D1ResourceTexture1D<float> t1;
+        D2D1PixelShaderEffect.RegisterForD2D1Factory1<ShaderWithMaximumResourceTextures>(d2D1Factory2.Get(), out _);
 
-        [D2DResourceTextureIndex(2)]
-        public readonly D2D1ResourceTexture1D<float> t2;
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
 
-        [D2DResourceTextureIndex(3)]
-        public readonly D2D1ResourceTexture1D<float> t3;
+        D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
 
-        [D2DResourceTextureIndex(4)]
-        public readonly D2D1ResourceTexture1D<float> t4;
+        AssertEveryIndexReachesItsOwnResourceTextureManager(
+            d2D1Effect.Get(),
+            D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>());
+    }
 
-        [D2DResourceTextureIndex(5)]
-        public readonly D2D1ResourceTexture1D<float> t5;
+    [TestMethod]
+    public unsafe void GetRegistrationBlob_EveryIndexReachesItsOwnSlot()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
 
-        [D2DResourceTextureIndex(6)]
-        public readonly D2D1ResourceTexture1D<float> t6;
+        ReadOnlyMemory<byte> blob = D2D1PixelShaderEffect.GetRegistrationBlob<ShaderWithMaximumResourceTextures>(out Guid effectId);
 
-        [D2DResourceTextureIndex(7)]
-        public readonly D2D1ResourceTexture1D<float> t7;
+        D2D1Helper.RegisterEffectFromRegistrationData((ID2D1Factory1*)d2D1Factory2.Get(), D2D1EffectRegistrationData.V1.Load(blob));
 
-        [D2DResourceTextureIndex(8)]
-        public readonly D2D1ResourceTexture1D<float> t8;
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
 
-        [D2DResourceTextureIndex(9)]
-        public readonly D2D1ResourceTexture1D<float> t9;
+        d2D1DeviceContext.Get()->CreateEffect(&effectId, d2D1Effect.GetAddressOf()).Assert();
 
-        [D2DResourceTextureIndex(10)]
-        public readonly D2D1ResourceTexture1D<float> t10;
+        AssertEveryIndexReachesItsOwnResourceTextureManager(
+            d2D1Effect.Get(),
+            D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>());
+    }
 
-        [D2DResourceTextureIndex(11)]
-        public readonly D2D1ResourceTexture1D<float> t11;
+    // A property bound to another slot leaves one slot untouched, so distinct managers tell them apart
+    private static unsafe void AssertEveryIndexReachesItsOwnResourceTextureManager(ID2D1Effect* d2D1Effect, int resourceTextureCount)
+    {
+        IUnknown** resourceTextureManagers = stackalloc IUnknown*[resourceTextureCount];
 
-        [D2DResourceTextureIndex(12)]
-        public readonly D2D1ResourceTexture1D<float> t12;
-
-        [D2DResourceTextureIndex(13)]
-        public readonly D2D1ResourceTexture1D<float> t13;
-
-        [D2DResourceTextureIndex(14)]
-        public readonly D2D1ResourceTexture1D<float> t14;
-
-        [D2DResourceTextureIndex(15)]
-        public readonly D2D1ResourceTexture1D<float> t15;
-
-        public float4 Execute()
+        try
         {
-            return 0;
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                D2D1ResourceTextureManager.Create((void**)&resourceTextureManagers[i]);
+
+                D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect, resourceTextureManagers[i], i);
+            }
+
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                IUnknown* value = null;
+
+                d2D1Effect->GetValue(
+                    D2D1PixelShaderEffectProperty.ResourceTextureManager0 + (uint)i,
+                    (byte*)&value,
+                    (uint)sizeof(void*)).Assert();
+
+                using ComPtr<IUnknown> retrieved = default;
+
+                retrieved.Attach(value);
+
+                Assert.IsTrue(retrieved.Get() == resourceTextureManagers[i]);
+            }
+        }
+        finally
+        {
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                if (resourceTextureManagers[i] is not null)
+                {
+                    _ = resourceTextureManagers[i]->Release();
+                }
+            }
         }
     }
 
