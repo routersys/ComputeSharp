@@ -172,6 +172,125 @@ public partial class D2D1PixelShaderEffectTests
     }
 
     [TestMethod]
+    public unsafe void SetResourceTextureManagerForD2D1Effect_IndexRange()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        D2D1PixelShaderEffect.RegisterForD2D1Factory1<ShaderWithMaximumResourceTextures>(d2D1Factory2.Get(), out _);
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
+
+        // The accepted range must end where the properties of the effect end: two always available
+        // properties, plus one resource texture manager property per declared resource texture
+        Assert.AreEqual(
+            (uint)(2 + D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>()),
+            d2D1Effect.Get()->GetPropertyCount());
+
+        using ComPtr<IUnknown> resourceTextureManager = default;
+
+        D2D1ResourceTextureManager.Create((void**)resourceTextureManager.GetAddressOf());
+
+        // The last index backed by a property is accepted and reaches the effect
+        D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager.Get(), 15);
+
+        // One past that index is refused by the argument check, before the effect is used
+        _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+            () => D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager.Get(), 16));
+    }
+
+    [TestMethod]
+    public unsafe void SetResourceTextureManagerForD2D1Effect_RCW_IndexRange()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        D2D1PixelShaderEffect.RegisterForD2D1Factory1<ShaderWithMaximumResourceTextures>(d2D1Factory2.Get(), out _);
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
+
+        D2D1ResourceTextureManager resourceTextureManager = new(
+            extents: [64],
+            bufferPrecision: D2D1BufferPrecision.UInt8Normalized,
+            channelDepth: D2D1ChannelDepth.One,
+            filter: D2D1Filter.MinMagMipPoint,
+            extendModes: [D2D1ExtendMode.Clamp]);
+
+        // The last index backed by a property is accepted and reaches the effect
+        D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, 15);
+
+        // One past that index is refused by the argument check, before the effect is used
+        _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+            () => D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, 16));
+    }
+
+    // Declares as many resource textures as there are ResourceTextureManager properties
+    [D2DInputCount(0)]
+    [D2DGeneratedPixelShaderDescriptor]
+    [AutoConstructor]
+    internal readonly partial struct ShaderWithMaximumResourceTextures : ID2D1PixelShader
+    {
+        [D2DResourceTextureIndex(0)]
+        public readonly D2D1ResourceTexture1D<float> t0;
+
+        [D2DResourceTextureIndex(1)]
+        public readonly D2D1ResourceTexture1D<float> t1;
+
+        [D2DResourceTextureIndex(2)]
+        public readonly D2D1ResourceTexture1D<float> t2;
+
+        [D2DResourceTextureIndex(3)]
+        public readonly D2D1ResourceTexture1D<float> t3;
+
+        [D2DResourceTextureIndex(4)]
+        public readonly D2D1ResourceTexture1D<float> t4;
+
+        [D2DResourceTextureIndex(5)]
+        public readonly D2D1ResourceTexture1D<float> t5;
+
+        [D2DResourceTextureIndex(6)]
+        public readonly D2D1ResourceTexture1D<float> t6;
+
+        [D2DResourceTextureIndex(7)]
+        public readonly D2D1ResourceTexture1D<float> t7;
+
+        [D2DResourceTextureIndex(8)]
+        public readonly D2D1ResourceTexture1D<float> t8;
+
+        [D2DResourceTextureIndex(9)]
+        public readonly D2D1ResourceTexture1D<float> t9;
+
+        [D2DResourceTextureIndex(10)]
+        public readonly D2D1ResourceTexture1D<float> t10;
+
+        [D2DResourceTextureIndex(11)]
+        public readonly D2D1ResourceTexture1D<float> t11;
+
+        [D2DResourceTextureIndex(12)]
+        public readonly D2D1ResourceTexture1D<float> t12;
+
+        [D2DResourceTextureIndex(13)]
+        public readonly D2D1ResourceTexture1D<float> t13;
+
+        [D2DResourceTextureIndex(14)]
+        public readonly D2D1ResourceTexture1D<float> t14;
+
+        [D2DResourceTextureIndex(15)]
+        public readonly D2D1ResourceTexture1D<float> t15;
+
+        public float4 Execute()
+        {
+            return 0;
+        }
+    }
+
+    [TestMethod]
     public unsafe void GetValue_ConstantBuffer_RoundTrips()
     {
         using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
