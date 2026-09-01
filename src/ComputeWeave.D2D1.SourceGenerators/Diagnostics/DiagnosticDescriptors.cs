@@ -441,7 +441,7 @@ partial class DiagnosticDescriptors
         category: "ComputeWeave.D2D1.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The D2D1 shader of type {0} has exceeded the maximum allowed size for captured values (the maximum size for constant buffers is 64KB).",
+        description: "A D2D1 shader cannot exceed the maximum allowed size for captured values (the maximum size for constant buffers is 64KB).",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>

@@ -570,7 +570,7 @@ partial class DiagnosticDescriptors
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The compute shader of type {0} has exceeded the maximum allowed size for captured values and resources (the maximum size for the root signature is 64 DWORD constants).",
+        description: "A compute shader cannot exceed the maximum allowed size for captured values and resources (the maximum size for the root signature is 64 DWORD constants).",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
