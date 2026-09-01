@@ -1148,6 +1148,47 @@ public class ShaderSourceRewriterTests
     }
 
     /// <summary>
+    /// A generic local function inside a method the shader imports. A nested rewriter walks that body, so what
+    /// this pins is that the declaration answers there too and not only in the shader own body.
+    /// </summary>
+    [TestMethod]
+    public void DeclaringAGenericLocalFunctionInsideAnImportedMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Twice(float value)
+                {
+                    static float First<T>(T inner)
+                    {
+                        return 1.0f;
+                    }
+
+                    return value * 2;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Twice(1.0f);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderImportedGenericLocalFunctionTests", "CMPW0122");
+    }
+
+    /// <summary>
     /// A local function with no type parameters, which is the control for the two above.
     /// </summary>
     [TestMethod]
