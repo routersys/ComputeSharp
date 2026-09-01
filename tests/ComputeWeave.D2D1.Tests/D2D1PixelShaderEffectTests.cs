@@ -184,8 +184,7 @@ public partial class D2D1PixelShaderEffectTests
 
         D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
 
-        // The accepted range must end where the properties of the effect end: two always available
-        // properties, plus one resource texture manager property per declared resource texture
+        // The accepted range must end where the properties of the effect end
         Assert.AreEqual(
             (uint)(2 + D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>()),
             d2D1Effect.Get()->GetPropertyCount());
@@ -228,6 +227,86 @@ public partial class D2D1PixelShaderEffectTests
         // One past that index is refused by the argument check, before the effect is used
         _ = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
             () => D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, 16));
+    }
+
+    [TestMethod]
+    public unsafe void SetResourceTextureManagerForD2D1Effect_EveryIndexReachesItsOwnSlot()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        D2D1PixelShaderEffect.RegisterForD2D1Factory1<ShaderWithMaximumResourceTextures>(d2D1Factory2.Get(), out _);
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ShaderWithMaximumResourceTextures>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
+
+        AssertEveryIndexReachesItsOwnResourceTextureManager(
+            d2D1Effect.Get(),
+            D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>());
+    }
+
+    [TestMethod]
+    public unsafe void GetRegistrationBlob_EveryIndexReachesItsOwnSlot()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        ReadOnlyMemory<byte> blob = D2D1PixelShaderEffect.GetRegistrationBlob<ShaderWithMaximumResourceTextures>(out Guid effectId);
+
+        D2D1Helper.RegisterEffectFromRegistrationData((ID2D1Factory1*)d2D1Factory2.Get(), D2D1EffectRegistrationData.V1.Load(blob));
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        d2D1DeviceContext.Get()->CreateEffect(&effectId, d2D1Effect.GetAddressOf()).Assert();
+
+        AssertEveryIndexReachesItsOwnResourceTextureManager(
+            d2D1Effect.Get(),
+            D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>());
+    }
+
+    // A property bound to another slot leaves one slot untouched, so distinct managers tell them apart
+    private static unsafe void AssertEveryIndexReachesItsOwnResourceTextureManager(ID2D1Effect* d2D1Effect, int resourceTextureCount)
+    {
+        IUnknown** resourceTextureManagers = stackalloc IUnknown*[resourceTextureCount];
+
+        try
+        {
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                D2D1ResourceTextureManager.Create((void**)&resourceTextureManagers[i]);
+
+                D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect, resourceTextureManagers[i], i);
+            }
+
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                IUnknown* value = null;
+
+                d2D1Effect->GetValue(
+                    D2D1PixelShaderEffectProperty.ResourceTextureManager0 + (uint)i,
+                    (byte*)&value,
+                    (uint)sizeof(void*)).Assert();
+
+                using ComPtr<IUnknown> retrieved = default;
+
+                retrieved.Attach(value);
+
+                Assert.IsTrue(retrieved.Get() == resourceTextureManagers[i]);
+            }
+        }
+        finally
+        {
+            for (int i = 0; i < resourceTextureCount; i++)
+            {
+                if (resourceTextureManagers[i] is not null)
+                {
+                    _ = resourceTextureManagers[i]->Release();
+                }
+            }
+        }
     }
 
     [TestMethod]
