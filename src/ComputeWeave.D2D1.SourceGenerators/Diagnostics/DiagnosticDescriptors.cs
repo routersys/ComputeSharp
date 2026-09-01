@@ -1429,4 +1429,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for. That is not the same as syntax nothing has judged: a construct the rewriter always refuses is outside the set as well, because refusing it keeps it out of what the measurement sees. Where nothing else answers for it, the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a local function that declares type parameters.
+    /// <para>
+    /// Format: <c>"The local function {0} cannot be declared in a D2D1 pixel shader (HLSL has no type parameters, so a generic local function cannot be translated and it has to be declared for the concrete type instead)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor GenericLocalFunction = new(
+        id: "CMPWD2D0095",
+        title: "Generic local function",
+        messageFormat: "The local function {0} cannot be declared in a D2D1 pixel shader (HLSL has no type parameters, so a generic local function cannot be translated and it has to be declared for the concrete type instead)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A local function is lifted to a top level HLSL function, which carries its type parameter list with it. HLSL has no type parameters, so the lifted function does not compile. The declaration is refused rather than the call, because a local function that is never called is lifted just the same.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

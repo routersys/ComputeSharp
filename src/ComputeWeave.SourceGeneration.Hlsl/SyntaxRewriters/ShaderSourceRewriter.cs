@@ -357,6 +357,12 @@ internal sealed partial class ShaderSourceRewriter(
                 Diagnostics.Add(NonStaticLocalFunction, node);
             }
 
+            // A local function is lifted whether or not it is called, so the declaration is what has to answer
+            if (functionSymbol.IsGenericMethod)
+            {
+                Diagnostics.Add(GenericLocalFunction, node, functionSymbol);
+            }
+
             this.localFunctionDepth--;
 
             // HLSL doesn't support local functions, so we first process them as usual and then remove

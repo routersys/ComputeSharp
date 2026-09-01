@@ -1008,7 +1008,8 @@ public class ShaderSourceRewriterTests
     }
 
     /// <summary>
-    /// A generic local function, which is lifted to a top level HLSL function under a rewritten name.
+    /// A generic local function, which is lifted to a top level HLSL function under a rewritten name. The
+    /// declaration answers for it rather than the call, so the call names no second place to fix.
     /// </summary>
     [TestMethod]
     public void CallingAGenericLocalFunctionIsDiagnosed()
@@ -1037,7 +1038,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsDiagnosedWithoutFaulting(Source, "ShaderGenericLocalFunctionTests", "CMPW0117");
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderGenericLocalFunctionTests", "CMPW0122");
     }
 
     /// <summary>
@@ -1110,6 +1111,113 @@ public class ShaderSourceRewriterTests
             """;
 
         AssertIsNotDiagnosed(Source, "ShaderNonGenericMethodTests", "CMPW0117");
+    }
+
+    /// <summary>
+    /// A generic local function that is never called. It is lifted just the same, so the declaration has to
+    /// answer for it: nothing reaches the call site to report.
+    /// </summary>
+    [TestMethod]
+    public void DeclaringAGenericLocalFunctionWithoutCallingItIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    static float First<T>(T value)
+                        where T : unmanaged
+                    {
+                        return 1.0f;
+                    }
+
+                    this.buffer[ThreadIds.X] = 2.0f;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderUncalledGenericLocalFunctionTests", "CMPW0122");
+    }
+
+    /// <summary>
+    /// A generic local function inside a method the shader imports. A nested rewriter walks that body, so what
+    /// this pins is that the declaration answers there too and not only in the shader own body.
+    /// </summary>
+    [TestMethod]
+    public void DeclaringAGenericLocalFunctionInsideAnImportedMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Twice(float value)
+                {
+                    static float First<T>(T inner)
+                    {
+                        return 1.0f;
+                    }
+
+                    return value * 2;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Twice(1.0f);
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderImportedGenericLocalFunctionTests", "CMPW0122");
+    }
+
+    /// <summary>
+    /// A local function with no type parameters, which is the control for the two above.
+    /// </summary>
+    [TestMethod]
+    public void DeclaringANonGenericLocalFunctionIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    static float First(float value)
+                    {
+                        return value;
+                    }
+
+                    this.buffer[ThreadIds.X] = First(2.0f);
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderNonGenericLocalFunctionTests", "CMPW0122");
     }
 
     /// <summary>
