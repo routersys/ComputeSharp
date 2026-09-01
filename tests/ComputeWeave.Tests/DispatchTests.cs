@@ -535,6 +535,59 @@ public partial class DispatchTests
     }
 
     /// <summary>
+    /// The Z axis of the range, which the two rows above leave alone.
+    /// </summary>
+    /// <remarks>
+    /// The shader the rows above use has a thread group one thread deep, so its Z axis has no remainder to
+    /// find whatever range it is given. This one is four deep, and the range is not a multiple of that.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheDepthAxisIsChecked(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(64);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(4, 4, 6, new VolumeGroupHandoffShader(buffer)));
+
+        Assert.AreEqual("z", exception.ParamName);
+    }
+
+    /// <summary>
+    /// A pixel shader like type, whose range comes from the texture rather than from an argument.
+    /// </summary>
+    /// <remarks>
+    /// The requirement reaches this path through a second check, which the rows above do not run. One row
+    /// per side, each leaving the other side a multiple, so a check that lost one of the two sides keeps
+    /// the row for the side it still reads and fails the other.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    [Data(100, 64)]
+    [Data(64, 100)]
+    public void Verify_FullThreadGroups_ATextureThatIsNoMultipleIsRejected(Device device, int width, int height)
+    {
+        using ReadWriteTexture2D<Rgba32, float4> texture = device.Get().AllocateReadWriteTexture2D<Rgba32, float4>(width, height);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().ForEach<GroupSyncPixelShader, float4>(texture));
+
+        Assert.AreEqual("texture", exception.ParamName);
+    }
+
+    /// <summary>
+    /// The control for the row above. A texture whose sides are multiples is handed over as it is.
+    /// </summary>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_ATextureThatIsAMultipleIsAccepted(Device device)
+    {
+        using ReadWriteTexture2D<Rgba32, float4> texture = device.Get().AllocateReadWriteTexture2D<Rgba32, float4>(64, 64);
+
+        device.Get().ForEach<GroupSyncPixelShader, float4>(texture);
+    }
+
+    /// <summary>
     /// The control. A shader that does not wait for its group keeps taking a range of any size.
     /// </summary>
     /// <remarks>
@@ -596,6 +649,41 @@ public partial class DispatchTests
             Hlsl.GroupMemoryBarrierWithGroupSync();
 
             this.buffer[ThreadIds.X] = cache[63 - GroupIds.X];
+        }
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(4, 4, 4)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct VolumeGroupHandoffShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> buffer;
+
+        [GroupShared(64)]
+        private static readonly int[] cache;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            cache[GroupIds.X] = ThreadIds.X;
+
+            Hlsl.GroupMemoryBarrierWithGroupSync();
+
+            this.buffer[ThreadIds.X] = cache[GroupIds.X];
+        }
+    }
+
+    [ThreadGroupSize(DefaultThreadGroupSizes.XY)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct GroupSyncPixelShader : IComputeShader<float4>
+    {
+        /// <inheritdoc/>
+        public float4 Execute()
+        {
+            // The barrier alone declares the requirement, which is the whole of what this shader is for
+            Hlsl.GroupMemoryBarrierWithGroupSync();
+
+            return new float4(ThreadIds.X, ThreadIds.Y, 0, 1);
         }
     }
 
