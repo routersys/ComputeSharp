@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using System.Reflection;
 using ComputeWeave.SourceGeneration.Mappings;
 using ComputeWeave.SourceGenerators;
 using ComputeWeave.Tests.SourceGenerators.Helpers;
@@ -229,6 +231,117 @@ public class AcceptedSyntaxSetTests
 
         // 'this' is the one refusal that is conditional, so it is in the set: only a bare 'this' is refused
         Assert.IsTrue(HlslKnownSyntax.IsAccepted(SyntaxKind.ThisExpression));
+    }
+
+    [TestMethod]
+    public void TheKindsLeftOutOfAFamilyTheSetDrawsFromArePinned()
+    {
+        (string Name, SyntaxKind[] Kinds)[] families =
+        [
+            ("AssignmentExpressionSyntax", Family(SyntaxFacts.GetAssignmentExpression)),
+            ("BinaryExpressionSyntax", Family(SyntaxFacts.GetBinaryExpression)),
+
+            // 'default' carries no operator token, so the map that walks the tokens does not reach it
+            ("LiteralExpressionSyntax", [.. Family(SyntaxFacts.GetLiteralExpression), SyntaxKind.DefaultLiteralExpression]),
+
+            // This type has no map of its own, and carries these two kinds and no others
+            ("MemberAccessExpressionSyntax", [SyntaxKind.SimpleMemberAccessExpression, SyntaxKind.PointerMemberAccessExpression]),
+            ("PostfixUnaryExpressionSyntax", Family(SyntaxFacts.GetPostfixUnaryExpression)),
+            ("PrefixUnaryExpressionSyntax", Family(SyntaxFacts.GetPrefixUnaryExpression)),
+        ];
+
+        // Six of these are refused by a diagnostic of their own, five are ones C# itself will not let a shader body write,
+        // and two reach the HLSL compiler with nothing having judged them
+        string[] expected =
+        [
+            "AssignmentExpressionSyntax.CoalesceAssignmentExpression",
+            "BinaryExpressionSyntax.AsExpression",
+            "BinaryExpressionSyntax.CoalesceExpression",
+            "BinaryExpressionSyntax.IsExpression",
+            "LiteralExpressionSyntax.ArgListExpression",
+            "LiteralExpressionSyntax.NullLiteralExpression",
+            "LiteralExpressionSyntax.StringLiteralExpression",
+            "LiteralExpressionSyntax.Utf8StringLiteralExpression",
+            "MemberAccessExpressionSyntax.PointerMemberAccessExpression",
+            "PostfixUnaryExpressionSyntax.SuppressNullableWarningExpression",
+            "PrefixUnaryExpressionSyntax.AddressOfExpression",
+            "PrefixUnaryExpressionSyntax.IndexExpression",
+            "PrefixUnaryExpressionSyntax.PointerIndirectionExpression"
+        ];
+
+        string[] actual =
+        [
+            .. families
+                .SelectMany(family => family.Kinds
+                    .Where(static kind => !HlslKnownSyntax.IsAccepted(kind))
+                    .Select(kind => $"{family.Name}.{kind}"))
+                .Order(StringComparer.Ordinal)
+        ];
+
+        CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
+
+        // A family the set draws nothing from is not one of these, and would make the list above vacuous
+        foreach ((string name, SyntaxKind[] kinds) in families)
+        {
+            Assert.IsTrue(kinds.Any(HlslKnownSyntax.IsAccepted), name);
+        }
+    }
+
+    [TestMethod]
+    public void EveryNodeTypeThatCanCarrySeveralKindsIsAccountedFor()
+    {
+        // A node type carries more than one kind exactly when the factory for it takes the kind as an argument
+        string[] actual =
+        [
+            .. typeof(SyntaxFactory)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(static method => typeof(SyntaxNode).IsAssignableFrom(method.ReturnType))
+                .Where(static method => method.GetParameters().Any(static parameter => parameter.ParameterType == typeof(SyntaxKind) && parameter.Name == "kind"))
+                .Select(static method => method.ReturnType.Name)
+                .Distinct()
+                .Order(StringComparer.Ordinal)
+        ];
+
+        string[] expected =
+        [
+            "AccessorDeclarationSyntax",
+            "AssignmentExpressionSyntax",
+            "BinaryExpressionSyntax",
+            "BinaryPatternSyntax",
+            "CheckedExpressionSyntax",
+            "CheckedStatementSyntax",
+            "ClassOrStructConstraintSyntax",
+            "ConstructorInitializerSyntax",
+            "DocumentationCommentTriviaSyntax",
+            "GotoStatementSyntax",
+            "InitializerExpressionSyntax",
+            "LiteralExpressionSyntax",
+            "MemberAccessExpressionSyntax",
+            "OrderingSyntax",
+            "PostfixUnaryExpressionSyntax",
+            "PrefixUnaryExpressionSyntax",
+            "RecordDeclarationSyntax",
+            "TypeDeclarationSyntax",
+            "YieldStatementSyntax"
+        ];
+
+        CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
+    }
+
+    /// <summary>
+    /// Collects the syntax kinds one node type carries, from the map that takes an operator token to them.
+    /// </summary>
+    /// <param name="map">The map from an operator token to the kind of the expression it forms.</param>
+    /// <returns>The kinds the map reaches.</returns>
+    private static SyntaxKind[] Family(Func<SyntaxKind, SyntaxKind> map)
+    {
+        return
+        [
+            .. Enum.GetValues<SyntaxKind>()
+                .Select(map)
+                .Where(static kind => kind != SyntaxKind.None)
+                .Distinct()
+        ];
     }
 
     /// <summary>
