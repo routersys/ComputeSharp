@@ -618,6 +618,17 @@ internal sealed partial class ShaderSourceRewriter(
                     // Allow specialized types to track the method invocation, if needed
                     TrackKnownMethodInvocation(metadataName);
 
+#if D3D12_SOURCE_GENERATOR
+                    // Special case: an intrinsic that writes through an out parameter terminates DXC when it
+                    // is given an integer matrix, so the call is refused before the compiler is handed it.
+                    // Direct2D shaders are compiled with FXC, which does not have the defect, so this is
+                    // excluded from that generator by the compilation symbol rather than by a check.
+                    if (ReportIntegerMatrixOnIntrinsicWithOutParameter(node, method))
+                    {
+                        return updatedNode;
+                    }
+#endif
+
                     // Special case: handle known named intrinsics being invoked.
                     // These have special lowering to the right HLSL constructs.
                     if (VisitKnownNamedIntrinsicInvocationExpression(node, updatedNode, mapping) is SyntaxNode namedIntrinsic)
