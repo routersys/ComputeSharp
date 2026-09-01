@@ -1,5 +1,6 @@
 using System;
 using ComputeWeave.D2D1.Interop;
+using ComputeWeave.D2D1.Tests.Effects;
 using ComputeWeave.D2D1.Tests.Extensions;
 using ComputeWeave.D2D1.Tests.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -240,6 +241,24 @@ public partial class D2D1EffectRegistrationDataTests
         public float4 Execute()
         {
             return 0;
+        }
+    }
+
+    [TestMethod]
+    public unsafe void EffectRegistrationData_WithMaximumResourceTextures_ListsEveryBinding()
+    {
+        ReadOnlyMemory<byte> blob = D2D1PixelShaderEffect.GetRegistrationBlob<ShaderWithMaximumResourceTextures>(out _);
+        D2D1EffectRegistrationData.V1 data = D2D1EffectRegistrationData.V1.Load(blob);
+
+        int resourceTextureCount = D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>();
+
+        Assert.AreEqual(2 + resourceTextureCount, data.PropertyBindings.Length);
+        Assert.AreEqual(nameof(D2D1PixelShaderEffectProperty.ConstantBuffer), data.PropertyBindings.Span[0].PropertyName);
+        Assert.AreEqual(nameof(D2D1PixelShaderEffectProperty.TransformMapper), data.PropertyBindings.Span[1].PropertyName);
+
+        for (int i = 0; i < resourceTextureCount; i++)
+        {
+            Assert.AreEqual($"ResourceTextureManager{i}", data.PropertyBindings.Span[i + 2].PropertyName);
         }
     }
 
