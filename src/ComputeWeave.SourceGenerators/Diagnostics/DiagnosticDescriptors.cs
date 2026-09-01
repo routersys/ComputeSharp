@@ -1607,4 +1607,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A local function is lifted to a top level HLSL function, which carries its type parameter list with it. HLSL has no type parameters, so the lifted function does not compile. The declaration is refused rather than the call, because a local function that is never called is lifted just the same.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an intrinsic with an out parameter that is given an integer matrix.
+    /// <para>
+    /// Format: <c>"The intrinsic {0} cannot be given an integer matrix in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor IntegerMatrixOnIntrinsicWithOutParameter = new(
+        id: "CMPW0123",
+        title: "Integer matrix given to an intrinsic with an out parameter",
+        messageFormat: "The intrinsic {0} cannot be given an integer matrix in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The shader compiler terminates with an access violation when an intrinsic that writes through an out parameter is given an integer matrix. It was measured on modf, frexp and sincos alike, so the refusal is written over the shape of the signature rather than over one name. The same call with a floating point matrix compiles, and so does an integer vector, so only this combination is refused. Without the refusal the build fails with a native fatal error that names no source line, because the compiler is gone before it can report one. Direct2D shaders are not affected: they are compiled through FXC, which does not have the defect.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
