@@ -792,6 +792,13 @@ namespace ComputeWeave.D2D1.Tests
         }
 
         [TestMethod]
+        public void GetPixelOptions_IsCorrect()
+        {
+            Assert.AreEqual(D2D1PixelOptions.TrivialSampling, D2D1PixelShader.GetPixelOptions<ShaderWithNoCapturedValues>());
+            Assert.AreEqual(D2D1PixelOptions.None, D2D1PixelShader.GetPixelOptions<ShaderWithScalarVectorAndMatrixTypes>());
+        }
+
+        [TestMethod]
         public void GetConstantBufferSize()
         {
             int size = D2D1PixelShader.GetConstantBufferSize<ShaderWithScalarVectorAndMatrixTypes>();
