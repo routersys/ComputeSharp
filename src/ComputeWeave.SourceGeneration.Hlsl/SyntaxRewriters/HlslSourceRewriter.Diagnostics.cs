@@ -117,7 +117,10 @@ partial class HlslSourceRewriter
     /// </remarks>
     protected bool ReportUnmappedGenericMethodCall(InvocationExpressionSyntax node, IMethodSymbol method)
     {
+        // A local function is answered for at its declaration, so reporting the call as well would name two
+        // places for one cause
         if (!method.IsGenericMethod ||
+            method.MethodKind == MethodKind.LocalFunction ||
             HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out _, out _))
         {
             return false;
