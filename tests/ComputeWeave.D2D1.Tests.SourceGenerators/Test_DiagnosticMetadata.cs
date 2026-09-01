@@ -27,6 +27,11 @@ public class Test_DiagnosticMetadata
     private static readonly Regex RepeatedWord = new(@"\b(\w+)\s+\1\b", RegexOptions.IgnoreCase);
 
     /// <summary>
+    /// A placeholder in a string that the message arguments never reach.
+    /// </summary>
+    private static readonly Regex Placeholder = new(@"\{\d+(?::[^}]*)?\}");
+
+    /// <summary>
     /// Two diagnostics sharing a title means at least one of them is named after the other.
     /// </summary>
     /// <remarks>
@@ -71,6 +76,37 @@ public class Test_DiagnosticMetadata
         ];
 
         Assert.AreEqual(0, repeated.Length, string.Join(" | ", repeated));
+    }
+
+    /// <summary>
+    /// Only the message format is given the arguments, so a placeholder anywhere else is read as it stands.
+    /// </summary>
+    /// <remarks>
+    /// Nothing fails when one is left in. The build stays green because the repository reports none of these,
+    /// and the tests compare identifiers rather than text. Where it shows is the author's tooling: the error
+    /// log written with the ErrorLog switch carries the description into whatever reads it, and two
+    /// descriptions had been carrying a placeholder there since the fork point. Only the descriptors are read,
+    /// so a suppression justification is outside this.
+    /// </remarks>
+    [TestMethod]
+    public void OnlyTheMessageFormatCarriesAPlaceholder()
+    {
+        string[] carried =
+        [
+            .. Declared()
+                .SelectMany(static descriptor => new[]
+                {
+                    (descriptor.Id, Field: "title", Text: descriptor.Title.ToString()),
+                    (descriptor.Id, Field: "description", Text: descriptor.Description.ToString()),
+                    (descriptor.Id, Field: "category", Text: descriptor.Category),
+                    (descriptor.Id, Field: "helpLinkUri", Text: descriptor.HelpLinkUri)
+                })
+                .Where(static pair => pair.Text is not null && Placeholder.IsMatch(pair.Text))
+                .Select(static pair => $"{pair.Id}: {pair.Field}")
+                .Order()
+        ];
+
+        Assert.AreEqual(0, carried.Length, string.Join(" | ", carried));
     }
 
     /// <summary>
