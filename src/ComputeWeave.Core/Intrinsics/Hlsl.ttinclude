@@ -3077,7 +3077,8 @@ var Intrinsics = new[]
             new { Return = "Int4x1", Params = new[] { "Int4x1" } },
             new { Return = "Int4x2", Params = new[] { "Int4x2" } },
             new { Return = "Int4x3", Params = new[] { "Int4x3" } },
-            new { Return = "Int4x4", Params = new[] { "Int4x4" } }
+            new { Return = "Int4x4", Params = new[] { "Int4x4" } },
+            new { Return = "int", Params = new[] { "double" } }
         }
     },
     new
