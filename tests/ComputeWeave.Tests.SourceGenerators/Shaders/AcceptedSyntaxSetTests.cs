@@ -250,6 +250,8 @@ public class AcceptedSyntaxSetTests
             ("PrefixUnaryExpressionSyntax", Family(SyntaxFacts.GetPrefixUnaryExpression)),
         ];
 
+        // Six of these are refused by a diagnostic of their own, five are ones C# itself will not let a shader body write,
+        // and two reach the HLSL compiler with nothing having judged them
         string[] expected =
         [
             "AssignmentExpressionSyntax.CoalesceAssignmentExpression",
@@ -278,7 +280,7 @@ public class AcceptedSyntaxSetTests
 
         CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
 
-        // A family the set draws from nothing from is not one of these, and would make the list above vacuous
+        // A family the set draws nothing from is not one of these, and would make the list above vacuous
         foreach ((string name, SyntaxKind[] kinds) in families)
         {
             Assert.IsTrue(kinds.Any(HlslKnownSyntax.IsAccepted), name);
