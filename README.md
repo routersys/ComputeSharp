@@ -259,7 +259,7 @@ The budget covers the resources the device creates itself. A device using an all
 
 ### Compile-time validation
 
-The declarations above are checked by analyzers that report 106 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 107 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
 ---
 
