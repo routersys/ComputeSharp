@@ -324,6 +324,50 @@ public partial class DispatchTests
         }
     }
 
+    /// <summary>
+    /// The control above dispatches a square thread group, which cannot tell the two axes apart.
+    /// </summary>
+    /// <remarks>
+    /// The host computes how many groups to launch from the texture size and the thread group size, once
+    /// per axis. Only a thread group where the two axes differ can catch the two computations swapped,
+    /// since a square one produces the same group count either way.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_DispatchAsPixelShader_WithAsymmetricThreadGroupSize(Device device)
+    {
+        using ReadWriteTexture2D<Rgba32, float4> texture = device.Get().AllocateReadWriteTexture2D<Rgba32, float4>(64, 64);
+
+        device.Get().ForEach<AsymmetricGroupSizePixelShader, float4>(texture);
+
+        Rgba32[,] data = texture.ToArray();
+
+        for (int y = 0; y < texture.Height; y++)
+        {
+            for (int x = 0; x < texture.Width; x++)
+            {
+                Rgba32 pixel = data[y, x];
+
+                Assert.AreEqual((float)pixel.R / 255, (float)x / texture.Width, 0.1f);
+                Assert.AreEqual((float)pixel.G / 255, (float)y / texture.Height, 0.1f);
+            }
+        }
+    }
+
+    [ThreadGroupSize(16, 4, 1)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct AsymmetricGroupSizePixelShader : IComputeShader<float4>
+    {
+        public float4 Execute()
+        {
+            return new(
+                (float)ThreadIds.X / DispatchSize.X,
+                (float)ThreadIds.Y / DispatchSize.Y,
+                1,
+                1);
+        }
+    }
+
     [CombinatorialTestMethod]
     [AllDevices]
     public void Verify_GroupShared_WithFixedSize(Device device)
