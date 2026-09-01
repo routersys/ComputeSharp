@@ -1,6 +1,11 @@
 using System;
+using System.Runtime.InteropServices;
 using ComputeWeave.D2D1.Interop;
+using ComputeWeave.D2D1.Tests.Extensions;
+using ComputeWeave.D2D1.Tests.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TerraFX.Interop.DirectX;
+using TerraFX.Interop.Windows;
 
 namespace ComputeWeave.D2D1.Tests;
 
@@ -236,6 +241,92 @@ public partial class D2D1EffectRegistrationDataTests
         public float4 Execute()
         {
             return 0;
+        }
+    }
+
+    [TestMethod]
+    public unsafe void EffectRegistrationData_WithResourceTexture_RegistersAndDraws()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        ReadOnlyMemory<byte> blob = D2D1PixelShaderEffect.GetRegistrationBlob<TestRegistrationBlobWithOneResourceTexture>(out Guid effectId);
+        D2D1EffectRegistrationData.V1 data = D2D1EffectRegistrationData.V1.Load(blob);
+
+        RegisterEffectFromRegistrationData((ID2D1Factory1*)d2D1Factory2.Get(), in data);
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        d2D1DeviceContext.Get()->CreateEffect(&effectId, d2D1Effect.GetAddressOf()).Assert();
+
+        D2D1ResourceTextureManager resourceTextureManager = new(
+            extents: [2, 2],
+            bufferPrecision: D2D1BufferPrecision.UInt8Normalized,
+            channelDepth: D2D1ChannelDepth.Four,
+            filter: D2D1Filter.MinMagMipPoint,
+            extendModes: [D2D1ExtendMode.Clamp, D2D1ExtendMode.Clamp],
+            data: new byte[2 * 2 * 4],
+            strides: [2 * 4]);
+
+        D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, 0);
+
+        using ComPtr<ID2D1Bitmap> d2D1BitmapTarget = D2D1Helper.CreateD2D1BitmapAndSetAsTarget(d2D1DeviceContext.Get(), 16, 16);
+
+        D2D1Helper.DrawEffect(d2D1DeviceContext.Get(), d2D1Effect.Get());
+    }
+
+    // Registers an effect from the property bindings carried by the blob, which is what the blob exists for
+    private static unsafe void RegisterEffectFromRegistrationData(ID2D1Factory1* d2D1Factory1, in D2D1EffectRegistrationData.V1 data)
+    {
+        ReadOnlySpan<D2D1PropertyBinding> propertyBindings = data.PropertyBindings.Span;
+
+        D2D1_PROPERTY_BINDING* d2D1PropertyBindings = stackalloc D2D1_PROPERTY_BINDING[propertyBindings.Length];
+        nint* propertyNames = stackalloc nint[propertyBindings.Length];
+
+        for (int i = 0; i < propertyBindings.Length; i++)
+        {
+            propertyNames[i] = Marshal.StringToHGlobalUni(propertyBindings[i].PropertyName);
+
+            d2D1PropertyBindings[i].propertyName = (char*)propertyNames[i];
+            d2D1PropertyBindings[i].getFunction = (delegate* unmanaged<IUnknown*, byte*, uint, uint*, HRESULT>)propertyBindings[i].GetFunction;
+            d2D1PropertyBindings[i].setFunction = (delegate* unmanaged<IUnknown*, byte*, uint, HRESULT>)propertyBindings[i].SetFunction;
+        }
+
+        nint propertyXml = Marshal.StringToHGlobalUni(data.PropertyXml);
+
+        try
+        {
+            Guid classId = data.ClassId;
+
+            d2D1Factory1->RegisterEffectFromString(
+                classId: &classId,
+                propertyXml: (char*)propertyXml,
+                bindings: d2D1PropertyBindings,
+                bindingsCount: (uint)propertyBindings.Length,
+                effectFactory: (delegate* unmanaged<IUnknown**, HRESULT>)data.EffectFactory).Assert();
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(propertyXml);
+
+            for (int i = 0; i < propertyBindings.Length; i++)
+            {
+                Marshal.FreeHGlobal(propertyNames[i]);
+            }
+        }
+    }
+
+    [D2DInputCount(0)]
+    [D2DGeneratedPixelShaderDescriptor]
+    internal readonly partial struct TestRegistrationBlobWithOneResourceTexture : ID2D1PixelShader
+    {
+        [D2DResourceTextureIndex(0)]
+        private readonly D2D1ResourceTexture2D<float4> source;
+
+        public float4 Execute()
+        {
+            return this.source.Sample(0.5f, 0.5f);
         }
     }
 }
