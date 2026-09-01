@@ -1366,6 +1366,68 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(source, assemblyName, diagnosticId);
     }
 
+    /// <summary>
+    /// An intrinsic that writes through an out parameter, given an integer matrix. DXC terminates with an
+    /// access violation on that combination, so the call is refused before the compiler is handed it.
+    /// </summary>
+    [TestMethod]
+    public void GivingAnIntegerMatrixToAnIntrinsicWithAnOutParameterIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<int> buffer;
+
+                public void Execute()
+                {
+                    Int2x2 fractional = Hlsl.Modf(new Int2x2(5, 5, 5, 5), out Int2x2 whole);
+
+                    this.buffer[ThreadIds.X] = fractional.M22 + whole.M22;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderIntegerMatrixOutParameterTests", "CMPW0123");
+    }
+
+    /// <summary>
+    /// The same intrinsic in the three shapes that compile. A scalar and an integer vector reach DXC
+    /// intact, and so does a floating point matrix, so none of them is refused.
+    /// </summary>
+    [TestMethod]
+    public void GivingAnIntrinsicWithAnOutParameterAShapeThatCompilesIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    float scalar = Hlsl.Modf(3.75f, out float scalarWhole);
+                    Int2 vector = Hlsl.Modf(new Int2(5, 5), out Int2 vectorWhole);
+                    Float2x2 matrix = Hlsl.Modf(new Float2x2(3.5f, 3.5f, 3.5f, 3.5f), out Float2x2 matrixWhole);
+
+                    this.buffer[ThreadIds.X] = scalar + scalarWhole + vector.Y + vectorWhole.Y + matrix.M22 + matrixWhole.M22;
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderAllowedOutParameterShapesTests", "CMPW0123");
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
