@@ -25430,6 +25430,234 @@ partial class Hlsl
     public static int Sign(double x) => default;
 
     /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int2 Sign(Double2 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int3 Sign(Double3 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int4 Sign(Double4 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int1x1 Sign(Double1x1 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int1x2 Sign(Double1x2 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int1x3 Sign(Double1x3 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int1x4 Sign(Double1x4 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int2x1 Sign(Double2x1 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int2x2 Sign(Double2x2 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int2x3 Sign(Double2x3 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int2x4 Sign(Double2x4 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int3x1 Sign(Double3x1 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int3x2 Sign(Double3x2 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int3x3 Sign(Double3x3 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int3x4 Sign(Double3x4 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int4x1 Sign(Double4x1 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int4x2 Sign(Double4x2 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int4x3 Sign(Double4x3 x) => default;
+
+    /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static Int4x4 Sign(Double4x4 x) => default;
+
+    /// <summary>
     /// Returns the sine of the specified value.
     /// </summary>
     /// <param name="x">The specified value, in radians.</param>

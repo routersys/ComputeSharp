@@ -3078,7 +3078,26 @@ var Intrinsics = new[]
             new { Return = "Int4x2", Params = new[] { "Int4x2" } },
             new { Return = "Int4x3", Params = new[] { "Int4x3" } },
             new { Return = "Int4x4", Params = new[] { "Int4x4" } },
-            new { Return = "int", Params = new[] { "double" } }
+            new { Return = "int", Params = new[] { "double" } },
+            new { Return = "Int2", Params = new[] { "Double2" } },
+            new { Return = "Int3", Params = new[] { "Double3" } },
+            new { Return = "Int4", Params = new[] { "Double4" } },
+            new { Return = "Int1x1", Params = new[] { "Double1x1" } },
+            new { Return = "Int1x2", Params = new[] { "Double1x2" } },
+            new { Return = "Int1x3", Params = new[] { "Double1x3" } },
+            new { Return = "Int1x4", Params = new[] { "Double1x4" } },
+            new { Return = "Int2x1", Params = new[] { "Double2x1" } },
+            new { Return = "Int2x2", Params = new[] { "Double2x2" } },
+            new { Return = "Int2x3", Params = new[] { "Double2x3" } },
+            new { Return = "Int2x4", Params = new[] { "Double2x4" } },
+            new { Return = "Int3x1", Params = new[] { "Double3x1" } },
+            new { Return = "Int3x2", Params = new[] { "Double3x2" } },
+            new { Return = "Int3x3", Params = new[] { "Double3x3" } },
+            new { Return = "Int3x4", Params = new[] { "Double3x4" } },
+            new { Return = "Int4x1", Params = new[] { "Double4x1" } },
+            new { Return = "Int4x2", Params = new[] { "Double4x2" } },
+            new { Return = "Int4x3", Params = new[] { "Double4x3" } },
+            new { Return = "Int4x4", Params = new[] { "Double4x4" } }
         }
     },
     new
