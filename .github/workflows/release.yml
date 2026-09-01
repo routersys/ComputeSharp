@@ -287,6 +287,10 @@ jobs:
       - name: Markdown の表を検証
         run: pwsh build/verify-markdown-tables.ps1
 
+      # 件数を見る検査は記述子の経路でしか起動しない。同じ README が出荷される以上、ここでも確かめる。
+      - name: README の件数を検証
+        run: pwsh build/verify-readme-counts.ps1
+
       - name: パッケージをアーティファクトとして保存
         uses: actions/upload-artifact@v4
         with:
