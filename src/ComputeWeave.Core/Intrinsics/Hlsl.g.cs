@@ -1688,6 +1688,30 @@ partial class Hlsl
     public static bool All(Bool4x4 x) => default;
 
     /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(double x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(uint x) => default;
+
+    /// <summary>
     /// Performs a vectorized, non short-circuiting boolean 'AND' operation between two operands.
     /// </summary>
     /// <param name="left">The first input vector or matrix value.</param>
@@ -2653,6 +2677,30 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("any")]
     public static bool Any(Bool4x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(double x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(uint x) => default;
 
     /// <summary>
     /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
@@ -17405,6 +17453,19 @@ partial class Hlsl
     public static Int4x4 Modf(Int4x4 x, out Int4x4 y) => throw new InvalidExecutionContextException($"{typeof(Hlsl)}.{nameof(Modf)}({typeof(Int4x4)}, {typeof(Int4x4)})");
 
     /// <summary>
+    /// Splits a value into fractional and integer parts, each with the same sign as the input value.
+    /// </summary>
+    /// <param name="x">The input value.</param>
+    /// <param name="y">The resulting integer portion.</param>
+    /// <returns>The signed-fractional portion of <paramref name="x"/>.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-modf"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("modf")]
+    public static uint Modf(uint x, out uint y) => throw new InvalidExecutionContextException($"{typeof(Hlsl)}.{nameof(Modf)}({typeof(uint)}, {typeof(uint)})");
+
+    /// <summary>
     /// Multiplies two values using matrix math.
     /// </summary>
     /// <param name="x">The first input value.</param>
@@ -20783,6 +20844,32 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static Int4x4 Mul(Int4x4 x, Int4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static double Mul(double x, double y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(uint x, uint y) => default;
 
     /// <summary>
     /// Normalizes the specified floating-point vector according to x / length(x).

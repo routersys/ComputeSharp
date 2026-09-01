@@ -189,7 +189,9 @@ var Intrinsics = new[]
             new { Return = "bool", Params = new[] { "Bool4x1" } },
             new { Return = "bool", Params = new[] { "Bool4x2" } },
             new { Return = "bool", Params = new[] { "Bool4x3" } },
-            new { Return = "bool", Params = new[] { "Bool4x4" } }
+            new { Return = "bool", Params = new[] { "Bool4x4" } },
+            new { Return = "bool", Params = new[] { "double" } },
+            new { Return = "bool", Params = new[] { "uint" } }
         }
     },
     new
@@ -299,7 +301,9 @@ var Intrinsics = new[]
             new { Return = "bool", Params = new[] { "Bool4x1" } },
             new { Return = "bool", Params = new[] { "Bool4x2" } },
             new { Return = "bool", Params = new[] { "Bool4x3" } },
-            new { Return = "bool", Params = new[] { "Bool4x4" } }
+            new { Return = "bool", Params = new[] { "Bool4x4" } },
+            new { Return = "bool", Params = new[] { "double" } },
+            new { Return = "bool", Params = new[] { "uint" } }
         }
     },
     new
@@ -2220,7 +2224,8 @@ var Intrinsics = new[]
             new { Return = "Int4x1", Params = new[] { "Int4x1", "Int4x1" } },
             new { Return = "Int4x2", Params = new[] { "Int4x2", "Int4x2" } },
             new { Return = "Int4x3", Params = new[] { "Int4x3", "Int4x3" } },
-            new { Return = "Int4x4", Params = new[] { "Int4x4", "Int4x4" } }
+            new { Return = "Int4x4", Params = new[] { "Int4x4", "Int4x4" } },
+            new { Return = "uint", Params = new[] { "uint", "uint" } }
         }
     },
     new
@@ -2514,6 +2519,8 @@ var Intrinsics = new[]
             new { Return = "Int4x2", Params = new[] { "Int4x4", "Int4x2" } },
             new { Return = "Int4x3", Params = new[] { "Int4x4", "Int4x3" } },
             new { Return = "Int4x4", Params = new[] { "Int4x4", "Int4x4" } },
+            new { Return = "double", Params = new[] { "double", "double" } },
+            new { Return = "uint", Params = new[] { "uint", "uint" } },
         }
     },
     new
