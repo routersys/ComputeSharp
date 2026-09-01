@@ -49,7 +49,7 @@ public sealed class InvalidD2D1PixelOptionsTrivialSamplingOnShaderTypeAnalyzer :
 
                 // Make sure we have the [D2DInputCount] (if not present, the shader is invalid anyway) and with a valid value
                 if (!typeSymbol.TryGetAttributeWithType(d2DInputCountAttributeSymbol, out AttributeData? inputCountAttribute) ||
-                    inputCountAttribute.ConstructorArguments is not [{ Value: >= 0 and < 8 and int inputCount }])
+                    inputCountAttribute.ConstructorArguments is not [{ Value: >= 0 and <= 8 and int inputCount }])
                 {
                     return;
                 }

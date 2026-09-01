@@ -602,7 +602,7 @@ partial class DiagnosticDescriptors
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The thread group sizes for [ThreadGroupSize] have to be in the valid range.",
+        description: "The thread group sizes for [ThreadGroupSize] have to be in the valid range, and the number of threads in a group cannot exceed the maximum the hardware allows.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
