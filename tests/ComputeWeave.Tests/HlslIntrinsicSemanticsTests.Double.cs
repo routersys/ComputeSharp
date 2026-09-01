@@ -838,4 +838,94 @@ partial class HlslIntrinsicSemanticsTests
             this.results[2] = new double2(Hlsl.Sign(this.zero), this.zero > 0.0 ? 1.0 : (this.zero < 0.0 ? -1.0 : 0.0));
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_SignDoubleShapes(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(19);
+
+        device.Get().For(1, new SignDoubleShapesShader(results, -2.5));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // Every double shape this change added, one slot each, using a uniformly negative seed so every
+    // component signs to -1. The last logical component is the one read, so a shape that reinterpreted
+    // fewer components than it declares would not agree
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct SignDoubleShapesShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly double seed;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            double2 v2 = new(this.seed, this.seed);
+            this.results[0] = new double2(Hlsl.Sign(v2).Y, -1.0);
+
+            double3 v3 = new(this.seed, this.seed, this.seed);
+            this.results[1] = new double2(Hlsl.Sign(v3).Z, -1.0);
+
+            double4 v4 = new(this.seed, this.seed, this.seed, this.seed);
+            this.results[2] = new double2(Hlsl.Sign(v4).W, -1.0);
+
+            double1x1 m1x1 = new(this.seed);
+            this.results[3] = new double2(Hlsl.Sign(m1x1).M11, -1.0);
+
+            double1x2 m1x2 = new(this.seed, this.seed);
+            this.results[4] = new double2(Hlsl.Sign(m1x2).M12, -1.0);
+
+            double1x3 m1x3 = new(this.seed, this.seed, this.seed);
+            this.results[5] = new double2(Hlsl.Sign(m1x3).M13, -1.0);
+
+            double1x4 m1x4 = new(this.seed, this.seed, this.seed, this.seed);
+            this.results[6] = new double2(Hlsl.Sign(m1x4).M14, -1.0);
+
+            double2x1 m2x1 = new(this.seed, this.seed);
+            this.results[7] = new double2(Hlsl.Sign(m2x1).M21, -1.0);
+
+            double2x2 m2x2 = new(this.seed, this.seed, this.seed, this.seed);
+            this.results[8] = new double2(Hlsl.Sign(m2x2).M22, -1.0);
+
+            double2x3 m2x3 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[9] = new double2(Hlsl.Sign(m2x3).M23, -1.0);
+
+            double2x4 m2x4 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[10] = new double2(Hlsl.Sign(m2x4).M24, -1.0);
+
+            double3x1 m3x1 = new(this.seed, this.seed, this.seed);
+            this.results[11] = new double2(Hlsl.Sign(m3x1).M31, -1.0);
+
+            double3x2 m3x2 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[12] = new double2(Hlsl.Sign(m3x2).M32, -1.0);
+
+            double3x3 m3x3 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[13] = new double2(Hlsl.Sign(m3x3).M33, -1.0);
+
+            double3x4 m3x4 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[14] = new double2(Hlsl.Sign(m3x4).M34, -1.0);
+
+            double4x1 m4x1 = new(this.seed, this.seed, this.seed, this.seed);
+            this.results[15] = new double2(Hlsl.Sign(m4x1).M41, -1.0);
+
+            double4x2 m4x2 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[16] = new double2(Hlsl.Sign(m4x2).M42, -1.0);
+
+            double4x3 m4x3 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[17] = new double2(Hlsl.Sign(m4x3).M43, -1.0);
+
+            double4x4 m4x4 = new(this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed, this.seed);
+            this.results[18] = new double2(Hlsl.Sign(m4x4).M44, -1.0);
+        }
+    }
 }
