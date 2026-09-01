@@ -801,4 +801,41 @@ partial class HlslIntrinsicSemanticsTests
             this.results[59] = new double2(smallestm4x4.M44, this.lowest);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_SignDouble(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(3);
+
+        device.Get().For(1, new SignDoubleShader(results, 2.25, -3.5, 0.0));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // sign returns an integer, so the expectation is built from comparisons rather than from another intrinsic
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct SignDoubleShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly double positive;
+        public readonly double negative;
+        public readonly double zero;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            this.results[0] = new double2(Hlsl.Sign(this.positive), this.positive > 0.0 ? 1.0 : (this.positive < 0.0 ? -1.0 : 0.0));
+            this.results[1] = new double2(Hlsl.Sign(this.negative), this.negative > 0.0 ? 1.0 : (this.negative < 0.0 ? -1.0 : 0.0));
+            this.results[2] = new double2(Hlsl.Sign(this.zero), this.zero > 0.0 ? 1.0 : (this.zero < 0.0 ? -1.0 : 0.0));
+        }
+    }
 }
