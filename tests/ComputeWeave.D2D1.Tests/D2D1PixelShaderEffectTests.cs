@@ -3,6 +3,7 @@ using System.ComponentModel;
 using ComputeWeave.D2D1;
 using ComputeWeave.D2D1.Interop;
 using ComputeWeave.D2D1.Tests.Effects;
+using ComputeWeave.D2D1.Tests.Extensions;
 using ComputeWeave.D2D1.Tests.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TerraFX.Interop.DirectX;
@@ -168,6 +169,34 @@ public partial class D2D1PixelShaderEffectTests
         {
             return this.a + this.b + this.c.X + this.d + this.e;
         }
+    }
+
+    [TestMethod]
+    public unsafe void GetValue_ConstantBuffer_RoundTrips()
+    {
+        using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
+
+        D2D1PixelShaderEffect.RegisterForD2D1Factory1<ConstantBufferSizeTestShader>(d2D1Factory2.Get(), out _);
+
+        using ComPtr<ID2D1Effect> d2D1Effect = default;
+
+        D2D1PixelShaderEffect.CreateFromD2D1DeviceContext<ConstantBufferSizeTestShader>(d2D1DeviceContext.Get(), (void**)d2D1Effect.GetAddressOf());
+
+        ConstantBufferSizeTestShader shader = new(1, 2, new float3(3, 4, 5), 6, 7);
+
+        D2D1PixelShaderEffect.SetConstantBufferForD2D1Effect(d2D1Effect.Get(), in shader);
+
+        byte[] expected = D2D1PixelShader.GetConstantBuffer(in shader).ToArray();
+        byte[] actual = new byte[expected.Length];
+
+        fixed (byte* p = actual)
+        {
+            d2D1Effect.Get()->GetValue(D2D1PixelShaderEffectProperty.ConstantBuffer, p, (uint)actual.Length).Assert();
+        }
+
+        CollectionAssert.AreEqual(expected, actual);
     }
 
     [TestMethod]
