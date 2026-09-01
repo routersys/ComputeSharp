@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using ComputeWeave.D2D1.Interop;
 using ComputeWeave.D2D1.Tests.Extensions;
 using ComputeWeave.D2D1.Tests.Helpers;
@@ -254,7 +253,7 @@ public partial class D2D1EffectRegistrationDataTests
         ReadOnlyMemory<byte> blob = D2D1PixelShaderEffect.GetRegistrationBlob<TestRegistrationBlobWithOneResourceTexture>(out Guid effectId);
         D2D1EffectRegistrationData.V1 data = D2D1EffectRegistrationData.V1.Load(blob);
 
-        RegisterEffectFromRegistrationData((ID2D1Factory1*)d2D1Factory2.Get(), in data);
+        D2D1Helper.RegisterEffectFromRegistrationData((ID2D1Factory1*)d2D1Factory2.Get(), in data);
 
         using ComPtr<ID2D1Effect> d2D1Effect = default;
 
@@ -274,47 +273,6 @@ public partial class D2D1EffectRegistrationDataTests
         using ComPtr<ID2D1Bitmap> d2D1BitmapTarget = D2D1Helper.CreateD2D1BitmapAndSetAsTarget(d2D1DeviceContext.Get(), 16, 16);
 
         D2D1Helper.DrawEffect(d2D1DeviceContext.Get(), d2D1Effect.Get());
-    }
-
-    // Registers an effect from the property bindings carried by the blob, which is what the blob exists for
-    private static unsafe void RegisterEffectFromRegistrationData(ID2D1Factory1* d2D1Factory1, in D2D1EffectRegistrationData.V1 data)
-    {
-        ReadOnlySpan<D2D1PropertyBinding> propertyBindings = data.PropertyBindings.Span;
-
-        D2D1_PROPERTY_BINDING* d2D1PropertyBindings = stackalloc D2D1_PROPERTY_BINDING[propertyBindings.Length];
-        nint* propertyNames = stackalloc nint[propertyBindings.Length];
-
-        for (int i = 0; i < propertyBindings.Length; i++)
-        {
-            propertyNames[i] = Marshal.StringToHGlobalUni(propertyBindings[i].PropertyName);
-
-            d2D1PropertyBindings[i].propertyName = (char*)propertyNames[i];
-            d2D1PropertyBindings[i].getFunction = (delegate* unmanaged<IUnknown*, byte*, uint, uint*, HRESULT>)propertyBindings[i].GetFunction;
-            d2D1PropertyBindings[i].setFunction = (delegate* unmanaged<IUnknown*, byte*, uint, HRESULT>)propertyBindings[i].SetFunction;
-        }
-
-        nint propertyXml = Marshal.StringToHGlobalUni(data.PropertyXml);
-
-        try
-        {
-            Guid classId = data.ClassId;
-
-            d2D1Factory1->RegisterEffectFromString(
-                classId: &classId,
-                propertyXml: (char*)propertyXml,
-                bindings: d2D1PropertyBindings,
-                bindingsCount: (uint)propertyBindings.Length,
-                effectFactory: (delegate* unmanaged<IUnknown**, HRESULT>)data.EffectFactory).Assert();
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(propertyXml);
-
-            for (int i = 0; i < propertyBindings.Length; i++)
-            {
-                Marshal.FreeHGlobal(propertyNames[i]);
-            }
-        }
     }
 
     [D2DInputCount(0)]
