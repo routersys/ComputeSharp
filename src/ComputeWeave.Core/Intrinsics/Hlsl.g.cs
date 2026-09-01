@@ -25418,6 +25418,18 @@ partial class Hlsl
     public static Int4x4 Sign(Int4x4 x) => default;
 
     /// <summary>
+    /// Returns the sign of the input value.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Returns -1 if <paramref name="x"/> is less than zero; 0 if <paramref name="x"/> equals zero; and 1 if <paramref name="x"/> is greater than zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-sign"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("sign")]
+    public static int Sign(double x) => default;
+
+    /// <summary>
     /// Returns the sine of the specified value.
     /// </summary>
     /// <param name="x">The specified value, in radians.</param>
