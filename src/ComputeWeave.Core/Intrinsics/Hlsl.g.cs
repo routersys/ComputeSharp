@@ -1688,6 +1688,486 @@ partial class Hlsl
     public static bool All(Bool4x4 x) => default;
 
     /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(double x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double1x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double1x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double1x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double1x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double2x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double2x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double2x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double2x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double3x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double3x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double3x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double3x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double4x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double4x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double4x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(Double4x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(uint x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt1x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt1x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt1x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt1x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt2x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt2x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt2x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt2x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt3x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt3x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt3x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt3x4 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt4x1 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt4x2 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt4x3 x) => default;
+
+    /// <summary>
+    /// Determines if all components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not all components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-all"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("all")]
+    public static bool All(UInt4x4 x) => default;
+
+    /// <summary>
     /// Performs a vectorized, non short-circuiting boolean 'AND' operation between two operands.
     /// </summary>
     /// <param name="left">The first input vector or matrix value.</param>
@@ -2653,6 +3133,486 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("any")]
     public static bool Any(Bool4x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(double x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double1x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double1x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double1x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double1x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double2x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double2x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double2x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double2x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double3x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double3x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double3x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double3x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double4x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double4x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double4x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(Double4x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(uint x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt1x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt1x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt1x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt1x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt2x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt2x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt2x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt2x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt3x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt3x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt3x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt3x4 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt4x1 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt4x2 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt4x3 x) => default;
+
+    /// <summary>
+    /// Determines if any components of the specified value are non-zero.
+    /// </summary>
+    /// <param name="x">The specified value.</param>
+    /// <returns>Whether or not any components of the <paramref name="x"/> parameter are non-zero.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-any"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("any")]
+    public static bool Any(UInt4x4 x) => default;
 
     /// <summary>
     /// Reinterprets a cast value (two 32-bit values) into a double precision floating-point value.
@@ -17441,6 +18401,19 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("mul")]
+    public static uint Mul(uint x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
     public static Float2 Mul(float x, Float2 y) => default;
 
     /// <summary>
@@ -17507,6 +18480,45 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static Int4 Mul(int x, Int4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(uint x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(uint x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(uint x, UInt4 y) => default;
 
     /// <summary>
     /// Multiplies two values using matrix math.
@@ -17935,6 +18947,214 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(uint x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(uint x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(uint x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(uint x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(uint x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(uint x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(uint x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(uint x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(uint x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(uint x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(uint x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(uint x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(uint x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(uint x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(uint x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(uint x, UInt4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
     public static Float2 Mul(Float2 x, float y) => default;
 
     /// <summary>
@@ -18013,6 +19233,45 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt2 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt3 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt4 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
     public static float Mul(Float2 x, Float2 y) => default;
 
     /// <summary>
@@ -18079,6 +19338,45 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static int Mul(Int4 x, Int4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt4 x, UInt4 y) => default;
 
     /// <summary>
     /// Multiplies two values using matrix math.
@@ -18391,6 +19689,162 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static Int4 Mul(Int4 x, Int4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt2 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt2 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt2 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt4 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt4 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt4 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt4 x, UInt4x4 y) => default;
 
     /// <summary>
     /// Multiplies two values using matrix math.
@@ -18819,6 +20273,214 @@ partial class Hlsl
     /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
     /// </remarks>
     [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(UInt1x1 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(UInt1x2 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(UInt1x3 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(UInt1x4 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(UInt2x1 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(UInt2x2 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(UInt2x3 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(UInt2x4 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(UInt3x1 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(UInt3x2 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(UInt3x3 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(UInt3x4 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(UInt4x1 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(UInt4x2 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(UInt4x3 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(UInt4x4 x, uint y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
     public static float Mul(Float1x2 x, Float2 y) => default;
 
     /// <summary>
@@ -19119,6 +20781,162 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static Int4 Mul(Int4x4 x, Int4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt1x2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt1x3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static uint Mul(UInt1x4 x, UInt4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt2x2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt2x3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2 Mul(UInt2x4 x, UInt4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt3x2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt3x3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3 Mul(UInt3x4 x, UInt4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt4x2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt4x3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4 Mul(UInt4x4 x, UInt4 y) => default;
 
     /// <summary>
     /// Multiplies two values using matrix math.
@@ -20783,6 +22601,838 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("mul")]
     public static Int4x4 Mul(Int4x4 x, Int4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(UInt1x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(UInt1x1 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(UInt1x1 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(UInt1x1 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(UInt1x2 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(UInt1x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(UInt1x2 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(UInt1x2 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(UInt1x3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(UInt1x3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(UInt1x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(UInt1x3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x1 Mul(UInt1x4 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x2 Mul(UInt1x4 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x3 Mul(UInt1x4 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt1x4 Mul(UInt1x4 x, UInt4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(UInt2x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(UInt2x1 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(UInt2x1 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(UInt2x1 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(UInt2x2 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(UInt2x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(UInt2x2 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(UInt2x2 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(UInt2x3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(UInt2x3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(UInt2x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(UInt2x3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x1 Mul(UInt2x4 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x2 Mul(UInt2x4 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x3 Mul(UInt2x4 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt2x4 Mul(UInt2x4 x, UInt4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(UInt3x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(UInt3x1 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(UInt3x1 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(UInt3x1 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(UInt3x2 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(UInt3x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(UInt3x2 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(UInt3x2 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(UInt3x3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(UInt3x3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(UInt3x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(UInt3x3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x1 Mul(UInt3x4 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x2 Mul(UInt3x4 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x3 Mul(UInt3x4 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt3x4 Mul(UInt3x4 x, UInt4x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(UInt4x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(UInt4x1 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(UInt4x1 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(UInt4x1 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(UInt4x2 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(UInt4x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(UInt4x2 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(UInt4x2 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(UInt4x3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(UInt4x3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(UInt4x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(UInt4x3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x1 Mul(UInt4x4 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x2 Mul(UInt4x4 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x3 Mul(UInt4x4 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul")]
+    public static UInt4x4 Mul(UInt4x4 x, UInt4x4 y) => default;
 
     /// <summary>
     /// Normalizes the specified floating-point vector according to x / length(x).
