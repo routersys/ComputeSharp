@@ -567,4 +567,238 @@ partial class HlslIntrinsicSemanticsTests
             this.results[19] = new double2(v4x4.M44, this.expected);
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_ClampAndExtremesDouble(Device device)
+    {
+        if (!device.Get().IsDoublePrecisionSupportAvailable())
+        {
+            Assert.Inconclusive();
+        }
+
+        using ReadWriteBuffer<double2> results = device.Get().AllocateReadWriteBuffer<double2>(60);
+
+        device.Get().For(1, new ClampAndExtremesDoubleShader(results, 12.0, 2.0, 8.0));
+
+        AssertAgrees(results, 0.0);
+    }
+
+    // The double shapes, on the same plan as the unsigned probe. Max and Min already accepted a
+    // double, so only the clamped slots are new, but all three are read for symmetry
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [RequiresDoublePrecisionSupport]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct ClampAndExtremesDoubleShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<double2> results;
+        public readonly double outside;
+        public readonly double lowest;
+        public readonly double highest;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            double outsidescalar = this.outside;
+            double loscalar = this.lowest;
+            double hiscalar = this.highest;
+            double clampedscalar = Hlsl.Clamp(outsidescalar, loscalar, hiscalar);
+            double biggestscalar = Hlsl.Max(loscalar, hiscalar);
+            double smallestscalar = Hlsl.Min(loscalar, hiscalar);
+            this.results[0] = new double2(clampedscalar, this.highest);
+            this.results[1] = new double2(biggestscalar, this.highest);
+            this.results[2] = new double2(smallestscalar, this.lowest);
+
+            double2 outsidev2 = new(this.outside, this.outside);
+            double2 lov2 = new(this.lowest, this.lowest);
+            double2 hiv2 = new(this.highest, this.highest);
+            double2 clampedv2 = Hlsl.Clamp(outsidev2, lov2, hiv2);
+            double2 biggestv2 = Hlsl.Max(lov2, hiv2);
+            double2 smallestv2 = Hlsl.Min(lov2, hiv2);
+            this.results[3] = new double2(clampedv2.Y, this.highest);
+            this.results[4] = new double2(biggestv2.Y, this.highest);
+            this.results[5] = new double2(smallestv2.Y, this.lowest);
+
+            double3 outsidev3 = new(this.outside, this.outside, this.outside);
+            double3 lov3 = new(this.lowest, this.lowest, this.lowest);
+            double3 hiv3 = new(this.highest, this.highest, this.highest);
+            double3 clampedv3 = Hlsl.Clamp(outsidev3, lov3, hiv3);
+            double3 biggestv3 = Hlsl.Max(lov3, hiv3);
+            double3 smallestv3 = Hlsl.Min(lov3, hiv3);
+            this.results[6] = new double2(clampedv3.Z, this.highest);
+            this.results[7] = new double2(biggestv3.Z, this.highest);
+            this.results[8] = new double2(smallestv3.Z, this.lowest);
+
+            double4 outsidev4 = new(this.outside, this.outside, this.outside, this.outside);
+            double4 lov4 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            double4 hiv4 = new(this.highest, this.highest, this.highest, this.highest);
+            double4 clampedv4 = Hlsl.Clamp(outsidev4, lov4, hiv4);
+            double4 biggestv4 = Hlsl.Max(lov4, hiv4);
+            double4 smallestv4 = Hlsl.Min(lov4, hiv4);
+            this.results[9] = new double2(clampedv4.W, this.highest);
+            this.results[10] = new double2(biggestv4.W, this.highest);
+            this.results[11] = new double2(smallestv4.W, this.lowest);
+
+            double1x1 outsidem1x1 = new(this.outside);
+            double1x1 lom1x1 = new(this.lowest);
+            double1x1 him1x1 = new(this.highest);
+            double1x1 clampedm1x1 = Hlsl.Clamp(outsidem1x1, lom1x1, him1x1);
+            double1x1 biggestm1x1 = Hlsl.Max(lom1x1, him1x1);
+            double1x1 smallestm1x1 = Hlsl.Min(lom1x1, him1x1);
+            this.results[12] = new double2(clampedm1x1.M11, this.highest);
+            this.results[13] = new double2(biggestm1x1.M11, this.highest);
+            this.results[14] = new double2(smallestm1x1.M11, this.lowest);
+
+            double1x2 outsidem1x2 = new(this.outside, this.outside);
+            double1x2 lom1x2 = new(this.lowest, this.lowest);
+            double1x2 him1x2 = new(this.highest, this.highest);
+            double1x2 clampedm1x2 = Hlsl.Clamp(outsidem1x2, lom1x2, him1x2);
+            double1x2 biggestm1x2 = Hlsl.Max(lom1x2, him1x2);
+            double1x2 smallestm1x2 = Hlsl.Min(lom1x2, him1x2);
+            this.results[15] = new double2(clampedm1x2.M12, this.highest);
+            this.results[16] = new double2(biggestm1x2.M12, this.highest);
+            this.results[17] = new double2(smallestm1x2.M12, this.lowest);
+
+            double1x3 outsidem1x3 = new(this.outside, this.outside, this.outside);
+            double1x3 lom1x3 = new(this.lowest, this.lowest, this.lowest);
+            double1x3 him1x3 = new(this.highest, this.highest, this.highest);
+            double1x3 clampedm1x3 = Hlsl.Clamp(outsidem1x3, lom1x3, him1x3);
+            double1x3 biggestm1x3 = Hlsl.Max(lom1x3, him1x3);
+            double1x3 smallestm1x3 = Hlsl.Min(lom1x3, him1x3);
+            this.results[18] = new double2(clampedm1x3.M13, this.highest);
+            this.results[19] = new double2(biggestm1x3.M13, this.highest);
+            this.results[20] = new double2(smallestm1x3.M13, this.lowest);
+
+            double1x4 outsidem1x4 = new(this.outside, this.outside, this.outside, this.outside);
+            double1x4 lom1x4 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            double1x4 him1x4 = new(this.highest, this.highest, this.highest, this.highest);
+            double1x4 clampedm1x4 = Hlsl.Clamp(outsidem1x4, lom1x4, him1x4);
+            double1x4 biggestm1x4 = Hlsl.Max(lom1x4, him1x4);
+            double1x4 smallestm1x4 = Hlsl.Min(lom1x4, him1x4);
+            this.results[21] = new double2(clampedm1x4.M14, this.highest);
+            this.results[22] = new double2(biggestm1x4.M14, this.highest);
+            this.results[23] = new double2(smallestm1x4.M14, this.lowest);
+
+            double2x1 outsidem2x1 = new(this.outside, this.outside);
+            double2x1 lom2x1 = new(this.lowest, this.lowest);
+            double2x1 him2x1 = new(this.highest, this.highest);
+            double2x1 clampedm2x1 = Hlsl.Clamp(outsidem2x1, lom2x1, him2x1);
+            double2x1 biggestm2x1 = Hlsl.Max(lom2x1, him2x1);
+            double2x1 smallestm2x1 = Hlsl.Min(lom2x1, him2x1);
+            this.results[24] = new double2(clampedm2x1.M21, this.highest);
+            this.results[25] = new double2(biggestm2x1.M21, this.highest);
+            this.results[26] = new double2(smallestm2x1.M21, this.lowest);
+
+            double2x2 outsidem2x2 = new(this.outside, this.outside, this.outside, this.outside);
+            double2x2 lom2x2 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            double2x2 him2x2 = new(this.highest, this.highest, this.highest, this.highest);
+            double2x2 clampedm2x2 = Hlsl.Clamp(outsidem2x2, lom2x2, him2x2);
+            double2x2 biggestm2x2 = Hlsl.Max(lom2x2, him2x2);
+            double2x2 smallestm2x2 = Hlsl.Min(lom2x2, him2x2);
+            this.results[27] = new double2(clampedm2x2.M22, this.highest);
+            this.results[28] = new double2(biggestm2x2.M22, this.highest);
+            this.results[29] = new double2(smallestm2x2.M22, this.lowest);
+
+            double2x3 outsidem2x3 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double2x3 lom2x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double2x3 him2x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double2x3 clampedm2x3 = Hlsl.Clamp(outsidem2x3, lom2x3, him2x3);
+            double2x3 biggestm2x3 = Hlsl.Max(lom2x3, him2x3);
+            double2x3 smallestm2x3 = Hlsl.Min(lom2x3, him2x3);
+            this.results[30] = new double2(clampedm2x3.M23, this.highest);
+            this.results[31] = new double2(biggestm2x3.M23, this.highest);
+            this.results[32] = new double2(smallestm2x3.M23, this.lowest);
+
+            double2x4 outsidem2x4 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double2x4 lom2x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double2x4 him2x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double2x4 clampedm2x4 = Hlsl.Clamp(outsidem2x4, lom2x4, him2x4);
+            double2x4 biggestm2x4 = Hlsl.Max(lom2x4, him2x4);
+            double2x4 smallestm2x4 = Hlsl.Min(lom2x4, him2x4);
+            this.results[33] = new double2(clampedm2x4.M24, this.highest);
+            this.results[34] = new double2(biggestm2x4.M24, this.highest);
+            this.results[35] = new double2(smallestm2x4.M24, this.lowest);
+
+            double3x1 outsidem3x1 = new(this.outside, this.outside, this.outside);
+            double3x1 lom3x1 = new(this.lowest, this.lowest, this.lowest);
+            double3x1 him3x1 = new(this.highest, this.highest, this.highest);
+            double3x1 clampedm3x1 = Hlsl.Clamp(outsidem3x1, lom3x1, him3x1);
+            double3x1 biggestm3x1 = Hlsl.Max(lom3x1, him3x1);
+            double3x1 smallestm3x1 = Hlsl.Min(lom3x1, him3x1);
+            this.results[36] = new double2(clampedm3x1.M31, this.highest);
+            this.results[37] = new double2(biggestm3x1.M31, this.highest);
+            this.results[38] = new double2(smallestm3x1.M31, this.lowest);
+
+            double3x2 outsidem3x2 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double3x2 lom3x2 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double3x2 him3x2 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double3x2 clampedm3x2 = Hlsl.Clamp(outsidem3x2, lom3x2, him3x2);
+            double3x2 biggestm3x2 = Hlsl.Max(lom3x2, him3x2);
+            double3x2 smallestm3x2 = Hlsl.Min(lom3x2, him3x2);
+            this.results[39] = new double2(clampedm3x2.M32, this.highest);
+            this.results[40] = new double2(biggestm3x2.M32, this.highest);
+            this.results[41] = new double2(smallestm3x2.M32, this.lowest);
+
+            double3x3 outsidem3x3 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double3x3 lom3x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double3x3 him3x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double3x3 clampedm3x3 = Hlsl.Clamp(outsidem3x3, lom3x3, him3x3);
+            double3x3 biggestm3x3 = Hlsl.Max(lom3x3, him3x3);
+            double3x3 smallestm3x3 = Hlsl.Min(lom3x3, him3x3);
+            this.results[42] = new double2(clampedm3x3.M33, this.highest);
+            this.results[43] = new double2(biggestm3x3.M33, this.highest);
+            this.results[44] = new double2(smallestm3x3.M33, this.lowest);
+
+            double3x4 outsidem3x4 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double3x4 lom3x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double3x4 him3x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double3x4 clampedm3x4 = Hlsl.Clamp(outsidem3x4, lom3x4, him3x4);
+            double3x4 biggestm3x4 = Hlsl.Max(lom3x4, him3x4);
+            double3x4 smallestm3x4 = Hlsl.Min(lom3x4, him3x4);
+            this.results[45] = new double2(clampedm3x4.M34, this.highest);
+            this.results[46] = new double2(biggestm3x4.M34, this.highest);
+            this.results[47] = new double2(smallestm3x4.M34, this.lowest);
+
+            double4x1 outsidem4x1 = new(this.outside, this.outside, this.outside, this.outside);
+            double4x1 lom4x1 = new(this.lowest, this.lowest, this.lowest, this.lowest);
+            double4x1 him4x1 = new(this.highest, this.highest, this.highest, this.highest);
+            double4x1 clampedm4x1 = Hlsl.Clamp(outsidem4x1, lom4x1, him4x1);
+            double4x1 biggestm4x1 = Hlsl.Max(lom4x1, him4x1);
+            double4x1 smallestm4x1 = Hlsl.Min(lom4x1, him4x1);
+            this.results[48] = new double2(clampedm4x1.M41, this.highest);
+            this.results[49] = new double2(biggestm4x1.M41, this.highest);
+            this.results[50] = new double2(smallestm4x1.M41, this.lowest);
+
+            double4x2 outsidem4x2 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double4x2 lom4x2 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double4x2 him4x2 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double4x2 clampedm4x2 = Hlsl.Clamp(outsidem4x2, lom4x2, him4x2);
+            double4x2 biggestm4x2 = Hlsl.Max(lom4x2, him4x2);
+            double4x2 smallestm4x2 = Hlsl.Min(lom4x2, him4x2);
+            this.results[51] = new double2(clampedm4x2.M42, this.highest);
+            this.results[52] = new double2(biggestm4x2.M42, this.highest);
+            this.results[53] = new double2(smallestm4x2.M42, this.lowest);
+
+            double4x3 outsidem4x3 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double4x3 lom4x3 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double4x3 him4x3 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double4x3 clampedm4x3 = Hlsl.Clamp(outsidem4x3, lom4x3, him4x3);
+            double4x3 biggestm4x3 = Hlsl.Max(lom4x3, him4x3);
+            double4x3 smallestm4x3 = Hlsl.Min(lom4x3, him4x3);
+            this.results[54] = new double2(clampedm4x3.M43, this.highest);
+            this.results[55] = new double2(biggestm4x3.M43, this.highest);
+            this.results[56] = new double2(smallestm4x3.M43, this.lowest);
+
+            double4x4 outsidem4x4 = new(this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside, this.outside);
+            double4x4 lom4x4 = new(this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest, this.lowest);
+            double4x4 him4x4 = new(this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest, this.highest);
+            double4x4 clampedm4x4 = Hlsl.Clamp(outsidem4x4, lom4x4, him4x4);
+            double4x4 biggestm4x4 = Hlsl.Max(lom4x4, him4x4);
+            double4x4 smallestm4x4 = Hlsl.Min(lom4x4, him4x4);
+            this.results[57] = new double2(clampedm4x4.M44, this.highest);
+            this.results[58] = new double2(biggestm4x4.M44, this.highest);
+            this.results[59] = new double2(smallestm4x4.M44, this.lowest);
+        }
+    }
 }

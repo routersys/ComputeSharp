@@ -6155,6 +6155,566 @@ partial class Hlsl
     public static Int4x4 Clamp(Int4x4 x, Int4x4 min, Int4x4 max) => default;
 
     /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static double Clamp(double x, double min, double max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double2 Clamp(Double2 x, Double2 min, Double2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double3 Clamp(Double3 x, Double3 min, Double3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double4 Clamp(Double4 x, Double4 min, Double4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double1x1 Clamp(Double1x1 x, Double1x1 min, Double1x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double1x2 Clamp(Double1x2 x, Double1x2 min, Double1x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double1x3 Clamp(Double1x3 x, Double1x3 min, Double1x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double1x4 Clamp(Double1x4 x, Double1x4 min, Double1x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double2x1 Clamp(Double2x1 x, Double2x1 min, Double2x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double2x2 Clamp(Double2x2 x, Double2x2 min, Double2x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double2x3 Clamp(Double2x3 x, Double2x3 min, Double2x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double2x4 Clamp(Double2x4 x, Double2x4 min, Double2x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double3x1 Clamp(Double3x1 x, Double3x1 min, Double3x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double3x2 Clamp(Double3x2 x, Double3x2 min, Double3x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double3x3 Clamp(Double3x3 x, Double3x3 min, Double3x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double3x4 Clamp(Double3x4 x, Double3x4 min, Double3x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double4x1 Clamp(Double4x1 x, Double4x1 min, Double4x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double4x2 Clamp(Double4x2 x, Double4x2 min, Double4x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double4x3 Clamp(Double4x3 x, Double4x3 min, Double4x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static Double4x4 Clamp(Double4x4 x, Double4x4 min, Double4x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static uint Clamp(uint x, uint min, uint max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt2 Clamp(UInt2 x, UInt2 min, UInt2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt3 Clamp(UInt3 x, UInt3 min, UInt3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt4 Clamp(UInt4 x, UInt4 min, UInt4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt1x1 Clamp(UInt1x1 x, UInt1x1 min, UInt1x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt1x2 Clamp(UInt1x2 x, UInt1x2 min, UInt1x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt1x3 Clamp(UInt1x3 x, UInt1x3 min, UInt1x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt1x4 Clamp(UInt1x4 x, UInt1x4 min, UInt1x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt2x1 Clamp(UInt2x1 x, UInt2x1 min, UInt2x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt2x2 Clamp(UInt2x2 x, UInt2x2 min, UInt2x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt2x3 Clamp(UInt2x3 x, UInt2x3 min, UInt2x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt2x4 Clamp(UInt2x4 x, UInt2x4 min, UInt2x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt3x1 Clamp(UInt3x1 x, UInt3x1 min, UInt3x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt3x2 Clamp(UInt3x2 x, UInt3x2 min, UInt3x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt3x3 Clamp(UInt3x3 x, UInt3x3 min, UInt3x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt3x4 Clamp(UInt3x4 x, UInt3x4 min, UInt3x4 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt4x1 Clamp(UInt4x1 x, UInt4x1 min, UInt4x1 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt4x2 Clamp(UInt4x2 x, UInt4x2 min, UInt4x2 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt4x3 Clamp(UInt4x3 x, UInt4x3 min, UInt4x3 max) => default;
+
+    /// <summary>
+    /// Clamps the specified value to the specified minimum and maximum range.
+    /// </summary>
+    /// <param name="x">The value to clamp.</param>
+    /// <param name="min">The specified minimum range.</param>
+    /// <param name="max">The specified maximum range.</param>
+    /// <returns>The clamped value for the <paramref name="x"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-clamp"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("clamp")]
+    public static UInt4x4 Clamp(UInt4x4 x, UInt4x4 min, UInt4x4 max) => default;
+
+    /// <summary>
     /// Returns the cosine of the specified value.
     /// </summary>
     /// <param name="x">The specified value, in radians.</param>
@@ -15025,6 +15585,266 @@ partial class Hlsl
     public static Int4x4 Max(Int4x4 x, Int4x4 y) => default;
 
     /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static uint Max(uint x, uint y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt2 Max(UInt2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt3 Max(UInt3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt4 Max(UInt4 x, UInt4 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt1x1 Max(UInt1x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt1x2 Max(UInt1x2 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt1x3 Max(UInt1x3 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt1x4 Max(UInt1x4 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt2x1 Max(UInt2x1 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt2x2 Max(UInt2x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt2x3 Max(UInt2x3 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt2x4 Max(UInt2x4 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt3x1 Max(UInt3x1 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt3x2 Max(UInt3x2 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt3x3 Max(UInt3x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt3x4 Max(UInt3x4 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt4x1 Max(UInt4x1 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt4x2 Max(UInt4x2 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt4x3 Max(UInt4x3 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Selects the greater between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the largest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-max"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("max")]
+    public static UInt4x4 Max(UInt4x4 x, UInt4x4 y) => default;
+
+    /// <summary>
     /// Selects the lesser between two inputs.
     /// </summary>
     /// <param name="x">The first input value.</param>
@@ -15803,6 +16623,266 @@ partial class Hlsl
     /// </remarks>
     [HlslIntrinsicName("min")]
     public static Int4x4 Min(Int4x4 x, Int4x4 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static uint Min(uint x, uint y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt2 Min(UInt2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt3 Min(UInt3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt4 Min(UInt4 x, UInt4 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt1x1 Min(UInt1x1 x, UInt1x1 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt1x2 Min(UInt1x2 x, UInt1x2 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt1x3 Min(UInt1x3 x, UInt1x3 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt1x4 Min(UInt1x4 x, UInt1x4 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt2x1 Min(UInt2x1 x, UInt2x1 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt2x2 Min(UInt2x2 x, UInt2x2 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt2x3 Min(UInt2x3 x, UInt2x3 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt2x4 Min(UInt2x4 x, UInt2x4 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt3x1 Min(UInt3x1 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt3x2 Min(UInt3x2 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt3x3 Min(UInt3x3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt3x4 Min(UInt3x4 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt4x1 Min(UInt4x1 x, UInt4x1 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt4x2 Min(UInt4x2 x, UInt4x2 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt4x3 Min(UInt4x3 x, UInt4x3 y) => default;
+
+    /// <summary>
+    /// Selects the lesser between two inputs.
+    /// </summary>
+    /// <param name="x">The first input value.</param>
+    /// <param name="y">The second input value.</param>
+    /// <returns>The <paramref name="x"/> or <paramref name="y"/> parameter, whichever is the smallest value.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-min"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("min")]
+    public static UInt4x4 Min(UInt4x4 x, UInt4x4 y) => default;
 
     /// <summary>
     /// Splits a value into fractional and integer parts, each with the same sign as the input value.
