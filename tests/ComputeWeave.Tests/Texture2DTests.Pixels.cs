@@ -119,6 +119,50 @@ partial class Texture2DTests
         }
     }
 
+    /// <summary>
+    /// A U coordinate outside the normalized range, which the tests above never reach.
+    /// </summary>
+    /// <remarks>
+    /// The static sampler wraps by mirroring rather than clamping. -0.75 mirrors to 0.75, the second
+    /// column's own center, so a linear filter returns that column's color exactly; clamping would have
+    /// read the first column's color instead.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void SampleFromSourceTexture_UCoordinateBelowZero_MirrorsAcrossTheEdge(Device device)
+    {
+        Rgba32[,] pixels = new Rgba32[1, 2]
+        {
+            { new Rgba32(255, 0, 0, 255), new Rgba32(0, 0, 255, 255) },
+        };
+
+        using ReadOnlyTexture2D<Rgba32, float4> source = device.Get().AllocateReadOnlyTexture2D<Rgba32, float4>(pixels);
+        using ReadWriteBuffer<float4> destination = device.Get().AllocateReadWriteBuffer<float4>(1);
+
+        device.Get().For(1, new SampleAtFixedCoordinateShader(source, destination));
+
+        float4 result = destination.ToArray()[0];
+
+        Assert.AreEqual(0f, result.X, 0.1f);
+        Assert.AreEqual(0f, result.Y, 0.1f);
+        Assert.AreEqual(1f, result.Z, 0.1f);
+        Assert.AreEqual(1f, result.W, 0.1f);
+    }
+
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    public readonly partial struct SampleAtFixedCoordinateShader : IComputeShader
+    {
+        public readonly IReadOnlyNormalizedTexture2D<float4> source;
+        public readonly ReadWriteBuffer<float4> destination;
+
+        public void Execute()
+        {
+            this.destination[0] = this.source.Sample(new float2(-0.75f, 0.5f));
+        }
+    }
+
     [CombinatorialTestMethod]
     [AllDevices]
     [Data(typeof(Bgra32), typeof(float4))]
