@@ -1,5 +1,8 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
 using ComputeWeave.D2D1;
 using ComputeWeave.D2D1.Interop;
 using ComputeWeave.D2D1.Tests.Effects;
@@ -18,6 +21,8 @@ namespace ComputeWeave.D2D1.Tests;
 [TestClass]
 public partial class D2D1PixelShaderEffectTests
 {
+    private const string ResourceTextureManagerPrefix = "ResourceTextureManager";
+
     [TestMethod]
     [ExpectedException(typeof(ArgumentNullException), AllowDerivedTypes = false)]
     public unsafe void RegisterForD2D1Factory1_NullD2D1Factory1()
@@ -169,6 +174,49 @@ public partial class D2D1PixelShaderEffectTests
         {
             return this.a + this.b + this.c.X + this.d + this.e;
         }
+    }
+
+    [TestMethod]
+    public void ResourceTextureManagerProperties_MatchTheirOwnNumbering()
+    {
+        uint[] properties = ResourceTextureManagerPropertyIndices();
+
+        // An empty read would leave the walk below asserting nothing at all
+        Assert.IsTrue(properties.Length > 0);
+
+        // Callers reach a manager by adding its number to the first property, so the two must agree
+        for (int i = 0; i < properties.Length; i++)
+        {
+            Assert.AreEqual(D2D1PixelShaderEffectProperty.ResourceTextureManager0 + (uint)i, properties[i]);
+        }
+    }
+
+    [TestMethod]
+    public void ResourceTextureManagerProperties_MatchTheMaximumShader()
+    {
+        // The tests that walk every index rest on this shader declaring one texture per property
+        Assert.AreEqual(
+            ResourceTextureManagerPropertyIndices().Length,
+            D2D1PixelShader.GetResourceTextureCount<ShaderWithMaximumResourceTextures>());
+    }
+
+    // Ordered by the number in the name, so a swapped pair is a gap rather than a sorted-away one
+    private static uint[] ResourceTextureManagerPropertyIndices()
+    {
+        return [.. typeof(D2D1PixelShaderEffectProperty)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(static field => field.IsLiteral && ResourceTextureManagerNumber(field.Name) >= 0)
+            .OrderBy(static field => ResourceTextureManagerNumber(field.Name))
+            .Select(static field => (uint)field.GetRawConstantValue()!)];
+    }
+
+    // A property that only shares the prefix is not one of the numbered ones, so it is left out
+    private static int ResourceTextureManagerNumber(string name)
+    {
+        return name.StartsWith(ResourceTextureManagerPrefix, StringComparison.Ordinal) &&
+            int.TryParse(name.AsSpan(ResourceTextureManagerPrefix.Length), CultureInfo.InvariantCulture, out int number)
+            ? number
+            : -1;
     }
 
     [TestMethod]
