@@ -71,7 +71,7 @@ void GenerateVectorProperties(string typeName, int elementSize)
         WriteLine($"using {name};");
     }
 
-    if (elementTypeName == "Float" || elementTypeName == "Int")
+    if (elementTypeName == "Float" || elementTypeName == "Int" || elementTypeName == "UInt")
     {
         WriteLine("using ComputeWeave.Core.Intrinsics;");
     }
@@ -348,7 +348,7 @@ public unsafe partial struct <#=typeName#>
     /// <remarks>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</remarks>
     public static <#=typeName#> operator *(<#=typeName#> left, <#=typeName#> right) => default;
 <#
-    if (elementTypeName == "Float" || elementTypeName == "Int")
+    if (elementTypeName == "Float" || elementTypeName == "Int" || elementTypeName == "UInt")
     {
         // Note: for Float and Int vector types, we need to also add explicit operators doing scalar promotion,
         // otherwise there would be an overload issue trying to resolve the right overload when just multiplying

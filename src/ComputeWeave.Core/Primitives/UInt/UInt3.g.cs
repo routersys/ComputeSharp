@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ComputeWeave.Core.Intrinsics;
 
 #nullable enable
 #pragma warning disable CS0660, CS0661
@@ -1884,6 +1885,94 @@ public unsafe partial struct UInt3
     /// <returns>The result of multiplying <paramref name="left"/> and <paramref name="right"/>.</returns>
     /// <remarks>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</remarks>
     public static UInt3 operator *(UInt3 left, UInt3 right) => default;
+
+    /// <summary>
+    /// Multiplies a pair of <see cref="UInt3"/> and <see cref="uint"/> values.
+    /// </summary>
+    /// <param name="left">The <see cref="UInt3"/> value to multiply.</param>
+    /// <param name="right">The <see cref="uint"/> value to multiply.</param>
+    /// <returns>The result of multiplying <paramref name="left"/> and <paramref name="right"/>.</returns>
+    /// <remarks>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</remarks>
+    public static UInt3 operator *(UInt3 left, uint right) => default;
+
+    /// <summary>
+    /// Multiplies a pair of <see cref="uint"/> and <see cref="UInt3"/> values.
+    /// </summary>
+    /// <param name="left">The <see cref="uint"/> value to multiply.</param>
+    /// <param name="right">The <see cref="UInt3"/> value to multiply.</param>
+    /// <returns>The result of multiplying <paramref name="left"/> and <paramref name="right"/>.</returns>
+    /// <remarks>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</remarks>
+    public static UInt3 operator *(uint left, UInt3 right) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first UInt3 input value.</param>
+    /// <param name="y">The second UInt3x1 input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// <para>This operator is equivalent to using <see cref="Hlsl.Mul(UInt3, UInt3x1)"/> with the same input arguments.</para>
+    /// <para>For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.</para>
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul", RequiresParametersMatching = true)]
+    public static uint operator *(UInt3 x, UInt3x1 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first UInt3 input value.</param>
+    /// <param name="y">The second UInt3x2 input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// <para>This operator is equivalent to using <see cref="Hlsl.Mul(UInt3, UInt3x2)"/> with the same input arguments.</para>
+    /// <para>For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.</para>
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul", RequiresParametersMatching = true)]
+    public static UInt2 operator *(UInt3 x, UInt3x2 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first UInt3 input value.</param>
+    /// <param name="y">The second UInt3x3 input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// <para>This operator is equivalent to using <see cref="Hlsl.Mul(UInt3, UInt3x3)"/> with the same input arguments.</para>
+    /// <para>For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.</para>
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul", RequiresParametersMatching = true)]
+    public static UInt3 operator *(UInt3 x, UInt3x3 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first UInt3 input value.</param>
+    /// <param name="y">The second UInt3x4 input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// <para>This operator is equivalent to using <see cref="Hlsl.Mul(UInt3, UInt3x4)"/> with the same input arguments.</para>
+    /// <para>For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.</para>
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul", RequiresParametersMatching = true)]
+    public static UInt4 operator *(UInt3 x, UInt3x4 y) => default;
+
+    /// <summary>
+    /// Multiplies two values using matrix math.
+    /// </summary>
+    /// <param name="x">The first UInt3x3 input value.</param>
+    /// <param name="y">The second UInt3 input value.</param>
+    /// <returns>The result of <paramref name="x"/> times <paramref name="y"/>. The result has the dimension <paramref name="x"/>-rows by <paramref name="y"/>-columns.</returns>
+    /// <remarks>
+    /// <para>This operator is equivalent to using <see cref="Hlsl.Mul(UInt3x3, UInt3)"/> with the same input arguments.</para>
+    /// <para>For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-mul"/>.</para>
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("mul", RequiresParametersMatching = true)]
+    public static UInt3 operator *(UInt3x3 x, UInt3 y) => default;
 
     /// <summary>
     /// Subtracts two <see cref="UInt3"/> values.
