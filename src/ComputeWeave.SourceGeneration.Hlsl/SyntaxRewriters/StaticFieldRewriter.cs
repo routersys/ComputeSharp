@@ -157,8 +157,8 @@ internal sealed partial class StaticFieldRewriter(
                 }
 
 #if D3D12_SOURCE_GENERATOR
-                // Refuse an integer matrix on an intrinsic with an out parameter (see ShaderSourceRewriter for more info)
-                if (ReportIntegerMatrixOnIntrinsicWithOutParameter(node, method))
+                // Refuse a matrix on an intrinsic with an out parameter (see ShaderSourceRewriter for more info)
+                if (ReportMatrixOnIntrinsicWithOutParameter(node, method))
                 {
                     return updatedNode;
                 }

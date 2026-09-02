@@ -619,11 +619,11 @@ internal sealed partial class ShaderSourceRewriter(
                     TrackKnownMethodInvocation(metadataName);
 
 #if D3D12_SOURCE_GENERATOR
-                    // Special case: an intrinsic that writes through an out parameter terminates DXC when it
-                    // is given an integer matrix, so the call is refused before the compiler is handed it.
+                    // Special case: an intrinsic that writes through an out parameter terminates DXC on two
+                    // shapes of matrix argument, so the call is refused before the compiler is handed it.
                     // Direct2D shaders are compiled with FXC, which does not have the defect, so this is
                     // excluded from that generator by the compilation symbol rather than by a check.
-                    if (ReportIntegerMatrixOnIntrinsicWithOutParameter(node, method))
+                    if (ReportMatrixOnIntrinsicWithOutParameter(node, method))
                     {
                         return updatedNode;
                     }

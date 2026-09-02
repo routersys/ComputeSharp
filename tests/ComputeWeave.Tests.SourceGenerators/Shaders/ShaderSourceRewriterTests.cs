@@ -1431,8 +1431,8 @@ public class ShaderSourceRewriterTests
     }
 
     /// <summary>
-    /// The same intrinsic in the three shapes that compile. A scalar and an integer vector reach DXC
-    /// intact, and so does a floating point matrix, so none of them is refused.
+    /// The shapes that compile. One out parameter takes a scalar, an integer vector and a floating point
+    /// matrix intact, and two of them take a scalar and a vector, so none of those is refused.
     /// </summary>
     [TestMethod]
     public void GivingAnIntrinsicWithAnOutParameterAShapeThatCompilesIsNotDiagnosed()
@@ -1454,12 +1454,46 @@ public class ShaderSourceRewriterTests
                     Int2 vector = Hlsl.Modf(new Int2(5, 5), out Int2 vectorWhole);
                     Float2x2 matrix = Hlsl.Modf(new Float2x2(3.5f, 3.5f, 3.5f, 3.5f), out Float2x2 matrixWhole);
 
-                    this.buffer[ThreadIds.X] = scalar + scalarWhole + vector.Y + vectorWhole.Y + matrix.M22 + matrixWhole.M22;
+                    Hlsl.SinCos(1.5f, out float scalarSin, out float scalarCos);
+                    Hlsl.SinCos(new Float2(1.5f, 1.5f), out Float2 vectorSin, out Float2 vectorCos);
+
+                    this.buffer[ThreadIds.X] = scalar + scalarWhole + vector.Y + vectorWhole.Y + matrix.M22 + matrixWhole.M22
+                        + scalarSin + scalarCos + vectorSin.Y + vectorCos.Y;
                 }
             }
             """;
 
         AssertIsNotDiagnosed(Source, "ShaderAllowedOutParameterShapesTests", "CMPW0123");
+    }
+
+    /// <summary>
+    /// An intrinsic that writes through two out parameters, given a matrix. DXC terminates on that whatever
+    /// the element type is, which one out parameter does not do for a floating point matrix.
+    /// </summary>
+    [TestMethod]
+    public void GivingAMatrixToAnIntrinsicWithTwoOutParametersIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Hlsl.SinCos(new Float2x2(1, 1, 1, 1), out Float2x2 sin, out Float2x2 cos);
+
+                    this.buffer[ThreadIds.X] = sin.M22 + cos.M22;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderMatrixTwoOutParametersTests", "CMPW0123");
     }
 
     /// <summary>
