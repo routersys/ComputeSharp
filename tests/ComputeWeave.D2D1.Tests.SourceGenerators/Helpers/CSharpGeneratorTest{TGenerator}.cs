@@ -70,6 +70,24 @@ internal static class CSharpGeneratorTest<TGenerator>
     }
 
     /// <summary>
+    /// Verifies that a source generator does not report a given diagnostic.
+    /// </summary>
+    /// <param name="source">The input source to process.</param>
+    /// <param name="diagnosticId">The diagnostic id expected to be absent from the reported ones.</param>
+    /// <remarks>
+    /// The mirror of <see cref="VerifyDiagnosticIsReported"/>, for an input that trips other diagnostics as well,
+    /// where asserting the whole set would fail whenever any of the others moves.
+    /// </remarks>
+    public static void VerifyDiagnosticIsNotReported(string source, string diagnosticId)
+    {
+        RunGenerator(source, out _, out ImmutableArray<Diagnostic> diagnostics);
+
+        Assert.IsFalse(
+            diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
+            $"{diagnosticId} is reported: {string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.Id).Distinct())}");
+    }
+
+    /// <summary>
     /// Runs a source generator over a source and gets the diagnostics it reports.
     /// </summary>
     /// <param name="source">The input source to process.</param>
