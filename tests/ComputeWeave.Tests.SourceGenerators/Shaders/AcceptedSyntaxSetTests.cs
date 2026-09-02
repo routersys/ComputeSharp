@@ -250,8 +250,7 @@ public class AcceptedSyntaxSetTests
             ("PrefixUnaryExpressionSyntax", Family(SyntaxFacts.GetPrefixUnaryExpression)),
         ];
 
-        // Six of these are refused by a diagnostic of their own, five are ones C# itself will not let a shader body write,
-        // and two reach the HLSL compiler with nothing having judged them
+        // Six are refused by their own diagnostic, five C# itself rejects, and two reach HLSL unjudged
         string[] expected =
         [
             "AssignmentExpressionSyntax.CoalesceAssignmentExpression",
