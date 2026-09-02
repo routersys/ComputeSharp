@@ -132,6 +132,22 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     }
 
     /// <summary>
+    /// A shape the compute generator refuses, with the refusal compiled out of this generator.
+    /// </summary>
+    /// <remarks>
+    /// An integer matrix given to an intrinsic with an out parameter terminates DXC, so the shared rewriter
+    /// refuses it before the compiler is handed the call. FXC does not have the defect, so the refusal is left
+    /// out of this generator by the compilation symbol rather than by a check. What holds that decision is this
+    /// row: the shape has to keep reaching FXC and compiling, and nothing else here would answer for it.
+    /// </remarks>
+    [TestMethod]
+    public void AShapeTheComputeGeneratorRefusesIsCompiled()
+    {
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(
+            Shader("Int2x2 fractional = Hlsl.Modf(new Int2x2(5, 5, 5, 5), out Int2x2 whole); k += fractional.M22 + whole.M22;", isUnsafe: false));
+    }
+
+    /// <summary>
     /// A swizzled matrix indexer whose arguments are not constants.
     /// </summary>
     [TestMethod]
