@@ -467,7 +467,7 @@ public static unsafe class D2D1PixelShaderEffect
     /// <param name="resourceTextureManager">The input <c>ID2D1ResourceTextureManager</c> object (see <see cref="D2D1ResourceTextureManager"/>).</param>
     /// <param name="index">The index of the resource texture manager to assign the resource texture manager to (note: this might not match the resource texture index).</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="d2D1Effect"/> or <paramref name="resourceTextureManager"/> are <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="index"/> is outside of the allowed range (ie. [0, 16]).</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="index"/> is outside of the allowed range (ie. [0, 16)).</exception>
     /// <remarks>For more info, see <see href="https://docs.microsoft.com/windows/win32/api/d2d1_1/nf-d2d1_1-id2d1properties-setvalue(uint32_d2d1_property_type_constbyte_uint32)"/>.</remarks>
     public static void SetResourceTextureManagerForD2D1Effect(void* d2D1Effect, void* resourceTextureManager, int index)
     {
@@ -489,7 +489,7 @@ public static unsafe class D2D1PixelShaderEffect
     /// <param name="resourceTextureManager">The input <see cref="D2D1ResourceTextureManager"/> instance.</param>
     /// <param name="index">The index of the resource texture manager to assign the resource texture manager to (note: this might not match the resource texture index)</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="d2D1Effect"/> or <paramref name="resourceTextureManager"/> are <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="index"/> is outside of the allowed range (ie. [0, 16]).</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="index"/> is outside of the allowed range (ie. [0, 16)).</exception>
     /// <remarks>For more info, see <see href="https://docs.microsoft.com/windows/win32/api/d2d1_1/nf-d2d1_1-id2d1properties-setvalue(uint32_d2d1_property_type_constbyte_uint32)"/>.</remarks>
     public static void SetResourceTextureManagerForD2D1Effect(void* d2D1Effect, D2D1ResourceTextureManager resourceTextureManager, int index)
     {
