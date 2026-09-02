@@ -156,6 +156,14 @@ internal sealed partial class StaticFieldRewriter(
                     mapping = HlslKnownMethods.GetMappedNameWithParameters(method.Name, method.Parameters.Select(static p => p.Type.Name));
                 }
 
+#if D3D12_SOURCE_GENERATOR
+                // Refuse an integer matrix on an intrinsic with an out parameter (see ShaderSourceRewriter for more info)
+                if (ReportIntegerMatrixOnIntrinsicWithOutParameter(node, method))
+                {
+                    return updatedNode;
+                }
+#endif
+
                 // Handle named intrinsics (see ShaderSourceRewriter for more info)
                 if (VisitKnownNamedIntrinsicInvocationExpression(node, updatedNode, mapping) is SyntaxNode namedIntrinsic)
                 {
