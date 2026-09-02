@@ -1428,6 +1428,39 @@ public class ShaderSourceRewriterTests
         AssertIsNotDiagnosed(Source, "ShaderAllowedOutParameterShapesTests", "CMPW0123");
     }
 
+    /// <summary>
+    /// The same call, reached through a static field initializer rather than the shader body. The two
+    /// rewriters write intrinsic calls out separately, so both have to answer the same way. The out argument
+    /// is another static field, which is the shape that reaches the compiler as a well formed call.
+    /// </summary>
+    [TestMethod]
+    public void GivingAnIntegerMatrixToAnIntrinsicWithAnOutParameterFromAStaticFieldIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static Int2x2 Whole;
+
+                private static readonly Int2x2 Fractional = Hlsl.Modf(new Int2x2(5, 5, 5, 5), out Whole);
+
+                private readonly ReadWriteBuffer<int> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Fractional.M22 + Whole.M22;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderStaticFieldIntegerMatrixTests", "CMPW0123");
+    }
+
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
