@@ -1609,18 +1609,18 @@ partial class DiagnosticDescriptors
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
-    /// Gets a <see cref="DiagnosticDescriptor"/> for an intrinsic with an out parameter that is given an integer matrix.
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an intrinsic with an out parameter that is given a matrix the shader compiler terminates on.
     /// <para>
-    /// Format: <c>"The intrinsic {0} cannot be given an integer matrix in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)"</c>.
+    /// Format: <c>"The intrinsic {0} cannot be given {1} in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)"</c>.
     /// </para>
     /// </summary>
-    public static readonly DiagnosticDescriptor IntegerMatrixOnIntrinsicWithOutParameter = new(
+    public static readonly DiagnosticDescriptor MatrixOnIntrinsicWithOutParameter = new(
         id: "CMPW0123",
-        title: "Integer matrix given to an intrinsic with an out parameter",
-        messageFormat: "The intrinsic {0} cannot be given an integer matrix in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)",
+        title: "Matrix given to an intrinsic with an out parameter",
+        messageFormat: "The intrinsic {0} cannot be given {1} in a compute shader (the shader compiler terminates on that combination, so the call is refused before it runs)",
         category: "ComputeWeave.Shaders",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The shader compiler terminates with an access violation when an intrinsic that writes through an out parameter is given an integer matrix. It was measured on modf, frexp and sincos alike, so the refusal is written over the shape of the signature rather than over one name. The same call with a floating point matrix compiles, and so does an integer vector, so only this combination is refused. Without the refusal the build fails with a native fatal error that names no source line, because the compiler is gone before it can report one. Direct2D shaders are not affected: they are compiled through FXC, which does not have the defect.",
+        description: "The shader compiler terminates with an access violation on two combinations of a matrix and an intrinsic that writes through an out parameter. One out parameter terminates on an integer matrix, which was measured on modf, frexp and sincos alike. Two of them terminate on a matrix of any element type, which was measured on sincos, the only intrinsic declaring two. A floating point matrix given to modf or frexp compiles, and so does a vector or a scalar given to any of them, so neither is refused. Without the refusal the build fails with a native fatal error that names no source line, because the compiler is gone before it can report one. Direct2D shaders are not affected: they are compiled through FXC, which does not have the defect.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
