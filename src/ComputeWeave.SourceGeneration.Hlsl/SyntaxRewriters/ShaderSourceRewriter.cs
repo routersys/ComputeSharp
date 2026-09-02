@@ -820,6 +820,25 @@ internal sealed partial class ShaderSourceRewriter(
         BaseObjectCreationExpressionSyntax updatedNode,
         TypeSyntax targetType)
     {
+        return ImportUserDefinedConstructor(node, updatedNode, targetType);
+    }
+
+    /// <summary>
+    /// Imports the declaration of a user defined constructor, and rewrites the call into the stub written for it.
+    /// </summary>
+    /// <param name="node">The original <see cref="BaseObjectCreationExpressionSyntax"/> instance.</param>
+    /// <param name="updatedNode">The object creation as rewritten so far by the caller.</param>
+    /// <param name="targetType">The <see cref="TypeSyntax"/> for the object being created.</param>
+    /// <returns>The rewritten <see cref="SyntaxNode"/> for the object creation expression.</returns>
+    /// <remarks>
+    /// The arguments are read from <paramref name="updatedNode"/> and are not visited here, so a caller
+    /// rewriting them under different rules keeps them. Only the constructor declaration is rewritten as a body.
+    /// </remarks>
+    internal SyntaxNode ImportUserDefinedConstructor(
+        BaseObjectCreationExpressionSyntax node,
+        BaseObjectCreationExpressionSyntax updatedNode,
+        TypeSyntax targetType)
+    {
         if (SemanticModel.For(node).GetOperation(node, CancellationToken) is IObjectCreationOperation { Constructor: IMethodSymbol constructor, Type: INamedTypeSymbol { TypeKind: TypeKind.Struct } typeSymbol })
         {
             DiscoveredTypes.Add(typeSymbol);
@@ -828,7 +847,7 @@ internal sealed partial class ShaderSourceRewriter(
             // the default parameterless constructor. In that case, we just fallback to a default value.
             if (updatedNode.ArgumentList is not { Arguments.Count: > 0 } && constructor.IsImplicitlyDeclared)
             {
-                return base.VisitUserDefinedObjectCreationExpression(node, updatedNode, targetType);
+                return DefaultValueExpression(targetType);
             }
 
             string returnTypeHlslIdentifier = typeSymbol.GetFullyQualifiedName().ToHlslIdentifierName();
@@ -854,7 +873,7 @@ internal sealed partial class ShaderSourceRewriter(
                         Diagnostics.Add(InvalidPrimaryConstructorUse, node, typeSymbol);
                     }
 
-                    return base.VisitUserDefinedObjectCreationExpression(node, updatedNode, targetType);
+                    return DefaultValueExpression(targetType);
                 }
 
                 // Chaining constructors is not supported, so emit a diagnostic to inform the user.
@@ -946,7 +965,7 @@ internal sealed partial class ShaderSourceRewriter(
                 .WithArgumentList(updatedNode.ArgumentList!);
         }
 
-        return base.VisitUserDefinedObjectCreationExpression(node, updatedNode, targetType);
+        return DefaultValueExpression(targetType);
     }
 
     /// <summary>

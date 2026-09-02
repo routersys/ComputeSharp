@@ -469,14 +469,14 @@ internal abstract partial class HlslSourceRewriter(
     /// <param name="updatedNode">The updated <see cref="BaseObjectCreationExpressionSyntax"/> instance with tweaked syntax.</param>
     /// <param name="targetType">The <see cref="TypeSyntax"/> for the object being created.</param>
     /// <returns>The rewritten <see cref="SyntaxNode"/> for the object creation expression.</returns>
-    protected virtual SyntaxNode VisitUserDefinedObjectCreationExpression(
+    /// <remarks>
+    /// There is no default. One that answered with a default value would compute something other than what
+    /// the author wrote without saying so, so every rewriter states what it does with a constructor call.
+    /// </remarks>
+    protected abstract SyntaxNode VisitUserDefinedObjectCreationExpression(
         BaseObjectCreationExpressionSyntax node,
         BaseObjectCreationExpressionSyntax updatedNode,
-        TypeSyntax targetType)
-    {
-        // By default, constructors are not supported, so just return an empty value
-        return DefaultValueExpression(targetType);
-    }
+        TypeSyntax targetType);
 
     /// <summary>
     /// Creates the expression for the default value of a type, which HLSL writes as a cast of the literal 0.
