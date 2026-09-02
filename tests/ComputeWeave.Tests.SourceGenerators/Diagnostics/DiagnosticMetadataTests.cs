@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -109,6 +110,32 @@ public class DiagnosticMetadataTests
     }
 
     /// <summary>
+    /// The pattern above has to draw the same line the formatter does, or it reads too little and passes
+    /// for having looked for nothing, or too much and refuses a string no argument would have reached.
+    /// </summary>
+    /// <remarks>
+    /// Which forms carry a placeholder is not written down here. Each one is handed to the formatter, and
+    /// the form it fills is the form an argument reaches, so the two sides cannot drift apart as the list
+    /// grows. What the pattern had been reading past is the alignment component, which is optional and may
+    /// be negative, and the white space the formatter allows around both the index and the alignment.
+    /// Two arguments are handed over, a form naming the second index being refused for the wrong reason
+    /// when only one is.
+    /// </remarks>
+    [TestMethod]
+    public void ThePlaceholderPatternDrawsTheSameLineAsTheFormatter()
+    {
+        string[] forms =
+        [
+            "{0}", "{00}", "{0 }", "{1:X8}", "{0 :X}", "{0,10}", "{0, 10}", "{0 ,10}",
+            "{0 , 10 }", "{0,-8}", "{0,10:X}", "{0,10 :X}", "{ 0 }", "{0,+10}", "{0,}"
+        ];
+
+        string[] disagreed = [.. forms.Where(static form => IsFilled(form) != Placeholder.IsMatch(form))];
+
+        Assert.AreEqual(0, disagreed.Length, string.Join(" | ", disagreed));
+    }
+
+    /// <summary>
     /// The population has to be non-empty, or both rules above pass for having read nothing.
     /// </summary>
     /// <remarks>
@@ -121,6 +148,23 @@ public class DiagnosticMetadataTests
         int declared = Declared().Count();
 
         Assert.IsTrue(declared >= 50, declared.ToString());
+    }
+
+    /// <summary>
+    /// Whether the formatter fills a composite format, which is what an argument reaching it means.
+    /// </summary>
+    /// <param name="form">The composite format to hand to the formatter.</param>
+    /// <returns>Whether <paramref name="form"/> is filled rather than refused or left as it stands.</returns>
+    private static bool IsFilled(string form)
+    {
+        try
+        {
+            return string.Format(CultureInfo.InvariantCulture, form, 255, 255) != form;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
