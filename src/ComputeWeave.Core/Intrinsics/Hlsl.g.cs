@@ -10061,6 +10061,45 @@ partial class Hlsl
     public static int Dot(Int4 x, Int4 y) => default;
 
     /// <summary>
+    /// Returns the dot product of two vectors.
+    /// </summary>
+    /// <param name="x">The first vector.</param>
+    /// <param name="y">The second vector.</param>
+    /// <returns>The dot product of the <paramref name="x"/> parameter and the <paramref name="y"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-dot"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("dot")]
+    public static uint Dot(UInt2 x, UInt2 y) => default;
+
+    /// <summary>
+    /// Returns the dot product of two vectors.
+    /// </summary>
+    /// <param name="x">The first vector.</param>
+    /// <param name="y">The second vector.</param>
+    /// <returns>The dot product of the <paramref name="x"/> parameter and the <paramref name="y"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-dot"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("dot")]
+    public static uint Dot(UInt3 x, UInt3 y) => default;
+
+    /// <summary>
+    /// Returns the dot product of two vectors.
+    /// </summary>
+    /// <param name="x">The first vector.</param>
+    /// <param name="y">The second vector.</param>
+    /// <returns>The dot product of the <paramref name="x"/> parameter and the <paramref name="y"/> parameter.</returns>
+    /// <remarks>
+    /// For more info, see <see href="https://docs.microsoft.com/windows/win32/direct3dhlsl/dx-graphics-hlsl-dot"/>.
+    /// <para>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</para>
+    /// </remarks>
+    [HlslIntrinsicName("dot")]
+    public static uint Dot(UInt4 x, UInt4 y) => default;
+
+    /// <summary>
     /// Returns the base-e exponential of the specified value.
     /// </summary>
     /// <param name="x">The specified value.</param>

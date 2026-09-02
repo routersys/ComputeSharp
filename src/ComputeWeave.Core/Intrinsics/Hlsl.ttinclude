@@ -1249,7 +1249,10 @@ var Intrinsics = new[]
             new { Return = "float", Params = new[] { "Float4", "Float4" } },
             new { Return = "int", Params = new[] { "Int2", "Int2" } },
             new { Return = "int", Params = new[] { "Int3", "Int3" } },
-            new { Return = "int", Params = new[] { "Int4", "Int4" } }
+            new { Return = "int", Params = new[] { "Int4", "Int4" } },
+            new { Return = "uint", Params = new[] { "UInt2", "UInt2" } },
+            new { Return = "uint", Params = new[] { "UInt3", "UInt3" } },
+            new { Return = "uint", Params = new[] { "UInt4", "UInt4" } }
         }
     },
     new
