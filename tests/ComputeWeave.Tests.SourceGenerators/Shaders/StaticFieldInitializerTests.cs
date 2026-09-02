@@ -123,6 +123,116 @@ public class StaticFieldInitializerTests
         }
         """;
 
+    /// <summary>
+    /// A user defined constructor. The shader body imports one, so an initializer answering with a
+    /// default value instead computes a different number from the expression the author wrote.
+    /// </summary>
+    private const string ConstructorSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper(float amount)
+            {
+                Amount = amount;
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Read(new Helper(2.0f));
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// The parameterless constructor a struct always has. It sets no field, so a default value is
+    /// what it computes in C# too, and the import is not the answer for it.
+    /// </summary>
+    private const string ImplicitConstructorSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper(float amount)
+            {
+                Amount = amount;
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Read(new Helper());
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// An imported constructor that declares a local function. HLSL has no nested functions, so the
+    /// ones an import lifts out are carried over to the initializer the same way a method's are.
+    /// </summary>
+    private const string ConstructorLocalFunctionSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper(float amount)
+            {
+                static float Inner(float inner) => inner * 2;
+
+                Amount = Inner(amount);
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Read(new Helper(2.0f));
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
     [TestMethod]
     public void AnIntrinsicIsWrittenUnderItsHlslName()
     {
@@ -168,6 +278,46 @@ public class StaticFieldInitializerTests
         string generated = Generate(LocalFunctionSource, "StaticFieldLocalFunctionTests");
 
         Assert.IsTrue(generated.Contains("Shaders_Helper_Twice(2.0)"), $"the call is not renamed to the import:\n{generated}");
+        Assert.IsTrue(generated.Contains("Inner"), $"the local function is not written:\n{generated}");
+    }
+
+    /// <summary>
+    /// A user defined constructor is imported, the same as it is from the shader body, so that the
+    /// same expression computes the same value wherever the author writes it.
+    /// </summary>
+    [TestMethod]
+    public void AUserDefinedConstructorIsImported()
+    {
+        string generated = Generate(ConstructorSource, "StaticFieldConstructorTests");
+
+        Assert.IsFalse(generated.Contains("Shaders_Helper_Read((Shaders_Helper)0)"), $"the constructor is collapsed into a default value:\n{generated}");
+        Assert.IsTrue(generated.Contains("Shaders_Helper_Read(Shaders_Helper::__ctor(2.0))"), $"the call is not rewritten into the stub:\n{generated}");
+        Assert.IsTrue(generated.Contains("static Shaders_Helper Shaders_Helper::__ctor(float amount)"), $"the stub is not written:\n{generated}");
+    }
+
+    /// <summary>
+    /// The parameterless constructor stays a default value. Importing it would write a stub around a
+    /// constructor that has no declaration to import, and the value it computes is the same either way.
+    /// </summary>
+    [TestMethod]
+    public void AnImplicitParameterlessConstructorStaysADefaultValue()
+    {
+        string generated = Generate(ImplicitConstructorSource, "StaticFieldImplicitConstructorTests");
+
+        Assert.IsTrue(generated.Contains("Shaders_Helper_Read((Shaders_Helper)0)"), $"the default value is not written:\n{generated}");
+        Assert.IsFalse(generated.Contains("__ctor"), $"a stub is written for a constructor with no declaration:\n{generated}");
+    }
+
+    /// <summary>
+    /// The local functions of an imported constructor are written too. Without that, the initializer
+    /// calls a function the generated HLSL never declares, which the shader compiler reports.
+    /// </summary>
+    [TestMethod]
+    public void ALocalFunctionOfAnImportedConstructorIsWritten()
+    {
+        string generated = Generate(ConstructorLocalFunctionSource, "StaticFieldConstructorLocalFunctionTests");
+
+        Assert.IsTrue(generated.Contains("Shaders_Helper::__ctor(2.0)"), $"the call is not rewritten into the stub:\n{generated}");
         Assert.IsTrue(generated.Contains("Inner"), $"the local function is not written:\n{generated}");
     }
 
