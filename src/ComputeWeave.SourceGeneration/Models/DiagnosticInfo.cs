@@ -12,11 +12,13 @@ namespace ComputeWeave.SourceGeneration.Models;
 /// <param name="Descriptor">The wrapped <see cref="DiagnosticDescriptor"/> instance.</param>
 /// <param name="SyntaxTree">The tree to use as location for the diagnostic, if available.</param>
 /// <param name="TextSpan">The span to use as location for the diagnostic.</param>
+/// <param name="ExternalLocation">The location to use for the diagnostic when it points at a file rather than a tree.</param>
 /// <param name="Arguments">The diagnostic arguments.</param>
 internal sealed record DiagnosticInfo(
     DiagnosticDescriptor Descriptor,
     SyntaxTree? SyntaxTree,
     TextSpan TextSpan,
+    LocationInfo? ExternalLocation,
     EquatableArray<string> Arguments)
 {
     /// <summary>
@@ -30,7 +32,7 @@ internal sealed record DiagnosticInfo(
             return Diagnostic.Create(Descriptor, Location.Create(SyntaxTree, TextSpan), Arguments.ToArray());
         }
 
-        return Diagnostic.Create(Descriptor, null, Arguments.ToArray());
+        return Diagnostic.Create(Descriptor, ExternalLocation?.ToLocation(), Arguments.ToArray());
     }
 
     /// <summary>
@@ -49,10 +51,16 @@ internal sealed record DiagnosticInfo(
 
         if (location is null)
         {
-            return new(descriptor, null, default, textArgs);
+            return new(descriptor, null, default, null, textArgs);
         }
 
-        return new(descriptor, location.SourceTree, location.SourceSpan, textArgs);
+        // A location that points at a file instead of a tree is captured by value, a metadata one pointing at none
+        if (location.SourceTree is null)
+        {
+            return new(descriptor, null, default, GetExternalLocation(location), textArgs);
+        }
+
+        return new(descriptor, location.SourceTree, location.SourceSpan, null, textArgs);
     }
 
     /// <summary>
@@ -77,5 +85,22 @@ internal sealed record DiagnosticInfo(
     public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, SyntaxNode node, params object[] args)
     {
         return Create(descriptor, node.GetLocation(), args);
+    }
+
+    /// <summary>
+    /// Gets the <see cref="LocationInfo"/> for a <see cref="Location"/> that belongs to no <see cref="SyntaxTree"/>.
+    /// </summary>
+    /// <param name="location">The <see cref="Location"/> value to capture.</param>
+    /// <returns>A <see cref="LocationInfo"/> instance for <paramref name="location"/>, if it names a file.</returns>
+    private static LocationInfo? GetExternalLocation(Location location)
+    {
+        if (location.Kind is not LocationKind.ExternalFile)
+        {
+            return null;
+        }
+
+        FileLinePositionSpan lineSpan = location.GetLineSpan();
+
+        return new LocationInfo(lineSpan.Path, location.SourceSpan, lineSpan.Span);
     }
 }
