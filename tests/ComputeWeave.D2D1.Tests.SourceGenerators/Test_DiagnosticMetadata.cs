@@ -29,7 +29,7 @@ public class Test_DiagnosticMetadata
     /// <summary>
     /// A placeholder in a string that the message arguments never reach.
     /// </summary>
-    private static readonly Regex Placeholder = new(@"\{\d+(?::[^}]*)?\}");
+    private static readonly Regex Placeholder = new(@"\{\d+\s*(?:,\s*-?\d+\s*)?(?::[^}]*)?\}");
 
     /// <summary>
     /// Two diagnostics sharing a title means at least one of them is named after the other.
