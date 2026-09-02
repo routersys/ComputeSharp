@@ -226,6 +226,46 @@ partial class HlslIntrinsicSemanticsTests
 
     [CombinatorialTestMethod]
     [AllDevices]
+    public void Verify_DotUnsigned(Device device)
+    {
+        using ReadWriteBuffer<uint2> results = device.Get().AllocateReadWriteBuffer<uint2>(3);
+
+        device.Get().For(1, new DotUnsignedShader(results, 2u, 3u, 5u, 7u));
+
+        AssertAgreesExactly(results);
+    }
+
+    // the lanes are paired so that reversing either operand changes the sum, which a symmetric pairing would hide
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct DotUnsignedShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<uint2> results;
+        public readonly uint a;
+        public readonly uint b;
+        public readonly uint c;
+        public readonly uint d;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            this.results[0] = new uint2(
+                Hlsl.Dot(new UInt2(this.a, this.b), new UInt2(this.c, this.d)),
+                (this.a * this.c) + (this.b * this.d));
+
+            this.results[1] = new uint2(
+                Hlsl.Dot(new UInt3(this.a, this.b, this.c), new UInt3(this.b, this.c, this.d)),
+                (this.a * this.b) + (this.b * this.c) + (this.c * this.d));
+
+            this.results[2] = new uint2(
+                Hlsl.Dot(new UInt4(this.a, this.b, this.c, this.d), new UInt4(this.b, this.c, this.d, this.a)),
+                (this.a * this.b) + (this.b * this.c) + (this.c * this.d) + (this.d * this.a));
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
     public void Verify_All(Device device)
     {
         using ReadWriteBuffer<float2> results = device.Get().AllocateReadWriteBuffer<float2>(2);
