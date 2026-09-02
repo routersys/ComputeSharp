@@ -1026,16 +1026,20 @@ public partial class ShaderRewriterTests
     {
         float[] data1 = [0.727829933f, 0.6413954f, 0.9373726f, 0.7044427f, 0.46349f, 0.8098116f, 0.604649544f, 0.309247822f, 0.470999569f, 0.7374923f, 0.6993038f, 0.518516064f, 0.44598946f];
         int[] data2 = [287, 295, 953, 465, 1011, 308, 982, 186, 323, 325, 156, 454, 580];
+        uint[] data3 = [287u, 295u, 953u, 465u, 1011u, 308u, 982u, 186u, 323u, 325u, 156u, 454u, 580u];
 
         using ReadOnlyBuffer<float> buffer1 = device.Get().AllocateReadOnlyBuffer(data1);
         using ReadOnlyBuffer<int> buffer2 = device.Get().AllocateReadOnlyBuffer(data2);
         using ReadWriteBuffer<float> buffer3 = device.Get().AllocateReadWriteBuffer<float>(22, AllocationMode.Clear);
         using ReadWriteBuffer<int> buffer4 = device.Get().AllocateReadWriteBuffer<int>(22, AllocationMode.Clear);
+        using ReadOnlyBuffer<uint> buffer5 = device.Get().AllocateReadOnlyBuffer(data3);
+        using ReadWriteBuffer<uint> buffer6 = device.Get().AllocateReadWriteBuffer<uint>(22, AllocationMode.Clear);
 
-        device.Get().For(1, new GlslStyleMulOperatorsShader(buffer1, buffer2, buffer3, buffer4));
+        device.Get().For(1, new GlslStyleMulOperatorsShader(buffer1, buffer2, buffer3, buffer4, buffer5, buffer6));
 
         float[] results1 = buffer3.ToArray();
         int[] results2 = buffer4.ToArray();
+        uint[] results3 = buffer6.ToArray();
 
         CollectionAssert.AreEqual(
             expected: results1.AsSpan(11).ToArray(),
@@ -1044,6 +1048,10 @@ public partial class ShaderRewriterTests
         CollectionAssert.AreEqual(
             expected: results2.AsSpan(11).ToArray(),
             actual: results2.AsSpan(0, 11).ToArray());
+
+        CollectionAssert.AreEqual(
+            expected: results3.AsSpan(11).ToArray(),
+            actual: results3.AsSpan(0, 11).ToArray());
     }
 
     [AutoConstructor]
@@ -1055,6 +1063,8 @@ public partial class ShaderRewriterTests
         public readonly ReadOnlyBuffer<int> source2;
         public readonly ReadWriteBuffer<float> destination1;
         public readonly ReadWriteBuffer<int> destination2;
+        public readonly ReadOnlyBuffer<uint> source3;
+        public readonly ReadWriteBuffer<uint> destination3;
 
         public void Execute()
         {
@@ -1151,6 +1161,189 @@ public partial class ShaderRewriterTests
             destination2[19] = ri8.Z;
             destination2[20] = i2_copy2.X;
             destination2[21] = i2_copy2.Y;
+
+            uint2 u2 = new(source3[0], source3[1]);
+            uint u = source3[2];
+            uint2x2 u22 = new(source3[3], source3[4], source3[5], source3[6]);
+            uint2x3 u23 = new(source3[7], source3[8], source3[9], source3[10], source3[11], source3[12]);
+
+            uint2 ru1 = u2 * u;
+            uint2 ru2 = u * u2;
+            uint2 ru3 = u2 * u22;
+            uint3 ru4 = u2 * u23;
+
+            uint2 u2_copy1 = u2;
+
+            u2_copy1 *= u22;
+
+            uint2 ru5 = new(u2.X * u, u2.Y * u);
+            uint2 ru6 = Hlsl.Mul(u, u2);
+            uint2 ru7 = Hlsl.Mul(u2, u22);
+            uint3 ru8 = Hlsl.Mul(u2, u23);
+
+            var u2_copy2 = u2;
+
+            u2_copy2 = Hlsl.Mul(u2_copy2, u22);
+
+            destination3[0] = ru1.X;
+            destination3[1] = ru1.Y;
+            destination3[2] = ru2.X;
+            destination3[3] = ru2.Y;
+            destination3[4] = ru3.X;
+            destination3[5] = ru3.Y;
+            destination3[6] = ru4.X;
+            destination3[7] = ru4.Y;
+            destination3[8] = ru4.Z;
+            destination3[9] = u2_copy1.X;
+            destination3[10] = u2_copy1.Y;
+
+            destination3[11] = ru5.X;
+            destination3[12] = ru5.Y;
+            destination3[13] = ru6.X;
+            destination3[14] = ru6.Y;
+            destination3[15] = ru7.X;
+            destination3[16] = ru7.Y;
+            destination3[17] = ru8.X;
+            destination3[18] = ru8.Y;
+            destination3[19] = ru8.Z;
+            destination3[20] = u2_copy2.X;
+            destination3[21] = u2_copy2.Y;
+        }
+    }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void MulOperatorsDeclaredOnMatrixTypes(Device device)
+    {
+        float[] data1 = [0.727829933f, 0.6413954f, 0.9373726f, 0.7044427f, 0.46349f, 0.8098116f, 0.604649544f, 0.309247822f, 0.470999569f, 0.7374923f, 0.6993038f, 0.518516064f, 0.44598946f];
+        int[] data2 = [287, 295, 953, 465, 1011, 308, 982, 186, 323, 325, 156, 454, 580];
+        uint[] data3 = [287u, 295u, 953u, 465u, 1011u, 308u, 982u, 186u, 323u, 325u, 156u, 454u, 580u];
+
+        using ReadOnlyBuffer<float> buffer1 = device.Get().AllocateReadOnlyBuffer(data1);
+        using ReadOnlyBuffer<int> buffer2 = device.Get().AllocateReadOnlyBuffer(data2);
+        using ReadOnlyBuffer<uint> buffer3 = device.Get().AllocateReadOnlyBuffer(data3);
+        using ReadWriteBuffer<float> buffer4 = device.Get().AllocateReadWriteBuffer<float>(16, AllocationMode.Clear);
+        using ReadWriteBuffer<int> buffer5 = device.Get().AllocateReadWriteBuffer<int>(16, AllocationMode.Clear);
+        using ReadWriteBuffer<uint> buffer6 = device.Get().AllocateReadWriteBuffer<uint>(16, AllocationMode.Clear);
+
+        device.Get().For(1, new MulOperatorsDeclaredOnMatrixTypesShader(buffer1, buffer2, buffer3, buffer4, buffer5, buffer6));
+
+        float[] results1 = buffer4.ToArray();
+        int[] results2 = buffer5.ToArray();
+        uint[] results3 = buffer6.ToArray();
+
+        CollectionAssert.AreEqual(
+            expected: results1.AsSpan(8).ToArray(),
+            actual: results1.AsSpan(0, 8).ToArray());
+
+        CollectionAssert.AreEqual(
+            expected: results2.AsSpan(8).ToArray(),
+            actual: results2.AsSpan(0, 8).ToArray());
+
+        CollectionAssert.AreEqual(
+            expected: results3.AsSpan(8).ToArray(),
+            actual: results3.AsSpan(0, 8).ToArray());
+    }
+
+    // The matrix types declare 69 of the 84 operators that reach mul, and no test read any of them
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct MulOperatorsDeclaredOnMatrixTypesShader : IComputeShader
+    {
+        public readonly ReadOnlyBuffer<float> source1;
+        public readonly ReadOnlyBuffer<int> source2;
+        public readonly ReadOnlyBuffer<uint> source3;
+        public readonly ReadWriteBuffer<float> destination1;
+        public readonly ReadWriteBuffer<int> destination2;
+        public readonly ReadWriteBuffer<uint> destination3;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            float2x2 f22b = new(source1[0], source1[1], source1[2], source1[3]);
+            float2x3 f23b = new(source1[4], source1[5], source1[6], source1[7], source1[8], source1[9]);
+            float3 f3b = new(source1[10], source1[11], source1[12]);
+
+            float2x3 fm1 = f22b * f23b;
+            float2 fm2 = f23b * f3b;
+
+            float2x3 fm3 = Hlsl.Mul(f22b, f23b);
+            float2 fm4 = Hlsl.Mul(f23b, f3b);
+
+            destination1[0] = fm1.M11;
+            destination1[1] = fm1.M12;
+            destination1[2] = fm1.M13;
+            destination1[3] = fm1.M21;
+            destination1[4] = fm1.M22;
+            destination1[5] = fm1.M23;
+            destination1[6] = fm2.X;
+            destination1[7] = fm2.Y;
+
+            destination1[8] = fm3.M11;
+            destination1[9] = fm3.M12;
+            destination1[10] = fm3.M13;
+            destination1[11] = fm3.M21;
+            destination1[12] = fm3.M22;
+            destination1[13] = fm3.M23;
+            destination1[14] = fm4.X;
+            destination1[15] = fm4.Y;
+
+            int2x2 i22b = new(source2[0], source2[1], source2[2], source2[3]);
+            int2x3 i23b = new(source2[4], source2[5], source2[6], source2[7], source2[8], source2[9]);
+            int3 i3b = new(source2[10], source2[11], source2[12]);
+
+            int2x3 im1 = i22b * i23b;
+            int2 im2 = i23b * i3b;
+
+            int2x3 im3 = Hlsl.Mul(i22b, i23b);
+            int2 im4 = Hlsl.Mul(i23b, i3b);
+
+            destination2[0] = im1.M11;
+            destination2[1] = im1.M12;
+            destination2[2] = im1.M13;
+            destination2[3] = im1.M21;
+            destination2[4] = im1.M22;
+            destination2[5] = im1.M23;
+            destination2[6] = im2.X;
+            destination2[7] = im2.Y;
+
+            destination2[8] = im3.M11;
+            destination2[9] = im3.M12;
+            destination2[10] = im3.M13;
+            destination2[11] = im3.M21;
+            destination2[12] = im3.M22;
+            destination2[13] = im3.M23;
+            destination2[14] = im4.X;
+            destination2[15] = im4.Y;
+
+            uint2x2 u22b = new(source3[0], source3[1], source3[2], source3[3]);
+            uint2x3 u23b = new(source3[4], source3[5], source3[6], source3[7], source3[8], source3[9]);
+            uint3 u3b = new(source3[10], source3[11], source3[12]);
+
+            uint2x3 um1 = u22b * u23b;
+            uint2 um2 = u23b * u3b;
+
+            uint2x3 um3 = Hlsl.Mul(u22b, u23b);
+            uint2 um4 = Hlsl.Mul(u23b, u3b);
+
+            destination3[0] = um1.M11;
+            destination3[1] = um1.M12;
+            destination3[2] = um1.M13;
+            destination3[3] = um1.M21;
+            destination3[4] = um1.M22;
+            destination3[5] = um1.M23;
+            destination3[6] = um2.X;
+            destination3[7] = um2.Y;
+
+            destination3[8] = um3.M11;
+            destination3[9] = um3.M12;
+            destination3[10] = um3.M13;
+            destination3[11] = um3.M21;
+            destination3[12] = um3.M22;
+            destination3[13] = um3.M23;
+            destination3[14] = um4.X;
+            destination3[15] = um4.Y;
         }
     }
 

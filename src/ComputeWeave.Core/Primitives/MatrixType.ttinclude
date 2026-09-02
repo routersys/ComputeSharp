@@ -18,7 +18,7 @@ using System.Diagnostics.CodeAnalysis;
 #>
 using System.Runtime.InteropServices;
 <#
-    if (typeName == "Float" || typeName == "Int")
+    if (typeName == "Float" || typeName == "Int" || typeName == "UInt")
     {
         WriteLine("using ComputeWeave.Core.Intrinsics;");
     }
@@ -336,7 +336,7 @@ public unsafe partial struct <#=fullTypeName#>
     /// <remarks>This method is an intrinsic and can only be used within a shader on the GPU. Using it on the CPU is undefined behavior.</remarks>
     public static <#=fullTypeName#> operator *(<#=fullTypeName#> left, <#=fullTypeName#> right) => default;
 <#
-    if (typeName == "Float" || typeName == "Int")
+    if (typeName == "Float" || typeName == "Int" || typeName == "UInt")
     {
         // Add explicit operators when needed, see notes in VectorType.ttinclude for info
         WriteLine("");
