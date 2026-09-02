@@ -273,6 +273,44 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// A generic local function that is called. The declaration answers for it here too, and the call
+    /// site leaves a local function alone, so no second place is named for the same cause.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericLocalFunctionIsDiagnosedAtTheDeclarationOnly()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    static float First<T>(T value)
+                        where T : unmanaged
+                    {
+                        return 1.0f;
+                    }
+
+                    return new float4(First(time), 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0095");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0091");
+    }
+
+    /// <summary>
     /// A method declared in a C# extension block. The rewriters are shared with the compute generator, so
     /// what this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>

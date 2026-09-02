@@ -1042,6 +1042,40 @@ public class ShaderSourceRewriterTests
     }
 
     /// <summary>
+    /// The same call, read for what the call site does not report. The declaration answers for the
+    /// function, so the refusal for a generic call leaves a local function alone.
+    /// </summary>
+    [TestMethod]
+    public void CallingAGenericLocalFunctionIsNotDiagnosedAtTheCall()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    static float First<T>(T value)
+                        where T : unmanaged
+                    {
+                        return 1.0f;
+                    }
+
+                    this.buffer[ThreadIds.X] = First(1.0f);
+                }
+            }
+            """;
+
+        AssertIsNotDiagnosed(Source, "ShaderGenericLocalFunctionCallTests", "CMPW0117");
+    }
+
+    /// <summary>
     /// The same call, reached through a static field initializer rather than the shader body. The two
     /// rewriters walk their invocations separately, so both have to answer the same way.
     /// </summary>
