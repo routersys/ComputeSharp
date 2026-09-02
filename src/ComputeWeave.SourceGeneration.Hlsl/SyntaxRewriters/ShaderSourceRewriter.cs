@@ -914,7 +914,7 @@ internal sealed partial class ShaderSourceRewriter(
                         LocalDeclarationStatement(
                             VariableDeclaration(IdentifierName(returnTypeHlslIdentifier)).AddVariables(
                                 VariableDeclarator(Identifier("__this")).WithInitializer(EqualsValueClause(
-                                    CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))))))),
+                                    DefaultValueExpression(targetType))))),
                         ExpressionStatement(
                             InvocationExpression(
                                 MemberAccessExpression(
