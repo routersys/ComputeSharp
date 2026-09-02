@@ -5,10 +5,10 @@
     Verifies that the diagnostic counts the README states match the descriptors that ship.
 
 .DESCRIPTION
-    Both READMEs state how many diagnostics the analyzers report. Nothing recomputed those
-    numbers when a pull request added a descriptor, so they fell behind the sources they
-    describe. This reads the identifiers out of the descriptor files and compares them
-    against the numbers the documents state.
+    Several documents state how many diagnostics the analyzers report, including the two that
+    ship inside the package. Nothing recomputed those numbers when a pull request added a
+    descriptor, so they fell behind the sources they describe. This reads the identifiers out
+    of the descriptor files and compares them against the numbers the documents state.
 
 .PARAMETER Path
     The repository root. Defaults to the parent of this script.
@@ -55,8 +55,10 @@ $claims = @(
         Descriptors = 'src/ComputeWeave.SourceGenerators/Diagnostics/DiagnosticDescriptors.cs'
         Pattern     = '"(CMPW[0-9]{4})"'
         Documents   = @(
-            @{ File = 'README.md';    Pattern = 'report (\d+) diagnostics with the `CMPW` prefix' }
-            @{ File = 'README.ja.md'; Pattern = '接頭辞 `CMPW` の診断(\d+)種類として報告します' }
+            @{ File = 'README.md';                           Pattern = 'report (\d+) diagnostics with the `CMPW` prefix' }
+            @{ File = 'README.ja.md';                        Pattern = '接頭辞 `CMPW` の診断(\d+)種類として報告します' }
+            @{ File = 'src/ComputeWeave/README.md';          Pattern = 'report (\d+) diagnostics with the `CMPW` prefix' }
+            @{ File = 'src/ComputeWeave/README.ja.md';       Pattern = '接頭辞 `CMPW` の診断(\d+)種類として報告します' }
         )
     }
     @{
@@ -128,6 +130,6 @@ foreach ($failure in $failures)
 }
 
 Write-Host ''
-Write-Host 'A pull request that adds or removes a descriptor has to carry the new number into both READMEs.'
+Write-Host 'A pull request that adds or removes a descriptor has to carry the new number into every document that states it.'
 
 exit 1
