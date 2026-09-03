@@ -296,7 +296,28 @@ public class ShaderGeneratorDiagnosticTests
         """)]
     public void AStaticFieldInitializerReachingItselfIsDiagnosed(string assemblyName, string declarations)
     {
-        AssertReports(CycleShader(declarations), assemblyName, "CMPW0124");
+        AssertReportsOnce(CycleShader(declarations), assemblyName, "CMPW0124");
+    }
+
+    /// <summary>
+    /// A cycle the initializer closes through two declarations is reported once. Both of them name the
+    /// same field declaration, so a report per declaration reads as two cycles where there is one.
+    /// </summary>
+    [TestMethod]
+    public void AStaticFieldInitializerReachingItselfTwiceIsDiagnosedOnce()
+    {
+        const string Declarations = """
+            internal static class Helper
+            {
+                public static readonly float Value = Twice() + Thrice();
+
+                public static float Twice() => Value * 2;
+
+                public static float Thrice() => Value * 3;
+            }
+            """;
+
+        AssertReportsOnce(CycleShader(Declarations), "StaticFieldCycleReachedTwiceTests", "CMPW0124");
     }
 
     /// <summary>
@@ -364,6 +385,16 @@ public class ShaderGeneratorDiagnosticTests
             """;
     }
 
+    private static void AssertReportsOnce(string source, string assemblyName, string expectedId)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        Assert.AreEqual(
+            1,
+            actualIds.Count(id => id == expectedId),
+            $"{expectedId} is not reported exactly once: {string.Join(", ", actualIds)}");
+    }
+
     private static void AssertReports(string source, string assemblyName, string expectedId)
     {
         string[] actualIds = Run(source, assemblyName);
@@ -389,6 +420,7 @@ public class ShaderGeneratorDiagnosticTests
 
         Assert.IsNull(result.Exception, result.Exception?.ToString());
 
-        return [.. result.Diagnostics.Select(static diagnostic => diagnostic.Id).Distinct().Order()];
+        // Not made distinct, so that a row can assert how many times an identifier was reported
+        return [.. result.Diagnostics.Select(static diagnostic => diagnostic.Id).Order()];
     }
 }
