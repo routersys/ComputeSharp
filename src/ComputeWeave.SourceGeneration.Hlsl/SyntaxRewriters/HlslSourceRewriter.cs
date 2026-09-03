@@ -652,4 +652,15 @@ internal abstract partial class HlslSourceRewriter(
                 throw new NotSupportedException($"""Unrecognized intrinsic "{intrinsicName}".""");
         }
     }
+
+    /// <summary>
+    /// Raises the requirements a call to a known HLSL method places on the shader, if it places any.
+    /// </summary>
+    /// <param name="metadataName">The metadata name of the method being invoked.</param>
+    /// <remarks>
+    /// Declared here rather than on each rewriter because what a call requires does not depend on whether it
+    /// was written in a body or in a static field initializer, and one declaration cannot be left uncalled by
+    /// one of them while the other calls it.
+    /// </remarks>
+    protected partial void TrackKnownMethodInvocation(string metadataName);
 }

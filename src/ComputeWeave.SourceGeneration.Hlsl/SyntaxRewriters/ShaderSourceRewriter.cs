@@ -1028,10 +1028,4 @@ internal sealed partial class ShaderSourceRewriter(
     /// <param name="node">The <see cref="MemberAccessExpressionSyntax"/> instance for the operation.</param>
     /// <param name="mappedName">The mapped name for the property access.</param>
     partial void TrackKnownPropertyAccess(IMemberReferenceOperation operation, MemberAccessExpressionSyntax node, string mappedName);
-
-    /// <summary>
-    /// Tracks a method invocation for a known HLSL method.
-    /// </summary>
-    /// <param name="metadataName">The metadata name of the method being invoked.</param>
-    partial void TrackKnownMethodInvocation(string metadataName);
 }

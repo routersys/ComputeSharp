@@ -1,5 +1,4 @@
 using ComputeWeave.SourceGeneration.Extensions;
-using ComputeWeave.SourceGeneration.Mappings;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -40,12 +39,6 @@ partial class ShaderSourceRewriter
                 Argument(IdentifierName("__sampler")),
                 arguments,
                 Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))));
-    }
-
-    /// <inheritdoc/>
-    partial void TrackKnownMethodInvocation(string metadataName)
-    {
-        Requirements.SynchronizesTheWholeThreadGroup |= HlslKnownMethods.SynchronizesTheWholeThreadGroup(metadataName);
     }
 
     /// <inheritdoc/>

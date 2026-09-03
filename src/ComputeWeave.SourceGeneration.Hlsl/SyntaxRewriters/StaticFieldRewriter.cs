@@ -322,10 +322,4 @@ internal sealed partial class StaticFieldRewriter(
     /// <param name="operation">The <see cref="IMemberReferenceOperation"/> instance for the operation.</param>
     /// <param name="node">The <see cref="MemberAccessExpressionSyntax"/> instance for the operation.</param>
     private partial void TrackKnownPropertyAccess(IMemberReferenceOperation operation, MemberAccessExpressionSyntax node);
-
-    /// <summary>
-    /// Tracks a method invocation for a known HLSL method.
-    /// </summary>
-    /// <param name="metadataName">The metadata name of the method being invoked.</param>
-    private partial void TrackKnownMethodInvocation(string metadataName);
 }

@@ -9,6 +9,12 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <inheritdoc/>
 partial class HlslSourceRewriter
 {
+    /// <inheritdoc/>
+    protected partial void TrackKnownMethodInvocation(string metadataName)
+    {
+        Requirements.SynchronizesTheWholeThreadGroup |= HlslKnownMethods.SynchronizesTheWholeThreadGroup(metadataName);
+    }
+
     /// <summary>
     /// Reports an intrinsic that writes through an out parameter being given a matrix the compiler terminates on.
     /// </summary>

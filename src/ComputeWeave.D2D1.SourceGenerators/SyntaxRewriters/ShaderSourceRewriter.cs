@@ -22,10 +22,4 @@ partial class ShaderSourceRewriter
             InvocationExpression(expression)
             .AddArgumentListArguments(Argument(IdentifierName($"__sampler__{mapped ?? fieldName}")), arguments);
     }
-
-    /// <inheritdoc/>
-    partial void TrackKnownMethodInvocation(string metadataName)
-    {
-        Requirements.NeedsD2DRequiresScenePositionAttribute |= HlslKnownMethods.NeedsD2DRequiresScenePositionAttribute(metadataName);
-    }
 }
