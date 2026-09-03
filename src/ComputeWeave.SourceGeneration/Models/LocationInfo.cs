@@ -50,4 +50,37 @@ internal sealed record LocationInfo(string FilePath, TextSpan TextSpan, LinePosi
     {
         return Location.Create(FilePath, TextSpan, LineSpan);
     }
+
+    /// <summary>
+    /// Creates a new <see cref="Location"/> instance with the state from this model, bound to the tree holding it.
+    /// </summary>
+    /// <param name="compilation">The <see cref="Compilation"/> to look the source file up in.</param>
+    /// <returns>A new <see cref="Location"/> instance with the state from this model.</returns>
+    /// <remarks>
+    /// A location belonging to no tree carries no directive state, so a warning reported at one is not silenced
+    /// by the <c>#pragma</c> the author wrote around it, and the analyzer configuration entries for its file do
+    /// not reach it either. The tree is looked up where the diagnostic is created rather than captured with the
+    /// rest: a model holding one compares unequal across unrelated edits and keeps a stale compilation alive,
+    /// which is what capturing a location by value exists to avoid.
+    /// </remarks>
+    public Location ToLocation(Compilation compilation)
+    {
+        // An empty path names no file, and every tree of a compilation parsed without one carries it
+        if (FilePath.Length == 0)
+        {
+            return ToLocation();
+        }
+
+        foreach (SyntaxTree tree in compilation.SyntaxTrees)
+        {
+            // A span reaching past the text belongs to other text, which the compiler throws on when read
+            if (tree.FilePath == FilePath && TextSpan.End <= tree.Length)
+            {
+                return Location.Create(tree, TextSpan);
+            }
+        }
+
+        // A file this compilation does not hold has no tree to bind to, so the location stays as captured
+        return ToLocation();
+    }
 }

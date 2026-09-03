@@ -68,13 +68,21 @@ internal static class DiagnosticsExtensions
     /// </summary>
     /// <param name="context">The input <see cref="IncrementalGeneratorInitializationContext"/> instance.</param>
     /// <param name="diagnostics">The input <see cref="IncrementalValuesProvider{TValues}"/> sequence of diagnostics.</param>
+    /// <remarks>
+    /// The compilation is combined in so that a diagnostic carrying a location captured by value can be bound
+    /// back to the tree that holds it, which is what a <c>#pragma</c> and the analyzer configuration of a file
+    /// are applied through. It is combined on this node and not on the one the diagnostics come from: the
+    /// compilation differs on every edit, so whichever node takes it runs again each time, and taking it any
+    /// earlier would carry that through the models as well. This one has nothing to run for while every shader
+    /// is free of diagnostics, the sequence reaching it having been filtered.
+    /// </remarks>
     public static void ReportDiagnostics(this IncrementalGeneratorInitializationContext context, IncrementalValuesProvider<EquatableArray<DiagnosticInfo>> diagnostics)
     {
-        context.RegisterSourceOutput(diagnostics, static (context, diagnostics) =>
+        context.RegisterSourceOutput(diagnostics.Combine(context.CompilationProvider), static (context, item) =>
         {
-            foreach (DiagnosticInfo diagnostic in diagnostics)
+            foreach (DiagnosticInfo diagnostic in item.Left)
             {
-                context.ReportDiagnostic(diagnostic.ToDiagnostic());
+                context.ReportDiagnostic(diagnostic.ToDiagnostic(item.Right));
             }
         });
     }
