@@ -67,7 +67,7 @@ internal static class DiagnosticsExtensions
     /// Drops the records of syntax with no verdict, when the input was refused for a reason of its own.
     /// </summary>
     /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
-    /// <param name="unknownSyntax">The descriptor that records a syntax kind the accepted set answers for.</param>
+    /// <param name="unknownSyntax">The descriptor for a syntax kind the accepted set records no verdict for.</param>
     /// <remarks>
     /// <para>
     /// A refused construct carries syntax the set has no verdict for, both under it and beside it: a refused
@@ -90,8 +90,13 @@ internal static class DiagnosticsExtensions
 
         foreach (DiagnosticInfo diagnostic in diagnostics.WrittenSpan)
         {
-            isRefused |= diagnostic.Descriptor.DefaultSeverity == DiagnosticSeverity.Error &&
-                         diagnostic.Descriptor != unknownSyntax;
+            if (diagnostic.Descriptor.DefaultSeverity == DiagnosticSeverity.Error &&
+                diagnostic.Descriptor != unknownSyntax)
+            {
+                isRefused = true;
+
+                break;
+            }
         }
 
         if (!isRefused)
@@ -109,10 +114,8 @@ internal static class DiagnosticsExtensions
             }
         }
 
-        DiagnosticInfo[] remaining = kept.ToArray();
-
         diagnostics.Clear();
-        diagnostics.AddRange(remaining);
+        diagnostics.AddRange(kept.WrittenSpan);
     }
 
     /// <summary>

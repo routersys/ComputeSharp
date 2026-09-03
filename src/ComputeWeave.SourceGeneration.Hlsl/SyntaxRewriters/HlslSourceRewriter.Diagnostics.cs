@@ -26,21 +26,20 @@ partial class HlslSourceRewriter
     /// <para>
     /// The set is measured rather than designed, so a kind outside it is one the set records no verdict for.
     /// That is not the same as one nothing has judged: a kind a visit method always refuses is outside the set
-    /// as well, because refusing it keeps it out of what the measurement sees. The report records the kind and
-    /// does nothing else: the input is not refused, and the severity is the one that changes no build. Nodes
-    /// are what reaches here, so a modifier or any other token keeps whatever diagnostic it already has.
+    /// as well, because refusing it keeps it out of what the measurement sees, and such a kind is answered by
+    /// that refusal, this report being dropped beside it. Nodes are what reaches here, so a modifier or any
+    /// other token keeps whatever diagnostic it already has.
     /// </para>
     /// <para>
     /// A kind is reported once per rewriter, which is once per method, so a construct used many times gives
     /// one report rather than one per use.
     /// </para>
     /// <para>
-    /// An attribute list is dropped rather than written out, so nothing under one reaches the shader compiler
-    /// and a kind is answered for there by being unreachable. Refusing it would refuse a construct that cannot
-    /// change the generated HLSL: an attribute of the author's own on an imported method carries a named
-    /// argument, which is a kind the set has no verdict for anywhere else. The ancestors are read only for a
-    /// kind outside the set, and before the kind is recorded as seen, so the same kind written elsewhere in
-    /// the same method is still reported.
+    /// An attribute list is dropped rather than written out, so nothing under one reaches the shader compiler.
+    /// Refusing it would refuse a construct that cannot change the generated HLSL: an attribute of the author's
+    /// own on an imported method carries a named argument, which is a kind the set has no verdict for anywhere
+    /// else. The ancestors are read only for a kind outside the set, and before the kind is recorded as seen,
+    /// so the same kind written elsewhere in the same method is still reported.
     /// </para>
     /// </remarks>
     protected void ReportSyntaxOutsideTheAcceptedSet(SyntaxNode node)
