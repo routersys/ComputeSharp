@@ -233,6 +233,42 @@ public class StaticFieldInitializerTests
         }
         """;
 
+    /// <summary>
+    /// A parameterless constructor the author declared. It has a body to import, which is what tells it
+    /// apart from the one a struct always has, so it is imported like any other.
+    /// </summary>
+    private const string ExplicitParameterlessConstructorSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper()
+            {
+                Amount = 7;
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Read(new Helper());
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
     [TestMethod]
     public void AnIntrinsicIsWrittenUnderItsHlslName()
     {
@@ -319,6 +355,19 @@ public class StaticFieldInitializerTests
 
         Assert.IsTrue(generated.Contains("Shaders_Helper::__ctor(2.0)"), $"the call is not rewritten into the stub:\n{generated}");
         Assert.IsTrue(generated.Contains("Inner"), $"the local function is not written:\n{generated}");
+    }
+
+    /// <summary>
+    /// A declared parameterless constructor is imported. Reading the argument count alone would collapse
+    /// it along with the one a struct always has, and the body the author wrote would never run.
+    /// </summary>
+    [TestMethod]
+    public void AnExplicitParameterlessConstructorIsImported()
+    {
+        string generated = Generate(ExplicitParameterlessConstructorSource, "StaticFieldExplicitParameterlessConstructorTests");
+
+        Assert.IsFalse(generated.Contains("Shaders_Helper_Read((Shaders_Helper)0)"), $"the constructor is collapsed into a default value:\n{generated}");
+        Assert.IsTrue(generated.Contains("Shaders_Helper_Read(Shaders_Helper::__ctor())"), $"the call is not rewritten into the stub:\n{generated}");
     }
 
     private static string Generate(string source, string assemblyName)
