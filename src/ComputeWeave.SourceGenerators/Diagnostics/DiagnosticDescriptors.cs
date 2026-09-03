@@ -1623,4 +1623,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "The shader compiler terminates with an access violation on two combinations of a matrix and an intrinsic that writes through an out parameter. One out parameter terminates on an integer matrix, which was measured on modf, frexp and sincos alike. Two of them terminate on a matrix of any element type, which was measured on sincos, the only intrinsic declaring two. A floating point matrix given to modf or frexp compiles, and so does a vector or a scalar given to any of them, so none of those is refused. Without the refusal the build fails with a native fatal error that names no source line, because the compiler is gone before it can report one. Direct2D shaders are not affected: they are compiled through FXC, which does not have the defect.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a static field initializer reaching the field it initializes.
+    /// <para>
+    /// Format: <c>"The static field {0} is initialized from an expression that reads it back, directly or through a declaration that initializer reaches"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor CyclicStaticFieldInitializer = new(
+        id: "CMPW0124",
+        title: "Static field initializer reaching the field it initializes",
+        messageFormat: "The static field {0} is initialized from an expression that reads it back, directly or through a declaration that initializer reaches",
+        category: "ComputeWeave.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "C# runs the initializer once, and where the cycle closes it reads the field as its default value, so the field holds whatever that produces. HLSL has no defined order for global static initializers, so the value the shader computes is not the one C# computes, and the shader compiler accepts the source without saying anything: the generated HLSL was measured to compile with the cycle written out as it stands. Before this report the generator faulted instead, adding the same key to the collection of static field definitions twice, which discards the descriptors for every shader in the compilation unit and leaves the author with errors that name none of this.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

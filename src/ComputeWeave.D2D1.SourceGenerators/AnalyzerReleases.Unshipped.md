@@ -6,6 +6,7 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 CMPWD2D0095 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0096 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 
 ### Changed Rules
 

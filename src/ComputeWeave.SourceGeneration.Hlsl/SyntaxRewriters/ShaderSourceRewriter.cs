@@ -971,48 +971,63 @@ internal sealed partial class ShaderSourceRewriter(
     [return: NotNullIfNotNull(nameof(node))]
     private SyntaxNode? VisitExternalStaticFieldAccess(SyntaxNode? node, IFieldSymbol fieldSymbol)
     {
-        if (!StaticFieldDefinitions.TryGetValue(fieldSymbol, out (string Name, string, string?) fieldInfo))
+        if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo))
         {
-            // Execute the same logic as for shader static fields, to process them and extract the relevant info.
-            // In this case, we use the fully qualified name of the field as identifier, not just the field name.
-            if (HlslDefinitionsSyntaxProcessor.TryGetStaticField(
-                this.shaderType,
-                fieldSymbol,
-                SemanticModel,
-                DiscoveredTypes,
-                this.staticMethods,
-                this.instanceMethods,
-                this.constructors,
-                ConstantDefinitions,
-                StaticFieldDefinitions,
-                Requirements,
-                Diagnostics,
-                CancellationToken,
-                out _,
-                out string? typeDeclaration,
-                out string? assignmentExpression,
-                out StaticFieldRewriter? staticFieldRewriter))
+            // An entry with no type declaration is one still being rewritten, so the initializer has
+            // reached the field it initializes and the expression cannot be written out
+            if (fieldInfo.TypeDeclaration is null)
             {
-                // An initializer may import a method of its own, whose local functions are lifted the same
-                // way as the ones reached from a method body, so they are carried up here
-                foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in staticFieldRewriter.LocalFunctions)
-                {
-                    this.localFunctions[localFunction.Key] = localFunction.Value;
-                }
+                Diagnostics.Add(CyclicStaticFieldInitializer, fieldSymbol, fieldSymbol);
 
-                fieldInfo.Name = fieldSymbol.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
-
-                StaticFieldDefinitions.Add(fieldSymbol, (fieldInfo.Name, typeDeclaration, assignmentExpression));
-            }
-            else
-            {
-                // We failed to process the field for whatever reason. Just stop rewriting it and return
-                // the current updated node. We'll have some diagnostic for this case emitted previously.
                 return node;
             }
+
+            return IdentifierName(fieldInfo.Name);
         }
 
-        return IdentifierName(fieldInfo.Name);
+        // Use the fully qualified name of the field as identifier, not just the field name
+        string name = fieldSymbol.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
+
+        // Claim the entry before rewriting, the way an imported method and constructor already do, so that
+        // an initializer reaching itself is seen above rather than adding the same key a second time
+        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null));
+
+        // Execute the same logic as for shader static fields, to process them and extract the relevant info
+        if (!HlslDefinitionsSyntaxProcessor.TryGetStaticField(
+            this.shaderType,
+            fieldSymbol,
+            SemanticModel,
+            DiscoveredTypes,
+            this.staticMethods,
+            this.instanceMethods,
+            this.constructors,
+            ConstantDefinitions,
+            StaticFieldDefinitions,
+            Requirements,
+            Diagnostics,
+            CancellationToken,
+            out _,
+            out string? typeDeclaration,
+            out string? assignmentExpression,
+            out StaticFieldRewriter? staticFieldRewriter))
+        {
+            // We failed to process the field for whatever reason. Release the claim, stop rewriting it and
+            // return the current updated node. We'll have some diagnostic for this case emitted previously.
+            _ = StaticFieldDefinitions.Remove(fieldSymbol);
+
+            return node;
+        }
+
+        // An initializer may import a method of its own, whose local functions are lifted the same
+        // way as the ones reached from a method body, so they are carried up here
+        foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in staticFieldRewriter.LocalFunctions)
+        {
+            this.localFunctions[localFunction.Key] = localFunction.Value;
+        }
+
+        StaticFieldDefinitions[fieldSymbol] = (name, typeDeclaration, assignmentExpression);
+
+        return IdentifierName(name);
     }
 
     /// <summary>

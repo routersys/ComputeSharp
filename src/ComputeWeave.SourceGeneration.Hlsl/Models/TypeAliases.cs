@@ -8,6 +8,6 @@ global using HlslUserType = (string Name, string Definition);
 global using HlslResourceField = (string MetadataName, string Name, string Type);
 global using HlslValueField = (string Name, string Type);
 global using HlslResourceTextureField = (string Name, string Type, int Index);
-global using HlslStaticField = (string Name, string TypeDeclaration, string? Assignment);
+global using HlslStaticField = (string Name, string? TypeDeclaration, string? Assignment);
 global using HlslSharedBuffer = (string Name, string Type, int? Count);
 global using HlslMethod = (string Signature, string Declaration);

@@ -1445,4 +1445,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "A local function is lifted to a top level HLSL function, which carries its type parameter list with it. HLSL has no type parameters, so the lifted function does not compile. The declaration is refused rather than the call, because a local function that is never called is lifted just the same.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a static field initializer reaching the field it initializes.
+    /// <para>
+    /// Format: <c>"The static field {0} is initialized from an expression that reads it back, directly or through a declaration that initializer reaches"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor CyclicStaticFieldInitializer = new(
+        id: "CMPWD2D0096",
+        title: "Static field initializer reaching the field it initializes",
+        messageFormat: "The static field {0} is initialized from an expression that reads it back, directly or through a declaration that initializer reaches",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "C# runs the initializer once, and where the cycle closes it reads the field as its default value, so the field holds whatever that produces. HLSL has no defined order for global static initializers, so the value the shader computes is not the one C# computes, and the shader compiler accepts the source without saying anything: the generated HLSL was measured to compile with the cycle written out as it stands. Before this report the generator faulted instead, adding the same key to the collection of static field definitions twice, which discards the descriptors for every shader in the compilation unit and leaves the author with errors that name none of this.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
