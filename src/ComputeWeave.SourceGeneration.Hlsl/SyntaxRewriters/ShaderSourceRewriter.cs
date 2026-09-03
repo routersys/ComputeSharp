@@ -847,7 +847,7 @@ internal sealed partial class ShaderSourceRewriter(
             // the default parameterless constructor. In that case, we just fallback to a default value.
             if (updatedNode.ArgumentList is not { Arguments.Count: > 0 } && constructor.IsImplicitlyDeclared)
             {
-                return DefaultValueExpression(targetType);
+                return GetDefaultValueExpression(targetType);
             }
 
             string returnTypeHlslIdentifier = typeSymbol.GetFullyQualifiedName().ToHlslIdentifierName();
@@ -873,7 +873,7 @@ internal sealed partial class ShaderSourceRewriter(
                         Diagnostics.Add(InvalidPrimaryConstructorUse, node, typeSymbol);
                     }
 
-                    return DefaultValueExpression(targetType);
+                    return GetDefaultValueExpression(targetType);
                 }
 
                 // Chaining constructors is not supported, so emit a diagnostic to inform the user.
@@ -933,7 +933,7 @@ internal sealed partial class ShaderSourceRewriter(
                         LocalDeclarationStatement(
                             VariableDeclaration(IdentifierName(returnTypeHlslIdentifier)).AddVariables(
                                 VariableDeclarator(Identifier("__this")).WithInitializer(EqualsValueClause(
-                                    DefaultValueExpression(targetType))))),
+                                    GetDefaultValueExpression(targetType))))),
                         ExpressionStatement(
                             InvocationExpression(
                                 MemberAccessExpression(
@@ -965,7 +965,7 @@ internal sealed partial class ShaderSourceRewriter(
                 .WithArgumentList(updatedNode.ArgumentList!);
         }
 
-        return DefaultValueExpression(targetType);
+        return GetDefaultValueExpression(targetType);
     }
 
     /// <summary>

@@ -154,7 +154,7 @@ internal abstract partial class HlslSourceRewriter(
         {
             Diagnostics.Add(InvalidObjectCreationExpression, node, "<invalid>");
 
-            return DefaultValueExpression(targetType);
+            return GetDefaultValueExpression(targetType);
         }
 
         // Emit a diagnostic if the object being created is not valid (ie. it's a managed type)
@@ -162,7 +162,7 @@ internal abstract partial class HlslSourceRewriter(
         {
             Diagnostics.Add(InvalidObjectCreationExpression, node, typeSymbol);
 
-            return DefaultValueExpression(targetType);
+            return GetDefaultValueExpression(targetType);
         }
 
         // Mutate the syntax like with explicit object creation expressions. This also handles object
@@ -171,7 +171,7 @@ internal abstract partial class HlslSourceRewriter(
         // to create an object and immediately set some values, they should use a factory method.
         if (updatedNode is not { ArgumentList.Arguments.Count: >= 0, Initializer: null })
         {
-            return DefaultValueExpression(targetType);
+            return GetDefaultValueExpression(targetType);
         }
 
         string typeName = typeSymbol.GetFullyQualifiedMetadataName();
@@ -182,7 +182,7 @@ internal abstract partial class HlslSourceRewriter(
             // We need to add this check here because for user defined types, there may be explicit constructors.
             if (updatedNode.ArgumentList.Arguments.Count == 0)
             {
-                return DefaultValueExpression(targetType);
+                return GetDefaultValueExpression(targetType);
             }
 
             // Add explicit casts to each individual argument
@@ -223,7 +223,7 @@ internal abstract partial class HlslSourceRewriter(
         updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type, node.Type, SemanticModel.For(node));
 
         // A default expression becomes (T)0 in HLSL
-        return DefaultValueExpression(updatedNode.Type);
+        return GetDefaultValueExpression(updatedNode.Type);
     }
 
     /// <inheritdoc/>
@@ -238,7 +238,7 @@ internal abstract partial class HlslSourceRewriter(
             TypeSyntax type = TrackType(node, SemanticModel.For(node));
 
             // Same HLSL-style expression in the form (T)0
-            return DefaultValueExpression(type);
+            return GetDefaultValueExpression(type);
         }
         else if (updatedNode.IsKind(SyntaxKind.NumericLiteralExpression) &&
                  SemanticModel.For(node).GetOperation(node, CancellationToken) is ILiteralOperation operation &&
@@ -483,7 +483,7 @@ internal abstract partial class HlslSourceRewriter(
     /// </summary>
     /// <param name="type">The <see cref="TypeSyntax"/> to produce the default value of.</param>
     /// <returns>The <see cref="ExpressionSyntax"/> for the default value of <paramref name="type"/>.</returns>
-    protected static ExpressionSyntax DefaultValueExpression(TypeSyntax type)
+    protected static ExpressionSyntax GetDefaultValueExpression(TypeSyntax type)
     {
         return CastExpression(type, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
     }
