@@ -280,8 +280,8 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     /// A refused construct that carries syntax the set has no verdict for, both under it and beside it.
     /// </summary>
     /// <remarks>
-    /// The rewriter is shared, so the drop is too, but the identifiers are declared on each side and the set
-    /// this reads is the one this generator produced.
+    /// The helper that drops them is shared, but each generator calls it with the descriptor its own side
+    /// declares, so one side answering for this says nothing about the other.
     /// </remarks>
     [TestMethod]
     public void ARefusedConstructIsNotRecordedAsSyntaxWithNoVerdict()

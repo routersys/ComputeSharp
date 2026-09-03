@@ -186,7 +186,7 @@ public class RefusedConstructTests
                 k += Fib(3) + (int)v;
                 """,
                 isUnsafe: false),
-            "ShaderReportedCompilerFailureTests");
+            "ShaderReportedRefusalTests");
 
         Assert.AreEqual("CMPW0121", Ids(reported));
     }
