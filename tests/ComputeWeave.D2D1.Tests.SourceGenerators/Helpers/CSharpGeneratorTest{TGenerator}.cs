@@ -174,14 +174,14 @@ internal static class CSharpGeneratorTest<TGenerator>
                     .SelectMany(output => output.Outputs)
                     .Count());
 
-            // The "Diagnostics" name has one more parent compared to "Output", because it also
-            // has one extra Where(...) call on the node (used to filter out empty diagnostics).
+            // The output step for the diagnostics is the one reached from the "Diagnostics" node, however
+            // many nodes sit between them: the sequence is filtered, and then combined with the compilation.
             Assert.AreEqual(
                 expected: diagnosticsSourceReason,
                 actual:
                     result.TrackedOutputSteps
                     .Single().Value
-                    .Single(run => run.Inputs[0].Source.Inputs[0].Source.Name == "Diagnostics")
+                    .Single(run => ComesFrom(run, "Diagnostics"))
                     .Outputs.Single().Reason);
 
             Assert.AreEqual(
@@ -216,6 +216,34 @@ internal static class CSharpGeneratorTest<TGenerator>
         {
             Assert.IsFalse(result.TrackedSteps.ContainsKey("Diagnostics"));
         }
+    }
+
+    /// <summary>
+    /// Checks whether an incremental step is reached from a node carrying a given tracking name.
+    /// </summary>
+    /// <param name="step">The step to walk up from.</param>
+    /// <param name="name">The tracking name to look for.</param>
+    /// <returns>Whether <paramref name="step"/> is reached from a node named <paramref name="name"/>.</returns>
+    /// <remarks>
+    /// Counting the nodes between two names instead would tie the assertion to the shape of the pipeline,
+    /// which is not what it is measuring, and a node added between them reads as the step having vanished.
+    /// </remarks>
+    private static bool ComesFrom(IncrementalGeneratorRunStep step, string name)
+    {
+        if (step.Name == name)
+        {
+            return true;
+        }
+
+        foreach ((IncrementalGeneratorRunStep Source, int OutputIndex) input in step.Inputs)
+        {
+            if (ComesFrom(input.Source, name))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

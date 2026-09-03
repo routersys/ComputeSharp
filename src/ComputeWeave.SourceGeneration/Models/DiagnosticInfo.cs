@@ -24,15 +24,16 @@ internal sealed record DiagnosticInfo(
     /// <summary>
     /// Creates a new <see cref="Diagnostic"/> instance with the state from this model.
     /// </summary>
+    /// <param name="compilation">The <see cref="Compilation"/> the diagnostic is reported for.</param>
     /// <returns>A new <see cref="Diagnostic"/> instance with the state from this model.</returns>
-    public Diagnostic ToDiagnostic()
+    public Diagnostic ToDiagnostic(Compilation compilation)
     {
         if (SyntaxTree is not null)
         {
             return Diagnostic.Create(Descriptor, Location.Create(SyntaxTree, TextSpan), Arguments.ToArray());
         }
 
-        return Diagnostic.Create(Descriptor, ExternalLocation?.ToLocation(), Arguments.ToArray());
+        return Diagnostic.Create(Descriptor, ExternalLocation?.ToLocation(compilation), Arguments.ToArray());
     }
 
     /// <summary>

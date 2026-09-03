@@ -24,13 +24,16 @@ public class DiagnosticLocationTests
     // A shipped descriptor is borrowed because declaring one here would ask for analyzer release tracking
     private static readonly DiagnosticDescriptor Descriptor = DiagnosticDescriptors.MissingRequiresDoublePrecisionSupportAttribute;
 
+    // The rows that have nothing to resolve are handed a compilation holding no tree at all
+    private static readonly CSharpCompilation Empty = CSharpCompilation.Create("DiagnosticLocationEmpty");
+
     [TestMethod]
     public void ALocationInsideATreeIsReportedAtThatTree()
     {
         SyntaxTree tree = CompilationHelper.ParseTree("class Shader { }");
         SyntaxNode node = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
 
-        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, node.GetLocation(), "Shader").ToDiagnostic();
+        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, node.GetLocation(), "Shader").ToDiagnostic(Empty);
 
         Assert.AreEqual(LocationKind.SourceFile, diagnostic.Location.Kind);
         Assert.AreSame(tree, diagnostic.Location.SourceTree);
@@ -44,7 +47,7 @@ public class DiagnosticLocationTests
         LinePositionSpan lineSpan = new(new LinePosition(4, 8), new LinePosition(4, 14));
         Location location = Location.Create("Shader.cs", span, lineSpan);
 
-        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, location, "Shader").ToDiagnostic();
+        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, location, "Shader").ToDiagnostic(Empty);
 
         Assert.AreEqual(LocationKind.ExternalFile, diagnostic.Location.Kind);
         Assert.AreEqual("Shader.cs", diagnostic.Location.GetLineSpan().Path);
@@ -60,7 +63,7 @@ public class DiagnosticLocationTests
 
         Assert.AreEqual(LocationKind.MetadataFile, location.Kind);
 
-        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, location, "Shader").ToDiagnostic();
+        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, location, "Shader").ToDiagnostic(compilation);
 
         Assert.AreEqual(Location.None, diagnostic.Location);
     }
@@ -68,7 +71,7 @@ public class DiagnosticLocationTests
     [TestMethod]
     public void NoLocationIsReportedWithoutOne()
     {
-        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, (Location?)null, "Shader").ToDiagnostic();
+        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, (Location?)null, "Shader").ToDiagnostic(Empty);
 
         Assert.AreEqual(Location.None, diagnostic.Location);
     }
