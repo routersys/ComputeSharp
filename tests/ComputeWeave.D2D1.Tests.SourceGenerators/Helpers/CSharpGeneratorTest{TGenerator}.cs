@@ -100,6 +100,23 @@ internal static class CSharpGeneratorTest<TGenerator>
     }
 
     /// <summary>
+    /// Runs a source generator over a source parsed under a path, and gets the diagnostics it reports.
+    /// </summary>
+    /// <param name="source">The input source to process.</param>
+    /// <param name="path">The path to parse <paramref name="source"/> under.</param>
+    /// <returns>The diagnostics the generator reported for <paramref name="source"/>.</returns>
+    /// <remarks>
+    /// A tree parsed without a path names no file, and a location captured by value names one, so only a
+    /// caller measuring which tree a diagnostic lands in has anything to say about what the file is called.
+    /// </remarks>
+    public static ImmutableArray<Diagnostic> GetReportedDiagnostics(string source, string path)
+    {
+        RunGenerator(source, out _, out ImmutableArray<Diagnostic> diagnostics, path: path);
+
+        return diagnostics;
+    }
+
+    /// <summary>
     /// Verifies the resulting sources produced by a source generator.
     /// </summary>
     /// <param name="source">The input source to process.</param>
@@ -251,8 +268,9 @@ internal static class CSharpGeneratorTest<TGenerator>
     /// </summary>
     /// <param name="source">The input source to process.</param>
     /// <param name="languageVersion">The language version to use to run the test.</param>
+    /// <param name="path">The path to parse <paramref name="source"/> under.</param>
     /// <returns>The resulting <see cref="Compilation"/> object.</returns>
-    private static CSharpCompilation CreateCompilation(string source, LanguageVersion languageVersion = LanguageVersion.CSharp14)
+    private static CSharpCompilation CreateCompilation(string source, LanguageVersion languageVersion = LanguageVersion.CSharp14, string path = "")
     {
         // Get all assembly references for the .NET TFM and ComputeWeave
         IEnumerable<MetadataReference> metadataReferences =
@@ -272,7 +290,8 @@ internal static class CSharpGeneratorTest<TGenerator>
         // Parse the source text
         SyntaxTree sourceTree = CSharpSyntaxTree.ParseText(
             source,
-            CSharpParseOptions.Default.WithLanguageVersion(languageVersion));
+            CSharpParseOptions.Default.WithLanguageVersion(languageVersion),
+            path);
 
         // Create the original compilation
         return CSharpCompilation.Create(
@@ -289,13 +308,15 @@ internal static class CSharpGeneratorTest<TGenerator>
     /// <param name="compilation"><inheritdoc cref="GeneratorDriver.RunGeneratorsAndUpdateCompilation" path="/param[@name='outputCompilation']/node()"/></param>
     /// <param name="diagnostics"><inheritdoc cref="GeneratorDriver.RunGeneratorsAndUpdateCompilation" path="/param[@name='diagnostics']/node()"/></param>
     /// <param name="languageVersion">The language version to use to run the test.</param>
+    /// <param name="path">The path to parse <paramref name="source"/> under.</param>
     private static void RunGenerator(
         string source,
         out Compilation compilation,
         out ImmutableArray<Diagnostic> diagnostics,
-        LanguageVersion languageVersion = LanguageVersion.CSharp14)
+        LanguageVersion languageVersion = LanguageVersion.CSharp14,
+        string path = "")
     {
-        Compilation originalCompilation = CreateCompilation(source, languageVersion);
+        Compilation originalCompilation = CreateCompilation(source, languageVersion, path);
 
         // Create the generator driver with the D2D shader generator
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new TGenerator()).WithUpdatedParseOptions(originalCompilation.SyntaxTrees.First().Options);

@@ -100,6 +100,26 @@ public class ShaderGeneratorDiagnosticLocationTests
         AssertReportedAt(UnnecessaryAttributeSource, "CMPW0065", "[RequiresDoublePrecisionSupport]");
     }
 
+    /// <summary>
+    /// Where a diagnostic lands is a line and a column to the author, and a tree to the compiler: a
+    /// <c>#pragma</c> and the analyzer configuration entries for a file are applied through the tree.
+    /// </summary>
+    [TestMethod]
+    public void AnUnnecessaryDoublePrecisionSupportAttributeIsReportedInsideTheTree()
+    {
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation(UnnecessaryAttributeSource, "ShaderDiagnosticLocationInTree");
+        SyntaxTree tree = compilation.SyntaxTrees.Single();
+        SyntaxTree named = CSharpSyntaxTree.ParseText(tree.GetText(), (CSharpParseOptions)tree.Options, "Shader.cs");
+
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation.ReplaceSyntaxTree(tree, named)).GetRunResult().Results[0];
+
+        Diagnostic diagnostic = result.Diagnostics.Single(diagnostic => diagnostic.Id == "CMPW0065");
+
+        Assert.AreEqual(LocationKind.SourceFile, diagnostic.Location.Kind);
+        Assert.AreSame(named, diagnostic.Location.SourceTree);
+    }
+
     private static void AssertReportedAt(string source, string expectedId, string expectedLineText)
     {
         CSharpCompilation compilation = CompilationHelper.CreateCompilation(source, $"ShaderDiagnosticLocation{expectedId}");

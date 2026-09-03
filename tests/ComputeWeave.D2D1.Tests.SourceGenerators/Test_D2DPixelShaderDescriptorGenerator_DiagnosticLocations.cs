@@ -98,6 +98,21 @@ public class Test_D2DPixelShaderDescriptorGenerator_DiagnosticLocations
         AssertReportedAt(UnnecessaryAttributeSource, "CMPWD2D0081", "[D2DRequiresDoublePrecisionSupport]");
     }
 
+    /// <summary>
+    /// Where a diagnostic lands is a line and a column to the author, and a tree to the compiler: a
+    /// <c>#pragma</c> and the analyzer configuration entries for a file are applied through the tree.
+    /// </summary>
+    [TestMethod]
+    public void UnnecessaryD2DRequiresDoublePrecisionSupportAttributeIsReportedInsideTheTree()
+    {
+        Diagnostic diagnostic = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>
+            .GetReportedDiagnostics(UnnecessaryAttributeSource, "Shader.cs")
+            .Single(diagnostic => diagnostic.Id == "CMPWD2D0081");
+
+        Assert.AreEqual(LocationKind.SourceFile, diagnostic.Location.Kind);
+        Assert.AreEqual("Shader.cs", diagnostic.Location.SourceTree!.FilePath);
+    }
+
     private static void AssertReportedAt(string source, string expectedId, string expectedLineText)
     {
         Diagnostic diagnostic = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>
