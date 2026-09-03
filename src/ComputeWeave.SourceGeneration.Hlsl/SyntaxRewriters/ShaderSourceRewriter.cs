@@ -445,7 +445,7 @@ internal sealed partial class ShaderSourceRewriter(
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation { Field.IsStatic: true } operation &&
             !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, this.shaderType))
         {
-            return VisitExternalStaticFieldAccess(null, operation.Field) ?? base.VisitIdentifierName(node);
+            return VisitExternalStaticFieldAccess(node, null, operation.Field) ?? base.VisitIdentifierName(node);
         }
 
         return base.VisitIdentifierName(node);
@@ -513,7 +513,7 @@ internal sealed partial class ShaderSourceRewriter(
                         return IdentifierName(mappedFieldName ?? fieldOperation.Field.Name);
                     }
 
-                    return VisitExternalStaticFieldAccess(updatedNode, fieldOperation.Field);
+                    return VisitExternalStaticFieldAccess(node, updatedNode, fieldOperation.Field);
                 }
             }
 
@@ -965,23 +965,25 @@ internal sealed partial class ShaderSourceRewriter(
     /// <summary>
     /// Visits a static field access in an external type and rewrites it as needed.
     /// </summary>
-    /// <param name="node">The current <see cref="SyntaxNode"/> instance for the static field.</param>
+    /// <param name="node">The <see cref="SyntaxNode"/> the access was written as, used as location.</param>
+    /// <param name="updatedNode">The rewritten <see cref="SyntaxNode"/> to fall back to, if there is one.</param>
     /// <param name="fieldSymbol">The <see cref="IFieldSymbol"/> instance for <paramref name="node"/>.</param>
     /// <returns>The rewritten static field expression.</returns>
-    [return: NotNullIfNotNull(nameof(node))]
-    private SyntaxNode? VisitExternalStaticFieldAccess(SyntaxNode? node, IFieldSymbol fieldSymbol)
+    /// <remarks>
+    /// The location is taken from the node the author wrote and not from the field symbol, so that a cycle
+    /// closed from two declarations names both of the reads rather than naming the field declaration twice.
+    /// </remarks>
+    [return: NotNullIfNotNull(nameof(updatedNode))]
+    private SyntaxNode? VisitExternalStaticFieldAccess(SyntaxNode node, SyntaxNode? updatedNode, IFieldSymbol fieldSymbol)
     {
         if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo))
         {
             // An entry with no type declaration is one still being rewritten, so the initializer has
-            // reached the field it initializes and the expression cannot be written out. The cycle
-            // closes once per declaration the initializer reaches that reads the field back, and all
-            // of them name the same declaration, so the report is added only if it is not there yet
+            // reached the field it initializes. HLSL has no defined order for its global static
+            // initializers, so the value the shader reads here is not the one C# computes
             if (fieldInfo.TypeDeclaration is null)
             {
-                Diagnostics.AddOnce(CyclicStaticFieldInitializer, fieldSymbol, fieldSymbol);
-
-                return node;
+                Diagnostics.Add(CyclicStaticFieldInitializer, node, fieldSymbol);
             }
 
             return IdentifierName(fieldInfo.Name);
@@ -1015,9 +1017,10 @@ internal sealed partial class ShaderSourceRewriter(
         {
             // We failed to process the field for whatever reason. Release the claim, stop rewriting it and
             // return the current updated node. We'll have some diagnostic for this case emitted previously.
+            // The claim goes with it, so a later access finds the field unprocessed rather than as a cycle
             _ = StaticFieldDefinitions.Remove(fieldSymbol);
 
-            return node;
+            return updatedNode;
         }
 
         // An initializer may import a method of its own, whose local functions are lifted the same
