@@ -85,6 +85,12 @@ public class AcceptedSyntaxSetTests
     [DataRow("float v = k is 1 ? 3.0f : 4.0f;", "ShaderIsPatternSyntaxTests", "IsPatternExpression")]
     [DataRow("float v = 5; v = v!;", "ShaderSuppressNullableSyntaxTests", "SuppressNullableWarningExpression")]
     [DataRow("float v = 5; goto done; done: v += 1;", "ShaderGotoSyntaxTests", "GotoStatement")]
+
+    // A named argument is refused rather than written out with the name taken off, which would bind by position
+    [DataRow(
+        "static float Scale(float value, float factor) => value * factor; float v = Scale(factor: 2.0f, value: 1.0f);",
+        "ShaderNamedArgumentSyntaxTests",
+        "NameColon")]
     public void SyntaxOutsideTheSetIsReported(string body, string assemblyName, string expected)
     {
         string source = $$"""
