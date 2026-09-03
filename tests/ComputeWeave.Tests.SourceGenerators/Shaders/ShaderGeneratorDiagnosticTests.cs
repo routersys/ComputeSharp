@@ -255,6 +255,146 @@ public class ShaderGeneratorDiagnosticTests
             """;
     }
 
+    /// <summary>
+    /// A static field initializer that reaches the field it initializes. C# runs the initializer once and
+    /// reads the field as its default value where the cycle closes, but HLSL leaves the order of its global
+    /// static initializers undefined, so the shader computes a value C# never produces.
+    /// </summary>
+    /// <remarks>
+    /// The cycle closes through an imported declaration in both rows. An initializer reading a static field
+    /// directly is handled by the rewriter for initializers, which rewrites constants alone, so it reaches
+    /// neither the site this diagnostic is reported from nor the fault that site used to raise.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "StaticFieldCycleThroughAMethodTests",
+        """
+        internal static class Helper
+        {
+            public static readonly float Value = Twice();
+
+            public static float Twice() => Value * 2;
+        }
+        """)]
+    [DataRow(
+        "StaticFieldCycleThroughAConstructorTests",
+        """
+        internal static class Helper
+        {
+            public static readonly float Value = new Box().Amount;
+
+            public struct Box
+            {
+                public float Amount;
+
+                public Box()
+                {
+                    Amount = Value * 2;
+                }
+            }
+        }
+        """)]
+    public void AStaticFieldInitializerReachingItselfIsDiagnosed(string assemblyName, string declarations)
+    {
+        AssertReportsOnce(CycleShader(declarations), assemblyName, "CMPW0124");
+    }
+
+    /// <summary>
+    /// A cycle the initializer closes through two declarations is reported once. Both of them name the
+    /// same field declaration, so a report per declaration reads as two cycles where there is one.
+    /// </summary>
+    [TestMethod]
+    public void AStaticFieldInitializerReachingItselfTwiceIsDiagnosedOnce()
+    {
+        const string Declarations = """
+            internal static class Helper
+            {
+                public static readonly float Value = Twice() + Thrice();
+
+                public static float Twice() => Value * 2;
+
+                public static float Thrice() => Value * 3;
+            }
+            """;
+
+        AssertReportsOnce(CycleShader(Declarations), "StaticFieldCycleReachedTwiceTests", "CMPW0124");
+    }
+
+    /// <summary>
+    /// An initializer that imports a method not reading the field back is left alone. Reporting on the
+    /// import itself would refuse every initializer that calls anything.
+    /// </summary>
+    /// <remarks>
+    /// The field is read twice, unlike the rows above. A shader reading it once never returns to the entry
+    /// the rewriting completed, so nothing measures which of the two kinds of entry the report is attached
+    /// to; a shader reading it twice does, but on a cycle the second read reports and the row passes whether
+    /// or not the first one did. One row of each shape measures both.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldInitializerImportingAMethodIsNotDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static readonly float Value = Twice();
+
+                public static float Twice() => 2.0f;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Helper.Value;
+                    this.buffer[1] = Helper.Value;
+                }
+            }
+            """;
+
+        AssertDoesNotReport(Source, "StaticFieldWithoutACycleTests", "CMPW0124");
+    }
+
+    private static string CycleShader(string declarations)
+    {
+        return $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            {{declarations}}
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Helper.Value;
+                }
+            }
+            """;
+    }
+
+    private static void AssertReportsOnce(string source, string assemblyName, string expectedId)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        Assert.AreEqual(
+            1,
+            actualIds.Count(id => id == expectedId),
+            $"{expectedId} is not reported exactly once: {string.Join(", ", actualIds)}");
+    }
+
     private static void AssertReports(string source, string assemblyName, string expectedId)
     {
         string[] actualIds = Run(source, assemblyName);
@@ -280,6 +420,7 @@ public class ShaderGeneratorDiagnosticTests
 
         Assert.IsNull(result.Exception, result.Exception?.ToString());
 
-        return [.. result.Diagnostics.Select(static diagnostic => diagnostic.Id).Distinct().Order()];
+        // Not made distinct, so that a row can assert how many times an identifier was reported
+        return [.. result.Diagnostics.Select(static diagnostic => diagnostic.Id).Order()];
     }
 }
