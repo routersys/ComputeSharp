@@ -185,6 +185,50 @@ public class AcceptedSyntaxSetTests
             string.Join(", ", result.GeneratedSources.Select(static source => source.HintName)));
     }
 
+    /// <summary>
+    /// An attribute of the author's own, carrying syntax the set has no verdict for, on an imported method.
+    /// </summary>
+    /// <remarks>
+    /// The rewriting drops the attribute lists rather than writing them out, so what they hold never reaches
+    /// the shader compiler, and refusing it would refuse a construct that cannot change the generated HLSL.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxInsideAnAttributeIsNotReported()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal sealed class MarkAttribute : System.Attribute
+            {
+                public int Order { get; set; }
+            }
+
+            internal static class Helper
+            {
+                [Mark(Order = 1)]
+                public static float Twice(float value) => value * 2;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Twice(2.0f);
+                }
+            }
+            """;
+
+        Diagnostic[] reports = Run(Source, "ShaderAttributeSyntaxTests");
+
+        Assert.AreEqual(0, reports.Length, string.Join(", ", reports.Select(static report => report.GetMessage())));
+    }
+
     [TestMethod]
     public void AKindUsedManyTimesIsReportedOnce()
     {
