@@ -508,6 +508,8 @@ internal sealed partial class ShaderSourceRewriter(
                     // is often the case if they're accessed from external types. So we just map the name and use that expression.
                     if (SymbolEqualityComparer.Default.Equals(fieldOperation.Field.ContainingType, this.shaderType))
                     {
+                        ReportCyclicStaticFieldInitializer(node, fieldOperation.Field);
+
                         _ = HlslKnownKeywords.TryGetMappedName(fieldOperation.Field.Name, out string? mappedFieldName);
 
                         return IdentifierName(mappedFieldName ?? fieldOperation.Field.Name);
@@ -981,13 +983,7 @@ internal sealed partial class ShaderSourceRewriter(
     {
         if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo))
         {
-            // An entry with no type declaration is one still being rewritten, so the initializer has
-            // reached the field it initializes. HLSL has no defined order for its global static
-            // initializers, so the value the shader reads here is not the one C# computes
-            if (fieldInfo.TypeDeclaration is null)
-            {
-                Diagnostics.Add(CyclicStaticFieldInitializer, node, fieldSymbol);
-            }
+            ReportCyclicStaticFieldInitializer(node, fieldSymbol);
 
             return IdentifierName(fieldInfo.Name);
         }
@@ -995,11 +991,9 @@ internal sealed partial class ShaderSourceRewriter(
         // Use the fully qualified name of the field as identifier, not just the field name
         string name = fieldSymbol.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
 
-        // Claim the entry before rewriting, the way an imported method and constructor already do, so that
-        // an initializer reaching itself is seen above rather than adding the same key a second time
-        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null));
-
-        // Execute the same logic as for shader static fields, to process them and extract the relevant info
+        // Execute the same logic as for shader static fields, to process them and extract the relevant info.
+        // The entry is claimed in there, before the initializer is rewritten, so a read of this field from
+        // within its own initializer finds it above rather than starting a second rewriting of it
         if (!HlslDefinitionsSyntaxProcessor.TryGetStaticField(
             this.shaderType,
             fieldSymbol,

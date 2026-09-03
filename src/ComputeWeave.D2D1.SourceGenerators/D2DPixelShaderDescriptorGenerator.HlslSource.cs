@@ -357,10 +357,15 @@ partial class D2DPixelShaderDescriptorGenerator
                 }
             }
 
-            // Also gather the external static fields (same as in the DX12 generator)
-            foreach (HlslStaticField externalField in staticFieldDefinitions.Values)
+            // Also gather the external static fields. The collection holds the fields of the shader
+            // as well, the processor claiming an entry for each one so that an initializer reading the
+            // field it writes can be seen, and those are already in the builder from the loop above
+            foreach (KeyValuePair<IFieldSymbol, HlslStaticField> externalField in staticFieldDefinitions)
             {
-                builder.Add(externalField);
+                if (!SymbolEqualityComparer.Default.Equals(externalField.Key.ContainingType, structDeclarationSymbol))
+                {
+                    builder.Add(externalField.Value);
+                }
             }
 
             return builder.ToImmutable();

@@ -116,6 +116,12 @@ internal static class HlslDefinitionsSyntaxProcessor
 
         token.ThrowIfCancellationRequested();
 
+        // Claim the entry before rewriting, the way an imported method and constructor already do, so that an
+        // initializer reading the field it writes finds it here. The claim is made for a field of the shader
+        // and for an external one alike: both reach this method, and only this one rewrites an initializer.
+        // The name is the one derived above; a caller that overrides it writes the final one back afterwards
+        staticFieldDefinitions[fieldSymbol] = (name, null, null);
+
         // Create the rewriter to use, which is also returned to callers so they can extract the local
         // functions an initializer lifted out. What the initializer requires of the shader is raised
         // into the shared requirements instead, so a caller has nothing to read back out for that.
@@ -137,6 +143,8 @@ internal static class HlslDefinitionsSyntaxProcessor
         token.ThrowIfCancellationRequested();
 
         assignmentExpression = processedDeclaration?.NormalizeWhitespace(eol: "\n").ToFullString();
+
+        staticFieldDefinitions[fieldSymbol] = (name, typeDeclaration, assignmentExpression);
 
         return true;
 
