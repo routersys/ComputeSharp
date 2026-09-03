@@ -9,11 +9,6 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <inheritdoc/>
 partial class ShaderSourceRewriter
 {
-    /// <summary>
-    /// Gets whether or not the shader needs the <c>[D2DRequiresScenePosition]</c> attribute.
-    /// </summary>
-    public bool NeedsD2DRequiresScenePositionAttribute { get; private set; }
-
     /// <inheritdoc/>
     private partial SyntaxNode RewriteSampledTextureAccess(IInvocationOperation operation, ExpressionSyntax expression, ArgumentSyntax arguments)
     {
@@ -31,12 +26,6 @@ partial class ShaderSourceRewriter
     /// <inheritdoc/>
     partial void TrackKnownMethodInvocation(string metadataName)
     {
-        NeedsD2DRequiresScenePositionAttribute |= HlslKnownMethods.NeedsD2DRequiresScenePositionAttribute(metadataName);
-    }
-
-    /// <inheritdoc/>
-    partial void TrackExternalStaticField(StaticFieldRewriter staticFieldRewriter)
-    {
-        NeedsD2DRequiresScenePositionAttribute |= staticFieldRewriter.NeedsD2DRequiresScenePositionAttribute;
+        Requirements.NeedsD2DRequiresScenePositionAttribute |= HlslKnownMethods.NeedsD2DRequiresScenePositionAttribute(metadataName);
     }
 }

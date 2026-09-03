@@ -30,6 +30,7 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
 /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
 /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+/// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
 /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
 /// <param name="token">The <see cref="CancellationToken"/> value for the current operation.</param>
 /// <param name="isEntryPoint">Whether or not the current instance is processing a shader entry point.</param>
@@ -42,10 +43,11 @@ internal sealed partial class ShaderSourceRewriter(
     IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
     IDictionary<IFieldSymbol, string> constantDefinitions,
     IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+    HlslShaderRequirements requirements,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token,
     bool isEntryPoint = false)
-    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, diagnostics, token)
+    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
 {
     /// <summary>
     /// The type symbol for the shader type.
@@ -392,19 +394,38 @@ internal sealed partial class ShaderSourceRewriter(
     }
 
     /// <summary>
+    /// Creates the rewriter for a declaration reached from the one being rewritten.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="ShaderSourceRewriter"/> instance sharing every collection this one accumulates into,
+    /// the requirements of the shader among them. Only the local functions it lifts out are its own.
+    /// </returns>
+    private ShaderSourceRewriter CreateNestedRewriter()
+    {
+        return new(
+            this.shaderType,
+            SemanticModel,
+            DiscoveredTypes,
+            this.staticMethods,
+            this.instanceMethods,
+            this.constructors,
+            ConstantDefinitions,
+            StaticFieldDefinitions,
+            Requirements,
+            Diagnostics,
+            CancellationToken);
+    }
+
+    /// <summary>
     /// Merges the local functions gathered by a nested rewriter into the current collection.
     /// </summary>
     /// <param name="rewriter">The nested <see cref="ShaderSourceRewriter"/> instance to merge from.</param>
-    private void MergeNestedRewriter(ShaderSourceRewriter rewriter)
+    private void MergeLocalFunctions(ShaderSourceRewriter rewriter)
     {
         foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in rewriter.localFunctions)
         {
             this.localFunctions[localFunction.Key] = localFunction.Value;
         }
-
-        // Everything a nested rewriter found is taken here, so a new piece of state cannot be merged at some
-        // of the three call sites and forgotten at the others
-        TrackNestedRewriter(rewriter);
     }
 
     /// <inheritdoc/>
@@ -693,21 +714,11 @@ internal sealed partial class ShaderSourceRewriter(
                         // value is fine, as the actual rewritten method is not used while rewriting HLSL.
                         this.staticMethods.Add(method, null!);
 
-                        ShaderSourceRewriter shaderSourceRewriter = new(
-                            this.shaderType,
-                            SemanticModel,
-                            DiscoveredTypes,
-                            this.staticMethods,
-                            this.instanceMethods,
-                            this.constructors,
-                            ConstantDefinitions,
-                            StaticFieldDefinitions,
-                            Diagnostics,
-                            CancellationToken);
+                        ShaderSourceRewriter shaderSourceRewriter = CreateNestedRewriter();
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
 
-                        MergeNestedRewriter(shaderSourceRewriter);
+                        MergeLocalFunctions(shaderSourceRewriter);
 
                         this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
                     }
@@ -764,21 +775,11 @@ internal sealed partial class ShaderSourceRewriter(
 
                         this.instanceMethods[method] = null!;
 
-                        ShaderSourceRewriter shaderSourceRewriter = new(
-                            this.shaderType,
-                            SemanticModel,
-                            DiscoveredTypes,
-                            this.staticMethods,
-                            this.instanceMethods,
-                            this.constructors,
-                            ConstantDefinitions,
-                            StaticFieldDefinitions,
-                            Diagnostics,
-                            CancellationToken);
+                        ShaderSourceRewriter shaderSourceRewriter = CreateNestedRewriter();
 
                         MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
 
-                        MergeNestedRewriter(shaderSourceRewriter);
+                        MergeLocalFunctions(shaderSourceRewriter);
 
                         this.instanceMethods[method] = processedMethod;
                     }
@@ -886,21 +887,11 @@ internal sealed partial class ShaderSourceRewriter(
 
                 this.constructors[constructor] = default!;
 
-                ShaderSourceRewriter shaderSourceRewriter = new(
-                    this.shaderType,
-                    SemanticModel,
-                    DiscoveredTypes,
-                    this.staticMethods,
-                    this.instanceMethods,
-                    this.constructors,
-                    ConstantDefinitions,
-                    StaticFieldDefinitions,
-                    Diagnostics,
-                    CancellationToken);
+                ShaderSourceRewriter shaderSourceRewriter = CreateNestedRewriter();
 
                 ConstructorDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(constructorNode)!.WithoutTrivia();
 
-                MergeNestedRewriter(shaderSourceRewriter);
+                MergeLocalFunctions(shaderSourceRewriter);
 
                 // Extracts the arguments from the list of parameters of the current method
                 ArgumentSyntax[] ExtractArguments()
@@ -991,6 +982,7 @@ internal sealed partial class ShaderSourceRewriter(
                 this.constructors,
                 ConstantDefinitions,
                 StaticFieldDefinitions,
+                Requirements,
                 Diagnostics,
                 CancellationToken,
                 out _,
@@ -1042,17 +1034,4 @@ internal sealed partial class ShaderSourceRewriter(
     /// </summary>
     /// <param name="metadataName">The metadata name of the method being invoked.</param>
     partial void TrackKnownMethodInvocation(string metadataName);
-
-    /// <summary>
-    /// Tracks an access to an external static field.
-    /// </summary>
-    /// <param name="staticFieldRewriter">The <see cref="StaticFieldRewriter"/> instance used to rewrite the field expression.</param>
-    partial void TrackExternalStaticField(StaticFieldRewriter staticFieldRewriter);
-
-    /// <summary>
-    /// Tracks the state a nested <see cref="ShaderSourceRewriter"/> gathered while rewriting a method the
-    /// shader calls, if the specialized type has any.
-    /// </summary>
-    /// <param name="rewriter">The nested <see cref="ShaderSourceRewriter"/> that rewrote the called method.</param>
-    partial void TrackNestedRewriter(ShaderSourceRewriter rewriter);
 }

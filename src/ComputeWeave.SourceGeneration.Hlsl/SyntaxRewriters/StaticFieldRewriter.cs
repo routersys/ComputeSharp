@@ -27,6 +27,7 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
 /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
 /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+/// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
 /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
 /// <param name="token">The <see cref="CancellationToken"/> value for the current operation.</param>
 internal sealed partial class StaticFieldRewriter(
@@ -38,9 +39,10 @@ internal sealed partial class StaticFieldRewriter(
     IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
     IDictionary<IFieldSymbol, string> constantDefinitions,
     IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+    HlslShaderRequirements requirements,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token)
-    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, diagnostics, token)
+    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
 {
     /// <summary>
     /// The type symbol for the shader type.
@@ -272,7 +274,8 @@ internal sealed partial class StaticFieldRewriter(
     /// Creates the rewriter that imports a declaration reached from the initializer being rewritten.
     /// </summary>
     /// <returns>
-    /// A <see cref="ShaderSourceRewriter"/> instance sharing the collections this one accumulates into.
+    /// A <see cref="ShaderSourceRewriter"/> instance sharing the collections this one accumulates into,
+    /// the requirements of the shader among them.
     /// The local functions it lifts out are its own, which is what <see cref="MergeImportedLocalFunctions"/> carries over.
     /// </returns>
     private ShaderSourceRewriter CreateImportRewriter()
@@ -286,6 +289,7 @@ internal sealed partial class StaticFieldRewriter(
             constructors,
             ConstantDefinitions,
             StaticFieldDefinitions,
+            Requirements,
             Diagnostics,
             CancellationToken);
     }

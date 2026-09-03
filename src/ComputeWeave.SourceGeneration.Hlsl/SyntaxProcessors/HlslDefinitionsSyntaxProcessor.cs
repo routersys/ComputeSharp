@@ -53,6 +53,7 @@ internal static class HlslDefinitionsSyntaxProcessor
     /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
     /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
     /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+    /// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
     /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
     /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
     /// <param name="name">The mapped name for the field.</param>
@@ -70,6 +71,7 @@ internal static class HlslDefinitionsSyntaxProcessor
         IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
         IDictionary<IFieldSymbol, string> constantDefinitions,
         IDictionary<IFieldSymbol, (string, string, string?)> staticFieldDefinitions,
+        HlslShaderRequirements requirements,
         ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
         CancellationToken token,
         [NotNullWhen(true)] out string? name,
@@ -114,8 +116,9 @@ internal static class HlslDefinitionsSyntaxProcessor
 
         token.ThrowIfCancellationRequested();
 
-        // Create the rewriter to use, which is also returned to callers so they can extract any additional
-        // info if needed. For instance, the D2D generator will check if the dispatch position is required.
+        // Create the rewriter to use, which is also returned to callers so they can extract the local
+        // functions an initializer lifted out. What the initializer requires of the shader is raised
+        // into the shared requirements instead, so a caller has nothing to read back out for that.
         staticFieldRewriter = new StaticFieldRewriter(
             structDeclarationSymbol,
             semanticModel,
@@ -125,6 +128,7 @@ internal static class HlslDefinitionsSyntaxProcessor
             constructors,
             constantDefinitions,
             staticFieldDefinitions,
+            requirements,
             diagnostics,
             token);
 

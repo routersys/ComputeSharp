@@ -7,9 +7,6 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <inheritdoc/>
 partial class StaticFieldRewriter
 {
-    /// <inheritdoc cref="ShaderSourceRewriter.NeedsD2DRequiresScenePositionAttribute"/>
-    public bool NeedsD2DRequiresScenePositionAttribute { get; private set; }
-
     /// <inheritdoc/>
     private partial void TrackKnownPropertyAccess(IMemberReferenceOperation operation, MemberAccessExpressionSyntax node)
     {
@@ -20,9 +17,6 @@ partial class StaticFieldRewriter
     private partial void TrackKnownMethodInvocation(string metadataName)
     {
         // Track whether the method needs [D2DRequiresScenePosition]
-        if (HlslKnownMethods.NeedsD2DRequiresScenePositionAttribute(metadataName))
-        {
-            NeedsD2DRequiresScenePositionAttribute = true;
-        }
+        Requirements.NeedsD2DRequiresScenePositionAttribute |= HlslKnownMethods.NeedsD2DRequiresScenePositionAttribute(metadataName);
     }
 }
