@@ -578,6 +578,59 @@ internal abstract partial class HlslSourceRewriter(
     }
 
     /// <summary>
+    /// Rewrites the arguments of a mapped intrinsic invocation to carry the conversions C# applied to them.
+    /// </summary>
+    /// <param name="node">The original input <see cref="InvocationExpressionSyntax"/> instance.</param>
+    /// <param name="updatedNode">The updated <see cref="InvocationExpressionSyntax"/> instance with tweaked syntax.</param>
+    /// <returns>The invocation with every converted argument written out under the type the call binds to.</returns>
+    /// <remarks>
+    /// <para>
+    /// C# converts an argument to the parameter type of the overload the call binds to, and the rewriting
+    /// writes the argument as it stands, so the shader compiler resolves the call again over the types before
+    /// the conversion. Where the two resolutions disagree the shader computes another value in silence: an
+    /// intrinsic given an int and a uint binds to the floating point overload in C# and to the unsigned one in
+    /// HLSL, which reads a negative value as a large positive one.
+    /// </para>
+    /// <para>
+    /// A cast is written only where the conversion changes the HLSL type name, so an argument the shader
+    /// compiler converts the same way is left as it stands. This runs before the named intrinsics are handled,
+    /// one of them taking arguments whose kinds can be mixed this way.
+    /// </para>
+    /// </remarks>
+    protected InvocationExpressionSyntax VisitConvertedIntrinsicArguments(
+        InvocationExpressionSyntax node,
+        InvocationExpressionSyntax updatedNode)
+    {
+        for (int i = 0; i < node.ArgumentList.Arguments.Count; i++)
+        {
+            // The type to cast to is read from the parameter the argument binds to, the same way the matrix
+            // constructors read theirs. When overload resolution has failed there is no parameter to read, so
+            // the argument is left alone and the C# compiler reports the call
+            if (SemanticModel.For(node).GetOperation(node.ArgumentList.Arguments[i], CancellationToken)
+                is not IArgumentOperation { Parameter.Type: INamedTypeSymbol parameterType })
+            {
+                continue;
+            }
+
+            ITypeSymbol? argumentType = SemanticModel.For(node).GetTypeInfo(node.ArgumentList.Arguments[i].Expression, CancellationToken).Type;
+
+            if (argumentType is null ||
+                !HlslKnownTypes.TryGetMappedName(argumentType.GetFullyQualifiedMetadataName(), out string? argumentTypeName) ||
+                !HlslKnownTypes.TryGetMappedName(parameterType.GetFullyQualifiedMetadataName(), out string? parameterTypeName) ||
+                argumentTypeName == parameterTypeName)
+            {
+                continue;
+            }
+
+            updatedNode = updatedNode.ReplaceNode(
+                updatedNode.ArgumentList.Arguments[i].Expression,
+                CastExpression(IdentifierName(parameterTypeName), updatedNode.ArgumentList.Arguments[i].Expression.AsOperand()));
+        }
+
+        return updatedNode;
+    }
+
+    /// <summary>
     /// Visits a known named intrinsic invocation expression.
     /// </summary>
     /// <param name="node">The original input <see cref="BaseObjectCreationExpressionSyntax"/> instance.</param>

@@ -169,6 +169,9 @@ internal sealed partial class StaticFieldRewriter(
                 }
 #endif
 
+                // Write out the conversions C# applied to the arguments (see HlslSourceRewriter for more info)
+                updatedNode = VisitConvertedIntrinsicArguments(node, updatedNode);
+
                 // Handle named intrinsics (see ShaderSourceRewriter for more info)
                 if (VisitKnownNamedIntrinsicInvocationExpression(node, updatedNode, mapping) is SyntaxNode namedIntrinsic)
                 {
