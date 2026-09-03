@@ -275,7 +275,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderUnreadCustomTypePropertyTests", "CMPW0114");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderUnreadCustomTypePropertyTests", "CMPW0114");
     }
 
     /// <summary>
@@ -305,7 +305,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderMappedPropertyTests", "CMPW0114");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderMappedPropertyTests", "CMPW0114");
     }
 
     /// <summary>
@@ -572,7 +572,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderMappedOperatorTests", "CMPW0115");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderMappedOperatorTests", "CMPW0115");
     }
 
     /// <summary>
@@ -831,7 +831,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderResourceIndexerTests", "CMPW0116");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderResourceIndexerTests", "CMPW0116");
     }
 
     /// <summary>
@@ -863,7 +863,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderVectorAndMatrixIndexerTests", "CMPW0116");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderVectorAndMatrixIndexerTests", "CMPW0116");
     }
 
     /// <summary>
@@ -895,7 +895,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderGroupSharedArrayIndexerTests", "CMPW0116");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderGroupSharedArrayIndexerTests", "CMPW0116");
     }
 
     /// <summary>
@@ -1144,7 +1144,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderNonGenericMethodTests", "CMPW0117");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderNonGenericMethodTests", "CMPW0117");
     }
 
     /// <summary>
@@ -1251,7 +1251,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderNonGenericLocalFunctionTests", "CMPW0122");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderNonGenericLocalFunctionTests", "CMPW0122");
     }
 
     /// <summary>
@@ -1339,7 +1339,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderResourceDimensionTests", "CMPW0118");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderResourceDimensionTests", "CMPW0118");
     }
 
     [TestMethod]
@@ -1463,7 +1463,7 @@ public class ShaderSourceRewriterTests
             }
             """;
 
-        AssertIsNotDiagnosed(Source, "ShaderAllowedOutParameterShapesTests", "CMPW0123");
+        AssertIsCompiledWithoutDiagnostics(Source, "ShaderAllowedOutParameterShapesTests", "CMPW0123");
     }
 
     /// <summary>
@@ -1529,6 +1529,42 @@ public class ShaderSourceRewriterTests
         AssertIsDiagnosedWithoutFaulting(Source, "ShaderStaticFieldIntegerMatrixTests", "CMPW0123");
     }
 
+    /// <summary>
+    /// Runs the generator over a shader an identifier leaves alone, and asserts that it compiles.
+    /// </summary>
+    /// <param name="source">The source of the shader to run the generator over.</param>
+    /// <param name="assemblyName">The name to give the compilation.</param>
+    /// <param name="diagnosticId">The identifier the shader has to stay clear of.</param>
+    /// <remarks>
+    /// The counterpart of <see cref="AssertIsDiagnosedWithoutFaulting"/>. A refusal is pinned by the report it
+    /// makes and by the generator surviving it; an allowance by the shader reaching the shader compiler and
+    /// coming back. Reading one identifier out of the report cannot tell a shape that is correctly allowed from
+    /// one that is quietly broken, a compilation failure arriving under an identifier of its own.
+    /// </remarks>
+    private static void AssertIsCompiledWithoutDiagnostics(string source, string assemblyName, string diagnosticId)
+    {
+        CSharpCompilation compilation = CompilationHelper
+            .CreateCompilation([source], assemblyName)
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+        Assert.IsFalse(
+            result.Diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
+            $"{diagnosticId} leaves this shader alone, so it has to compile: {string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id))}");
+    }
+
+    /// <summary>
+    /// Runs the generator over a shader that is already reported, and asserts one identifier is not added.
+    /// </summary>
+    /// <param name="source">The source of the shader to run the generator over.</param>
+    /// <param name="assemblyName">The name to give the compilation.</param>
+    /// <param name="diagnosticId">The identifier that must not be among the reported ones.</param>
+    /// <remarks>
+    /// Only for an input that carries a report of its own, which is what keeps the assertion this narrow. A
+    /// shader that has to compile is pinned with <see cref="AssertIsCompiledWithoutDiagnostics"/> instead.
+    /// </remarks>
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
         CSharpCompilation compilation = CompilationHelper
