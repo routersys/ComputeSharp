@@ -192,6 +192,24 @@ public class RefusedConstructTests
     }
 
     /// <summary>
+    /// A refused construct that carries syntax the set has no verdict for, both under it and beside it.
+    /// </summary>
+    /// <remarks>
+    /// The refusal names the place the author has to change, so the record is dropped rather than naming the
+    /// array syntax the refused statement holds as well. Reading the whole set is what makes one cause name
+    /// one place, the record and the refusal being produced by different parts of the same walk.
+    /// </remarks>
+    [TestMethod]
+    public void ARefusedConstructIsNotRecordedAsSyntaxWithNoVerdict()
+    {
+        Diagnostic[] reported = Report(
+            Shader("foreach (int value in new int[1]) { k += value; }", isUnsafe: false),
+            "ShaderRefusalWithoutRecordTests");
+
+        Assert.AreEqual("CMPW0017", Ids(reported));
+    }
+
+    /// <summary>
     /// Builds a shader around a body, runs the generator over it, and asserts the refusal is reported.
     /// </summary>
     /// <param name="body">The statements to put in the shader body.</param>

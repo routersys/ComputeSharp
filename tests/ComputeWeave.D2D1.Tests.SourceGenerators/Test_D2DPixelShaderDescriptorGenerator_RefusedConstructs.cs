@@ -277,6 +277,22 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
     }
 
     /// <summary>
+    /// A refused construct that carries syntax the set has no verdict for, both under it and beside it.
+    /// </summary>
+    /// <remarks>
+    /// The rewriter is shared, so the drop is too, but the identifiers are declared on each side and the set
+    /// this reads is the one this generator produced.
+    /// </remarks>
+    [TestMethod]
+    public void ARefusedConstructIsNotRecordedAsSyntaxWithNoVerdict()
+    {
+        ImmutableArray<Diagnostic> reported = CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(
+            Shader("foreach (int value in new int[1]) { k += value; }", isUnsafe: false));
+
+        Assert.AreEqual("CMPWD2D0009", Ids(reported));
+    }
+
+    /// <summary>
     /// Builds a pixel shader around a body, runs the generator over it, and asserts the refusal is reported.
     /// </summary>
     /// <param name="body">The statements to put in the shader body.</param>
