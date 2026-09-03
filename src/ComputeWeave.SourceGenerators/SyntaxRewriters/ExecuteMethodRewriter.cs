@@ -29,21 +29,21 @@ internal abstract class ExecuteMethodRewriter(ShaderSourceRewriter shaderSourceR
     {
         ParameterListSyntax updatedNode = (ParameterListSyntax)base.VisitParameterList(node)!;
 
-        updatedNode = updatedNode.AddParameters(Parameter(Identifier($"uint3 {nameof(ThreadIds)} : SV_DispatchThreadID")));
+        updatedNode = updatedNode.AddParameters(Parameter(Identifier($"int3 {nameof(ThreadIds)} : SV_DispatchThreadID")));
 
         if (ShaderSourceRewriter.IsGroupIdsUsed)
         {
-            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"uint3 {nameof(GroupIds)} : SV_GroupThreadID")));
+            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"int3 {nameof(GroupIds)} : SV_GroupThreadID")));
         }
 
         if (ShaderSourceRewriter.IsGroupIdsIndexUsed)
         {
-            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"uint __{nameof(GroupIds)}__get_Index : SV_GroupIndex")));
+            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"int __{nameof(GroupIds)}__get_Index : SV_GroupIndex")));
         }
 
         if (ShaderSourceRewriter.IsGridIdsUsed)
         {
-            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"uint3 {nameof(GridIds)} : SV_GroupID")));
+            updatedNode = updatedNode.AddParameters(Parameter(Identifier($"int3 {nameof(GridIds)} : SV_GroupID")));
         }
 
         return updatedNode;

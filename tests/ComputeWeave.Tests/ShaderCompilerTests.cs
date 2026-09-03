@@ -322,14 +322,14 @@ namespace ComputeWeave.Tests
                 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
+                    int __x;
+                    int __y;
                 }
                 
                 RWTexture2D<unorm float4> __outputTexture : register(u0);
                 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y)
                     {
@@ -355,15 +355,15 @@ namespace ComputeWeave.Tests
                 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                 }
                 
                 RWStructuredBuffer<float> __reserved__buffer : register(u0);
                 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -698,15 +698,15 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                 }
 
                 globallycoherent RWStructuredBuffer<int> __reserved__buffer : register(u0);
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -794,9 +794,9 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                 }
 
                 RWStructuredBuffer<float> __reserved__buffer : register(u0);
@@ -812,7 +812,7 @@ namespace ComputeWeave.Tests
                 }
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -871,9 +871,9 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                 }
 
                 RWStructuredBuffer<float> __reserved__buffer : register(u0);
@@ -884,7 +884,7 @@ namespace ComputeWeave.Tests
                 }
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -958,9 +958,9 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                 }
 
                 RWStructuredBuffer<int> __reserved__buffer : register(u0);
@@ -977,7 +977,7 @@ namespace ComputeWeave.Tests
                 }
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -1069,9 +1069,9 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                     int number;
                     float4 __reserved__vector;
                 }
@@ -1122,7 +1122,7 @@ namespace ComputeWeave.Tests
                 }
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
@@ -1263,9 +1263,9 @@ namespace ComputeWeave.Tests
 
                 cbuffer _ : register(b0)
                 {
-                    uint __x;
-                    uint __y;
-                    uint __z;
+                    int __x;
+                    int __y;
+                    int __z;
                     float alpha;
                 }
 
@@ -1277,7 +1277,7 @@ namespace ComputeWeave.Tests
                 }
 
                 [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-                void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+                void Execute(int3 ThreadIds : SV_DispatchThreadID)
                 {
                     if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                     {
