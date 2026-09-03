@@ -321,6 +321,44 @@ public class ShaderGeneratorDiagnosticTests
     }
 
     /// <summary>
+    /// A static field of the shader itself, read back by the initializer that writes it. This field is
+    /// collected by the generator rather than by the rewriter, so a row on an external field says nothing
+    /// about it.
+    /// </summary>
+    /// <remarks>
+    /// Only the read written inside the initializer is covered. An initializer that reaches the field
+    /// through a method of the shader is not: such a method is not imported, its body being written by the
+    /// generator on its own, and the pass that writes it runs before any initializer is rewritten.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReachingItselfIsDiagnosed()
+    {
+        const string Member = "private static readonly float Doubled = Doubled * 2;";
+
+        AssertReportsAt(
+            Shader(Member, "this.buffer[0] = Doubled;"),
+            "ShaderStaticFieldCycleReadDirectlyTests",
+            "CMPW0124",
+            1);
+    }
+
+    /// <summary>
+    /// A static field of the shader that reads another one is left alone. Reporting on any read of a static
+    /// field from an initializer would refuse every shader that computes one field from another.
+    /// </summary>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReadingAnotherIsNotDiagnosed()
+    {
+        const string Member = """
+            private static readonly float Base = 2.0f;
+
+                private static readonly float Doubled = Base * 2;
+            """;
+
+        AssertDoesNotReport(Shader(Member, "this.buffer[0] = Doubled;"), "ShaderStaticFieldChainTests", "CMPW0124");
+    }
+
+    /// <summary>
     /// An initializer that imports a method not reading the field back is left alone. Reporting on the
     /// import itself would refuse every initializer that calls anything.
     /// </summary>
