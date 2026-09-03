@@ -80,6 +80,281 @@ public class FullThreadGroupsTests
     }
 
     /// <summary>
+    /// A barrier inside an instance method of a custom type the shader calls.
+    /// </summary>
+    [TestMethod]
+    public void ABarrierInsideAnImportedInstanceMethodDeclaresTheRequirement()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public float Wait()
+                {
+                    Hlsl.GroupMemoryBarrierWithGroupSync();
+
+                    return Amount;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    Helper helper = default;
+
+                    this.buffer[ThreadIds.X] = helper.Wait();
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderBarrierInAnImportedInstanceMethodTests");
+
+        Assert.IsTrue(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
+    /// A barrier inside a constructor the shader calls.
+    /// </summary>
+    [TestMethod]
+    public void ABarrierInsideAnImportedConstructorDeclaresTheRequirement()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public Helper(float amount)
+                {
+                    Hlsl.GroupMemoryBarrierWithGroupSync();
+
+                    Amount = amount;
+                }
+
+                public static float Read(Helper helper) => helper.Amount;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Read(new Helper(2.0f));
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderBarrierInAnImportedConstructorTests");
+
+        Assert.IsTrue(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
+    /// A barrier inside the initializer of a static field of an external type the shader reads.
+    /// </summary>
+    /// <remarks>
+    /// Such a field is rewritten by the rewriter for initializers, which the shader body creates on reading it,
+    /// so this row answers for the path from that rewriter back out to the body that reached it.
+    /// </remarks>
+    [TestMethod]
+    public void ABarrierInsideAnExternalStaticFieldInitializerDeclaresTheRequirement()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Waiter
+            {
+                public static float Wait()
+                {
+                    Hlsl.GroupMemoryBarrierWithGroupSync();
+
+                    return 1;
+                }
+            }
+
+            internal static class Helper
+            {
+                public static readonly float Value = Waiter.Wait();
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Value;
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderBarrierInAnExternalStaticFieldInitializerTests");
+
+        Assert.IsTrue(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
+    /// A barrier inside a method imported by a static field initializer of the shader itself.
+    /// </summary>
+    /// <remarks>
+    /// The initializer is rewritten before the descriptor is written, and the declarations it imports are
+    /// rewritten by a rewriter it creates, so this row answers for the path out of that one.
+    /// </remarks>
+    [TestMethod]
+    public void ABarrierInsideAMethodImportedByAnInitializerDeclaresTheRequirement()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Wait()
+                {
+                    Hlsl.GroupMemoryBarrierWithGroupSync();
+
+                    return 1;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = Helper.Wait();
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale;
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderBarrierInAMethodImportedByAnInitializerTests");
+
+        Assert.IsTrue(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
+    /// A barrier inside a constructor imported by a static field initializer of the shader itself.
+    /// </summary>
+    [TestMethod]
+    public void ABarrierInsideAConstructorImportedByAnInitializerDeclaresTheRequirement()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public Helper(float amount)
+                {
+                    Hlsl.GroupMemoryBarrierWithGroupSync();
+
+                    Amount = amount;
+                }
+
+                public static float Read(Helper helper) => helper.Amount;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = Helper.Read(new Helper(2.0f));
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale;
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderBarrierInAConstructorImportedByAnInitializerTests");
+
+        Assert.IsTrue(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
+    /// The same shapes without a barrier in them. The requirement is raised by the call and not by the path
+    /// that reached it, so a path answering for its own sake would pass every row above on its own.
+    /// </summary>
+    [TestMethod]
+    public void ADeclarationWithoutABarrierLeavesTheRequirementOut()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public Helper(float amount)
+                {
+                    Hlsl.GroupMemoryBarrier();
+
+                    Amount = amount;
+                }
+
+                public static float Read(Helper helper) => helper.Amount;
+            }
+
+            internal static class Outer
+            {
+                public static readonly float Value = Helper.Read(new Helper(2.0f));
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scale = Helper.Read(new Helper(3.0f));
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scale + Outer.Value;
+                }
+            }
+            """;
+
+        string generated = GenerateDescriptor(Source, "ShaderNoBarrierInAnyDeclarationTests");
+
+        Assert.IsFalse(generated.Contains("RequiresFullThreadGroups"), generated);
+    }
+
+    /// <summary>
     /// Runs the generator over a shader carrying a body and gets its generated descriptor.
     /// </summary>
     /// <param name="body">The statements to put in the shader body.</param>

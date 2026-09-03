@@ -528,6 +528,155 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// The scene position read from each of the declarations a shader can reach, rather than from its body.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A rewriter is created for each declaration reached, and the requirement is raised in whichever one holds
+    /// the call. Every row here holds it in a different one, so a path that dropped what it gathered would leave
+    /// the shader compiling against a pipeline that never supplies the position, with only the failure the
+    /// compiler raises against generated code to go on.
+    /// </para>
+    /// <para>
+    /// The shaders here also fail to compile, the define the attribute writes being what the header needs, so
+    /// the assertion asks whether this diagnostic is among the reported ones rather than for it alone.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        """
+        internal static class Helper
+        {
+            public static float Read() => D2D.GetScenePosition().X;
+        }
+        """,
+        "",
+        "return Helper.Read();")]
+    [DataRow(
+        """
+        internal struct Helper
+        {
+            public float Amount;
+
+            public float Read() => Amount * D2D.GetScenePosition().X;
+        }
+        """,
+        "",
+        "Helper helper = default; return helper.Read();")]
+    [DataRow(
+        """
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper(float amount)
+            {
+                Amount = amount * D2D.GetScenePosition().X;
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+        """,
+        "",
+        "return Helper.Read(new Helper(2.0f));")]
+    [DataRow(
+        """
+        internal static class Helper
+        {
+            public static readonly float Value = D2D.GetScenePosition().X;
+        }
+        """,
+        "",
+        "return Helper.Value;")]
+    [DataRow(
+        "",
+        "private static readonly float Scale = D2D.GetScenePosition().X;",
+        "return Scale;")]
+    [DataRow(
+        """
+        internal static class Helper
+        {
+            public static float Read() => D2D.GetScenePosition().X;
+        }
+        """,
+        "private static readonly float Scale = Helper.Read();",
+        "return Scale;")]
+    [DataRow(
+        """
+        internal struct Helper
+        {
+            public float Amount;
+
+            public Helper(float amount)
+            {
+                Amount = amount * D2D.GetScenePosition().X;
+            }
+
+            public static float Read(Helper helper) => helper.Amount;
+        }
+        """,
+        "private static readonly float Scale = Helper.Read(new Helper(2.0f));",
+        "return Scale;")]
+    public void ScenePositionOutsideTheShaderBodyIsDiagnosed(string declarations, string members, string body)
+    {
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(
+            ScenePositionShader(declarations, members, body),
+            "CMPWD2D0045");
+    }
+
+    /// <summary>
+    /// The same shapes reading something other than the scene position. The requirement is raised by the call
+    /// and not by the path that reached it, so a path answering for its own sake would pass every row above.
+    /// </summary>
+    [TestMethod]
+    public void ADeclarationNotReadingTheScenePositionIsNotDiagnosed()
+    {
+        const string declarations = """
+            internal static class Helper
+            {
+                public static float Read() => Hlsl.Abs(-2.0f);
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(
+            ScenePositionShader(declarations, "private static readonly float Scale = Helper.Read();", "return Scale + Helper.Read();"),
+            "CMPWD2D0045");
+    }
+
+    /// <summary>
+    /// Builds a pixel shader around declarations outside it, members in it, and a body.
+    /// </summary>
+    /// <param name="declarations">The declarations to write beside the shader type.</param>
+    /// <param name="members">The members to write in the shader type.</param>
+    /// <param name="body">The statements to put in the shader body.</param>
+    /// <returns>The source of a pixel shader carrying the three of them.</returns>
+    private static string ScenePositionShader(string declarations, string members, string body)
+    {
+        return $$"""
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            {{declarations}}
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                {{members}}
+
+                public float4 Execute()
+                {
+                    {{body}}
+                }
+            }
+            """;
+    }
+
+    /// <summary>
     /// A resource texture whose element type is neither a single nor a four component vector.
     /// </summary>
     [TestMethod]
