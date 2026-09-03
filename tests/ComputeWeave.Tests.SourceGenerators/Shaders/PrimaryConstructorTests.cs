@@ -122,6 +122,35 @@ public class PrimaryConstructorTests
         }
         """;
 
+    /// <summary>
+    /// The same type constructed in a static field initializer. That path answered a constructor with a
+    /// default value and reported nothing, so the refusal reaches it only once the import does.
+    /// </summary>
+    private const string PrimaryConstructorInitializerSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal readonly struct Helper(float value)
+        {
+            public readonly float Doubled() => value * 2;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = new Helper(2.0f).Doubled();
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
     [TestMethod]
     public void ConstructingATypeWithAPrimaryConstructorIsDiagnosed()
     {
@@ -148,6 +177,16 @@ public class PrimaryConstructorTests
     public void TheShaderOwnPrimaryConstructorIsAccepted()
     {
         AssertNoDiagnostics(ShaderPrimaryConstructorSource, "ShaderPrimaryConstructorTests");
+    }
+
+    /// <summary>
+    /// A static field initializer refuses the same construction the shader body refuses, rather than
+    /// answering with a default value and letting the shader compute a different number in silence.
+    /// </summary>
+    [TestMethod]
+    public void ConstructingATypeWithAPrimaryConstructorInAStaticFieldInitializerIsDiagnosed()
+    {
+        AssertReports(PrimaryConstructorInitializerSource, "PrimaryConstructorInitializerTests", "CMPW0120", "CMPW0049");
     }
 
     private static void AssertReports(string source, string assemblyName, string expectedId, string unexpectedId)

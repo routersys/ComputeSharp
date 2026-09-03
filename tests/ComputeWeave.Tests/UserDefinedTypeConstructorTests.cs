@@ -105,6 +105,11 @@ public partial class UserDefinedTypeConstructorTests
             this.Y = y;
             this.Z = z;
         }
+
+        public static int ReadX(MyValueTypeWithConstructorWithParameters value)
+        {
+            return value.X;
+        }
     }
 
     [ThreadGroupSize(DefaultThreadGroupSizes.X)]
@@ -126,6 +131,36 @@ public partial class UserDefinedTypeConstructorTests
             buffer[5] = valueType2.Y;
             buffer[6] = (int)valueType2.Z.X;
             buffer[7] = (int)valueType2.Z.Y;
+        }
+    }
+
+    /// <summary>
+    /// The same constructor, called from a static field initializer rather than from the shader body.
+    /// A collapsed constructor is still valid HLSL here, so the field would hold zero with nothing said.
+    /// HLSL runs a global static initializer where C# runs the field one, so the value is read back.
+    /// </summary>
+    [CombinatorialTestMethod]
+    [Device(Device.Warp)]
+    public void ConstructorWithParametersInStaticFieldInitializer(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(1);
+
+        device.Get().For(1, new ConstructorInStaticFieldInitializerShader(buffer));
+
+        int[] results = buffer.ToArray();
+
+        CollectionAssert.AreEqual(new[] { 42 }, results);
+    }
+
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    public readonly partial struct ConstructorInStaticFieldInitializerShader(ReadWriteBuffer<int> buffer) : IComputeShader
+    {
+        private static readonly int Constructed = MyValueTypeWithConstructorWithParameters.ReadX(new MyValueTypeWithConstructorWithParameters(42, 123456, new float2(3, 4)));
+
+        public void Execute()
+        {
+            buffer[0] = Constructed;
         }
     }
 }

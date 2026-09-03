@@ -154,7 +154,7 @@ internal abstract partial class HlslSourceRewriter(
         {
             Diagnostics.Add(InvalidObjectCreationExpression, node, "<invalid>");
 
-            return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+            return GetDefaultValueExpression(targetType);
         }
 
         // Emit a diagnostic if the object being created is not valid (ie. it's a managed type)
@@ -162,7 +162,7 @@ internal abstract partial class HlslSourceRewriter(
         {
             Diagnostics.Add(InvalidObjectCreationExpression, node, typeSymbol);
 
-            return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+            return GetDefaultValueExpression(targetType);
         }
 
         // Mutate the syntax like with explicit object creation expressions. This also handles object
@@ -171,7 +171,7 @@ internal abstract partial class HlslSourceRewriter(
         // to create an object and immediately set some values, they should use a factory method.
         if (updatedNode is not { ArgumentList.Arguments.Count: >= 0, Initializer: null })
         {
-            return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+            return GetDefaultValueExpression(targetType);
         }
 
         string typeName = typeSymbol.GetFullyQualifiedMetadataName();
@@ -182,7 +182,7 @@ internal abstract partial class HlslSourceRewriter(
             // We need to add this check here because for user defined types, there may be explicit constructors.
             if (updatedNode.ArgumentList.Arguments.Count == 0)
             {
-                return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+                return GetDefaultValueExpression(targetType);
             }
 
             // Add explicit casts to each individual argument
@@ -223,7 +223,7 @@ internal abstract partial class HlslSourceRewriter(
         updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type, node.Type, SemanticModel.For(node));
 
         // A default expression becomes (T)0 in HLSL
-        return CastExpression(updatedNode.Type, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+        return GetDefaultValueExpression(updatedNode.Type);
     }
 
     /// <inheritdoc/>
@@ -238,7 +238,7 @@ internal abstract partial class HlslSourceRewriter(
             TypeSyntax type = TrackType(node, SemanticModel.For(node));
 
             // Same HLSL-style expression in the form (T)0
-            return CastExpression(type, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+            return GetDefaultValueExpression(type);
         }
         else if (updatedNode.IsKind(SyntaxKind.NumericLiteralExpression) &&
                  SemanticModel.For(node).GetOperation(node, CancellationToken) is ILiteralOperation operation &&
@@ -469,13 +469,23 @@ internal abstract partial class HlslSourceRewriter(
     /// <param name="updatedNode">The updated <see cref="BaseObjectCreationExpressionSyntax"/> instance with tweaked syntax.</param>
     /// <param name="targetType">The <see cref="TypeSyntax"/> for the object being created.</param>
     /// <returns>The rewritten <see cref="SyntaxNode"/> for the object creation expression.</returns>
-    protected virtual SyntaxNode VisitUserDefinedObjectCreationExpression(
+    /// <remarks>
+    /// There is no default. One that answered with a default value would compute something other than what
+    /// the author wrote without saying so, so every rewriter states what it does with a constructor call.
+    /// </remarks>
+    protected abstract SyntaxNode VisitUserDefinedObjectCreationExpression(
         BaseObjectCreationExpressionSyntax node,
         BaseObjectCreationExpressionSyntax updatedNode,
-        TypeSyntax targetType)
+        TypeSyntax targetType);
+
+    /// <summary>
+    /// Creates the expression for the default value of a type, which HLSL writes as a cast of the literal 0.
+    /// </summary>
+    /// <param name="type">The <see cref="TypeSyntax"/> to produce the default value of.</param>
+    /// <returns>The <see cref="ExpressionSyntax"/> for the default value of <paramref name="type"/>.</returns>
+    protected static ExpressionSyntax GetDefaultValueExpression(TypeSyntax type)
     {
-        // By default, constructors are not supported, so just return an empty value
-        return CastExpression(targetType, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
+        return CastExpression(type, LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0)));
     }
 
     protected static ExpressionSyntax ParseMappedExpression(string mapping)

@@ -223,24 +223,11 @@ internal sealed partial class StaticFieldRewriter(
             // Claim the entry before rewriting, so that a method reaching itself terminates
             this.staticMethods.Add(method, null!);
 
-            ShaderSourceRewriter shaderSourceRewriter = new(
-                this.shaderType,
-                SemanticModel,
-                DiscoveredTypes,
-                this.staticMethods,
-                instanceMethods,
-                constructors,
-                ConstantDefinitions,
-                StaticFieldDefinitions,
-                Diagnostics,
-                CancellationToken);
+            ShaderSourceRewriter shaderSourceRewriter = CreateImportRewriter();
 
             MethodDeclarationSyntax processedMethod = shaderSourceRewriter.Visit(methodNode)!.WithoutTrivia();
 
-            foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
-            {
-                this.localFunctions[localFunction.Key] = localFunction.Value;
-            }
+            MergeImportedLocalFunctions(shaderSourceRewriter);
 
             this.staticMethods[method] = processedMethod.WithIdentifier(Identifier(methodIdentifier));
         }
@@ -256,6 +243,58 @@ internal sealed partial class StaticFieldRewriter(
         }
 
         return updatedNode.WithExpression(IdentifierName(methodIdentifier));
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A constructor declaration is a body, so it is imported by the rewriter that imports every other one.
+    /// </remarks>
+    protected override SyntaxNode VisitUserDefinedObjectCreationExpression(
+        BaseObjectCreationExpressionSyntax node,
+        BaseObjectCreationExpressionSyntax updatedNode,
+        TypeSyntax targetType)
+    {
+        ShaderSourceRewriter shaderSourceRewriter = CreateImportRewriter();
+
+        SyntaxNode rewrittenNode = shaderSourceRewriter.ImportUserDefinedConstructor(node, updatedNode, targetType);
+
+        MergeImportedLocalFunctions(shaderSourceRewriter);
+
+        return rewrittenNode;
+    }
+
+    /// <summary>
+    /// Creates the rewriter that imports a declaration reached from the initializer being rewritten.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="ShaderSourceRewriter"/> instance sharing the collections this one accumulates into.
+    /// The local functions it lifts out are its own, which is what <see cref="MergeImportedLocalFunctions"/> carries over.
+    /// </returns>
+    private ShaderSourceRewriter CreateImportRewriter()
+    {
+        return new(
+            this.shaderType,
+            SemanticModel,
+            DiscoveredTypes,
+            this.staticMethods,
+            instanceMethods,
+            constructors,
+            ConstantDefinitions,
+            StaticFieldDefinitions,
+            Diagnostics,
+            CancellationToken);
+    }
+
+    /// <summary>
+    /// Carries over the local functions an import lifted out, to be written like any other.
+    /// </summary>
+    /// <param name="rewriter">The <see cref="ShaderSourceRewriter"/> instance that performed the import.</param>
+    private void MergeImportedLocalFunctions(ShaderSourceRewriter rewriter)
+    {
+        foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in rewriter.LocalFunctions)
+        {
+            this.localFunctions[localFunction.Key] = localFunction.Value;
+        }
     }
 
     /// <inheritdoc/>
