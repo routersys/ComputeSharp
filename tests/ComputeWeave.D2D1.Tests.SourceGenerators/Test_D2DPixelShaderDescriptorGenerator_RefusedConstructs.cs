@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using ComputeWeave.D2D1.SourceGenerators;
 using ComputeWeave.Tests.SourceGenerators.Helpers;
 using Microsoft.CodeAnalysis;
@@ -290,6 +291,62 @@ public class Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs
             Shader("foreach (int value in new int[1]) { k += value; }", isUnsafe: false));
 
         Assert.AreEqual("CMPWD2D0009", Ids(reported));
+    }
+
+    /// <summary>
+    /// Every refused construct above, read for what it does not draw beside the refusal.
+    /// </summary>
+    /// <remarks>
+    /// The rows above assert the refusal and nothing else, so none of them would notice the record of syntax
+    /// with no verdict arriving with it. The bodies are read from the rows rather than written again, so a
+    /// refusal added later is covered here without anyone remembering to add it.
+    /// </remarks>
+    [TestMethod]
+    public void NoRefusedConstructIsRecordedAsSyntaxWithNoVerdict()
+    {
+        (string Body, bool IsUnsafe)[] rows =
+        [
+            .. Rows(nameof(ARefusedConstructIsDiagnosed), isUnsafe: false),
+            .. Rows(nameof(ARefusedConstructNeedingAnUnsafeContextIsDiagnosed), isUnsafe: true)
+        ];
+
+        Assert.AreNotEqual(0, rows.Length);
+
+        ImmutableArray<Diagnostic>[] reported =
+        [
+            .. rows.Select(static row => CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.GetReportedDiagnostics(Shader(row.Body, row.IsUnsafe)))
+        ];
+
+        // A body that drew nothing at all would pass the assertion below for having reached nothing
+        string[] silent = [.. rows.Where((row, index) => reported[index].Length == 0).Select(static row => row.Body)];
+
+        Assert.AreEqual(0, silent.Length, string.Join(" | ", silent));
+
+        string[] recorded =
+        [
+            .. rows
+                .Where((row, index) => reported[index].Any(static diagnostic => diagnostic.Id == "CMPWD2D0094"))
+                .Select(static row => row.Body)
+        ];
+
+        Assert.AreEqual(0, recorded.Length, string.Join(" | ", recorded));
+    }
+
+    /// <summary>
+    /// Reads the bodies a row driven test declares.
+    /// </summary>
+    /// <param name="name">The name of the test method to read the rows of.</param>
+    /// <param name="isUnsafe">Whether the entry point those rows need an unsafe context.</param>
+    /// <returns>The body each row carries, with <paramref name="isUnsafe"/> alongside it.</returns>
+    private static (string Body, bool IsUnsafe)[] Rows(string name, bool isUnsafe)
+    {
+        return
+        [
+            .. typeof(Test_D2DPixelShaderDescriptorGenerator_RefusedConstructs)
+                .GetMethod(name)!
+                .GetCustomAttributes<DataRowAttribute>()
+                .Select(attribute => ((string)attribute.Data[0]!, isUnsafe))
+        ];
     }
 
     /// <summary>
