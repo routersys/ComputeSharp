@@ -974,10 +974,12 @@ internal sealed partial class ShaderSourceRewriter(
         if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo))
         {
             // An entry with no type declaration is one still being rewritten, so the initializer has
-            // reached the field it initializes and the expression cannot be written out
+            // reached the field it initializes and the expression cannot be written out. The cycle
+            // closes once per declaration the initializer reaches that reads the field back, and all
+            // of them name the same declaration, so the report is added only if it is not there yet
             if (fieldInfo.TypeDeclaration is null)
             {
-                Diagnostics.Add(CyclicStaticFieldInitializer, fieldSymbol, fieldSymbol);
+                Diagnostics.AddOnce(CyclicStaticFieldInitializer, fieldSymbol, fieldSymbol);
 
                 return node;
             }
