@@ -306,11 +306,14 @@ public class AcceptedSyntaxSetTests
     [TestMethod]
     public void TheDerivedFamiliesAgreeWithTheMapsOfTheOperatorTokens()
     {
-        // Five of these can be had a second way, from the map an operator token goes through, and the two have to agree
+        // Seven of these can be had a second way, from the map a token goes through, and the two have to agree
         (string Name, SyntaxKind[] Kinds)[] mapped =
         [
+            // An accessor with no keyword at all is one the factory takes and no token reaches
+            ("AccessorDeclarationSyntax", [.. Family(SyntaxFacts.GetAccessorDeclarationKind), SyntaxKind.UnknownAccessorDeclaration]),
             ("AssignmentExpressionSyntax", Family(SyntaxFacts.GetAssignmentExpression)),
             ("BinaryExpressionSyntax", Family(SyntaxFacts.GetBinaryExpression)),
+            ("CheckedStatementSyntax", Family(SyntaxFacts.GetCheckStatement)),
 
             // 'default' carries no operator token, so the map that walks the tokens does not reach it
             ("LiteralExpressionSyntax", [.. Family(SyntaxFacts.GetLiteralExpression), SyntaxKind.DefaultLiteralExpression]),
@@ -332,7 +335,9 @@ public class AcceptedSyntaxSetTests
             CollectionAssert.AreEqual(expected, actual, name);
         }
 
-        // The one family with no map of its own, which is why the derivation is needed at all
+        // The type declarations have a map too, but it reaches a kind the factory refuses, so it is left out
+
+        // The one family the set draws from that has no map of its own, which is why the derivation is needed
         CollectionAssert.AreEqual(
             new[] { SyntaxKind.SimpleMemberAccessExpression, SyntaxKind.PointerMemberAccessExpression },
             Families.Single(static family => family.Name == "MemberAccessExpressionSyntax").Kinds);
@@ -376,8 +381,9 @@ public class AcceptedSyntaxSetTests
     /// <remarks>
     /// <para>
     /// The kinds are read from the factory rather than written down here, so that a family the set has never
-    /// drawn a kind from is derived the same way as one it has. Only two of the six families the set draws
-    /// from can be had another way, and a family listed by hand says nothing about the day a kind enters it.
+    /// drawn a kind from is derived the same way as one it has. Eight of the nineteen node types have a map of
+    /// their own to read instead, and the family the set draws a single kind from is not one of them, so a list
+    /// by hand is the only alternative and it says nothing about the day a kind enters one of the others.
     /// </para>
     /// <para>
     /// A factory is called once for every kind, with a default value for every other argument. The kind is
