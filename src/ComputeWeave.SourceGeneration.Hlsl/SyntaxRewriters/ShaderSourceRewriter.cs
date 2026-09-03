@@ -653,6 +653,9 @@ internal sealed partial class ShaderSourceRewriter(
                     }
 #endif
 
+                    // Write out the conversions C# applied to the arguments (see HlslSourceRewriter for more info)
+                    updatedNode = VisitConvertedIntrinsicArguments(node, updatedNode);
+
                     // Special case: handle known named intrinsics being invoked.
                     // These have special lowering to the right HLSL constructs.
                     if (VisitKnownNamedIntrinsicInvocationExpression(node, updatedNode, mapping) is SyntaxNode namedIntrinsic)
