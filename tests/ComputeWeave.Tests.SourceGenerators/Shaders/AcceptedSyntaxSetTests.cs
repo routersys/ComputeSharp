@@ -21,6 +21,11 @@ namespace ComputeWeave.Tests.SourceGenerators.Shaders;
 [TestClass]
 public class AcceptedSyntaxSetTests
 {
+    /// <summary>
+    /// The node types that can carry several syntax kinds, each with the kinds it carries.
+    /// </summary>
+    private static readonly (string Name, SyntaxKind[] Kinds)[] Families = DeriveFamilies();
+
     [TestMethod]
     public void AShaderWrittenTheUsualWayReportsNothing()
     {
@@ -236,20 +241,6 @@ public class AcceptedSyntaxSetTests
     [TestMethod]
     public void TheKindsLeftOutOfAFamilyTheSetDrawsFromArePinned()
     {
-        (string Name, SyntaxKind[] Kinds)[] families =
-        [
-            ("AssignmentExpressionSyntax", Family(SyntaxFacts.GetAssignmentExpression)),
-            ("BinaryExpressionSyntax", Family(SyntaxFacts.GetBinaryExpression)),
-
-            // 'default' carries no operator token, so the map that walks the tokens does not reach it
-            ("LiteralExpressionSyntax", [.. Family(SyntaxFacts.GetLiteralExpression), SyntaxKind.DefaultLiteralExpression]),
-
-            // This type has no map of its own, and carries these two kinds and no others
-            ("MemberAccessExpressionSyntax", [SyntaxKind.SimpleMemberAccessExpression, SyntaxKind.PointerMemberAccessExpression]),
-            ("PostfixUnaryExpressionSyntax", Family(SyntaxFacts.GetPostfixUnaryExpression)),
-            ("PrefixUnaryExpressionSyntax", Family(SyntaxFacts.GetPrefixUnaryExpression)),
-        ];
-
         // Six are refused by their own diagnostic, five C# itself rejects, and two reach HLSL unjudged
         string[] expected =
         [
@@ -270,36 +261,92 @@ public class AcceptedSyntaxSetTests
 
         string[] actual =
         [
-            .. families
-                .SelectMany(family => family.Kinds
+            .. Families
+                .Where(static family => family.Kinds.Any(HlslKnownSyntax.IsAccepted))
+                .SelectMany(static family => family.Kinds
                     .Where(static kind => !HlslKnownSyntax.IsAccepted(kind))
                     .Select(kind => $"{family.Name}.{kind}"))
                 .Order(StringComparer.Ordinal)
         ];
 
         CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
+    }
 
-        // A family the set draws nothing from is not one of these, and would make the list above vacuous
-        foreach ((string name, SyntaxKind[] kinds) in families)
+    [TestMethod]
+    public void TheFamiliesTheSetDrawsFromArePinned()
+    {
+        // The list above says nothing about a family the set draws nothing from, so the first kind to enter one has to fail here
+        string[] expected =
+        [
+            "AssignmentExpressionSyntax",
+            "BinaryExpressionSyntax",
+            "LiteralExpressionSyntax",
+            "MemberAccessExpressionSyntax",
+            "PostfixUnaryExpressionSyntax",
+            "PrefixUnaryExpressionSyntax"
+        ];
+
+        string[] actual =
+        [
+            .. Families
+                .Where(static family => family.Kinds.Any(HlslKnownSyntax.IsAccepted))
+                .Select(static family => family.Name)
+        ];
+
+        CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
+
+        // A single kind, or every kind there is, is the derivation having misread a factory rather than a family of that shape
+        foreach ((string name, SyntaxKind[] kinds) in Families)
         {
-            Assert.IsTrue(kinds.Any(HlslKnownSyntax.IsAccepted), name);
+            Assert.IsTrue(kinds.Length > 1, name);
+            Assert.IsTrue(kinds.Length < Enum.GetValues<SyntaxKind>().Distinct().Count(), name);
         }
+    }
+
+    [TestMethod]
+    public void TheDerivedFamiliesAgreeWithTheMapsOfTheOperatorTokens()
+    {
+        // Seven of these can be had a second way, from the map a token goes through, and the two have to agree
+        (string Name, SyntaxKind[] Kinds)[] mapped =
+        [
+            // An accessor with no keyword at all is one the factory takes and no token reaches
+            ("AccessorDeclarationSyntax", [.. Family(SyntaxFacts.GetAccessorDeclarationKind), SyntaxKind.UnknownAccessorDeclaration]),
+            ("AssignmentExpressionSyntax", Family(SyntaxFacts.GetAssignmentExpression)),
+            ("BinaryExpressionSyntax", Family(SyntaxFacts.GetBinaryExpression)),
+            ("CheckedStatementSyntax", Family(SyntaxFacts.GetCheckStatement)),
+
+            // 'default' carries no operator token, so the map that walks the tokens does not reach it
+            ("LiteralExpressionSyntax", [.. Family(SyntaxFacts.GetLiteralExpression), SyntaxKind.DefaultLiteralExpression]),
+            ("PostfixUnaryExpressionSyntax", Family(SyntaxFacts.GetPostfixUnaryExpression)),
+            ("PrefixUnaryExpressionSyntax", Family(SyntaxFacts.GetPrefixUnaryExpression))
+        ];
+
+        foreach ((string name, SyntaxKind[] kinds) in mapped)
+        {
+            SyntaxKind[] expected = [.. kinds.OrderBy(static kind => kind.ToString(), StringComparer.Ordinal)];
+            SyntaxKind[] actual =
+            [
+                .. Families
+                    .Single(family => family.Name == name)
+                    .Kinds
+                    .OrderBy(static kind => kind.ToString(), StringComparer.Ordinal)
+            ];
+
+            CollectionAssert.AreEqual(expected, actual, name);
+        }
+
+        // The type declarations have a map too, but it reaches a kind the factory refuses, so it is left out
+
+        // The one family the set draws from that has no map of its own, which is why the derivation is needed
+        CollectionAssert.AreEqual(
+            new[] { SyntaxKind.SimpleMemberAccessExpression, SyntaxKind.PointerMemberAccessExpression },
+            Families.Single(static family => family.Name == "MemberAccessExpressionSyntax").Kinds);
     }
 
     [TestMethod]
     public void EveryNodeTypeThatCanCarrySeveralKindsIsAccountedFor()
     {
-        // A node type carries more than one kind exactly when the factory for it takes the kind as an argument
-        string[] actual =
-        [
-            .. typeof(SyntaxFactory)
-                .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Where(static method => typeof(SyntaxNode).IsAssignableFrom(method.ReturnType))
-                .Where(static method => method.GetParameters().Any(static parameter => parameter.ParameterType == typeof(SyntaxKind) && parameter.Name == "kind"))
-                .Select(static method => method.ReturnType.Name)
-                .Distinct()
-                .Order(StringComparer.Ordinal)
-        ];
+        string[] actual = [.. Families.Select(static family => family.Name)];
 
         string[] expected =
         [
@@ -325,6 +372,94 @@ public class AcceptedSyntaxSetTests
         ];
 
         CollectionAssert.AreEqual(expected, actual, string.Join(", ", actual));
+    }
+
+    /// <summary>
+    /// Collects the node types that can carry several syntax kinds, each with the kinds it carries.
+    /// </summary>
+    /// <returns>The name of each such node type, in order, with the kinds it carries.</returns>
+    /// <remarks>
+    /// <para>
+    /// The kinds are read from the factory rather than written down here, so that a family the set has never
+    /// drawn a kind from is derived the same way as one it has. Eight of the nineteen node types have a map of
+    /// their own to read instead, and the family the set draws a single kind from is not one of them, so a list
+    /// by hand is the only alternative and it says nothing about the day a kind enters one of the others.
+    /// </para>
+    /// <para>
+    /// A factory is called once for every kind, with a default value for every other argument. The kind is
+    /// the first thing it checks, so a type that cannot carry the kind fails naming it, and one that can
+    /// fails naming some later argument instead. Roslyn writes that refusal in two shapes, and reading only
+    /// one of them takes a whole enum for a family: with the second shape unread, the type declarations carry
+    /// all 576 kinds and the accepted set appears to be drawn from them.
+    /// </para>
+    /// </remarks>
+    private static (string Name, SyntaxKind[] Kinds)[] DeriveFamilies()
+    {
+        // A node type carries more than one kind exactly when the factory for it takes the kind as an argument
+        return
+        [
+            .. typeof(SyntaxFactory)
+                .GetMethods(BindingFlags.Public | BindingFlags.Static)
+                .Where(static method => typeof(SyntaxNode).IsAssignableFrom(method.ReturnType))
+                .Where(static method => method.GetParameters().Any(static parameter => parameter.ParameterType == typeof(SyntaxKind) && parameter.Name == "kind"))
+                .GroupBy(static method => method.ReturnType)
+                .OrderBy(static group => group.Key.Name, StringComparer.Ordinal)
+                .Select(static group => (
+                    group.Key.Name,
+                    KindsCarriedBy(group.OrderByDescending(static method => method.GetParameters().Length).First())))
+        ];
+    }
+
+    /// <summary>
+    /// Collects the syntax kinds a factory accepts, which are the ones the node type it returns carries.
+    /// </summary>
+    /// <param name="factory">The factory to call, which takes the kind as an argument.</param>
+    /// <returns>The kinds <paramref name="factory"/> accepts.</returns>
+    private static SyntaxKind[] KindsCarriedBy(MethodInfo factory)
+    {
+        return [.. Enum.GetValues<SyntaxKind>().Distinct().Where(kind => IsCarriedBy(factory, kind))];
+    }
+
+    /// <summary>
+    /// Checks whether a factory accepts a syntax kind, by calling it and reading what the failure names.
+    /// </summary>
+    /// <param name="factory">The factory to call, which takes the kind as an argument.</param>
+    /// <param name="kind">The syntax kind to pass it.</param>
+    /// <returns>Whether the node type <paramref name="factory"/> returns carries <paramref name="kind"/>.</returns>
+    private static bool IsCarriedBy(MethodInfo factory, SyntaxKind kind)
+    {
+        object?[] arguments =
+        [
+            .. factory
+                .GetParameters()
+                .Select(parameter => parameter.ParameterType == typeof(SyntaxKind) && parameter.Name == "kind"
+                    ? kind
+                    : parameter.ParameterType.IsValueType ? Activator.CreateInstance(parameter.ParameterType) : null)
+        ];
+
+        try
+        {
+            _ = factory.Invoke(null, arguments);
+        }
+        catch (TargetInvocationException exception)
+        {
+            // Any failure that does not name the kind is one the factory reached after accepting it
+            return !RefusesTheKind(exception.InnerException, kind);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Checks whether a factory failure names the syntax kind it was given.
+    /// </summary>
+    /// <param name="failure">The failure the factory raised.</param>
+    /// <param name="kind">The syntax kind the factory was given.</param>
+    /// <returns>Whether <paramref name="failure"/> is the factory refusing <paramref name="kind"/>.</returns>
+    private static bool RefusesTheKind(Exception? failure, SyntaxKind kind)
+    {
+        return failure is ArgumentException { Message: "kind" } ||
+               (failure is InvalidOperationException && failure.Message.Contains($"Unexpected value '{kind}'"));
     }
 
     /// <summary>
