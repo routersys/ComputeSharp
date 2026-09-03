@@ -266,7 +266,10 @@ internal sealed partial class StaticFieldRewriter(
     /// <summary>
     /// Creates the rewriter that imports a declaration reached from the initializer being rewritten.
     /// </summary>
-    /// <returns>A <see cref="ShaderSourceRewriter"/> instance sharing every collection of this one.</returns>
+    /// <returns>
+    /// A <see cref="ShaderSourceRewriter"/> instance sharing the collections this one accumulates into.
+    /// The local functions it lifts out are its own, which is what <see cref="MergeImportedLocalFunctions"/> carries over.
+    /// </returns>
     private ShaderSourceRewriter CreateImportRewriter()
     {
         return new(
@@ -283,7 +286,7 @@ internal sealed partial class StaticFieldRewriter(
     }
 
     /// <summary>
-    /// Carries the local functions an import lifted out over to this rewriter, to be written like any other.
+    /// Carries over the local functions an import lifted out, to be written like any other.
     /// </summary>
     /// <param name="rewriter">The <see cref="ShaderSourceRewriter"/> instance that performed the import.</param>
     private void MergeImportedLocalFunctions(ShaderSourceRewriter rewriter)
