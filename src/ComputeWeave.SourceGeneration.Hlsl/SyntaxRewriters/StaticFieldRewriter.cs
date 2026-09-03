@@ -12,8 +12,6 @@ using Microsoft.CodeAnalysis.Operations;
 using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-#pragma warning disable IDE0051
-
 namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 
 /// <summary>

@@ -15,7 +15,10 @@ using Microsoft.CodeAnalysis.Operations;
 using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
-#pragma warning disable IDE0051, IDE0052
+// The depth of local functions is read from the hook tracking a property access, which the compute
+// generator implements and the Direct2D one leaves empty, so the field is assigned and never read
+// where this file is compiled into that generator
+#pragma warning disable IDE0052
 
 namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 
