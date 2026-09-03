@@ -15,8 +15,8 @@ namespace ComputeWeave.Tests.SourceGenerators.Shaders;
 /// </summary>
 /// <remarks>
 /// The set is measured, not designed, so these tests pin what the measurement found. A shader written the way
-/// the ones in this repository are written must report nothing: that is what makes it safe to raise the severity
-/// later. A shader written with syntax the set does not cover must report it, and the report must not refuse it.
+/// the ones in this repository are written must report nothing, which is what made it safe to raise the severity.
+/// A shader written with syntax the set does not cover must be refused, against the source the author wrote.
 /// </remarks>
 [TestClass]
 public class AcceptedSyntaxSetTests
@@ -147,7 +147,7 @@ public class AcceptedSyntaxSetTests
     }
 
     [TestMethod]
-    public void TheReportDoesNotRefuseTheInput()
+    public void TheReportRefusesTheInput()
     {
         const string Source = """
             using ComputeWeave;
@@ -176,11 +176,10 @@ public class AcceptedSyntaxSetTests
         GeneratorRunResult result = RunGenerator(Source, "ShaderReportSeverityTests");
         Diagnostic[] reports = Filter(result);
 
-        // Info is the one severity that changes no build: a warning is raised to an error in this repository
         Assert.AreEqual(1, reports.Length, string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
-        Assert.AreEqual(DiagnosticSeverity.Info, reports[0].Severity);
+        Assert.AreEqual(DiagnosticSeverity.Error, reports[0].Severity);
 
-        // The descriptor is written all the same, so the report records the syntax rather than refusing it
+        // The descriptor is written all the same: what the refusal stops is the shader compilation, not the generation
         Assert.IsTrue(
             result.GeneratedSources.Any(static source => source.HintName.Contains("Shaders.Shader")),
             string.Join(", ", result.GeneratedSources.Select(static source => source.HintName)));

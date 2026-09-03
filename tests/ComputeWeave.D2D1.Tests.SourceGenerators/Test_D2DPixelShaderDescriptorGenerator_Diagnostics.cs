@@ -459,12 +459,11 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
-    /// Syntax outside the set a shader body may use. The rewriter that reports it is shared with the compute
+    /// Syntax outside the set a shader body may use. The rewriter that refuses it is shared with the compute
     /// generator, so what this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>
     /// <remarks>
-    /// The shader is handed to FXC after the report, the report recording the syntax rather than refusing it,
-    /// so the compile error raised on the same construct is named here too.
+    /// The refusal keeps the shader from FXC, so no compile error is named beside it.
     /// </remarks>
     [TestMethod]
     public void SyntaxOutsideTheAcceptedSetIsReported()
@@ -492,7 +491,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0094", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0094");
     }
 
     /// <summary>

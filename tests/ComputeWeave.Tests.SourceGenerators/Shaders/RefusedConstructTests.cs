@@ -165,14 +165,12 @@ public class RefusedConstructTests
     /// A shader carrying syntax the accepted set does not cover.
     /// </summary>
     /// <remarks>
-    /// The report is an Info and refuses nothing, so the shader is built and the failure the HLSL compiler
-    /// raises still reaches the author. That is what keeps syntax with no recorded verdict visible while the
-    /// set is being measured: were an Info to stop the build, such syntax would pass in silence instead.
-    /// The failure is made to come from the recursion, which HLSL cannot express under any profile, so the
-    /// row does not rest on how one version of one compiler happens to treat the reported construct.
+    /// The report refuses the input, so the shader never reaches the HLSL compiler. The body carries recursion,
+    /// which HLSL cannot express under any profile, so the compiler would answer for it were it handed the
+    /// shader: what the row reads is the refusal arriving alone, and not a body the compiler happens to accept.
     /// </remarks>
     [TestMethod]
-    public void AReportThatRefusesNothingCarriesTheCompilerFailure()
+    public void AReportForSyntaxWithNoVerdictRefusesTheInput()
     {
         Diagnostic[] reported = Report(
             Shader(
@@ -190,7 +188,7 @@ public class RefusedConstructTests
                 isUnsafe: false),
             "ShaderReportedCompilerFailureTests");
 
-        Assert.AreEqual("CMPW0046, CMPW0121", Ids(reported));
+        Assert.AreEqual("CMPW0121", Ids(reported));
     }
 
     /// <summary>

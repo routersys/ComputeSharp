@@ -1576,20 +1576,20 @@ partial class DiagnosticDescriptors
     /// </para>
     /// </summary>
     /// <remarks>
-    /// This is reported and nothing more. The set is measured rather than designed, so a kind outside it is one
-    /// the set records no verdict for. That is not the same as one nothing has judged: a kind the rewriter
-    /// always refuses is outside the set as well, because refusing it keeps it out of what the measurement
-    /// sees. Raising the severity is a separate change, and the build that raises it has to show that no
-    /// shader in this repository reports this first.
+    /// The set is measured rather than designed, so a kind outside it is one the set records no verdict for.
+    /// That is not the same as one nothing has judged: a kind the rewriter always refuses is outside the set
+    /// as well, because refusing it keeps it out of what the measurement sees, and such a kind is answered by
+    /// its own refusal rather than by this. The severity was raised once the whole solution was built with it
+    /// and no shader reported it, and once every construct measured to work was shown to be in the set.
     /// </remarks>
     public static readonly DiagnosticDescriptor UnknownShaderSyntax = new(
         id: "CMPW0121",
         title: "Shader syntax outside the accepted set",
         messageFormat: "The C# syntax {0} is not in the set a shader body may use",
         category: "ComputeWeave.Shaders",
-        defaultSeverity: DiagnosticSeverity.Info,
+        defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for. That is not the same as syntax nothing has judged: a construct the rewriter always refuses is outside the set as well, because refusing it keeps it out of what the measurement sees. Where nothing else answers for it, the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
+        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for, so writing it into HLSL would mean translating a construct nothing has decided anything about. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. The two were told apart by measurement while this was recorded rather than refused, and every construct that was shown to work is in the set, so what is left outside it is refused here instead, against the source the author wrote. A construct with a refusal of its own is answered by that refusal alone, this one being dropped beside it so that one cause names one place.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>
