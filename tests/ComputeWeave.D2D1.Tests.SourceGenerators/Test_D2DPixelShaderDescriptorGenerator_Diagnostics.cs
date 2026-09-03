@@ -750,4 +750,44 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0051");
     }
+
+    /// <summary>
+    /// A static field initializer that reaches the field it initializes. HLSL leaves the order of its global
+    /// static initializers undefined, so the shader computes a value C# never produces.
+    /// </summary>
+    /// <remarks>
+    /// The site this is reported from is shared with the compute generator, and each of the two carries the
+    /// descriptor under its own identifier, so a row on one of them says nothing about the other.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldInitializerReachingItselfIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                public static readonly float Value = Twice();
+
+                public static float Twice() => Value * 2;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                public float4 Execute()
+                {
+                    return Helper.Value;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0096");
+    }
 }
