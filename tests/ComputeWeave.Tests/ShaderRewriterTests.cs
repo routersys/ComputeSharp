@@ -457,15 +457,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<int> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -1608,9 +1608,9 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> buffer1 : register(u0);
@@ -1620,7 +1620,7 @@ public partial class ShaderRewriterTests
             RWStructuredBuffer<uint> buffer3 : register(u2);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -1719,15 +1719,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -1789,15 +1789,15 @@ public partial class ShaderRewriterTests
             
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
             
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
             
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -1835,8 +1835,8 @@ public partial class ShaderRewriterTests
             
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
+                int __x;
+                int __y;
             }
             
             RWTexture2D<unorm float4> __outputTexture : register(u0);
@@ -1844,7 +1844,7 @@ public partial class ShaderRewriterTests
             RWStructuredBuffer<float> __reserved__buffer : register(u1);
             
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y)
                 {
@@ -1942,15 +1942,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2008,15 +2008,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2067,15 +2067,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2172,15 +2172,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2311,9 +2311,9 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
                 int numerator;
                 int denominator;
             }
@@ -2321,7 +2321,7 @@ public partial class ShaderRewriterTests
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2377,9 +2377,9 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
                 int numerator;
                 int denominator;
                 int shift;
@@ -2389,7 +2389,7 @@ public partial class ShaderRewriterTests
             RWStructuredBuffer<int> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2460,15 +2460,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<float> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2524,9 +2524,9 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<int> __reserved__buffer : register(u0);
@@ -2537,7 +2537,7 @@ public partial class ShaderRewriterTests
             }
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2592,15 +2592,15 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<int> __reserved__buffer : register(u0);
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {
@@ -2682,9 +2682,9 @@ public partial class ShaderRewriterTests
 
             cbuffer _ : register(b0)
             {
-                uint __x;
-                uint __y;
-                uint __z;
+                int __x;
+                int __y;
+                int __z;
             }
 
             RWStructuredBuffer<int> __reserved__buffer : register(u0);
@@ -2727,7 +2727,7 @@ public partial class ShaderRewriterTests
             }
 
             [NumThreads(__GroupSize__get_X, __GroupSize__get_Y, __GroupSize__get_Z)]
-            void Execute(uint3 ThreadIds : SV_DispatchThreadID)
+            void Execute(int3 ThreadIds : SV_DispatchThreadID)
             {
                 if (ThreadIds.x < __x && ThreadIds.y < __y && ThreadIds.z < __z)
                 {

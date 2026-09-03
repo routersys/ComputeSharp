@@ -744,4 +744,40 @@ public partial class DispatchTests
             this.buffer[ThreadIds.X] = ThreadIds.X;
         }
     }
+
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_DispatchValuesAreSigned(Device device)
+    {
+        using ReadWriteBuffer<int> results = device.Get().AllocateReadWriteBuffer<int>(5);
+
+        device.Get().For(1, new SignedDispatchValuesShader(results));
+
+        int[] values = results.ToArray();
+
+        Assert.AreEqual(1, values[0], "ThreadIds.X - 1 < 0");
+        Assert.AreEqual(-1, values[1], "(ThreadIds.X - 1) >> 1");
+        Assert.AreEqual(0, values[2], "(ThreadIds.X - 1) / 2");
+        Assert.AreEqual(1, values[3], "DispatchSize.X - 2 < 0");
+        Assert.AreEqual(1, values[4], "GroupIds.X - 1 < 0");
+    }
+
+    // The dispatch surface is declared int, so an expression written without a local to hold it stays signed
+    [AutoConstructor]
+    [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+    [GeneratedComputeShaderDescriptor]
+    internal readonly partial struct SignedDispatchValuesShader : IComputeShader
+    {
+        public readonly ReadWriteBuffer<int> results;
+
+        /// <inheritdoc/>
+        public void Execute()
+        {
+            this.results[0] = ThreadIds.X - 1 < 0 ? 1 : 0;
+            this.results[1] = (ThreadIds.X - 1) >> 1;
+            this.results[2] = (ThreadIds.X - 1) / 2;
+            this.results[3] = DispatchSize.X - 2 < 0 ? 1 : 0;
+            this.results[4] = GroupIds.X - 1 < 0 ? 1 : 0;
+        }
+    }
 }

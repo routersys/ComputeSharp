@@ -611,9 +611,9 @@ partial class ComputeShaderDescriptorGenerator
             // Captured variables
             using (writer.WriteBlock())
             {
-                writer.WriteLine("uint __x;");
-                writer.WriteLine("uint __y;");
-                writer.WriteLineIf(isComputeShader, "uint __z;");
+                writer.WriteLine("int __x;");
+                writer.WriteLine("int __y;");
+                writer.WriteLineIf(isComputeShader, "int __z;");
 
                 HlslSourceSyntaxProcessor.WriteCapturedFields(writer, valueFields);
             }
