@@ -42,7 +42,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.FourColorGradient))]
     public void FourColorGradient(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.00021f);
+        RunAndCompareShader(device, shaderType, 0.00021f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -51,7 +51,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.FractalTiling))]
     public void FractalTiling(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.0000005f);
+        RunAndCompareShader(device, shaderType, 0.0000005f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -60,7 +60,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.MengerJourney))]
     public void MengerJourney(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.000011f);
+        RunAndCompareShader(device, shaderType, 0.000011f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -69,7 +69,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.TwoTiledTruchet))]
     public void TwoTiledTruchet(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.00032f);
+        RunAndCompareShader(device, shaderType, 0.00032f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -100,7 +100,7 @@ public class ShadersTests
 
         Assert.IsFalse(info.RequiresDoublePrecisionSupport);
 
-        RunAndCompareShader(device, shaderType, 0.00011f);
+        RunAndCompareShader(device, shaderType, 0.00011f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -109,7 +109,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.PyramidPattern))]
     public void PyramidPattern(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.00021f);
+        RunAndCompareShader(device, shaderType, 0.00021f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -118,7 +118,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.TriangleGridContouring))]
     public void TriangleGridContouring(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.0006f);
+        RunAndCompareShader(device, shaderType, 0.0006f, usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -136,7 +136,8 @@ public class ShadersTests
             shaderType,
             texture => new SwapChain.Shaders.Compute.ContouredLayers(texture, 0, background),
             texture => new ContouredLayers(0, background),
-            0.000703f);
+            0.000703f,
+            usesTranscendentalHash: true);
     }
 
     [CombinatorialTestMethod]
@@ -145,7 +146,7 @@ public class ShadersTests
     [Data(typeof(SwapChain.Shaders.Compute.TerracedHills))]
     public void TerracedHills(Device device, Type shaderType)
     {
-        RunAndCompareShader(device, shaderType, 0.000026f);
+        RunAndCompareShader(device, shaderType, 0.000026f, usesTranscendentalHash: true);
     }
 
     /// <summary>
@@ -154,7 +155,8 @@ public class ShadersTests
     /// <param name="device">The device to use.</param>
     /// <param name="shaderType">The type of shader being executed.</param>
     /// <param name="delta">The comparison delta.</param>
-    private static void RunAndCompareShader(Device device, Type shaderType, float delta)
+    /// <param name="usesTranscendentalHash">Whether the shader scales <c>sin</c> or <c>cos</c> past its low bits and takes the fraction, which ties the image it draws to the implementation of that function on the device.</param>
+    private static void RunAndCompareShader(Device device, Type shaderType, float delta, bool usesTranscendentalHash = false)
     {
         _ = device.Get();
 
@@ -210,6 +212,13 @@ public class ShadersTests
 
         image.SaveAsPng(actualPath, new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression, ColorType = PngColorType.Rgb });
 
+        // Only the WARP variants are held to the reference images, so a hash of sin or cos compares there
+        if (usesTranscendentalHash && device != Device.Warp)
+        {
+            Assert.Inconclusive(
+                $"{shaderType.Name} folds sin or cos into a hash, so its image follows the implementation of that function rather than anything the library emits. Only the WARP variant is held to the reference image, so a run on {device} does not decide whether the image is right.");
+        }
+
         TolerantImageComparer.AssertEqual(expectedPath, actualPath, delta);
     }
 
@@ -223,12 +232,14 @@ public class ShadersTests
     /// <param name="computeFactory">The factory of compute shaders.</param>
     /// <param name="pixelFactory">The factory of pixel shaders.</param>
     /// <param name="delta">The comparison delta.</param>
+    /// <param name="usesTranscendentalHash">Whether the shader scales <c>sin</c> or <c>cos</c> past its low bits and takes the fraction, which ties the image it draws to the implementation of that function on the device.</param>
     private static void RunAndCompareShader<TCompute, TPixel>(
         Device device,
         Type shaderType,
         Func<ReadWriteTexture2D<Rgba32, float4>, TCompute> computeFactory,
         Func<ReadWriteTexture2D<Rgba32, float4>, TPixel> pixelFactory,
-        float delta)
+        float delta,
+        bool usesTranscendentalHash = false)
         where TCompute : struct, IComputeShader, IComputeShaderDescriptor<TCompute>
         where TPixel : struct, IComputeShader<float4>, IComputeShaderDescriptor<TPixel>
     {
@@ -269,6 +280,13 @@ public class ShadersTests
         _ = Directory.CreateDirectory(Path.GetDirectoryName(actualPath)!);
 
         image.SaveAsPng(actualPath, new PngEncoder() { CompressionLevel = PngCompressionLevel.BestCompression, ColorType = PngColorType.Rgb });
+
+        // Only the WARP variants are held to the reference images, so a hash of sin or cos compares there
+        if (usesTranscendentalHash && device != Device.Warp)
+        {
+            Assert.Inconclusive(
+                $"{shaderType.Name} folds sin or cos into a hash, so its image follows the implementation of that function rather than anything the library emits. Only the WARP variant is held to the reference image, so a run on {device} does not decide whether the image is right.");
+        }
 
         TolerantImageComparer.AssertEqual(expectedPath, actualPath, delta);
     }
