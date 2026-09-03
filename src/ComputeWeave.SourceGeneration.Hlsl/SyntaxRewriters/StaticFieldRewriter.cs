@@ -147,14 +147,19 @@ internal sealed partial class StaticFieldRewriter(
                 return updatedNode;
             }
 
+            string metadataName = method.GetFullyQualifiedMetadataName();
+
             // Rewrite HLSL intrinsic methods
             if (method.IsStatic &&
-                HlslKnownMethods.TryGetMappedName(method.GetFullyQualifiedMetadataName(), out string? mapping, out bool requiresParametersMapping))
+                HlslKnownMethods.TryGetMappedName(metadataName, out string? mapping, out bool requiresParametersMapping))
             {
                 if (requiresParametersMapping)
                 {
                     mapping = HlslKnownMethods.GetMappedNameWithParameters(method.Name, method.Parameters.Select(static p => p.Type.Name));
                 }
+
+                // Allow specialized types to track the method invocation, if needed
+                TrackKnownMethodInvocation(metadataName);
 
 #if D3D12_SOURCE_GENERATOR
                 // Refuse a matrix on an intrinsic with an out parameter (see ShaderSourceRewriter for more info)
@@ -172,7 +177,7 @@ internal sealed partial class StaticFieldRewriter(
 
 #if !D3D12_SOURCE_GENERATOR
                 // Parenthesize the coordinate argument for D2D input sampling intrinsics (see ShaderSourceRewriter for more info)
-                if (HlslKnownMethods.NeedsParenthesizedCoordinateArgument(method.GetFullyQualifiedMetadataName()))
+                if (HlslKnownMethods.NeedsParenthesizedCoordinateArgument(metadataName))
                 {
                     ExpressionSyntax coordinateExpression = updatedNode.ArgumentList.Arguments[1].Expression;
 
