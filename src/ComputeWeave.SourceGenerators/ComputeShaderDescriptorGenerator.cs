@@ -9,6 +9,7 @@ using ComputeWeave.SourceGeneration.SyntaxProcessors;
 using ComputeWeave.SourceGenerators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 
 namespace ComputeWeave.SourceGenerators;
 
@@ -108,6 +109,10 @@ public sealed partial class ComputeShaderDescriptorGenerator : IIncrementalGener
                         out bool isSamplerUsed,
                         out bool synchronizesTheWholeThreadGroup,
                         out string hlslSource);
+
+                    // A refusal already names the place the author has to change, so the records of syntax
+                    // with no verdict are dropped rather than naming several places for one cause
+                    diagnostics.DropUnknownSyntaxAfterARefusal(UnknownShaderSyntax);
 
                     token.ThrowIfCancellationRequested();
 
