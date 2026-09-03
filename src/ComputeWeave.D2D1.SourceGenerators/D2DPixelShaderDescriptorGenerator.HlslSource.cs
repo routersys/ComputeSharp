@@ -70,6 +70,10 @@ partial class D2DPixelShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
+            // Every rewriter for this shader raises what it needs into this one instance, so a requirement
+            // is read here whichever declaration it was found in and however that declaration was reached
+            HlslShaderRequirements requirements = new();
+
             // Explore the syntax tree and extract the processed info
             (string entryPoint, ImmutableArray<HlslMethod> processedMethods) = GetProcessedMethods(
                 diagnostics,
@@ -82,8 +86,8 @@ partial class D2DPixelShaderDescriptorGenerator
                 constructors,
                 constantDefinitions,
                 staticFieldDefinitions,
-                token,
-                out bool methodsNeedD2D1RequiresScenePosition);
+                requirements,
+                token);
 
             token.ThrowIfCancellationRequested();
 
@@ -99,9 +103,9 @@ partial class D2DPixelShaderDescriptorGenerator
                 constructors,
                 constantDefinitions,
                 staticFieldDefinitions,
+                requirements,
                 initializerLocalFunctions,
-                token,
-                out bool fieldsNeedD2D1RequiresScenePosition);
+                token);
 
             token.ThrowIfCancellationRequested();
 
@@ -136,7 +140,7 @@ partial class D2DPixelShaderDescriptorGenerator
                 diagnostics,
                 structDeclarationSymbol,
                 requiresScenePosition,
-                methodsNeedD2D1RequiresScenePosition || fieldsNeedD2D1RequiresScenePosition);
+                requirements.NeedsD2DRequiresScenePositionAttribute);
 
             token.ThrowIfCancellationRequested();
 
@@ -297,9 +301,9 @@ partial class D2DPixelShaderDescriptorGenerator
         /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
         /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
         /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+        /// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
         /// <param name="localFunctions">The collection to receive the local functions lifted out of imported methods.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
-        /// <param name="needsD2D1RequiresScenePosition">Whether or not the shader needs the <c>[D2DRequiresScenePosition]</c> annotation.</param>
         /// <returns>A sequence of static constant fields in <paramref name="structDeclarationSymbol"/>.</returns>
         private static ImmutableArray<HlslStaticField> GetStaticFields(
             ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
@@ -311,13 +315,11 @@ partial class D2DPixelShaderDescriptorGenerator
             IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
             IDictionary<IFieldSymbol, string> constantDefinitions,
             IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+            HlslShaderRequirements requirements,
             IDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions,
-            CancellationToken token,
-            out bool needsD2D1RequiresScenePosition)
+            CancellationToken token)
         {
             using ImmutableArrayBuilder<HlslStaticField> builder = new();
-
-            needsD2D1RequiresScenePosition = false;
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -336,6 +338,7 @@ partial class D2DPixelShaderDescriptorGenerator
                     constructors,
                     constantDefinitions,
                     staticFieldDefinitions,
+                    requirements,
                     diagnostics,
                     token,
                     out string? name,
@@ -343,8 +346,6 @@ partial class D2DPixelShaderDescriptorGenerator
                     out string? assignmentExpression,
                     out StaticFieldRewriter? staticFieldRewriter))
                 {
-                    needsD2D1RequiresScenePosition |= staticFieldRewriter.NeedsD2DRequiresScenePositionAttribute;
-
                     builder.Add((name, typeDeclaration, assignmentExpression));
 
                     // An initializer may import a method that declares a local function, which HLSL cannot
@@ -378,7 +379,7 @@ partial class D2DPixelShaderDescriptorGenerator
         /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
         /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
         /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
-        /// <param name="needsD2D1RequiresScenePosition">Whether or not the shader needs the <c>[D2DRequiresScenePosition]</c> annotation.</param>
+        /// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <returns>A sequence of processed methods in <paramref name="structDeclarationSymbol"/>, and the entry point.</returns>
         private static (string EntryPoint, ImmutableArray<HlslMethod> Methods) GetProcessedMethods(
@@ -392,17 +393,13 @@ partial class D2DPixelShaderDescriptorGenerator
             IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
             IDictionary<IFieldSymbol, string> constantDefinitions,
             IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
-            CancellationToken token,
-            out bool needsD2D1RequiresScenePosition)
+            HlslShaderRequirements requirements,
+            CancellationToken token)
         {
             using ImmutableArrayBuilder<HlslMethod> methods = new();
 
             IMethodSymbol entryPointInterfaceMethod = shaderInterfaceType.GetMethod("Execute")!;
             string? entryPoint = null;
-
-            // By default, the scene position is not required. We will set this while
-            // rewriting HLSL, if any method we traverse ends up requiring the position.
-            needsD2D1RequiresScenePosition = false;
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -442,6 +439,7 @@ partial class D2DPixelShaderDescriptorGenerator
                     constructors,
                     constantDefinitions,
                     staticFieldDefinitions,
+                    requirements,
                     diagnostics,
                     token,
                     isShaderEntryPoint);
@@ -450,9 +448,6 @@ partial class D2DPixelShaderDescriptorGenerator
                 MethodDeclarationSyntax? processedMethod = shaderSourceRewriter.Visit(methodDeclaration)!.WithoutTrivia();
 
                 token.ThrowIfCancellationRequested();
-
-                // Update the position requirement
-                needsD2D1RequiresScenePosition |= shaderSourceRewriter.NeedsD2DRequiresScenePositionAttribute;
 
                 // Emit the extracted local functions first
                 foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)

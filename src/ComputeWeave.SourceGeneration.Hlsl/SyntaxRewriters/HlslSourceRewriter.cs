@@ -25,6 +25,7 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <param name="discoveredTypes">The set of discovered custom types.</param>
 /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
 /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+/// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
 /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
 /// <param name="token">The <see cref="System.Threading.CancellationToken"/> value for the current operation.</param>
 internal abstract partial class HlslSourceRewriter(
@@ -32,6 +33,7 @@ internal abstract partial class HlslSourceRewriter(
     ICollection<INamedTypeSymbol> discoveredTypes,
     IDictionary<IFieldSymbol, string> constantDefinitions,
     IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+    HlslShaderRequirements requirements,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token) : CSharpSyntaxRewriter
 {
@@ -64,6 +66,15 @@ internal abstract partial class HlslSourceRewriter(
     /// Gets the collection of discovered static field definitions.
     /// </summary>
     protected IDictionary<IFieldSymbol, HlslStaticField> StaticFieldDefinitions { get; } = staticFieldDefinitions;
+
+    /// <summary>
+    /// Gets the requirements gathered for the shader being rewritten.
+    /// </summary>
+    /// <remarks>
+    /// Shared with every other rewriter reached from the same shader, so a requirement is raised where it
+    /// is found and read where the shader is written, with no path in between having to carry it.
+    /// </remarks>
+    protected HlslShaderRequirements Requirements { get; } = requirements;
 
     /// <summary>
     /// Gets the collection of produced <see cref="DiagnosticInfo"/> instances.
@@ -641,4 +652,15 @@ internal abstract partial class HlslSourceRewriter(
                 throw new NotSupportedException($"""Unrecognized intrinsic "{intrinsicName}".""");
         }
     }
+
+    /// <summary>
+    /// Raises the requirements a call to a known HLSL method places on the shader, if it places any.
+    /// </summary>
+    /// <param name="metadataName">The metadata name of the method being invoked.</param>
+    /// <remarks>
+    /// Declared here rather than on each rewriter because what a call requires does not depend on whether it
+    /// was written in a body or in a static field initializer, and one declaration cannot be left uncalled by
+    /// one of them while the other calls it.
+    /// </remarks>
+    protected partial void TrackKnownMethodInvocation(string metadataName);
 }

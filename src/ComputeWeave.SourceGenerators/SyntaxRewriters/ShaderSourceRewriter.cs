@@ -1,5 +1,4 @@
 using ComputeWeave.SourceGeneration.Extensions;
-using ComputeWeave.SourceGeneration.Mappings;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -27,20 +26,10 @@ partial class ShaderSourceRewriter
     /// </summary>
     public bool IsGridIdsUsed { get; set; }
 
-    /// <summary>
-    /// Gets whether or not the shader uses a texture sampler at least once.
-    /// </summary>
-    public bool IsSamplerUsed { get; private set; }
-
-    /// <summary>
-    /// Gets whether or not the shader waits for the whole thread group at least once.
-    /// </summary>
-    public bool SynchronizesTheWholeThreadGroup { get; private set; }
-
     /// <inheritdoc/>
     private partial SyntaxNode RewriteSampledTextureAccess(IInvocationOperation operation, ExpressionSyntax expression, ArgumentSyntax arguments)
     {
-        IsSamplerUsed = true;
+        Requirements.IsSamplerUsed = true;
 
         // Transform a method invocation syntax into a sampling call with the implicit static linear sampler.
         // For instance: texture.Sample(uv) will be rewritten as texture.SampleLevel(__sampler, uv, 0).
@@ -50,18 +39,6 @@ partial class ShaderSourceRewriter
                 Argument(IdentifierName("__sampler")),
                 arguments,
                 Argument(LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(0))));
-    }
-
-    /// <inheritdoc/>
-    partial void TrackKnownMethodInvocation(string metadataName)
-    {
-        SynchronizesTheWholeThreadGroup |= HlslKnownMethods.SynchronizesTheWholeThreadGroup(metadataName);
-    }
-
-    /// <inheritdoc/>
-    partial void TrackNestedRewriter(ShaderSourceRewriter rewriter)
-    {
-        SynchronizesTheWholeThreadGroup |= rewriter.SynchronizesTheWholeThreadGroup;
     }
 
     /// <inheritdoc/>

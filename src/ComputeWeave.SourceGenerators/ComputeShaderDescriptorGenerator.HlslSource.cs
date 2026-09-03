@@ -91,7 +91,11 @@ partial class ComputeShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
-            (string entryPoint, ImmutableArray<HlslMethod> processedMethods, isSamplerUsed, synchronizesTheWholeThreadGroup) = GetProcessedMethods(
+            // Every rewriter for this shader raises what it needs into this one instance, so a requirement
+            // is read here whichever declaration it was found in and however that declaration was reached
+            HlslShaderRequirements requirements = new();
+
+            (string entryPoint, ImmutableArray<HlslMethod> processedMethods) = GetProcessedMethods(
                 diagnostics,
                 structDeclarationSymbol,
                 shaderInterfaceType,
@@ -102,6 +106,7 @@ partial class ComputeShaderDescriptorGenerator
                 constructors,
                 constantDefinitions,
                 staticFieldDefinitions,
+                requirements,
                 isComputeShader,
                 token);
 
@@ -119,6 +124,7 @@ partial class ComputeShaderDescriptorGenerator
                 constructors,
                 constantDefinitions,
                 staticFieldDefinitions,
+                requirements,
                 initializerLocalFunctions,
                 token);
 
@@ -150,6 +156,11 @@ partial class ComputeShaderDescriptorGenerator
             // Check whether an implicit texture is used in the shader
             isImplicitTextureUsed = implicitTextureType is not null;
 
+            // Read the requirements once every declaration has been rewritten, a static field initializer
+            // being able to raise one just as the shader body and the declarations it reaches can
+            isSamplerUsed = requirements.IsSamplerUsed;
+            synchronizesTheWholeThreadGroup = requirements.SynchronizesTheWholeThreadGroup;
+
             // Get the HLSL source data with the intermediate info
             hlslSource = GetHlslSourceInfo(
                 threadsX,
@@ -165,7 +176,7 @@ partial class ComputeShaderDescriptorGenerator
                 typeMethodDeclarations,
                 isComputeShader,
                 implicitTextureType,
-                isSamplerUsed,
+                requirements.IsSamplerUsed,
                 entryPoint);
         }
 
@@ -315,6 +326,7 @@ partial class ComputeShaderDescriptorGenerator
         /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
         /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
         /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+        /// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
         /// <param name="localFunctions">The collection to receive the local functions lifted out of imported methods.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <returns>A sequence of static constant fields in <paramref name="structDeclarationSymbol"/>.</returns>
@@ -328,6 +340,7 @@ partial class ComputeShaderDescriptorGenerator
             IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
             IDictionary<IFieldSymbol, string> constantDefinitions,
             IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+            HlslShaderRequirements requirements,
             IDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions,
             CancellationToken token)
         {
@@ -357,6 +370,7 @@ partial class ComputeShaderDescriptorGenerator
                     constructors,
                     constantDefinitions,
                     staticFieldDefinitions,
+                    requirements,
                     diagnostics,
                     token,
                     out string? name,
@@ -436,10 +450,11 @@ partial class ComputeShaderDescriptorGenerator
         /// <param name="constructors">The collection of discovered constructors for custom struct types.</param>
         /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
         /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+        /// <param name="requirements">The requirements gathered for the shader being rewritten.</param>
         /// <param name="isComputeShader">Indicates whether or not <paramref name="structDeclarationSymbol"/> represents a compute shader.</param>
         /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
         /// <returns>A sequence of processed methods in <paramref name="structDeclarationSymbol"/>, and the entry point.</returns>
-        private static (string EntryPoint, ImmutableArray<HlslMethod> Methods, bool IsSamplerUser, bool SynchronizesTheWholeThreadGroup) GetProcessedMethods(
+        private static (string EntryPoint, ImmutableArray<HlslMethod> Methods) GetProcessedMethods(
             ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
             INamedTypeSymbol structDeclarationSymbol,
             INamedTypeSymbol shaderInterfaceType,
@@ -450,6 +465,7 @@ partial class ComputeShaderDescriptorGenerator
             IDictionary<IMethodSymbol, (MethodDeclarationSyntax, MethodDeclarationSyntax)> constructors,
             IDictionary<IFieldSymbol, string> constantDefinitions,
             IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions,
+            HlslShaderRequirements requirements,
             bool isComputeShader,
             CancellationToken token)
         {
@@ -457,8 +473,6 @@ partial class ComputeShaderDescriptorGenerator
 
             IMethodSymbol entryPointInterfaceMethod = shaderInterfaceType.GetMethod("Execute")!;
             string? entryPoint = null;
-            bool isSamplerUsed = false;
-            bool synchronizesTheWholeThreadGroup = false;
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -498,6 +512,7 @@ partial class ComputeShaderDescriptorGenerator
                     constructors,
                     constantDefinitions,
                     staticFieldDefinitions,
+                    requirements,
                     diagnostics,
                     token,
                     isShaderEntryPoint);
@@ -506,12 +521,6 @@ partial class ComputeShaderDescriptorGenerator
                 MethodDeclarationSyntax? processedMethod = shaderSourceRewriter.Visit(methodDeclaration)!.WithoutTrivia();
 
                 token.ThrowIfCancellationRequested();
-
-                // Track the implicit sampler, if used
-                isSamplerUsed = isSamplerUsed || shaderSourceRewriter.IsSamplerUsed;
-
-                // Track whether the whole thread group is waited for, which the dispatch has to honor
-                synchronizesTheWholeThreadGroup = synchronizesTheWholeThreadGroup || shaderSourceRewriter.SynchronizesTheWholeThreadGroup;
 
                 // Emit the extracted local functions first
                 foreach (KeyValuePair<IMethodSymbol, LocalFunctionStatementSyntax> localFunction in shaderSourceRewriter.LocalFunctions)
@@ -543,7 +552,7 @@ partial class ComputeShaderDescriptorGenerator
 
             token.ThrowIfCancellationRequested();
 
-            return (entryPoint!, methods.ToImmutable(), isSamplerUsed, synchronizesTheWholeThreadGroup);
+            return (entryPoint!, methods.ToImmutable());
         }
 
         /// <summary>

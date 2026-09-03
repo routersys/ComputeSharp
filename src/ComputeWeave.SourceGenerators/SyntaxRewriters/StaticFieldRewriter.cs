@@ -34,10 +34,4 @@ partial class StaticFieldRewriter
             }
         }
     }
-
-    /// <inheritdoc/>
-    private partial void TrackKnownMethodInvocation(string metadataName)
-    {
-        // No special tracking is needed for DX12 compute shaders
-    }
 }
