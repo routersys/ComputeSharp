@@ -10,9 +10,16 @@ namespace ComputeWeave.Tests.SourceGenerators.Shaders;
 /// Which shaders declare that every thread group has to fall entirely inside the requested range.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The generated entry point runs the body only for the threads inside the range, so a shader that waits for
 /// its whole thread group cannot be run over a range that leaves part of a group out. The declaration is what
 /// carries that to the dispatch, and only the shaders that wait for their group are meant to carry it.
+/// </para>
+/// <para>
+/// A rewriter is created for each declaration the shader reaches, and the requirement is raised in whichever
+/// one holds the barrier. There is a test below for each of those paths rather than one for the feature, so a
+/// path that lost what it gathered would be named on its own. A new path needs a new one.
+/// </para>
 /// </remarks>
 [TestClass]
 public class FullThreadGroupsTests
