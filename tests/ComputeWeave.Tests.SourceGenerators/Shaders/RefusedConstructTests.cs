@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reflection;
 using ComputeWeave.SourceGenerators;
 using ComputeWeave.Tests.SourceGenerators.Helpers;
 using Microsoft.CodeAnalysis;
@@ -165,14 +166,12 @@ public class RefusedConstructTests
     /// A shader carrying syntax the accepted set does not cover.
     /// </summary>
     /// <remarks>
-    /// The report is an Info and refuses nothing, so the shader is built and the failure the HLSL compiler
-    /// raises still reaches the author. That is what keeps syntax with no recorded verdict visible while the
-    /// set is being measured: were an Info to stop the build, such syntax would pass in silence instead.
-    /// The failure is made to come from the recursion, which HLSL cannot express under any profile, so the
-    /// row does not rest on how one version of one compiler happens to treat the reported construct.
+    /// The report refuses the input, so the shader never reaches the HLSL compiler. The body carries recursion,
+    /// which HLSL cannot express under any profile, so the compiler would answer for it were it handed the
+    /// shader: what the row reads is the refusal arriving alone, and not a body the compiler happens to accept.
     /// </remarks>
     [TestMethod]
-    public void AReportThatRefusesNothingCarriesTheCompilerFailure()
+    public void AReportForSyntaxWithNoVerdictRefusesTheInput()
     {
         Diagnostic[] reported = Report(
             Shader(
@@ -188,9 +187,80 @@ public class RefusedConstructTests
                 k += Fib(3) + (int)v;
                 """,
                 isUnsafe: false),
-            "ShaderReportedCompilerFailureTests");
+            "ShaderReportedRefusalTests");
 
-        Assert.AreEqual("CMPW0046, CMPW0121", Ids(reported));
+        Assert.AreEqual("CMPW0121", Ids(reported));
+    }
+
+    /// <summary>
+    /// A refused construct that carries syntax the set has no verdict for, both under it and beside it.
+    /// </summary>
+    /// <remarks>
+    /// The refusal names the place the author has to change, so the record is dropped rather than naming the
+    /// array syntax the refused statement holds as well. Reading the whole set is what makes one cause name
+    /// one place, the record and the refusal being produced by different parts of the same walk.
+    /// </remarks>
+    [TestMethod]
+    public void ARefusedConstructIsNotRecordedAsSyntaxWithNoVerdict()
+    {
+        Diagnostic[] reported = Report(
+            Shader("foreach (int value in new int[1]) { k += value; }", isUnsafe: false),
+            "ShaderRefusalWithoutRecordTests");
+
+        Assert.AreEqual("CMPW0017", Ids(reported));
+    }
+
+    /// <summary>
+    /// Every refused construct above, read for what it does not draw beside the refusal.
+    /// </summary>
+    /// <remarks>
+    /// The rows above assert the refusal and nothing else, so none of them would notice the record of syntax
+    /// with no verdict arriving with it. The bodies are read from the rows rather than written again, so a
+    /// refusal added later is covered here without anyone remembering to add it.
+    /// </remarks>
+    [TestMethod]
+    public void NoRefusedConstructIsRecordedAsSyntaxWithNoVerdict()
+    {
+        (string Body, bool IsUnsafe)[] rows =
+        [
+            .. Rows(nameof(ARefusedConstructIsDiagnosed), isUnsafe: false),
+            .. Rows(nameof(ARefusedConstructNeedingAnUnsafeContextIsDiagnosed), isUnsafe: true)
+        ];
+
+        Assert.AreNotEqual(0, rows.Length);
+
+        Diagnostic[][] reported = [.. rows.Select((row, index) => Report(Shader(row.Body, row.IsUnsafe), $"ShaderRefusalRecordTests{index}"))];
+
+        // A body that drew nothing at all would pass the assertion below for having reached nothing
+        string[] silent = [.. rows.Where((row, index) => reported[index].Length == 0).Select(static row => row.Body)];
+
+        Assert.AreEqual(0, silent.Length, string.Join(" | ", silent));
+
+        string[] recorded =
+        [
+            .. rows
+                .Where((row, index) => reported[index].Any(static diagnostic => diagnostic.Id == "CMPW0121"))
+                .Select(static row => row.Body)
+        ];
+
+        Assert.AreEqual(0, recorded.Length, string.Join(" | ", recorded));
+    }
+
+    /// <summary>
+    /// Reads the bodies a row driven test declares.
+    /// </summary>
+    /// <param name="name">The name of the test method to read the rows of.</param>
+    /// <param name="isUnsafe">Whether the entry point those rows need an unsafe context.</param>
+    /// <returns>The body each row carries, with <paramref name="isUnsafe"/> alongside it.</returns>
+    private static (string Body, bool IsUnsafe)[] Rows(string name, bool isUnsafe)
+    {
+        return
+        [
+            .. typeof(RefusedConstructTests)
+                .GetMethod(name)!
+                .GetCustomAttributes<DataRowAttribute>()
+                .Select(attribute => ((string)attribute.Data[0]!, isUnsafe))
+        ];
     }
 
     /// <summary>

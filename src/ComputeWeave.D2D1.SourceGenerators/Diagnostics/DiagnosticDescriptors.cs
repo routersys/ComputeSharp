@@ -1418,16 +1418,16 @@ partial class DiagnosticDescriptors
     /// </summary>
     /// <remarks>
     /// This is the Direct2D counterpart of the compute diagnostic. The rewriter that reports it is shared, so
-    /// leaving one of the two out would report the same syntax on one path and not the other.
+    /// leaving one of the two out would refuse the same syntax on one path and not the other.
     /// </remarks>
     public static readonly DiagnosticDescriptor UnknownShaderSyntax = new(
         id: "CMPWD2D0094",
         title: "Shader syntax outside the accepted set",
         messageFormat: "The C# syntax {0} is not in the set a shader body may use",
         category: "ComputeWeave.D2D1.Shaders",
-        defaultSeverity: DiagnosticSeverity.Info,
+        defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for. That is not the same as syntax nothing has judged: a construct the rewriter always refuses is outside the set as well, because refusing it keeps it out of what the measurement sees. Where nothing else answers for it, the generator writes it into HLSL without having decided anything about it. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. This message records the syntax so that the two can be told apart before the set is enforced.",
+        description: "The set of C# syntax a shader body may use is measured, not designed: it is what the rewriter walks when this repository is built, plus the constructs that were built one at a time and shown to compute the same value on a device. Syntax outside it is syntax the set records no verdict for, so writing it into HLSL would mean translating a construct nothing has decided anything about. Some of it compiles and computes the right value, and some of it reaches the HLSL compiler and fails there, naming generated code the author never wrote. The two were told apart by measurement while this was recorded rather than refused, and every construct that was shown to work is in the set, so what is left outside it is refused here instead, against the source the author wrote. A construct with a refusal of its own is answered by that refusal alone, this one being dropped beside it so that one cause names one place. The set grows by measurement rather than by design, so a construct that HLSL can express and that computes the same value belongs in it, and an issue naming one is how it gets there.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
 
     /// <summary>

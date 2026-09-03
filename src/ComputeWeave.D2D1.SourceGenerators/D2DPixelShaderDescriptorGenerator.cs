@@ -9,6 +9,7 @@ using ComputeWeave.SourceGeneration.Models;
 using ComputeWeave.SourceGeneration.SyntaxProcessors;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using static ComputeWeave.SourceGeneration.Diagnostics.DiagnosticDescriptors;
 
 namespace ComputeWeave.D2D1.SourceGenerators;
 
@@ -152,6 +153,10 @@ public sealed partial class D2DPixelShaderDescriptorGenerator : IIncrementalGene
                         inputSimpleIndices,
                         inputComplexIndices,
                         token);
+
+                    // A refusal already names the place the author has to change, so the records of syntax
+                    // with no verdict are dropped rather than naming several places for one cause
+                    diagnostics.DropUnknownSyntaxAfterARefusal(UnknownShaderSyntax);
 
                     token.ThrowIfCancellationRequested();
 

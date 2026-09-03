@@ -15,8 +15,8 @@ namespace ComputeWeave.Tests.SourceGenerators.Shaders;
 /// </summary>
 /// <remarks>
 /// The set is measured, not designed, so these tests pin what the measurement found. A shader written the way
-/// the ones in this repository are written must report nothing: that is what makes it safe to raise the severity
-/// later. A shader written with syntax the set does not cover must report it, and the report must not refuse it.
+/// the ones in this repository are written must report nothing, which is what made it safe to raise the severity.
+/// A shader written with syntax the set does not cover must be refused, against the source the author wrote.
 /// </remarks>
 [TestClass]
 public class AcceptedSyntaxSetTests
@@ -90,6 +90,12 @@ public class AcceptedSyntaxSetTests
     [DataRow("float v = k is 1 ? 3.0f : 4.0f;", "ShaderIsPatternSyntaxTests", "IsPatternExpression")]
     [DataRow("float v = 5; v = v!;", "ShaderSuppressNullableSyntaxTests", "SuppressNullableWarningExpression")]
     [DataRow("float v = 5; goto done; done: v += 1;", "ShaderGotoSyntaxTests", "GotoStatement")]
+
+    // A named argument is refused rather than written out with the name taken off, which would bind by position
+    [DataRow(
+        "static float Scale(float value, float factor) => value * factor; float v = Scale(factor: 2.0f, value: 1.0f);",
+        "ShaderNamedArgumentSyntaxTests",
+        "NameColon")]
     public void SyntaxOutsideTheSetIsReported(string body, string assemblyName, string expected)
     {
         string source = $$"""
@@ -152,7 +158,7 @@ public class AcceptedSyntaxSetTests
     }
 
     [TestMethod]
-    public void TheReportDoesNotRefuseTheInput()
+    public void TheReportRefusesTheInput()
     {
         const string Source = """
             using ComputeWeave;
@@ -181,14 +187,57 @@ public class AcceptedSyntaxSetTests
         GeneratorRunResult result = RunGenerator(Source, "ShaderReportSeverityTests");
         Diagnostic[] reports = Filter(result);
 
-        // Info is the one severity that changes no build: a warning is raised to an error in this repository
         Assert.AreEqual(1, reports.Length, string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
-        Assert.AreEqual(DiagnosticSeverity.Info, reports[0].Severity);
+        Assert.AreEqual(DiagnosticSeverity.Error, reports[0].Severity);
 
-        // The descriptor is written all the same, so the report records the syntax rather than refusing it
+        // The descriptor is written all the same: what the refusal stops is the shader compilation, not the generation
         Assert.IsTrue(
             result.GeneratedSources.Any(static source => source.HintName.Contains("Shaders.Shader")),
             string.Join(", ", result.GeneratedSources.Select(static source => source.HintName)));
+    }
+
+    /// <summary>
+    /// An attribute of the author's own, carrying syntax the set has no verdict for, on an imported method.
+    /// </summary>
+    /// <remarks>
+    /// The rewriting drops the attribute lists rather than writing them out, so what they hold never reaches
+    /// the shader compiler, and refusing it would refuse a construct that cannot change the generated HLSL.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxInsideAnAttributeIsNotReported()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal sealed class MarkAttribute : System.Attribute
+            {
+                public int Order { get; set; }
+            }
+
+            internal static class Helper
+            {
+                [Mark(Order = 1)]
+                public static float Twice(float value) => value * 2;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Helper.Twice(2.0f);
+                }
+            }
+            """;
+
+        Diagnostic[] reports = Run(Source, "ShaderAttributeSyntaxTests");
+
+        Assert.AreEqual(0, reports.Length, string.Join(", ", reports.Select(static report => report.GetMessage())));
     }
 
     [TestMethod]

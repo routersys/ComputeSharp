@@ -459,12 +459,11 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
-    /// Syntax outside the set a shader body may use. The rewriter that reports it is shared with the compute
+    /// Syntax outside the set a shader body may use. The rewriter that refuses it is shared with the compute
     /// generator, so what this pins is that the pixel shader generator answers with its own identifier.
     /// </summary>
     /// <remarks>
-    /// The shader is handed to FXC after the report, the report recording the syntax rather than refusing it,
-    /// so the compile error raised on the same construct is named here too.
+    /// The refusal keeps the shader from FXC, so no compile error is named beside it.
     /// </remarks>
     [TestMethod]
     public void SyntaxOutsideTheAcceptedSetIsReported()
@@ -492,7 +491,52 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0094", "CMPWD2D0034");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0094");
+    }
+
+    /// <summary>
+    /// An attribute of the author's own, carrying syntax the set has no verdict for, on an imported method.
+    /// </summary>
+    /// <remarks>
+    /// The rewriting drops the attribute lists, so nothing under one reaches FXC and refusing it would refuse
+    /// a construct that cannot change the generated HLSL.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxInsideAnAttributeIsNotReported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal sealed class MarkAttribute : System.Attribute
+            {
+                public int Order { get; set; }
+            }
+
+            internal static class Helper
+            {
+                [Mark(Order = 1)]
+                public static float Twice(float value) => value * 2;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return new float4(Helper.Twice(this.time), 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0094");
     }
 
     /// <summary>

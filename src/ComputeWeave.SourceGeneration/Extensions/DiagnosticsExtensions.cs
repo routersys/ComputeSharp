@@ -64,6 +64,61 @@ internal static class DiagnosticsExtensions
     }
 
     /// <summary>
+    /// Drops the records of syntax with no verdict, when the input was refused for a reason of its own.
+    /// </summary>
+    /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
+    /// <param name="unknownSyntax">The descriptor for a syntax kind the accepted set records no verdict for.</param>
+    /// <remarks>
+    /// <para>
+    /// A refused construct carries syntax the set has no verdict for, both under it and beside it: a refused
+    /// <c>foreach</c> holds an array creation, and a refused local declaration sits next to one. Recording those
+    /// as well names several places for one cause, and the place the author has to change is the one the refusal
+    /// already names. The same reading is what stops a refused input from reaching the shader compiler.
+    /// </para>
+    /// <para>
+    /// The reading is of the whole set produced for one shader, and not of the subtree a record sits in, so it
+    /// does not depend on the order the rewriting walks in. Syntax with no verdict elsewhere in the same shader
+    /// is dropped along with the rest, and is reported once the refusal is gone, the way a compiler stops
+    /// reading a file after the error that makes the rest of it meaningless.
+    /// </para>
+    /// </remarks>
+    public static void DropUnknownSyntaxAfterARefusal(
+        this ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
+        DiagnosticDescriptor unknownSyntax)
+    {
+        bool isRefused = false;
+
+        foreach (DiagnosticInfo diagnostic in diagnostics.WrittenSpan)
+        {
+            if (diagnostic.Descriptor.DefaultSeverity == DiagnosticSeverity.Error &&
+                diagnostic.Descriptor != unknownSyntax)
+            {
+                isRefused = true;
+
+                break;
+            }
+        }
+
+        if (!isRefused)
+        {
+            return;
+        }
+
+        using ImmutableArrayBuilder<DiagnosticInfo> kept = new();
+
+        foreach (DiagnosticInfo diagnostic in diagnostics.WrittenSpan)
+        {
+            if (diagnostic.Descriptor != unknownSyntax)
+            {
+                kept.Add(diagnostic);
+            }
+        }
+
+        diagnostics.Clear();
+        diagnostics.AddRange(kept.WrittenSpan);
+    }
+
+    /// <summary>
     /// Registers an output node into an <see cref="IncrementalGeneratorInitializationContext"/> to output diagnostics.
     /// </summary>
     /// <param name="context">The input <see cref="IncrementalGeneratorInitializationContext"/> instance.</param>
