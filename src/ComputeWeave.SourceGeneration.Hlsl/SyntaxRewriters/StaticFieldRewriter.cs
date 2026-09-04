@@ -182,6 +182,18 @@ internal sealed partial class StaticFieldRewriter(
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The rewriter for a shader body declares the variable at the start of the body and passes it to the
+    /// call. An initializer is one expression with nothing ahead of it, so the declaration is refused.
+    /// </remarks>
+    public override SyntaxNode? VisitDeclarationExpression(DeclarationExpressionSyntax node)
+    {
+        Diagnostics.Add(VariableDeclaredInStaticFieldInitializer, node, node.Designation);
+
+        return base.VisitDeclarationExpression(node);
+    }
+
+    /// <inheritdoc/>
     public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
     {
         InvocationExpressionSyntax updatedNode = (InvocationExpressionSyntax)base.VisitInvocationExpression(node)!;
@@ -359,11 +371,20 @@ internal sealed partial class StaticFieldRewriter(
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A discarded argument is given a variable the rewriting introduces, which is the other place the
+    /// rewriter for a shader body declares one, so it is refused here for the same reason.
+    /// </remarks>
     public override SyntaxNode? VisitArgument(ArgumentSyntax node)
     {
         ArgumentSyntax updatedNode = (ArgumentSyntax)base.VisitArgument(node)!;
 
         updatedNode = updatedNode.WithRefKindKeyword(Token(SyntaxKind.None));
+
+        if (SemanticModel.For(node).GetOperation(node.Expression, CancellationToken) is IDiscardOperation)
+        {
+            Diagnostics.Add(VariableDeclaredInStaticFieldInitializer, node.Expression, node.Expression);
+        }
 
         return updatedNode;
     }
