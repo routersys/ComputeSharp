@@ -173,7 +173,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(Source, "ShaderThreadGroupTooManyThreadsCompilerTests", "CMPW0046");
+        AssertIsNotHandedToTheCompiler(Source, "ShaderThreadGroupTooManyThreadsCompilerTests");
     }
 
     /// <summary>
@@ -204,9 +204,7 @@ public class ShaderGeneratorDiagnosticTests
     [TestMethod]
     public void AValidShaderIsNotDiagnosed()
     {
-        string[] actualIds = Run(Shader("private readonly float scale;", "this.buffer[0] = this.scale;"), "ShaderValidTests");
-
-        Assert.AreEqual(0, actualIds.Length, string.Join(", ", actualIds));
+        AssertReportsNothing(Shader("private readonly float scale;", "this.buffer[0] = this.scale;"), "ShaderValidTests");
     }
 
     private static string Shader(string member, string body)
@@ -336,7 +334,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(CycleShader(Declarations), "StaticFieldWithoutACycleTests", "CMPW0124");
+        AssertReportsNothing(CycleShader(Declarations), "StaticFieldWithoutACycleTests");
     }
 
     /// <summary>
@@ -377,7 +375,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(Source, "StaticFieldReadTwiceTests", "CMPW0124");
+        AssertReportsNothing(Source, "StaticFieldReadTwiceTests");
     }
 
     private static string CycleShader(string declarations)
@@ -420,11 +418,20 @@ public class ShaderGeneratorDiagnosticTests
         Assert.IsTrue(actualIds.Contains(expectedId), $"{expectedId} is not reported: {string.Join(", ", actualIds)}");
     }
 
-    private static void AssertDoesNotReport(string source, string assemblyName, string unexpectedId)
+    private static void AssertReportsNothing(string source, string assemblyName)
     {
         string[] actualIds = Run(source, assemblyName);
 
-        Assert.IsFalse(actualIds.Contains(unexpectedId), $"{unexpectedId} is reported: {string.Join(", ", actualIds)}");
+        // A shader left alone is pinned as a set, so a compile failure arriving under its own identifier lands here
+        Assert.AreEqual(0, actualIds.Length, string.Join(", ", actualIds));
+    }
+
+    private static void AssertIsNotHandedToTheCompiler(string source, string assemblyName)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        // Narrow because an analyzer answers for this shader from outside this run, and sound because a group this size would be refused if it were handed over
+        Assert.IsFalse(actualIds.Contains("CMPW0046"), $"CMPW0046 is reported: {string.Join(", ", actualIds)}");
     }
 
     private static string[] Run(string source, string assemblyName)
