@@ -296,15 +296,15 @@ public class ShaderGeneratorDiagnosticTests
         """)]
     public void AStaticFieldInitializerReachingItselfIsDiagnosed(string assemblyName, string declarations)
     {
-        AssertReportsOnce(CycleShader(declarations), assemblyName, "CMPW0124");
+        AssertReportsAt(CycleShader(declarations), assemblyName, "CMPW0124", 1);
     }
 
     /// <summary>
-    /// A cycle the initializer closes through two declarations is reported once. Both of them name the
-    /// same field declaration, so a report per declaration reads as two cycles where there is one.
+    /// A cycle the initializer closes through two declarations is reported at each of the two reads. The
+    /// author has to change both, and a single report on the field declaration would name neither.
     /// </summary>
     [TestMethod]
-    public void AStaticFieldInitializerReachingItselfTwiceIsDiagnosedOnce()
+    public void AStaticFieldInitializerReachingItselfTwiceIsDiagnosedAtEachRead()
     {
         const string Declarations = """
             internal static class Helper
@@ -317,21 +317,39 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertReportsOnce(CycleShader(Declarations), "StaticFieldCycleReachedTwiceTests", "CMPW0124");
+        AssertReportsAt(CycleShader(Declarations), "StaticFieldCycleReachedTwiceTests", "CMPW0124", 2);
     }
 
     /// <summary>
     /// An initializer that imports a method not reading the field back is left alone. Reporting on the
     /// import itself would refuse every initializer that calls anything.
     /// </summary>
-    /// <remarks>
-    /// The field is read twice, unlike the rows above. A shader reading it once never returns to the entry
-    /// the rewriting completed, so nothing measures which of the two kinds of entry the report is attached
-    /// to; a shader reading it twice does, but on a cycle the second read reports and the row passes whether
-    /// or not the first one did. One row of each shape measures both.
-    /// </remarks>
     [TestMethod]
     public void AStaticFieldInitializerImportingAMethodIsNotDiagnosed()
+    {
+        const string Declarations = """
+            internal static class Helper
+            {
+                public static readonly float Value = Twice();
+
+                public static float Twice() => 2.0f;
+            }
+            """;
+
+        AssertDoesNotReport(CycleShader(Declarations), "StaticFieldWithoutACycleTests", "CMPW0124");
+    }
+
+    /// <summary>
+    /// An external static field read twice is written once and read twice. The entry the first read leaves
+    /// behind is a completed one, and reading it again is not the initializer reaching the field it writes.
+    /// </summary>
+    /// <remarks>
+    /// A shader reading such a field once never returns to a completed entry, so no row above measures which
+    /// of the two kinds of entry the report is attached to. This one does, and it is the row that fails when
+    /// the test telling them apart is inverted.
+    /// </remarks>
+    [TestMethod]
+    public void AnExternalStaticFieldReadTwiceIsNotDiagnosed()
     {
         const string Source = """
             using ComputeWeave;
@@ -359,7 +377,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(Source, "StaticFieldWithoutACycleTests", "CMPW0124");
+        AssertDoesNotReport(Source, "StaticFieldReadTwiceTests", "CMPW0124");
     }
 
     private static string CycleShader(string declarations)
@@ -385,14 +403,14 @@ public class ShaderGeneratorDiagnosticTests
             """;
     }
 
-    private static void AssertReportsOnce(string source, string assemblyName, string expectedId)
+    private static void AssertReportsAt(string source, string assemblyName, string expectedId, int expectedCount)
     {
         string[] actualIds = Run(source, assemblyName);
 
         Assert.AreEqual(
-            1,
+            expectedCount,
             actualIds.Count(id => id == expectedId),
-            $"{expectedId} is not reported exactly once: {string.Join(", ", actualIds)}");
+            $"{expectedId} is not reported {expectedCount} time(s): {string.Join(", ", actualIds)}");
     }
 
     private static void AssertReports(string source, string assemblyName, string expectedId)
