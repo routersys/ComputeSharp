@@ -63,7 +63,7 @@ public class DiagnosticLocationTests
     [TestMethod]
     public void ALocationNamingAFileTheCompilationHoldsIsReportedInThatTree()
     {
-        CSharpCompilation compilation = CreateCompilationUnder("Shader.cs", "DiagnosticLocationInTree");
+        CSharpCompilation compilation = CreateCompilationUnder("DiagnosticLocationInTree", ("Shader.cs", "class Shader { }"));
         SyntaxTree tree = compilation.SyntaxTrees.Single();
         SyntaxNode node = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
         Location location = Location.Create("Shader.cs", node.Span, tree.GetLineSpan(node.Span).Span);
@@ -76,13 +76,43 @@ public class DiagnosticLocationTests
     }
 
     /// <summary>
+    /// A compilation holds every file of a project, so a captured location has to reach the tree it names
+    /// rather than whichever tree the compilation happens to hold first.
+    /// </summary>
+    /// <remarks>
+    /// The rows above resolve against a compilation holding one tree, where a lookup that never asks what
+    /// the file is called still lands on the right one for having nowhere else to land. The tree named here
+    /// comes second, and the one before it is longer than the span, so it is what such a lookup would take.
+    /// </remarks>
+    [TestMethod]
+    public void ALocationNamingOneOfSeveralFilesIsReportedInTheTreeItNames()
+    {
+        CSharpCompilation compilation = CreateCompilationUnder(
+            "DiagnosticLocationAmongTrees",
+            ("Other.cs", "class Other { } class Filler { } class Padding { }"),
+            ("Shader.cs", "class Shader { }"));
+
+        SyntaxTree named = compilation.SyntaxTrees.Last();
+        SyntaxNode node = named.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+        Location location = Location.Create("Shader.cs", node.Span, named.GetLineSpan(node.Span).Span);
+
+        // The span has to fit the tree that comes first, or the row passes for the reason the next one reads
+        Assert.IsTrue(node.Span.End <= compilation.SyntaxTrees.First().Length);
+
+        Diagnostic diagnostic = DiagnosticInfo.Create(Descriptor, location, "Shader").ToDiagnostic(compilation);
+
+        Assert.AreEqual(LocationKind.SourceFile, diagnostic.Location.Kind);
+        Assert.AreSame(named, diagnostic.Location.SourceTree);
+    }
+
+    /// <summary>
     /// A span reaching past the text names other text, and such a location throws where it is printed
     /// rather than where it is made, so the file is named instead.
     /// </summary>
     [TestMethod]
     public void ALocationWhoseSpanTheTreeDoesNotHoldIsReportedAtThatFile()
     {
-        CSharpCompilation compilation = CreateCompilationUnder("Shader.cs", "DiagnosticLocationPastTheText");
+        CSharpCompilation compilation = CreateCompilationUnder("DiagnosticLocationPastTheText", ("Shader.cs", "class Shader { }"));
         TextSpan span = TextSpan.FromBounds(4096, 4100);
         LinePositionSpan lineSpan = new(new LinePosition(64, 0), new LinePosition(64, 4));
         Location location = Location.Create("Shader.cs", span, lineSpan);
@@ -134,16 +164,24 @@ public class DiagnosticLocationTests
     }
 
     /// <summary>
-    /// Creates a compilation holding one tree, parsed under a path a captured location can name.
+    /// Creates a compilation whose trees are parsed under paths a captured location can name.
     /// </summary>
-    /// <param name="path">The path to parse the tree under.</param>
     /// <param name="assemblyName">The name to give the assembly.</param>
-    /// <returns>A compilation whose only tree carries <paramref name="path"/>.</returns>
-    private static CSharpCompilation CreateCompilationUnder(string path, string assemblyName)
+    /// <param name="files">The path and the source of each tree, in the order the compilation holds them.</param>
+    /// <returns>A compilation whose trees carry the paths given.</returns>
+    private static CSharpCompilation CreateCompilationUnder(string assemblyName, params (string Path, string Source)[] files)
     {
-        CSharpCompilation compilation = CompilationHelper.CreateCompilation("class Shader { }", assemblyName);
-        SyntaxTree tree = compilation.SyntaxTrees.Single();
+        CSharpCompilation compilation = CompilationHelper.CreateCompilation([.. files.Select(static file => file.Source)], assemblyName);
 
-        return compilation.ReplaceSyntaxTree(tree, CSharpSyntaxTree.ParseText(tree.GetText(), (CSharpParseOptions)tree.Options, path));
+        for (int i = 0; i < files.Length; i++)
+        {
+            SyntaxTree tree = compilation.SyntaxTrees.ElementAt(i);
+
+            compilation = compilation.ReplaceSyntaxTree(
+                tree,
+                CSharpSyntaxTree.ParseText(tree.GetText(), (CSharpParseOptions)tree.Options, files[i].Path));
+        }
+
+        return compilation;
     }
 }
