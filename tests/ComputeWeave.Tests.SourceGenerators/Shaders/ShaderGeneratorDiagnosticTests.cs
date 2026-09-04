@@ -380,6 +380,176 @@ public class ShaderGeneratorDiagnosticTests
         AssertDoesNotReport(Source, "StaticFieldReadTwiceTests", "CMPW0124");
     }
 
+    /// <summary>
+    /// A static field of the shader itself whose initializer reaches the field it initializes. HLSL reads such
+    /// a global as uninitialized, where C# defines the same read as the default value of the type.
+    /// </summary>
+    /// <remarks>
+    /// A field of the shader is reached on paths of its own: neither rewriter imports the shader's own
+    /// declarations, and the generator writes its static methods out before it rewrites any initializer, so
+    /// there is a row per way the read can be written and per kind of declaration the initializer reaches.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldCycleReadDirectlyTests",
+        "private static readonly float Value = Value * 2;")]
+    [DataRow(
+        "ShaderStaticFieldCycleReadQualifiedTests",
+        "private static readonly float Value = Shader.Value * 2;")]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughItsOwnMethodTests",
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => Value * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughItsOwnMethodQualifiedTests",
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => Shader.Value * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughTwoOfItsOwnMethodsTests",
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => Thrice() * 2;
+
+            private static float Thrice() => Value * 3;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAConstructorTests",
+        """
+        private static readonly float Value = new Box().Amount;
+
+            public struct Box
+            {
+                public float Amount;
+
+                public Box()
+                {
+                    Amount = Value * 2;
+                }
+            }
+        """)]
+    public void AStaticFieldOfTheShaderReachingItselfIsDiagnosed(string assemblyName, string members)
+    {
+        AssertReportsAt(ShaderWithStaticFields(members), assemblyName, "CMPW0124", 1);
+    }
+
+    /// <summary>
+    /// A cycle a field of the shader closes through an imported declaration, once where that declaration reads
+    /// the field back, and once where it calls a static method of the shader that does.
+    /// </summary>
+    /// <remarks>
+    /// The read is written as a member access on the shader type, that being the only name an external
+    /// declaration can reach the field by. The two rows are different reporting sites: the rewriter for a body
+    /// answers the first as it rewrites the import, and the walk answers the second, the shader's own method
+    /// not being imported by either rewriter.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAnImportTests",
+        "public static float Go() => Shader.Value * 2;")]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAnImportedCallTests",
+        "public static float Go() => Shader.Twice();")]
+    public void AStaticFieldOfTheShaderReachedThroughAnImportIsDiagnosed(string assemblyName, string helper)
+    {
+        string source = $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                {{helper}}
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                internal static readonly float Value = Helper.Go();
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                internal static float Twice() => Value * 2;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Value;
+                }
+            }
+            """;
+
+        AssertReportsAt(source, assemblyName, "CMPW0124", 1);
+    }
+
+    /// <summary>
+    /// The shapes that read a static field of the shader without the initializer reaching it back.
+    /// </summary>
+    /// <remarks>
+    /// The first row is what separates a cycle from the ordinary shape: the same method reads the same field,
+    /// and only the initializer reaching that method makes it one. All three are refused by a report that does
+    /// not read the claim, and the last one by a claim that outlives the initializer it was taken for, so they
+    /// are what keeps the refusal to the field being initialized while its initializer is being rewritten.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldReadFromTheBodyTests",
+        """
+        private static readonly float Value = 2.0f;
+
+            private static float Twice() => Value * 2;
+        """,
+        "this.buffer[0] = Twice();")]
+    [DataRow(
+        "ShaderStaticFieldInitializerCallingItsOwnMethodTests",
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => 2.0f;
+        """,
+        "this.buffer[0] = Value;")]
+    [DataRow(
+        "ShaderStaticFieldReadingAnotherFieldTests",
+        """
+        private static readonly float Base = 2.0f;
+
+            private static readonly float Value = Base * 2;
+        """,
+        "this.buffer[0] = Value;")]
+    public void AStaticFieldOfTheShaderWithoutACycleIsNotDiagnosed(string assemblyName, string members, string body)
+    {
+        AssertDoesNotReport(ShaderWithStaticFields(members, body), assemblyName, "CMPW0124");
+    }
+
+    private static string ShaderWithStaticFields(string members, string body = "this.buffer[0] = Value;")
+    {
+        return $$"""
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                {{members}}
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    {{body}}
+                }
+            }
+            """;
+    }
+
     private static string CycleShader(string declarations)
     {
         return $$"""
