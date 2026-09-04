@@ -640,7 +640,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0094");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
 
     /// <summary>
@@ -786,9 +786,8 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(
-            ScenePositionShader(declarations, "private static readonly float Scale = Helper.Read();", "return Scale + Helper.Read();"),
-            "CMPWD2D0045");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(
+            ScenePositionShader(declarations, "private static readonly float Scale = Helper.Read();", "return Scale + Helper.Read();"));
     }
 
     /// <summary>
