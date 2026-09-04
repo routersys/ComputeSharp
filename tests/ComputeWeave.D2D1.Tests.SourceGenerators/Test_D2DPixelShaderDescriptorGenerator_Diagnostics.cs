@@ -152,6 +152,42 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0089");
     }
+
+    /// <summary>
+    /// A signed and an unsigned integer in one operation, which C# widens to a type the HLSL set has no name
+    /// for. The report comes from the rewriter both generators derive from, so what this pins is that the
+    /// pixel shader generator answers with its own identifier.
+    /// </summary>
+    [TestMethod]
+    public void MixingASignedAndAnUnsignedIntegerIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly int signed;
+
+                private readonly uint unsigned;
+
+                public float4 Execute()
+                {
+                    float value = this.signed / this.unsigned;
+
+                    return value;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0097");
+    }
     /// <summary>
     /// An indexer declared on a custom type. The rewriters are shared with the compute generator, so what
     /// this pins is that the pixel shader generator answers with its own identifier.

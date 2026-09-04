@@ -42,36 +42,6 @@ internal static class DiagnosticsExtensions
     }
 
     /// <summary>
-    /// Adds a new diagnostics to the target builder, unless one equal to it is already there.
-    /// </summary>
-    /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
-    /// <param name="descriptor">The input <see cref="DiagnosticDescriptor"/> for the diagnostics to create.</param>
-    /// <param name="symbol">The source <see cref="ISymbol"/> to attach the diagnostics to.</param>
-    /// <param name="args">The optional arguments for the formatted message to include.</param>
-    /// <remarks>
-    /// For a refusal that one input can reach from several places while naming one of them. Adding it per
-    /// place names the same declaration repeatedly, which reads as several refusals rather than as one.
-    /// </remarks>
-    public static void AddOnce(
-        this ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
-        DiagnosticDescriptor descriptor,
-        ISymbol symbol,
-        params object[] args)
-    {
-        DiagnosticInfo info = DiagnosticInfo.Create(descriptor, symbol, args);
-
-        foreach (DiagnosticInfo diagnostic in diagnostics.WrittenSpan)
-        {
-            if (diagnostic == info)
-            {
-                return;
-            }
-        }
-
-        diagnostics.Add(info);
-    }
-
-    /// <summary>
     /// Checks whether the target builder holds a diagnostic that refuses the input it was produced for.
     /// </summary>
     /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
