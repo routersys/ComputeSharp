@@ -7,18 +7,19 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace ComputeWeave.Tests.SourceGenerators.Shaders;
 
 /// <summary>
-/// The conversions C# applies to the arguments of an intrinsic call, which the shader compiler does not
-/// apply for itself. Writing the argument as it stands lets the compiler resolve the call again over the
-/// types before the conversion, and an int beside a uint resolves to the unsigned overload there while C#
-/// chose the floating point one.
+/// The conversions C# applies to the arguments of an intrinsic call and to the arms of a conditional,
+/// which the shader compiler does not apply for itself. Writing them as they stand lets the compiler
+/// resolve the call, or bring the arms together, over the types before the conversion, and an int beside
+/// a uint resolves to the unsigned one there while C# chose the floating point one.
 /// </summary>
 [TestClass]
 public class MixedKindArgumentTests
 {
     /// <summary>
     /// One shader reaching each shape the rewriting has to answer for: a mixed call through the plain
-    /// mapping, a mixed call through a named intrinsic, a call whose arguments already agree, and a mixed
-    /// call whose two resolutions agree anyway.
+    /// mapping, a mixed call through a named intrinsic, a call whose arguments already agree, a mixed
+    /// call whose two resolutions agree anyway, the same three shapes on a conditional's arms, a
+    /// conditional standing inside a larger expression, and one in a static field initializer.
     /// </summary>
     private const string Source = """
         using ComputeWeave;
@@ -29,6 +30,12 @@ public class MixedKindArgumentTests
         [GeneratedComputeShaderDescriptor]
         internal readonly partial struct Shader : IComputeShader
         {
+            private static readonly int Seeded = -1;
+
+            private static readonly uint Offset = 2;
+
+            private static readonly float Chosen = Seeded < 0 ? Seeded : Offset;
+
             private readonly ReadWriteBuffer<float> buffer;
 
             private readonly int negative;
@@ -51,6 +58,12 @@ public class MixedKindArgumentTests
                 this.buffer[1] = Hlsl.Select(this.mask, this.low, this.high).X;
                 this.buffer[2] = Hlsl.Max(this.count, this.count);
                 this.buffer[3] = Hlsl.Max(this.count, this.scale);
+                this.buffer[4] = this.mask.X ? this.negative : this.positive;
+                this.buffer[5] = this.mask.X ? this.count : this.count;
+                this.buffer[6] = this.mask.X ? this.count : this.scale;
+                this.buffer[7] = this.mask.X ? (this.mask.Y ? this.negative : this.positive) : this.scale;
+                this.buffer[8] = Hlsl.Max(this.mask.X ? this.negative : this.positive, this.scale);
+                this.buffer[9] = Chosen;
             }
         }
         """;
@@ -107,6 +120,80 @@ public class MixedKindArgumentTests
         Assert.IsTrue(
             generated.Contains("max((float)count, scale)"),
             $"the widening call does not carry the conversion:\n{generated}");
+    }
+
+    /// <summary>
+    /// A conditional with one arm of each integer kind. C# has no natural type for it and brings both arms
+    /// to the type it is used as, where the shader compiler brings them to the unsigned kind first.
+    /// </summary>
+    [TestMethod]
+    public void MixedConditionalArmsCarryTheConversionCSharpApplied()
+    {
+        string generated = Generate();
+
+        Assert.IsTrue(
+            generated.Contains("? (float)negative : (float)positive"),
+            $"the mixed conditional does not carry the conversion:\n{generated}");
+    }
+
+    /// <summary>
+    /// A conditional whose arms are already of one kind, which has no conversion to carry.
+    /// </summary>
+    [TestMethod]
+    public void ConditionalArmsOfOneKindAreLeftAlone()
+    {
+        string generated = Generate();
+
+        Assert.IsTrue(
+            generated.Contains("? count : count"),
+            $"a conditional needing no conversion was rewritten:\n{generated}");
+    }
+
+    /// <summary>
+    /// A conditional the shader compiler would bring together the same way. The conversion is written out
+    /// all the same, the judgment being the type of the conditional rather than the pair of kinds in it.
+    /// </summary>
+    [TestMethod]
+    public void ConditionalArmsThatWouldAgreeCarryTheConversionToo()
+    {
+        string generated = Generate();
+
+        Assert.IsTrue(
+            generated.Contains("? (float)count : scale"),
+            $"the widening conditional does not carry the conversion:\n{generated}");
+    }
+
+    /// <summary>
+    /// A conditional standing inside a larger expression, nested in another conditional and given as the
+    /// argument of a call. An arm that is itself a conditional of the same type carries no conversion of
+    /// its own, and neither does an argument that needed none, so the conversion is written once.
+    /// </summary>
+    [TestMethod]
+    public void AConditionalInsideALargerExpressionCarriesTheConversionOnce()
+    {
+        string generated = Generate();
+
+        Assert.IsTrue(
+            generated.Contains("mask.x ? (mask.y ? (float)negative : (float)positive) : scale"),
+            $"the nested conditional does not carry the conversion once:\n{generated}");
+
+        Assert.IsTrue(
+            generated.Contains("max(mask.x ? (float)negative : (float)positive, scale)"),
+            $"the conditional given as an argument does not carry the conversion once:\n{generated}");
+    }
+
+    /// <summary>
+    /// A conditional in a static field initializer, which a rewriter of its own writes out. The rewriting is
+    /// declared on the type both rewriters derive from, so what this pins is that the two answer alike.
+    /// </summary>
+    [TestMethod]
+    public void AConditionalInAStaticFieldInitializerCarriesTheConversion()
+    {
+        string generated = Generate();
+
+        Assert.IsTrue(
+            generated.Contains("static const float Chosen = Seeded < 0 ? (float)Seeded : (float)Offset;"),
+            $"the conditional in a static field initializer does not carry the conversion:\n{generated}");
     }
 
     /// <summary>
