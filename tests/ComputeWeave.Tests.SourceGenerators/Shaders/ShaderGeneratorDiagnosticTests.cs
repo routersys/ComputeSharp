@@ -326,20 +326,23 @@ public class ShaderGeneratorDiagnosticTests
     /// about it.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// The two rows differ in how the read is written, which decides the site that sees it: a name on its
+    /// own is read where every identifier is, and one qualified by the shader type is read where a member
+    /// access is. A row of each shape is needed because a site that stops reporting takes only its own down.
+    /// </para>
+    /// <para>
     /// Only the read written inside the initializer is covered. An initializer that reaches the field
     /// through a method of the shader is not: such a method is not imported, its body being written by the
     /// generator on its own, and the pass that writes it runs before any initializer is rewritten.
+    /// </para>
     /// </remarks>
     [TestMethod]
-    public void AStaticFieldOfTheShaderReachingItselfIsDiagnosed()
+    [DataRow("private static readonly float Doubled = Doubled * 2;", "ShaderStaticFieldCycleReadDirectlyTests")]
+    [DataRow("private static readonly float Doubled = Shader.Doubled * 2;", "ShaderStaticFieldCycleReadQualifiedTests")]
+    public void AStaticFieldOfTheShaderReachingItselfIsDiagnosed(string member, string assemblyName)
     {
-        const string Member = "private static readonly float Doubled = Doubled * 2;";
-
-        AssertReportsAt(
-            Shader(Member, "this.buffer[0] = Doubled;"),
-            "ShaderStaticFieldCycleReadDirectlyTests",
-            "CMPW0124",
-            1);
+        AssertReportsAt(Shader(member, "this.buffer[0] = Doubled;"), assemblyName, "CMPW0124", 1);
     }
 
     /// <summary>
@@ -356,6 +359,48 @@ public class ShaderGeneratorDiagnosticTests
             """;
 
         AssertDoesNotReport(Shader(Member, "this.buffer[0] = Doubled;"), "ShaderStaticFieldChainTests", "CMPW0124");
+    }
+
+    /// <summary>
+    /// A static field of the shader reached through a method of an external type. The method is imported,
+    /// so its body is rewritten inside the initializer and the read of the shader's own field is seen there.
+    /// </summary>
+    /// <remarks>
+    /// This is the only shape that reaches the reporting site on the body rewriter's member access. The rows
+    /// above are read either where a bare name is, or inside the rewriter for initializers.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReachedThroughAnImportedMethodIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static float Read()
+                {
+                    return Shader.Doubled * 2;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                internal static readonly float Doubled = Helper.Read();
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Doubled;
+                }
+            }
+            """;
+
+        AssertReportsAt(Source, "ShaderStaticFieldCycleThroughAnImportTests", "CMPW0124", 1);
     }
 
     /// <summary>
