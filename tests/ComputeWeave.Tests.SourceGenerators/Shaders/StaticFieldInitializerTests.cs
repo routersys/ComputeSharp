@@ -269,6 +269,232 @@ public class StaticFieldInitializerTests
         }
         """;
 
+    /// <summary>
+    /// A static field of an external type, read from an initializer.
+    /// </summary>
+    private const string ExternalFieldSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal static class Helper
+        {
+            public static readonly float Factor = 2.0f;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Factor;
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// A static field of the shader type itself, read from an initializer through the type name.
+    /// </summary>
+    private const string OwnFieldSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Factor = 2.0f;
+
+            private static readonly float Scale = Shader.Factor;
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// An external static field whose own initializer reads another one by name alone, reached from the
+    /// shader body. The import runs the initializer rewriter, so the body meets this too.
+    /// </summary>
+    private const string ChainedFieldSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal static class Helper
+        {
+            public static readonly float Baseline = 2.0f;
+
+            public static readonly float Factor = Baseline * 2;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Helper.Factor;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// A static field of an external type whose own initializer reads it back through the import.
+    /// </summary>
+    private const string CyclicFieldSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal static class Helper
+        {
+            public static readonly float Factor = Factor + 1;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Helper.Factor;
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// A static field declared on the shader type, read from the initializer of an imported one.
+    /// </summary>
+    private const string ImportedReadingDeclaredSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        internal static class Helper
+        {
+            public static readonly float Doubled = Shader.Baseline * 2;
+        }
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            public static readonly float Baseline = 2.0f;
+
+            private static readonly float Scale = Helper.Doubled;
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// An out argument written as a declaration, in an initializer.
+    /// </summary>
+    private const string OutVariableSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Hlsl.Modf(1.5f, out float whole);
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// A discarded out argument, in an initializer.
+    /// </summary>
+    private const string DiscardedOutSource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private static readonly float Scale = Hlsl.Modf(1.5f, out _);
+
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Scale;
+            }
+        }
+        """;
+
+    /// <summary>
+    /// The same two forms in the shader body, where the variable has a body to be declared in.
+    /// </summary>
+    private const string OutVariableInBodySource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Hlsl.Modf(1.5f, out float whole) + whole;
+            }
+        }
+        """;
+
+    /// <inheritdoc cref="OutVariableInBodySource"/>
+    private const string DiscardedOutInBodySource = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private readonly ReadWriteBuffer<float> buffer;
+
+            public void Execute()
+            {
+                this.buffer[0] = Hlsl.Modf(1.5f, out _);
+            }
+        }
+        """;
+
     [TestMethod]
     public void AnIntrinsicIsWrittenUnderItsHlslName()
     {
@@ -370,7 +596,144 @@ public class StaticFieldInitializerTests
         Assert.IsTrue(generated.Contains("Shaders_Helper_Read(Shaders_Helper::__ctor())"), $"the call is not rewritten into the stub:\n{generated}");
     }
 
+    /// <summary>
+    /// An external static field is imported, the same as it is from the shader body, rather than left
+    /// naming a type the generated HLSL never declares.
+    /// </summary>
+    [TestMethod]
+    public void AnExternalStaticFieldIsImported()
+    {
+        string generated = Generate(ExternalFieldSource, "StaticFieldExternalFieldTests");
+
+        Assert.IsFalse(generated.Contains("Helper.Factor"), $"the read is written out as it stands:\n{generated}");
+        Assert.IsTrue(generated.Contains("static const float Shaders_Helper_Factor = 2.0"), $"the field is not imported:\n{generated}");
+        Assert.IsTrue(generated.Contains("static const float Scale = Shaders_Helper_Factor"), $"the read is not renamed to the import:\n{generated}");
+    }
+
+    /// <summary>
+    /// A static field of the shader type is written under the name it has in the shader, the way the body
+    /// writes it, rather than under the type name the author qualified it with.
+    /// </summary>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderTypeIsNamedDirectly()
+    {
+        string generated = Generate(OwnFieldSource, "StaticFieldOwnFieldTests");
+
+        Assert.IsFalse(generated.Contains("Shader.Factor"), $"the type name is written out:\n{generated}");
+        Assert.IsTrue(generated.Contains("static const float Scale = Factor"), $"the read is not written under the shader name:\n{generated}");
+    }
+
+    /// <summary>
+    /// A static field read by name alone, from the initializer of an imported field. The shader body
+    /// reaches this through the import, so this form is not one only an initializer can meet.
+    /// </summary>
+    [TestMethod]
+    public void AnExternalStaticFieldReadByNameAloneIsImported()
+    {
+        string generated = Generate(ChainedFieldSource, "StaticFieldChainedFieldTests");
+
+        Assert.IsTrue(generated.Contains("static const float Shaders_Helper_Baseline = 2.0"), $"the field read by name alone is not imported:\n{generated}");
+        Assert.IsTrue(generated.Contains("Shaders_Helper_Factor = Shaders_Helper_Baseline * 2"), $"the read is not renamed to the import:\n{generated}");
+    }
+
+    /// <summary>
+    /// A read that closes a cycle is answered by the report the import already carries, rather than by the
+    /// fault that claiming the entry exists to stop.
+    /// </summary>
+    [TestMethod]
+    public void AReadThatClosesACycleIsReported()
+    {
+        Assert.AreEqual("CMPW0124", Report(CyclicFieldSource, "StaticFieldCyclicFieldTests"));
+    }
+
+    /// <summary>
+    /// A field declared on the shader type is written ahead of an imported field whose initializer reads
+    /// it. The two are one sequence ordered by when each finished, so neither group is written as a block.
+    /// </summary>
+    [TestMethod]
+    public void ADeclaredStaticFieldReadFromAnImportedInitializerIsWrittenFirst()
+    {
+        string generated = Generate(ImportedReadingDeclaredSource, "StaticFieldImportedReadingDeclaredTests");
+
+        int declaration = generated.IndexOf("static const float Baseline = 2.0", System.StringComparison.Ordinal);
+        int read = generated.IndexOf("Shaders_Helper_Doubled = Baseline * 2", System.StringComparison.Ordinal);
+
+        Assert.AreNotEqual(-1, declaration, $"the declared field is not written:\n{generated}");
+        Assert.AreNotEqual(-1, read, $"the imported field is not written:\n{generated}");
+        Assert.IsTrue(declaration < read, $"the imported field is written ahead of the declaration it reads:\n{generated}");
+    }
+
+    /// <summary>
+    /// An out argument written as a declaration is refused in an initializer.
+    /// </summary>
+    [TestMethod]
+    public void AnOutVariableDeclaredInAnInitializerIsRefused()
+    {
+        Assert.AreEqual("CMPW0126", Report(OutVariableSource, "StaticFieldOutVariableTests"));
+    }
+
+    /// <summary>
+    /// A discarded out argument is refused in an initializer, the variable it stands for being one the
+    /// rewriting introduces rather than one the author wrote.
+    /// </summary>
+    [TestMethod]
+    public void ADiscardedOutArgumentInAnInitializerIsRefused()
+    {
+        Assert.AreEqual("CMPW0126", Report(DiscardedOutSource, "StaticFieldDiscardedOutTests"));
+    }
+
+    /// <summary>
+    /// The same declaration in the shader body is not refused, and the variable is declared ahead of the
+    /// call. A refusal reaching the body would leave every row above green.
+    /// </summary>
+    [TestMethod]
+    public void AnOutVariableDeclaredInTheShaderBodyIsNotRefused()
+    {
+        string generated = Generate(OutVariableInBodySource, "ShaderBodyOutVariableTests");
+
+        Assert.IsTrue(generated.Contains("float whole;"), $"the variable is not declared ahead of the call:\n{generated}");
+    }
+
+    /// <inheritdoc cref="AnOutVariableDeclaredInTheShaderBodyIsNotRefused"/>
+    [TestMethod]
+    public void ADiscardedOutArgumentInTheShaderBodyIsNotRefused()
+    {
+        string generated = Generate(DiscardedOutInBodySource, "ShaderBodyDiscardedOutTests");
+
+        Assert.IsTrue(generated.Contains("__implicit0"), $"the variable is not declared ahead of the call:\n{generated}");
+    }
+
     private static string Generate(string source, string assemblyName)
+    {
+        GeneratorRunResult result = Run(source, assemblyName);
+
+        ImmutableArray<Diagnostic> diagnostics = result.Diagnostics;
+
+        Assert.IsTrue(
+            diagnostics.IsEmpty,
+            string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.ToString())));
+
+        return GeneratorHelper.GetGeneratedSource(result.GeneratedSources, "Shaders.Shader");
+    }
+
+    /// <summary>
+    /// Runs the generator over a source and joins the identifiers it reported.
+    /// </summary>
+    /// <param name="source">The source to compile.</param>
+    /// <param name="assemblyName">The assembly name to compile under.</param>
+    /// <returns>The reported identifiers, in the order they were produced.</returns>
+    private static string Report(string source, string assemblyName)
+    {
+        return string.Join(", ", Run(source, assemblyName).Diagnostics.Select(static diagnostic => diagnostic.Id));
+    }
+
+    /// <summary>
+    /// Runs the generator over a source and returns the whole run result.
+    /// </summary>
+    /// <param name="source">The source to compile.</param>
+    /// <param name="assemblyName">The assembly name to compile under.</param>
+    /// <returns>The result of the run.</returns>
+    private static GeneratorRunResult Run(string source, string assemblyName)
     {
         CSharpCompilation compilation = CompilationHelper.CreateCompilation(
             [source],
@@ -381,12 +744,6 @@ public class StaticFieldInitializerTests
 
         Assert.IsNull(result.Exception, result.Exception?.ToString());
 
-        ImmutableArray<Diagnostic> diagnostics = result.Diagnostics;
-
-        Assert.IsTrue(
-            diagnostics.IsEmpty,
-            string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.ToString())));
-
-        return GeneratorHelper.GetGeneratedSource(result.GeneratedSources, "Shaders.Shader");
+        return result;
     }
 }
