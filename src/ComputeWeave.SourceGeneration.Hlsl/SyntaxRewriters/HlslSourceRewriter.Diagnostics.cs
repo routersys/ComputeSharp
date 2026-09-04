@@ -493,4 +493,23 @@ partial class HlslSourceRewriter
 
         return base.VisitThisExpression(node);
     }
+
+    /// <summary>
+    /// Reports a static field initializer that reaches the field it initializes, if this read is one.
+    /// </summary>
+    /// <param name="node">The <see cref="SyntaxNode"/> the read was written as, used as the location.</param>
+    /// <param name="fieldSymbol">The <see cref="IFieldSymbol"/> instance being read.</param>
+    /// <remarks>
+    /// An entry with no type declaration is a field whose initializer is still being rewritten, so reaching it
+    /// means the initializer reads the field back. HLSL leaves such a read uninitialized, where C# defines it as
+    /// the default value of the type, so the two languages do not compute the same value.
+    /// </remarks>
+    protected void ReportCyclicStaticFieldInitializer(SyntaxNode node, IFieldSymbol fieldSymbol)
+    {
+        if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo) &&
+            fieldInfo.TypeDeclaration is null)
+        {
+            Diagnostics.Add(CyclicStaticFieldInitializer, node, fieldSymbol);
+        }
+    }
 }
