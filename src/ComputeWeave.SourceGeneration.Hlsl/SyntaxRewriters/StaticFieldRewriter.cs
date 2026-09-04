@@ -40,13 +40,8 @@ internal sealed partial class StaticFieldRewriter(
     HlslShaderRequirements requirements,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token)
-    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
+    : HlslSourceRewriter(shaderType, semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
 {
-    /// <summary>
-    /// The type symbol for the shader type.
-    /// </summary>
-    private readonly INamedTypeSymbol shaderType = shaderType;
-
     /// <summary>
     /// The collection of discovered static methods.
     /// </summary>
@@ -109,6 +104,13 @@ internal sealed partial class StaticFieldRewriter(
 
                     return IdentifierName(constantName);
                 }
+            }
+
+            // An initializer naming the shader to reach a field of it does not go through the rewriter for the
+            // body, so the cycle a qualified read of the field being written closes is only seen here
+            if (operation is IFieldReferenceOperation { Field.IsStatic: true } staticFieldOperation)
+            {
+                ReportCyclicStaticFieldInitializer(node, staticFieldOperation.Field);
             }
 
             if (HlslKnownProperties.TryGetMappedName(operation.Member.ToDisplayString(), out string? mapping))
@@ -194,11 +196,15 @@ internal sealed partial class StaticFieldRewriter(
             // A static method with no mapping is imported by rewriting its declaration, the same way the
             // shader body imports one. HLSL accepts a call in a static field initializer because every
             // forward declaration is written ahead of the static fields. A method on the shader type is
-            // left alone, as the generator writes those out through its own path.
-            if (method.IsStatic &&
-                !SymbolEqualityComparer.Default.Equals(this.shaderType, method.ContainingType))
+            // left alone for the generator to write out, so what it reaches is walked for a cycle instead.
+            if (method.IsStatic)
             {
-                return VisitImportedStaticMethodInvocation(node, updatedNode, method);
+                if (!SymbolEqualityComparer.Default.Equals(ShaderType, method.ContainingType))
+                {
+                    return VisitImportedStaticMethodInvocation(node, updatedNode, method);
+                }
+
+                ReportCyclicStaticFieldInitializerThroughShaderMethod(method);
             }
         }
 
@@ -282,7 +288,7 @@ internal sealed partial class StaticFieldRewriter(
     private ShaderSourceRewriter CreateImportRewriter()
     {
         return new(
-            this.shaderType,
+            ShaderType,
             SemanticModel,
             DiscoveredTypes,
             this.staticMethods,

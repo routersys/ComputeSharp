@@ -50,13 +50,8 @@ internal sealed partial class ShaderSourceRewriter(
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token,
     bool isEntryPoint = false)
-    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
+    : HlslSourceRewriter(shaderType, semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
 {
-    /// <summary>
-    /// The type symbol for the shader type.
-    /// </summary>
-    private readonly INamedTypeSymbol shaderType = shaderType;
-
     /// <summary>
     /// The collection of discovered static methods.
     /// </summary>
@@ -388,7 +383,7 @@ internal sealed partial class ShaderSourceRewriter(
     private string GetLocalFunctionIdentifier(IMethodSymbol symbol)
     {
         if (symbol.ContainingSymbol is IMethodSymbol containingMethod &&
-            !SymbolEqualityComparer.Default.Equals(containingMethod.ContainingType, this.shaderType))
+            !SymbolEqualityComparer.Default.Equals(containingMethod.ContainingType, ShaderType))
         {
             return $"{containingMethod.GetFullyQualifiedMetadataName().ToHlslIdentifierName()}__{symbol.Name}";
         }
@@ -406,7 +401,7 @@ internal sealed partial class ShaderSourceRewriter(
     private ShaderSourceRewriter CreateNestedRewriter()
     {
         return new(
-            this.shaderType,
+            ShaderType,
             SemanticModel,
             DiscoveredTypes,
             this.staticMethods,
@@ -443,7 +438,7 @@ internal sealed partial class ShaderSourceRewriter(
         // This is because they're lowered to the same identifier name, without fully qualified names to rewrite.
         if (node.Parent is not (InvocationExpressionSyntax or MemberAccessExpressionSyntax) &&
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation { Field.IsStatic: true } operation &&
-            !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, this.shaderType))
+            !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, ShaderType))
         {
             return VisitExternalStaticFieldAccess(node, null, operation.Field) ?? base.VisitIdentifierName(node);
         }
@@ -489,7 +484,7 @@ internal sealed partial class ShaderSourceRewriter(
                     // If the member access is a this.<FIELD> access, rewrite it to strip 'this.', but only if accessing instance
                     // fields from the shader type itself (as using 'this.' in that case is not allowed in HLSL, and also it's not
                     // really useful anyway given that those fields are readonly, so less likely to cause observable conflicts).
-                    if (SymbolEqualityComparer.Default.Equals(fieldOperation.Field.ContainingType, this.shaderType))
+                    if (SymbolEqualityComparer.Default.Equals(fieldOperation.Field.ContainingType, ShaderType))
                     {
                         return updatedNode.Name;
                     }
@@ -506,8 +501,10 @@ internal sealed partial class ShaderSourceRewriter(
                     // all members of the shader type. But, if this path was hit, it means that they are accessed via a member access
                     // expression, which means they need to be rewritten to match the simple name they will have in the shader. This
                     // is often the case if they're accessed from external types. So we just map the name and use that expression.
-                    if (SymbolEqualityComparer.Default.Equals(fieldOperation.Field.ContainingType, this.shaderType))
+                    if (SymbolEqualityComparer.Default.Equals(fieldOperation.Field.ContainingType, ShaderType))
                     {
+                        ReportCyclicStaticFieldInitializer(node, fieldOperation.Field);
+
                         _ = HlslKnownKeywords.TryGetMappedName(fieldOperation.Field.Name, out string? mappedFieldName);
 
                         return IdentifierName(mappedFieldName ?? fieldOperation.Field.Name);
@@ -691,7 +688,7 @@ internal sealed partial class ShaderSourceRewriter(
                 // This assumes that the target method is actually part of the same compilation.
                 // We need to check the declaring type to avoid rewriting static methods in the shader
                 // type as well, as they will be processed by the generator in a different path.
-                if (!SymbolEqualityComparer.Default.Equals(this.shaderType, method.ContainingType))
+                if (!SymbolEqualityComparer.Default.Equals(ShaderType, method.ContainingType))
                 {
                     string methodIdentifier = method.GetFullyQualifiedMetadataName().ToHlslIdentifierName();
 
@@ -743,6 +740,10 @@ internal sealed partial class ShaderSourceRewriter(
 
                     return updatedNode.WithExpression(IdentifierName(methodIdentifier));
                 }
+
+                // A static method of the shader is left for the generator's own path, so a cycle an
+                // initializer closes through one is answered by walking it (see HlslSourceRewriter)
+                ReportCyclicStaticFieldInitializerThroughShaderMethod(method);
             }
             else
             {
@@ -765,7 +766,7 @@ internal sealed partial class ShaderSourceRewriter(
                 // If the instance is a struct type that is available in source, rewrite the instance method.
                 // This path is only taken for instance methods for external struct types, not the shader itself.
                 if (operation.TargetMethod.ContainingType is { TypeKind: TypeKind.Struct } structTypeSymbol &&
-                    !SymbolEqualityComparer.Default.Equals(this.shaderType, structTypeSymbol))
+                    !SymbolEqualityComparer.Default.Equals(ShaderType, structTypeSymbol))
                 {
                     DiscoveredTypes.Add(structTypeSymbol);
 
@@ -1001,7 +1002,7 @@ internal sealed partial class ShaderSourceRewriter(
 
         // Execute the same logic as for shader static fields, to process them and extract the relevant info
         if (!HlslDefinitionsSyntaxProcessor.TryGetStaticField(
-            this.shaderType,
+            ShaderType,
             fieldSymbol,
             SemanticModel,
             DiscoveredTypes,
