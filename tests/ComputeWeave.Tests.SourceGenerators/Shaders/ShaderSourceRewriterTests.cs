@@ -1729,7 +1729,9 @@ public class ShaderSourceRewriterTests
     /// <param name="diagnosticId">The identifier that must not be among the reported ones.</param>
     /// <remarks>
     /// Only for an input that carries a report of its own, which is what keeps the assertion this narrow. A
-    /// shader that has to compile is pinned with <see cref="AssertIsCompiledWithoutDiagnostics"/> instead.
+    /// shader that has to compile is pinned with <see cref="AssertIsCompiledWithoutDiagnostics"/> instead. Which
+    /// of the two fits is asserted here rather than left to the caller, one identifier being absent saying
+    /// nothing on its own.
     /// </remarks>
     private static void AssertIsNotDiagnosed(string source, string assemblyName, string diagnosticId)
     {
@@ -1740,6 +1742,12 @@ public class ShaderSourceRewriterTests
         GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
 
         Assert.IsNull(result.Exception, result.Exception?.ToString());
+
+        // What makes the narrow assertion the right one is the refusal the shader already carries
+        Assert.IsTrue(
+            result.Diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
+            $"Nothing refuses this shader, so {diagnosticId} being absent pins nothing: {string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id))}");
+
         Assert.IsFalse(
             result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
             string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
