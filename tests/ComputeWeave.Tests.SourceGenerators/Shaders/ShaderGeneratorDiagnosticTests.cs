@@ -403,6 +403,83 @@ public class ShaderGeneratorDiagnosticTests
             """;
     }
 
+    /// <summary>
+    /// The refusals an attribute argument can carry. An attribute list is not written out, so what it holds
+    /// cannot change the generated HLSL, and refusing it stops a build over source the author cannot correct.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// There is one row per identifier the argument kinds were measured to reach. The rows are the refusals
+    /// themselves rather than the kinds: several kinds reach one identifier, and a row per kind would say the
+    /// same thing more than once while leaving an identifier free to start reporting again.
+    /// </para>
+    /// <para>
+    /// The attribute is placed on an imported method here. Placing it on a method of the shader or on an
+    /// imported constructor was measured to report the same, all three being rewritten by the same walk.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    [DataRow("\"do not use\"", "AttributeStringArgumentTests", "CMPW0036")]
+    [DataRow("(object)null", "AttributeObjectArgumentTests", "CMPW0050")]
+    [DataRow("new int[] { 1 }", "AttributeArrayArgumentTests", "CMPW0059")]
+    [DataRow("checked(1 + 1)", "AttributeCheckedArgumentTests", "CMPW0014")]
+    public void SyntaxInsideAnAttributeIsNotRefused(string argument, string assemblyName, string unexpectedId)
+    {
+        AssertDoesNotReport(AttributeShader(argument), assemblyName, unexpectedId);
+    }
+
+    /// <summary>
+    /// The same construct written in the body it is refused in, so that the rows above answer for where the
+    /// syntax sits rather than for the refusal having stopped working.
+    /// </summary>
+    [TestMethod]
+    [DataRow("string text = \"do not use\";", "BodyStringTests", "CMPW0036")]
+    [DataRow("object value = null;", "BodyObjectTests", "CMPW0050")]
+    [DataRow("int[] values = new int[] { 1 };", "BodyArrayTests", "CMPW0059")]
+    [DataRow("int value = checked(1 + 1);", "BodyCheckedTests", "CMPW0014")]
+    public void TheSameSyntaxInABodyIsRefused(string statement, string assemblyName, string expectedId)
+    {
+        AssertReports(Shader("", $"{statement} this.buffer[0] = 1;"), assemblyName, expectedId);
+    }
+
+    private static string AttributeShader(string argument)
+    {
+        return $$"""
+            using System;
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal sealed class MarkAttribute : Attribute
+            {
+                public MarkAttribute(object value)
+                {
+                }
+            }
+
+            internal static class Helper
+            {
+                [Mark({{argument}})]
+                public static float Twice(float value)
+                {
+                    return value * 2;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Helper.Twice(2.0f);
+                }
+            }
+            """;
+    }
+
     private static void AssertReportsAt(string source, string assemblyName, string expectedId, int expectedCount)
     {
         string[] actualIds = Run(source, assemblyName);
