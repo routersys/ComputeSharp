@@ -309,4 +309,29 @@ internal static class HlslDefinitionsSyntaxProcessor
             }
         }
     }
+
+    /// <summary>
+    /// Gets the order the next static field to finish takes, which is how many have finished before it.
+    /// </summary>
+    /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+    /// <returns>The number of imported static fields whose rewriting has finished.</returns>
+    /// <remarks>
+    /// Writing the fields in this order puts each one after every field that had finished when it did,
+    /// which is every field its own initializer reached. An entry with no type declaration is one still
+    /// being rewritten, so it is not one that has finished.
+    /// </remarks>
+    public static int GetStaticFieldOrder(IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions)
+    {
+        int order = 0;
+
+        foreach (HlslStaticField definition in staticFieldDefinitions.Values)
+        {
+            if (definition.TypeDeclaration is not null)
+            {
+                order++;
+            }
+        }
+
+        return order;
+    }
 }

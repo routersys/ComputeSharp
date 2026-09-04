@@ -997,7 +997,7 @@ internal sealed partial class ShaderSourceRewriter(
 
         // Claim the entry before rewriting, the way an imported method and constructor already do, so that
         // an initializer reaching itself is seen above rather than adding the same key a second time
-        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null));
+        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null, 0));
 
         // Execute the same logic as for shader static fields, to process them and extract the relevant info
         if (!HlslDefinitionsSyntaxProcessor.TryGetStaticField(
@@ -1033,7 +1033,13 @@ internal sealed partial class ShaderSourceRewriter(
             this.localFunctions[localFunction.Key] = localFunction.Value;
         }
 
-        StaticFieldDefinitions[fieldSymbol] = (name, typeDeclaration, assignmentExpression);
+        // The order is taken once the rewriting has finished, so a field reached from this initializer
+        // has a smaller one and is written ahead of it
+        StaticFieldDefinitions[fieldSymbol] = (
+            name,
+            typeDeclaration,
+            assignmentExpression,
+            HlslDefinitionsSyntaxProcessor.GetStaticFieldOrder(StaticFieldDefinitions));
 
         return IdentifierName(name);
     }
