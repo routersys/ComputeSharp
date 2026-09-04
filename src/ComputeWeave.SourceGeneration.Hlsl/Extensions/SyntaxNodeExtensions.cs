@@ -145,17 +145,17 @@ partial class SyntaxNodeExtensions
     /// </summary>
     /// <param name="node">The input <see cref="MethodDeclarationSyntax"/> node.</param>
     /// <returns>A node just like <paramref name="node"/> but with no invalid HLSL modifiers.</returns>
-    /// <remarks>This method will only strip modifiers that are expected and allowed on HLSL methods.</remarks>
+    /// <remarks>
+    /// The modifiers HLSL knows on a function are kept and every other one is dropped. Naming the ones to drop
+    /// instead lets a modifier the list does not name reach the shader compiler, which reports it against
+    /// generated code the author never wrote. The refusals for the modifiers that are their own error read the
+    /// declaration the author wrote, so dropping one here hides nothing.
+    /// </remarks>
     public static MethodDeclarationSyntax WithoutInvalidHlslModifiers(this MethodDeclarationSyntax node)
     {
         static bool IsAllowedHlslModifier(SyntaxToken syntaxToken)
         {
-            return syntaxToken.Kind() is not (
-                SyntaxKind.PublicKeyword or
-                SyntaxKind.PrivateKeyword or
-                SyntaxKind.ProtectedKeyword or
-                SyntaxKind.InternalKeyword or
-                SyntaxKind.ReadOnlyKeyword);
+            return syntaxToken.Kind() is SyntaxKind.StaticKeyword;
         }
 
         return node.WithModifiers(TokenList(node.Modifiers.Where(IsAllowedHlslModifier)));
