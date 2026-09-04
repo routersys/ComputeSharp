@@ -718,6 +718,172 @@ public class ShaderSourceRewriterTests
     }
 
     /// <summary>
+    /// The shader the widening reports are written over. Every operand is read from the constant buffer, so
+    /// nothing is folded away before the rewriting sees it.
+    /// </summary>
+    private const string WideningShader = """
+        using ComputeWeave;
+
+        namespace Shaders;
+
+        [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+        [GeneratedComputeShaderDescriptor]
+        internal readonly partial struct Shader : IComputeShader
+        {
+            private readonly ReadWriteBuffer<float> buffer;
+
+            private readonly int signed;
+
+            private readonly uint unsigned;
+
+            private readonly float scale;
+
+            private readonly bool flag;
+
+            public void Execute()
+            {
+                {{BODY}}
+            }
+        }
+        """;
+
+    /// <summary>
+    /// A comparison mixing a signed and an unsigned integer. C# widens both to a 64 bit integer, which the
+    /// HLSL type set has no name for, so the operands used to reach the shader compiler as they stand and the
+    /// comparison was resolved as unsigned, answering the other way for a negative value.
+    /// </summary>
+    [TestMethod]
+    public void ComparingASignedAndAnUnsignedIntegerIsDiagnosed()
+    {
+        AssertIsDiagnosedWithoutFaulting(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.signed < this.unsigned ? 1.0f : 0.0f;"),
+            "ShaderWideningComparisonTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// The same widening reached by arithmetic rather than by a comparison. The result wraps at 32 bits there
+    /// instead of answering the other way, which is why what is read is the operands and not the result.
+    /// </summary>
+    [TestMethod]
+    public void AddingASignedAndAnUnsignedIntegerIsDiagnosed()
+    {
+        AssertIsDiagnosedWithoutFaulting(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.signed + this.unsigned;"),
+            "ShaderWideningAdditionTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// A conditional with one arm of each kind, which has no natural type in C# and is target typed instead,
+    /// so nothing is widened. It reaches the shader compiler as it stands and is resolved as unsigned there,
+    /// which is a conversion this report is not about and issue 179 is.
+    /// </summary>
+    [TestMethod]
+    public void ChoosingBetweenASignedAndAnUnsignedIntegerIsNotDiagnosed()
+    {
+        AssertIsCompiledWithoutDiagnostics(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.flag ? this.signed : this.unsigned;"),
+            "ShaderWideningConditionalTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// The same widening reached with one operand. Negating an unsigned value has no unsigned result in C#,
+    /// which widens it, where HLSL negates it as unsigned and wraps.
+    /// </summary>
+    [TestMethod]
+    public void NegatingAnUnsignedIntegerIsDiagnosed()
+    {
+        AssertIsDiagnosedWithoutFaulting(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = -this.unsigned;"),
+            "ShaderWideningNegationTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// The same widening in a static field initializer, which a rewriter of its own walks. The report comes
+    /// from the type both rewriters derive from, so where the operation is written does not change the answer.
+    /// </summary>
+    [TestMethod]
+    public void WideningInsideAStaticFieldInitializerIsDiagnosed()
+    {
+        const string Source = """
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal static class Helper
+            {
+                public static readonly int Signed = 2;
+
+                public static readonly uint Unsigned = 3;
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private static readonly float Scaled = Helper.Signed + Helper.Unsigned;
+
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[ThreadIds.X] = Scaled;
+                }
+            }
+            """;
+
+        AssertIsDiagnosedWithoutFaulting(Source, "ShaderWideningInitializerTests", "CMPW0125");
+    }
+
+    /// <summary>
+    /// One expression holding two widened operations, with the inner one under the operand that is read.
+    /// The outer one widens a result that is already outside the type set, so it names a consequence of the
+    /// inner one rather than a second place to change.
+    /// </summary>
+    /// <remarks>
+    /// The inner operation has to sit under the operand that is read rather than beside it. An operation
+    /// whose read operand is already outside the set carries no conversion there and is passed over anyway,
+    /// so a shape like that leaves this assertion true however the report is written.
+    /// </remarks>
+    [TestMethod]
+    public void NestedWideningIsReportedOnce()
+    {
+        AssertIsDiagnosedOnce(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.signed + (this.signed + this.unsigned);"),
+            "ShaderNestedWideningTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// An integer beside a floating point value, which C# widens to a type the HLSL set does have. HLSL
+    /// resolves that operation the same way, so it is left alone and has to keep compiling.
+    /// </summary>
+    [TestMethod]
+    public void MixingAnIntegerAndAFloatIsNotDiagnosed()
+    {
+        AssertIsCompiledWithoutDiagnostics(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.signed < this.scale ? 1.0f : 0.0f;"),
+            "ShaderIntegerAndFloatTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
+    /// Two operands of one kind, which C# does not widen at all. Without this the report could refuse every
+    /// operation and the tests above would still pass.
+    /// </summary>
+    [TestMethod]
+    public void OperatingOnOneKindIsNotDiagnosed()
+    {
+        AssertIsCompiledWithoutDiagnostics(
+            WideningShader.Replace("{{BODY}}", "this.buffer[ThreadIds.X] = this.unsigned + this.unsigned;"),
+            "ShaderOneKindTests",
+            "CMPW0125");
+    }
+
+    /// <summary>
     /// An indexer declared on a custom type. HLSL has no indexers of its own, so the accessor the author
     /// wrote never runs, and the access used to be written out as it stands.
     /// </summary>
@@ -1599,6 +1765,31 @@ public class ShaderSourceRewriterTests
         Assert.IsNull(result.Exception, result.Exception?.ToString());
         Assert.IsTrue(
             result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
+            string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
+    }
+
+    /// <summary>
+    /// Runs the generator over a shader that is reported, and asserts one identifier arrives exactly once.
+    /// </summary>
+    /// <param name="source">The source of the shader to run the generator over.</param>
+    /// <param name="assemblyName">The name to give the compilation.</param>
+    /// <param name="diagnosticId">The identifier that has to arrive once.</param>
+    /// <remarks>
+    /// For a report one input can reach from several operations while naming one of them. Asserting that it
+    /// is present cannot tell one report from several, which is what a reader of the build output sees.
+    /// </remarks>
+    private static void AssertIsDiagnosedOnce(string source, string assemblyName, string diagnosticId)
+    {
+        CSharpCompilation compilation = CompilationHelper
+            .CreateCompilation([source], assemblyName)
+            .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, allowUnsafe: true));
+        GeneratorDriver driver = GeneratorHelper.CreateDriver(new ComputeShaderDescriptorGenerator());
+        GeneratorRunResult result = driver.RunGenerators(compilation).GetRunResult().Results[0];
+
+        Assert.IsNull(result.Exception, result.Exception?.ToString());
+        Assert.AreEqual(
+            1,
+            result.Diagnostics.Count(diagnostic => diagnostic.Id == diagnosticId),
             string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
     }
 }
