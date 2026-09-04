@@ -90,6 +90,13 @@ internal sealed partial class StaticFieldRewriter(
         if (node.IsKind(SyntaxKind.SimpleMemberAccessExpression) &&
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IMemberReferenceOperation operation)
         {
+            // A field qualified by its type is read here rather than where a bare name is, so the
+            // initializer reading the field it writes has to be seen in both places
+            if (operation is IFieldReferenceOperation { Field.IsStatic: true } staticFieldOperation)
+            {
+                ReportCyclicStaticFieldInitializer(node, staticFieldOperation.Field);
+            }
+
             // Track and replace constants
             if (operation is IFieldReferenceOperation fieldOperation &&
                 fieldOperation.Field.IsConst &&
