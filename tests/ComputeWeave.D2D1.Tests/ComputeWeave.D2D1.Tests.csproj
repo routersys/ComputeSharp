@@ -88,7 +88,7 @@
     <None Update="Assets\ContouredLayers.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="Assets\TerracedHills.png">
+    <None Include="..\ComputeWeave.Tests\Assets\TerracedHills.png" Link="Assets\TerracedHills.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Assets\RadialFadeOut.png">
