@@ -120,6 +120,28 @@ partial class SyntaxNodeExtensions
     }
 
     /// <summary>
+    /// Returns a <see cref="ConstructorDeclarationSyntax"/> with a block body.
+    /// </summary>
+    /// <param name="node">The input <see cref="ConstructorDeclarationSyntax"/> node.</param>
+    /// <returns>A node like the one in input, but always with a block body.</returns>
+    /// <remarks>
+    /// This method is the counterpart of <see cref="WithBlockBody(MethodDeclarationSyntax)"/> for a constructor,
+    /// which has no return type, so the expression is always turned into an expression statement.
+    /// </remarks>
+    public static ConstructorDeclarationSyntax WithBlockBody(this ConstructorDeclarationSyntax node)
+    {
+        if (node.ExpressionBody is ArrowExpressionClauseSyntax arrow)
+        {
+            return node
+                .WithBody(Block(ExpressionStatement(arrow.Expression)))
+                .WithExpressionBody(null)
+                .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
+        }
+
+        return node;
+    }
+
+    /// <summary>
     /// Returns a <see cref="ParameterListSyntax"/> with no default values on its parameters.
     /// </summary>
     /// <param name="node">The input <see cref="ParameterListSyntax"/> node.</param>
