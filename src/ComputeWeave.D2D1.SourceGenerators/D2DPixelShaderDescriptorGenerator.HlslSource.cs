@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Helpers;
@@ -319,7 +320,7 @@ partial class D2DPixelShaderDescriptorGenerator
             IDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions,
             CancellationToken token)
         {
-            using ImmutableArrayBuilder<HlslStaticField> builder = new();
+            using ImmutableArrayBuilder<HlslStaticField> declared = new();
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -346,7 +347,11 @@ partial class D2DPixelShaderDescriptorGenerator
                     out string? assignmentExpression,
                     out StaticFieldRewriter? staticFieldRewriter))
                 {
-                    builder.Add((name, typeDeclaration, assignmentExpression));
+                    declared.Add((
+                        name,
+                        typeDeclaration,
+                        assignmentExpression,
+                        HlslDefinitionsSyntaxProcessor.GetStaticFieldOrder(staticFieldDefinitions)));
 
                     // An initializer may import a method that declares a local function, which HLSL cannot
                     // nest, so the ones lifted out of it are carried up to be written like any other
@@ -357,13 +362,10 @@ partial class D2DPixelShaderDescriptorGenerator
                 }
             }
 
-            // Also gather the external static fields (same as in the DX12 generator)
-            foreach (HlslStaticField externalField in staticFieldDefinitions.Values)
-            {
-                builder.Add(externalField);
-            }
+            // One sequence ordered by when each field finished (same as in the DX12 generator)
+            HlslStaticField[] fields = [.. declared.WrittenSpan, .. staticFieldDefinitions.Values];
 
-            return builder.ToImmutable();
+            return [.. fields.OrderBy(static field => field.Order)];
         }
 
         /// <summary>

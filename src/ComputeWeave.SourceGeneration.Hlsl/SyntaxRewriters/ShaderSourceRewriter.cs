@@ -445,7 +445,7 @@ internal sealed partial class ShaderSourceRewriter(
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation { Field.IsStatic: true } operation &&
             !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, this.shaderType))
         {
-            return VisitExternalStaticFieldAccess(node, null, operation.Field) ?? base.VisitIdentifierName(node);
+            return ImportExternalStaticField(node, null, operation.Field) ?? base.VisitIdentifierName(node);
         }
 
         return base.VisitIdentifierName(node);
@@ -513,7 +513,7 @@ internal sealed partial class ShaderSourceRewriter(
                         return IdentifierName(mappedFieldName ?? fieldOperation.Field.Name);
                     }
 
-                    return VisitExternalStaticFieldAccess(node, updatedNode, fieldOperation.Field);
+                    return ImportExternalStaticField(node, updatedNode, fieldOperation.Field);
                 }
             }
 
@@ -966,7 +966,7 @@ internal sealed partial class ShaderSourceRewriter(
     }
 
     /// <summary>
-    /// Visits a static field access in an external type and rewrites it as needed.
+    /// Imports a static field declared in an external type and rewrites the read of it as needed.
     /// </summary>
     /// <param name="node">The <see cref="SyntaxNode"/> the access was written as, used as location.</param>
     /// <param name="updatedNode">The rewritten <see cref="SyntaxNode"/> to fall back to, if there is one.</param>
@@ -977,7 +977,7 @@ internal sealed partial class ShaderSourceRewriter(
     /// closed from two declarations names both of the reads rather than naming the field declaration twice.
     /// </remarks>
     [return: NotNullIfNotNull(nameof(updatedNode))]
-    private SyntaxNode? VisitExternalStaticFieldAccess(SyntaxNode node, SyntaxNode? updatedNode, IFieldSymbol fieldSymbol)
+    internal SyntaxNode? ImportExternalStaticField(SyntaxNode node, SyntaxNode? updatedNode, IFieldSymbol fieldSymbol)
     {
         if (StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo))
         {
@@ -997,7 +997,7 @@ internal sealed partial class ShaderSourceRewriter(
 
         // Claim the entry before rewriting, the way an imported method and constructor already do, so that
         // an initializer reaching itself is seen above rather than adding the same key a second time
-        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null));
+        StaticFieldDefinitions.Add(fieldSymbol, (name, null, null, 0));
 
         // Execute the same logic as for shader static fields, to process them and extract the relevant info
         if (!HlslDefinitionsSyntaxProcessor.TryGetStaticField(
@@ -1033,7 +1033,13 @@ internal sealed partial class ShaderSourceRewriter(
             this.localFunctions[localFunction.Key] = localFunction.Value;
         }
 
-        StaticFieldDefinitions[fieldSymbol] = (name, typeDeclaration, assignmentExpression);
+        // The order is taken once the rewriting has finished, so a field reached from this initializer
+        // has a smaller one and is written ahead of it
+        StaticFieldDefinitions[fieldSymbol] = (
+            name,
+            typeDeclaration,
+            assignmentExpression,
+            HlslDefinitionsSyntaxProcessor.GetStaticFieldOrder(StaticFieldDefinitions));
 
         return IdentifierName(name);
     }

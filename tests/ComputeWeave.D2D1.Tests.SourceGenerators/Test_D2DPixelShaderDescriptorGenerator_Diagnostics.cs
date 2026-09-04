@@ -531,6 +531,74 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// A variable a static field initializer would have to declare. The rewriter that refuses it is shared
+    /// with the compute generator, so what this pins is that the pixel shader generator answers with its
+    /// own identifier.
+    /// </summary>
+    [TestMethod]
+    public void VariableDeclaredInAStaticFieldInitializerIsReported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float Scale = Hlsl.Modf(1.5f, out float whole);
+
+                public float4 Execute()
+                {
+                    return new float4(Scale, 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0098");
+    }
+
+    /// <summary>
+    /// A static field of an external type, read from an initializer. The import is shared, so what this
+    /// pins is that the pixel shader path reaches it too.
+    /// </summary>
+    [TestMethod]
+    public void AnExternalStaticFieldInAnInitializerIsImported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                public static readonly float Factor = 2.0f;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float Scale = Helper.Factor;
+
+                public float4 Execute()
+                {
+                    return new float4(Scale, 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
+    }
+
+    /// <summary>
     /// An attribute of the author's own, carrying syntax the set has no verdict for, on an imported method.
     /// </summary>
     /// <remarks>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using ComputeWeave.SourceGeneration.Extensions;
@@ -111,6 +112,20 @@ internal sealed partial class StaticFieldRewriter(
                 }
             }
 
+            // Static fields are read the way the shader body reads them, an initializer that names one
+            // otherwise writing it out as it stands (see ShaderSourceRewriter for more info)
+            if (operation is IFieldReferenceOperation { Field.IsStatic: true } staticFieldOperation)
+            {
+                if (SymbolEqualityComparer.Default.Equals(staticFieldOperation.Field.ContainingType, this.shaderType))
+                {
+                    _ = HlslKnownKeywords.TryGetMappedName(staticFieldOperation.Field.Name, out string? mappedFieldName);
+
+                    return IdentifierName(mappedFieldName ?? staticFieldOperation.Field.Name);
+                }
+
+                return ImportExternalStaticField(node, updatedNode, staticFieldOperation.Field);
+            }
+
             if (HlslKnownProperties.TryGetMappedName(operation.Member.ToDisplayString(), out string? mapping))
             {
                 // Allow specialized types to track the member access, if needed
@@ -128,6 +143,54 @@ internal sealed partial class StaticFieldRewriter(
         }
 
         return updatedNode;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// A static field read by name alone does not reach the member access path, so it is intercepted here
+    /// the way the rewriter for a shader body intercepts it (see ShaderSourceRewriter for more info).
+    /// </remarks>
+    public override SyntaxNode? VisitIdentifierName(IdentifierNameSyntax node)
+    {
+        if (node.Parent is not (InvocationExpressionSyntax or MemberAccessExpressionSyntax) &&
+            SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation { Field.IsStatic: true } operation &&
+            !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, this.shaderType))
+        {
+            return ImportExternalStaticField(node, null, operation.Field) ?? base.VisitIdentifierName(node);
+        }
+
+        return base.VisitIdentifierName(node);
+    }
+
+    /// <summary>
+    /// Imports a static field declared outside the shader, through the rewriter that imports every other declaration.
+    /// </summary>
+    /// <param name="node">The <see cref="SyntaxNode"/> the read was written as, used as location.</param>
+    /// <param name="updatedNode">The rewritten <see cref="SyntaxNode"/> to fall back to, if there is one.</param>
+    /// <param name="fieldSymbol">The <see cref="IFieldSymbol"/> instance for <paramref name="node"/>.</param>
+    /// <returns>The rewritten static field expression.</returns>
+    [return: NotNullIfNotNull(nameof(updatedNode))]
+    private SyntaxNode? ImportExternalStaticField(SyntaxNode node, SyntaxNode? updatedNode, IFieldSymbol fieldSymbol)
+    {
+        ShaderSourceRewriter shaderSourceRewriter = CreateImportRewriter();
+
+        SyntaxNode? rewrittenNode = shaderSourceRewriter.ImportExternalStaticField(node, updatedNode, fieldSymbol);
+
+        MergeImportedLocalFunctions(shaderSourceRewriter);
+
+        return rewrittenNode;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The rewriter for a shader body declares the variable at the start of the body and passes it to the
+    /// call. An initializer is one expression with nothing ahead of it, so the declaration is refused.
+    /// </remarks>
+    public override SyntaxNode? VisitDeclarationExpression(DeclarationExpressionSyntax node)
+    {
+        Diagnostics.Add(VariableDeclaredInStaticFieldInitializer, node, node.Designation);
+
+        return base.VisitDeclarationExpression(node);
     }
 
     /// <inheritdoc/>
@@ -308,11 +371,20 @@ internal sealed partial class StaticFieldRewriter(
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A discarded argument is given a variable the rewriting introduces, which is the other place the
+    /// rewriter for a shader body declares one, so it is refused here for the same reason.
+    /// </remarks>
     public override SyntaxNode? VisitArgument(ArgumentSyntax node)
     {
         ArgumentSyntax updatedNode = (ArgumentSyntax)base.VisitArgument(node)!;
 
         updatedNode = updatedNode.WithRefKindKeyword(Token(SyntaxKind.None));
+
+        if (SemanticModel.For(node).GetOperation(node.Expression, CancellationToken) is IDiscardOperation)
+        {
+            Diagnostics.Add(VariableDeclaredInStaticFieldInitializer, node.Expression, node.Expression);
+        }
 
         return updatedNode;
     }
