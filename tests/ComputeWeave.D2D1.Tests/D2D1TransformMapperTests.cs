@@ -302,7 +302,7 @@ public partial class D2D1TransformMapperTests
 
             // Calculate the distance from the center, to adjust the fade out
             float distance = Hlsl.Distance(xy, center);
-            float falloff = radius / 2u;
+            float falloff = (uint)radius / 2u;
             float alpha = 0;
 
             // If the pixel is close enough, keep it fully visible

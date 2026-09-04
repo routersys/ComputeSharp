@@ -189,8 +189,17 @@ partial class HlslSourceRewriter
     /// shader silently computes a different value.
     /// </para>
     /// <para>
+    /// An operator HLSL does provide is still refused when C# widens its operands to a type outside the HLSL
+    /// type set, which a signed and an unsigned integer in one operation do. That widening cannot be written
+    /// into the generated code, so the operands reach the shader compiler as they stand and the operation is
+    /// resolved over them instead, where the unsigned kind wins: a comparison answers the other way and an
+    /// arithmetic result wraps at 32 bits, with neither compiler reporting anything.
+    /// </para>
+    /// <para>
     /// The walk is over the resolved operations rather than the syntax, because an implicit conversion has no
-    /// node of its own. Reporting from a visit method would reach every other form and miss that one.
+    /// node of its own. Reporting from a visit method would reach every other form and miss that one, and the
+    /// same widening is reached by a binary operator and by a unary minus on an unsigned value. A conditional
+    /// with one arm of each kind has no natural type at all, so it is target typed and never widens.
     /// </para>
     /// </remarks>
     protected void ReportUnmappedOperators(SyntaxNode declaration)
@@ -218,6 +227,47 @@ partial class HlslSourceRewriter
             {
                 Diagnostics.Add(InvalidOperatorUse, operation.Syntax, operatorMethod);
             }
+            else if (GetWidenedOperandType(operation) is ITypeSymbol widenedType && IsInnermostWidening(operation))
+            {
+                Diagnostics.Add(InvalidOperandWidening, operation.Syntax, widenedType);
+            }
+        }
+
+        // Reads the type C# widened the operands of an operation to, when that type is outside the HLSL type
+        // set and the operand it was reached from is inside it. A comparison answers with a bool, so what is
+        // read is an operand and not the result; both operands are brought to the same type, so one is enough
+        static ITypeSymbol? GetWidenedOperandType(IOperation operation)
+        {
+            IOperation? operand = operation switch
+            {
+                IBinaryOperation binaryOperation => binaryOperation.LeftOperand,
+                IUnaryOperation unaryOperation => unaryOperation.Operand,
+                _ => null
+            };
+
+            if (operand is not IConversionOperation { Operand.Type: { } source, Type: { } target } ||
+                !HlslKnownTypes.IsKnownHlslType(source.GetFullyQualifiedMetadataName()) ||
+                HlslKnownTypes.IsKnownHlslType(target.GetFullyQualifiedMetadataName()))
+            {
+                return null;
+            }
+
+            return target;
+        }
+
+        // An operation holding another widened one is widening a result that is already outside the set, so
+        // it names a consequence rather than the place the author has to change
+        static bool IsInnermostWidening(IOperation operation)
+        {
+            foreach (IOperation descendant in operation.Descendants())
+            {
+                if (GetWidenedOperandType(descendant) is not null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 

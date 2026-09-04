@@ -1461,4 +1461,20 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "C# runs the initializer once, and where the cycle closes it reads the field as its default value, so the field holds whatever that produces. HLSL has no defined order for global static initializers, so the value the shader computes is not the one C# computes, and the shader compiler accepts the source without saying anything: the generated HLSL was measured to compile with the cycle written out as it stands. Before this report the generator faulted instead, adding the same key to the collection of static field definitions twice, which discards the descriptors for every shader in the compilation unit and leaves the author with errors that name none of this.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for an operation whose operands C# widens past the HLSL type set.
+    /// <para>
+    /// Format: <c>"The operands of this operation are widened to {0}, which is outside the HLSL type set (a signed and an unsigned integer in one operation are widened together, and that widening cannot be written into the generated code, so the operands have to be brought to one type with an explicit conversion)"</c>.
+    /// </para>
+    /// </summary>
+    public static readonly DiagnosticDescriptor InvalidOperandWidening = new(
+        id: "CMPWD2D0097",
+        title: "Operands widened past the HLSL type set",
+        messageFormat: "The operands of this operation are widened to {0}, which is outside the HLSL type set (a signed and an unsigned integer in one operation are widened together, and that widening cannot be written into the generated code, so the operands have to be brought to one type with an explicit conversion)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "C# brings the operands of an operation to a common type before performing it, and a signed integer beside an unsigned one brings both to a 64 bit integer, which the HLSL type set has no name for. That conversion cannot be written into the generated code, which holds the operands as they stand, so the shader compiler resolves the operation over them instead and the unsigned kind wins: a comparison answers the other way and an arithmetic result wraps at 32 bits. Neither compiler reports anything, so without this the shader silently computes a different value. The judgment is over the type the operands are widened to rather than over the pair of kinds that reached it, so any pair widening past the set is refused alike.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

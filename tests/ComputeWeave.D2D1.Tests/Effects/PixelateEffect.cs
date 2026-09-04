@@ -24,8 +24,8 @@ public readonly partial struct PixelateEffect : ID2D1PixelShader
         uint x = (uint)Hlsl.Floor(scenePos.X);
         uint y = (uint)Hlsl.Floor(scenePos.Y);
 
-        int cellX = (int)Hlsl.Floor(x / this.constants.cellSize);
-        int cellY = (int)Hlsl.Floor(y / this.constants.cellSize);
+        int cellX = (int)Hlsl.Floor(x / (uint)this.constants.cellSize);
+        int cellY = (int)Hlsl.Floor(y / (uint)this.constants.cellSize);
 
         int x0 = cellX * this.constants.cellSize;
         int y0 = cellY * this.constants.cellSize;

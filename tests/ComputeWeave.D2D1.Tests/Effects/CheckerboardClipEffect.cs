@@ -14,8 +14,8 @@ public readonly partial struct CheckerboardClipEffect(int cellSize) : ID2D1Pixel
         uint x = (uint)Hlsl.Floor(position.X);
         uint y = (uint)Hlsl.Floor(position.Y);
 
-        uint cellX = (uint)(int)Hlsl.Floor(x / cellSize);
-        uint cellY = (uint)(int)Hlsl.Floor(y / cellSize);
+        uint cellX = (uint)(int)Hlsl.Floor(x / (uint)cellSize);
+        uint cellY = (uint)(int)Hlsl.Floor(y / (uint)cellSize);
 
         if ((cellX % 2 == 0 && cellY % 2 == 0) ||
             (cellX % 2 == 1 && cellY % 2 == 1))
