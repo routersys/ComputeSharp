@@ -225,8 +225,6 @@ internal sealed partial class ShaderSourceRewriter(
 
         SyntaxToken modifier = GetHlslParameterModifier(node);
 
-        updatedNode = updatedNode.WithAttributeLists(default);
-
         if (node.Type is TypeSyntax sourceType)
         {
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.Type!, sourceType, SemanticModel.For(node));
@@ -297,8 +295,7 @@ internal sealed partial class ShaderSourceRewriter(
         return
             ((MethodDeclarationSyntax)base.VisitMethodDeclaration(node)!)
             .WithBlockBody()
-            .WithoutInvalidHlslModifiers()
-            .WithAttributeLists(List<AttributeListSyntax>());
+            .WithoutInvalidHlslModifiers();
     }
 
     /// <inheritdoc/>
@@ -313,8 +310,7 @@ internal sealed partial class ShaderSourceRewriter(
         {
             LocalFunctionStatementSyntax updatedNode =
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
-                .WithBlockBody()
-                .WithAttributeLists(List<AttributeListSyntax>());
+                .WithBlockBody();
 
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.ReturnType, node!.ReturnType, SemanticModel.For(node));
 
@@ -342,7 +338,6 @@ internal sealed partial class ShaderSourceRewriter(
             LocalFunctionStatementSyntax updatedNode =
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
                 .WithBlockBody()
-                .WithAttributeLists(List<AttributeListSyntax>())
                 .WithIdentifier(Identifier(GetLocalFunctionIdentifier(functionSymbol)));
 
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.ReturnType, node!.ReturnType, SemanticModel.For(node));

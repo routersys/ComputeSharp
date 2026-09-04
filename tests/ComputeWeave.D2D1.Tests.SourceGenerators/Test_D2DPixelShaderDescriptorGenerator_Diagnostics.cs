@@ -893,4 +893,56 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0096");
     }
+
+    /// <summary>
+    /// An attribute argument holding a string, on a method the shader imports. The list is not written out,
+    /// so refusing what it holds stops a build over source that cannot change the generated HLSL.
+    /// </summary>
+    /// <remarks>
+    /// The walk that drops the list is shared with the compute generator, and each of the two carries its own
+    /// identifier for this refusal, so a row on one of them says nothing about the other.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxInsideAnAttributeIsNotRefused()
+    {
+        const string source = """
+            using System;
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal sealed class MarkAttribute : Attribute
+            {
+                public MarkAttribute(object value)
+                {
+                }
+            }
+
+            internal static class Helper
+            {
+                [Mark("do not use")]
+                public static float Twice(float value)
+                {
+                    return value * 2;
+                }
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return Helper.Twice(this.time);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0028");
+    }
 }

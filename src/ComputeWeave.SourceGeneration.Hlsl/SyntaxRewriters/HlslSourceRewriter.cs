@@ -103,6 +103,20 @@ internal abstract partial class HlslSourceRewriter(
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// An attribute list is dropped rather than written out, so nothing under one reaches the shader compiler
+    /// and nothing written there can change the generated HLSL. Returning without walking it is what keeps a
+    /// refusal from answering for a construct the author cannot correct: an attribute argument is a constant
+    /// expression, and several of the kinds one may hold are refused everywhere else for reasons that apply
+    /// only to what is written out. Dropping the list after walking it, which is what each declaration used
+    /// to do on its own, leaves those refusals reported.
+    /// </remarks>
+    public sealed override SyntaxNode? VisitAttributeList(AttributeListSyntax node)
+    {
+        return null;
+    }
+
+    /// <inheritdoc/>
     public sealed override SyntaxNode VisitCastExpression(CastExpressionSyntax node)
     {
         CastExpressionSyntax updatedNode = (CastExpressionSyntax)base.VisitCastExpression(node)!;
