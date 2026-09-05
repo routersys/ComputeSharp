@@ -296,12 +296,16 @@ internal sealed partial class ShaderSourceRewriter(
     /// </remarks>
     public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
     {
+        ReportDeclarationWithNoBody(node, node.Identifier, node.Body, node.ExpressionBody);
+
         return ((ConstructorDeclarationSyntax)base.VisitConstructorDeclaration(node)!).WithBlockBody();
     }
 
     /// <inheritdoc/>
     public override SyntaxNode? VisitMethodDeclaration(MethodDeclarationSyntax node)
     {
+        ReportDeclarationWithNoBody(node, node.Identifier, node.Body, node.ExpressionBody);
+
         return
             ((MethodDeclarationSyntax)base.VisitMethodDeclaration(node)!)
             .WithBlockBody()
@@ -312,6 +316,8 @@ internal sealed partial class ShaderSourceRewriter(
     public override SyntaxNode? VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
     {
         CancellationToken.ThrowIfCancellationRequested();
+
+        ReportDeclarationWithNoBody(node, node.Identifier, node.Body, node.ExpressionBody);
 
         // If the current identifier matches the one for the current method, it means the local function
         // statement is the one being inspected, and it's nto coming from a local function in a method

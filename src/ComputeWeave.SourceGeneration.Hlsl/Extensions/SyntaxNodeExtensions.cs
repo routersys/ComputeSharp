@@ -30,6 +30,14 @@ partial class SyntaxNodeExtensions
                 .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
         }
 
+        // The promise is a block body, so a declaration carrying none is given an empty one
+        if (node.Body is null)
+        {
+            return node
+                .WithBody(Block())
+                .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
+        }
+
         return node;
     }
 
@@ -88,6 +96,14 @@ partial class SyntaxNodeExtensions
                 .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
         }
 
+        // The promise is a block body, so a declaration carrying none is given an empty one
+        if (node.Body is null)
+        {
+            return node
+                .WithBody(Block())
+                .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
+        }
+
         return node;
     }
 
@@ -135,6 +151,14 @@ partial class SyntaxNodeExtensions
             return node
                 .WithBody(Block(ExpressionStatement(arrow.Expression)))
                 .WithExpressionBody(null)
+                .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
+        }
+
+        // The promise is a block body, so a declaration carrying none is given an empty one
+        if (node.Body is null)
+        {
+            return node
+                .WithBody(Block())
                 .WithSemicolonToken(MissingToken(SyntaxKind.SemicolonToken));
         }
 

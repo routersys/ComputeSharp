@@ -10,6 +10,7 @@ CMPW0123 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/rou
 CMPW0124 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0125 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0126 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0127 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 
 ; The rule below changed severity rather than being added, so it moves into the shipped file under a
 ; "Changed Rules" heading of its own. build/verify-analyzer-releases.ps1 refuses it under "New Rules".
