@@ -4,6 +4,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 // The discovered type needs an explicit constructor, as the generator rejects primary constructors on one
 #pragma warning disable IDE0290
 
+// One of the types below needs the expression bodied constructor this rule forbids, which is the shape under test
+#pragma warning disable IDE0021
+
 namespace ComputeWeave.D2D1.Tests;
 
 /// <summary>
@@ -63,6 +66,21 @@ public partial class ShaderRewriterTests
     }
 
     /// <summary>
+    /// The same import with the constructor written as an expression body, which used to end the generator
+    /// with an exception. The two forms mean the same thing in C#, so the shader they produce is the same.
+    /// </summary>
+    [TestMethod]
+    public void StaticFieldInitializerExpressionBodiedConstructor_IsRewrittenLikeABlockBodiedOne()
+    {
+        string blockBodied = D2D1ReflectionServices.GetShaderInfo<StaticFieldInitializerShader>().HlslSource;
+        string expressionBodied = D2D1ReflectionServices.GetShaderInfo<StaticFieldInitializerFromAnArrowShader>().HlslSource;
+
+        Assert.AreEqual(
+            blockBodied.Replace("StaticFieldInitializerAmount", "StaticFieldInitializerAmountFromAnArrow"),
+            expressionBodied);
+    }
+
+    /// <summary>
     /// A custom struct whose constructor computes rather than copies, so that the imported body shows.
     /// </summary>
     internal struct StaticFieldInitializerAmount
@@ -86,6 +104,35 @@ public partial class ShaderRewriterTests
     internal readonly partial struct StaticFieldInitializerShader : ID2D1PixelShader
     {
         private static readonly float Scale = StaticFieldInitializerAmount.Read(new StaticFieldInitializerAmount(2.0f));
+
+        public float4 Execute()
+        {
+            return new float4(Scale, 0, 0, 1);
+        }
+    }
+
+    /// <summary>
+    /// The same struct with the constructor written as an expression body. The name extends the other one,
+    /// so the shader it produces is the other shader with that one identifier rewritten.
+    /// </summary>
+    internal struct StaticFieldInitializerAmountFromAnArrow
+    {
+        public float Value;
+
+        public StaticFieldInitializerAmountFromAnArrow(float value) => this.Value = value * 2;
+
+        public static float Read(StaticFieldInitializerAmountFromAnArrow amount)
+        {
+            return amount.Value;
+        }
+    }
+
+    [D2DInputCount(0)]
+    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+    [D2DGeneratedPixelShaderDescriptor]
+    internal readonly partial struct StaticFieldInitializerFromAnArrowShader : ID2D1PixelShader
+    {
+        private static readonly float Scale = StaticFieldInitializerAmountFromAnArrow.Read(new StaticFieldInitializerAmountFromAnArrow(2.0f));
 
         public float4 Execute()
         {
