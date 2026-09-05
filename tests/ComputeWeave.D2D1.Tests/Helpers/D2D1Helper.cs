@@ -13,6 +13,15 @@ namespace ComputeWeave.D2D1.Tests.Helpers;
 internal static class D2D1Helper
 {
     /// <summary>
+    /// Whether a hardware adapter is present, which is the driver type <see cref="CreateD2D1Device"/> takes when it is.
+    /// </summary>
+    /// <remarks>
+    /// Probed on its own rather than reported by the fixture, which is called from every test that needs a device and
+    /// would have to carry the answer back through all of them. Probed once, the adapters not changing under a run.
+    /// </remarks>
+    public static bool IsHardwareAdapterAvailable { get; } = ProbeHardwareAdapter();
+
+    /// <summary>
     /// Creates an <see cref="ID2D1Factory2"/> instance.
     /// </summary>
     /// <param name="singleThreaded">Indicates whether or not the factory should be created as single threaded.</param>
@@ -31,6 +40,30 @@ internal static class D2D1Helper
             ppIFactory: (void**)d2D1Factory2.GetAddressOf()).Assert();
 
         return d2D1Factory2.Move();
+    }
+
+    /// <summary>
+    /// Asks Direct3D for a hardware device, and reports whether it was given one.
+    /// </summary>
+    /// <returns>Whether a hardware adapter is present.</returns>
+    private static unsafe bool ProbeHardwareAdapter()
+    {
+        using ComPtr<ID3D11Device> d3D11Device = default;
+
+        // No feature levels are requested, the question being whether an adapter exists and not what it supports
+        HRESULT result = DirectX.D3D11CreateDevice(
+            pAdapter: null,
+            DriverType: D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_HARDWARE,
+            Software: HMODULE.NULL,
+            Flags: (uint)D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+            pFeatureLevels: null,
+            FeatureLevels: 0,
+            SDKVersion: D3D11.D3D11_SDK_VERSION,
+            ppDevice: d3D11Device.GetAddressOf(),
+            pFeatureLevel: null,
+            ppImmediateContext: null);
+
+        return result.SUCCEEDED;
     }
 
     /// <summary>
@@ -68,8 +101,8 @@ internal static class D2D1Helper
             ppImmediateContext: null);
 
         // A runner with no adapter has no hardware device to create, and without a fallback the first line
-        // of the fixture fails every test in the suite. The suite was measured on WARP and reports the same
-        // results as on hardware, so falling back runs the tests rather than leaving the suite out.
+        // of the fixture fails every test in the suite. WARP is also the device the image comparisons are
+        // held to, so falling back runs them where they decide rather than leaving the suite out.
         if (result.FAILED)
         {
             result = DirectX.D3D11CreateDevice(

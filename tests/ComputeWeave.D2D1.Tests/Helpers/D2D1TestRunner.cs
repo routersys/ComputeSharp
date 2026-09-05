@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using ComputeWeave.D2D1.Descriptors;
 using ComputeWeave.D2D1.Interop;
 using ComputeWeave.Tests.Helpers;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -64,6 +65,7 @@ internal static class D2D1TestRunner
     /// <param name="destinationFileName">The name of the destination image to save results to.</param>
     /// <param name="shader">The shader to run.</param>
     /// <param name="threshold">The allowed difference threshold for the normalized delta.</param>
+    /// <param name="usesTranscendentalHash">Whether the shader scales <c>sin</c> or <c>cos</c> past its low bits and takes the fraction, which ties the image it draws to the implementation of that function on the device.</param>
     /// <param name="resourceTextures">The additional resource textures to use to run the shader.</param>
     public static void RunAndCompareShader<T>(
         in T shader,
@@ -72,6 +74,7 @@ internal static class D2D1TestRunner
         string expectedFileName,
         [CallerMemberName] string destinationFileName = "",
         float threshold = 0.00001f,
+        bool usesTranscendentalHash = false,
         params (int Index, D2D1ResourceTextureManager ResourceTextureManager)[] resourceTextures)
         where T : unmanaged, ID2D1PixelShader, ID2D1PixelShaderDescriptor<T>
     {
@@ -91,6 +94,13 @@ internal static class D2D1TestRunner
             height,
             destinationPath,
             resourceTextures);
+
+        // The reference images come from WARP, so a hash of sin or cos compares there
+        if (usesTranscendentalHash && D2D1Helper.IsHardwareAdapterAvailable)
+        {
+            Assert.Inconclusive(
+                $"{typeof(T).Name} folds sin or cos into a hash, so its image follows the implementation of that function rather than anything the library emits. Only the WARP variant is held to the reference image, so a run on a hardware adapter does not decide whether the image is right.");
+        }
 
         // Compare the results
         TolerantImageComparer.AssertEqual(destinationPath, expectedPath, threshold);

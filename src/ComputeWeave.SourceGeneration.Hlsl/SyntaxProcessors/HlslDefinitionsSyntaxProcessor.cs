@@ -120,12 +120,13 @@ internal static class HlslDefinitionsSyntaxProcessor
         // rewrites an external one already claims its entry, so that a read of the field reaching back into
         // its own initializer finds a claim rather than an identifier written out as it stands. The claim is
         // released below, this collection being the external definitions a generator writes out on top of
-        // the fields of the shader it gathers itself, which this field is already one of
+        // the fields of the shader it gathers itself, which this field is already one of. The order a
+        // completed entry carries is never read for this one, the claim being released before that
         bool isShaderStaticField = SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, structDeclarationSymbol);
 
         if (isShaderStaticField)
         {
-            staticFieldDefinitions.Add(fieldSymbol, (name, null, null));
+            staticFieldDefinitions.Add(fieldSymbol, (name, null, null, 0));
         }
 
         // Create the rewriter to use, which is also returned to callers so they can extract the local
@@ -325,5 +326,30 @@ internal static class HlslDefinitionsSyntaxProcessor
                 diagnostics.Add(InvalidPropertyDeclaration, associatedProperty, structDeclarationSymbol, associatedProperty);
             }
         }
+    }
+
+    /// <summary>
+    /// Gets the order the next static field to finish takes, which is how many have finished before it.
+    /// </summary>
+    /// <param name="staticFieldDefinitions">The collection of discovered static field definitions.</param>
+    /// <returns>The number of imported static fields whose rewriting has finished.</returns>
+    /// <remarks>
+    /// Writing the fields in this order puts each one after every field that had finished when it did,
+    /// which is every field its own initializer reached. An entry with no type declaration is one still
+    /// being rewritten, so it is not one that has finished.
+    /// </remarks>
+    public static int GetStaticFieldOrder(IDictionary<IFieldSymbol, HlslStaticField> staticFieldDefinitions)
+    {
+        int order = 0;
+
+        foreach (HlslStaticField definition in staticFieldDefinitions.Values)
+        {
+            if (definition.TypeDeclaration is not null)
+            {
+                order++;
+            }
+        }
+
+        return order;
     }
 }

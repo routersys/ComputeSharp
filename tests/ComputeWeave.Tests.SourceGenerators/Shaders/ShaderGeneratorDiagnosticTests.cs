@@ -173,7 +173,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(Source, "ShaderThreadGroupTooManyThreadsCompilerTests", "CMPW0046");
+        AssertIsNotHandedToTheCompiler(Source, "ShaderThreadGroupTooManyThreadsCompilerTests");
     }
 
     /// <summary>
@@ -204,9 +204,7 @@ public class ShaderGeneratorDiagnosticTests
     [TestMethod]
     public void AValidShaderIsNotDiagnosed()
     {
-        string[] actualIds = Run(Shader("private readonly float scale;", "this.buffer[0] = this.scale;"), "ShaderValidTests");
-
-        Assert.AreEqual(0, actualIds.Length, string.Join(", ", actualIds));
+        AssertReportsNothing(Shader("private readonly float scale;", "this.buffer[0] = this.scale;"), "ShaderValidTests");
     }
 
     private static string Shader(string member, string body)
@@ -336,7 +334,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(CycleShader(Declarations), "StaticFieldWithoutACycleTests", "CMPW0124");
+        AssertReportsNothing(CycleShader(Declarations), "StaticFieldWithoutACycleTests");
     }
 
     /// <summary>
@@ -377,7 +375,7 @@ public class ShaderGeneratorDiagnosticTests
             }
             """;
 
-        AssertDoesNotReport(Source, "StaticFieldReadTwiceTests", "CMPW0124");
+        AssertReportsNothing(Source, "StaticFieldReadTwiceTests");
     }
 
     /// <summary>
@@ -524,7 +522,7 @@ public class ShaderGeneratorDiagnosticTests
         "this.buffer[0] = Value;")]
     public void AStaticFieldOfTheShaderWithoutACycleIsNotDiagnosed(string assemblyName, string members, string body)
     {
-        AssertDoesNotReport(ShaderWithStaticFields(members, body), assemblyName, "CMPW0124");
+        AssertReportsNothing(ShaderWithStaticFields(members, body), assemblyName);
     }
 
     private static string ShaderWithStaticFields(string members, string body = "this.buffer[0] = Value;")
@@ -573,6 +571,83 @@ public class ShaderGeneratorDiagnosticTests
             """;
     }
 
+    /// <summary>
+    /// The refusals an attribute argument can carry. An attribute list is not written out, so what it holds
+    /// cannot change the generated HLSL, and refusing it stops a build over source the author cannot correct.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// There is one row per identifier the argument kinds were measured to reach. The rows are the refusals
+    /// themselves rather than the kinds: several kinds reach one identifier, and a row per kind would say the
+    /// same thing more than once while leaving an identifier free to start reporting again.
+    /// </para>
+    /// <para>
+    /// The attribute is placed on an imported method here. Placing it on a method of the shader or on an
+    /// imported constructor was measured to report the same, all three being rewritten by the same walk.
+    /// </para>
+    /// </remarks>
+    [TestMethod]
+    [DataRow("\"do not use\"", "AttributeStringArgumentTests")]
+    [DataRow("(object)null", "AttributeObjectArgumentTests")]
+    [DataRow("new int[] { 1 }", "AttributeArrayArgumentTests")]
+    [DataRow("checked(1 + 1)", "AttributeCheckedArgumentTests")]
+    public void SyntaxInsideAnAttributeIsNotRefused(string argument, string assemblyName)
+    {
+        AssertReportsNothing(AttributeShader(argument), assemblyName);
+    }
+
+    /// <summary>
+    /// The same construct written in the body it is refused in, so that the rows above answer for where the
+    /// syntax sits rather than for the refusal having stopped working.
+    /// </summary>
+    [TestMethod]
+    [DataRow("string text = \"do not use\";", "BodyStringTests", "CMPW0036")]
+    [DataRow("object value = null;", "BodyObjectTests", "CMPW0050")]
+    [DataRow("int[] values = new int[] { 1 };", "BodyArrayTests", "CMPW0059")]
+    [DataRow("int value = checked(1 + 1);", "BodyCheckedTests", "CMPW0014")]
+    public void TheSameSyntaxInABodyIsRefused(string statement, string assemblyName, string expectedId)
+    {
+        AssertReports(Shader("", $"{statement} this.buffer[0] = 1;"), assemblyName, expectedId);
+    }
+
+    private static string AttributeShader(string argument)
+    {
+        return $$"""
+            using System;
+            using ComputeWeave;
+
+            namespace Shaders;
+
+            internal sealed class MarkAttribute : Attribute
+            {
+                public MarkAttribute(object value)
+                {
+                }
+            }
+
+            internal static class Helper
+            {
+                [Mark({{argument}})]
+                public static float Twice(float value)
+                {
+                    return value * 2;
+                }
+            }
+
+            [ThreadGroupSize(DefaultThreadGroupSizes.X)]
+            [GeneratedComputeShaderDescriptor]
+            internal readonly partial struct Shader : IComputeShader
+            {
+                private readonly ReadWriteBuffer<float> buffer;
+
+                public void Execute()
+                {
+                    this.buffer[0] = Helper.Twice(2.0f);
+                }
+            }
+            """;
+    }
+
     private static void AssertReportsAt(string source, string assemblyName, string expectedId, int expectedCount)
     {
         string[] actualIds = Run(source, assemblyName);
@@ -590,11 +665,20 @@ public class ShaderGeneratorDiagnosticTests
         Assert.IsTrue(actualIds.Contains(expectedId), $"{expectedId} is not reported: {string.Join(", ", actualIds)}");
     }
 
-    private static void AssertDoesNotReport(string source, string assemblyName, string unexpectedId)
+    private static void AssertReportsNothing(string source, string assemblyName)
     {
         string[] actualIds = Run(source, assemblyName);
 
-        Assert.IsFalse(actualIds.Contains(unexpectedId), $"{unexpectedId} is reported: {string.Join(", ", actualIds)}");
+        // A shader left alone is pinned as a set, so a compile failure arriving under its own identifier lands here
+        Assert.AreEqual(0, actualIds.Length, string.Join(", ", actualIds));
+    }
+
+    private static void AssertIsNotHandedToTheCompiler(string source, string assemblyName)
+    {
+        string[] actualIds = Run(source, assemblyName);
+
+        // Narrow because an analyzer answers for this shader from outside this run, and sound because a group this size would be refused if it were handed over
+        Assert.IsFalse(actualIds.Contains("CMPW0046"), $"CMPW0046 is reported: {string.Join(", ", actualIds)}");
     }
 
     private static string[] Run(string source, string assemblyName)

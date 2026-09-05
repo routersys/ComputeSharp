@@ -531,6 +531,74 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// A variable a static field initializer would have to declare. The rewriter that refuses it is shared
+    /// with the compute generator, so what this pins is that the pixel shader generator answers with its
+    /// own identifier.
+    /// </summary>
+    [TestMethod]
+    public void VariableDeclaredInAStaticFieldInitializerIsReported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float Scale = Hlsl.Modf(1.5f, out float whole);
+
+                public float4 Execute()
+                {
+                    return new float4(Scale, 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0098");
+    }
+
+    /// <summary>
+    /// A static field of an external type, read from an initializer. The import is shared, so what this
+    /// pins is that the pixel shader path reaches it too.
+    /// </summary>
+    [TestMethod]
+    public void AnExternalStaticFieldInAnInitializerIsImported()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                public static readonly float Factor = 2.0f;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float Scale = Helper.Factor;
+
+                public float4 Execute()
+                {
+                    return new float4(Scale, 0, 0, 1);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
+    }
+
+    /// <summary>
     /// An attribute of the author's own, carrying syntax the set has no verdict for, on an imported method.
     /// </summary>
     /// <remarks>
@@ -572,7 +640,7 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0094");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
 
     /// <summary>
@@ -718,9 +786,8 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(
-            ScenePositionShader(declarations, "private static readonly float Scale = Helper.Read();", "return Scale + Helper.Read();"),
-            "CMPWD2D0045");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(
+            ScenePositionShader(declarations, "private static readonly float Scale = Helper.Read();", "return Scale + Helper.Read();"));
     }
 
     /// <summary>
@@ -828,6 +895,58 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// An attribute argument holding a string, on a method the shader imports. The list is not written out,
+    /// so refusing what it holds stops a build over source that cannot change the generated HLSL.
+    /// </summary>
+    /// <remarks>
+    /// The walk that drops the list is shared with the compute generator, and each of the two carries its own
+    /// identifier for this refusal, so a row on one of them says nothing about the other.
+    /// </remarks>
+    [TestMethod]
+    public void SyntaxInsideAnAttributeIsNotRefused()
+    {
+        const string source = """
+            using System;
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal sealed class MarkAttribute : Attribute
+            {
+                public MarkAttribute(object value)
+                {
+                }
+            }
+
+            internal static class Helper
+            {
+                [Mark("do not use")]
+                public static float Twice(float value)
+                {
+                    return value * 2;
+                }
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return Helper.Twice(this.time);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
+    }
+
+    /// <summary>
     /// A static field of the shader itself whose initializer reaches the field it initializes, closing the
     /// cycle through a static method of the shader, which the generator writes out through a path of its own.
     /// </summary>
@@ -870,6 +989,10 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     /// A static method of the shader reading a static field of it, reached from the body rather than from that
     /// field's initializer, which is the ordinary shape the walk answering the row above runs over.
     /// </summary>
+    /// <remarks>
+    /// The set is pinned as a whole rather than one identifier being pinned absent, this input carrying no
+    /// refusal for the narrow form to rest on.
+    /// </remarks>
     [TestMethod]
     public void AStaticFieldOfTheShaderWithoutACycleIsNotDiagnosed()
     {
@@ -896,6 +1019,6 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0096");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
 }

@@ -36,11 +36,8 @@ partial class HlslSourceRewriter
     /// one report rather than one per use.
     /// </para>
     /// <para>
-    /// An attribute list is dropped rather than written out, so nothing under one reaches the shader compiler.
-    /// Refusing it would refuse a construct that cannot change the generated HLSL: an attribute of the author's
-    /// own on an imported method carries a named argument, which is a kind the set has no verdict for anywhere
-    /// else. The ancestors are read only for a kind outside the set, and before the kind is recorded as seen,
-    /// so the same kind written elsewhere in the same method is still reported.
+    /// Nothing under an attribute list reaches here, the list being returned without being walked, so a kind
+    /// written only inside one is neither reported nor recorded as seen.
     /// </para>
     /// </remarks>
     protected void ReportSyntaxOutsideTheAcceptedSet(SyntaxNode node)
@@ -48,7 +45,6 @@ partial class HlslSourceRewriter
         SyntaxKind kind = node.Kind();
 
         if (!HlslKnownSyntax.IsAccepted(kind) &&
-            node.FirstAncestorOrSelf<AttributeListSyntax>() is null &&
             this.reportedSyntaxKinds.Add(kind))
         {
             Diagnostics.Add(UnknownShaderSyntax, node, kind.ToString());

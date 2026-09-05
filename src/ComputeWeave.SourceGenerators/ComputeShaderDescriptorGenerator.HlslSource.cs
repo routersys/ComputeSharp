@@ -344,7 +344,7 @@ partial class ComputeShaderDescriptorGenerator
             IDictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions,
             CancellationToken token)
         {
-            using ImmutableArrayBuilder<HlslStaticField> builder = new();
+            using ImmutableArrayBuilder<HlslStaticField> declared = new();
 
             foreach (ISymbol memberSymbol in structDeclarationSymbol.GetMembers())
             {
@@ -378,7 +378,11 @@ partial class ComputeShaderDescriptorGenerator
                     out string? assignmentExpression,
                     out StaticFieldRewriter? staticFieldRewriter))
                 {
-                    builder.Add((name, typeDeclaration, assignmentExpression));
+                    declared.Add((
+                        name,
+                        typeDeclaration,
+                        assignmentExpression,
+                        HlslDefinitionsSyntaxProcessor.GetStaticFieldOrder(staticFieldDefinitions)));
 
                     // An initializer may import a method that declares a local function, which HLSL cannot
                     // nest, so the ones lifted out of it are carried up to be written like any other
@@ -389,13 +393,12 @@ partial class ComputeShaderDescriptorGenerator
                 }
             }
 
-            // Also gather the external static fields
-            foreach (HlslStaticField externalField in staticFieldDefinitions.Values)
-            {
-                builder.Add(externalField);
-            }
+            // The fields are written as one sequence, ordered by when each finished, which is after every
+            // field its own initializer reached. A declared field and an imported one that finished with the
+            // same count keep this order, the import having finished after the declared field did
+            HlslStaticField[] fields = [.. declared.WrittenSpan, .. staticFieldDefinitions.Values];
 
-            return builder.ToImmutable();
+            return [.. fields.OrderBy(static field => field.Order)];
         }
 
         /// <summary>

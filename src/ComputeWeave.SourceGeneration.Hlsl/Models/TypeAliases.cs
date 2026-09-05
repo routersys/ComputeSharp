@@ -8,6 +8,9 @@ global using HlslUserType = (string Name, string Definition);
 global using HlslResourceField = (string MetadataName, string Name, string Type);
 global using HlslValueField = (string Name, string Type);
 global using HlslResourceTextureField = (string Name, string Type, int Index);
-global using HlslStaticField = (string Name, string? TypeDeclaration, string? Assignment);
+
+// The order a static field carries is how many had finished when its own rewriting did, which is
+// after every field its initializer reads, so writing them by it puts each after the ones it names
+global using HlslStaticField = (string Name, string? TypeDeclaration, string? Assignment, int Order);
 global using HlslSharedBuffer = (string Name, string Type, int? Count);
 global using HlslMethod = (string Signature, string Declaration);

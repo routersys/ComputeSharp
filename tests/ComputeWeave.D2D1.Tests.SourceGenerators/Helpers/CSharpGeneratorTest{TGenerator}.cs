@@ -76,11 +76,19 @@ internal static class CSharpGeneratorTest<TGenerator>
     /// <param name="diagnosticId">The diagnostic id expected to be absent from the reported ones.</param>
     /// <remarks>
     /// The mirror of <see cref="VerifyDiagnosticIsReported"/>, for an input that trips other diagnostics as well,
-    /// where asserting the whole set would fail whenever any of the others moves.
+    /// where asserting the whole set would fail whenever any of the others moves. An input that carries no refusal
+    /// is pinned by <see cref="VerifyDiagnostics"/> with no ids instead, which reaches both the shader compiler and
+    /// the generated C#. Which of the two fits is asserted here rather than left to the caller, one identifier
+    /// being absent saying nothing on its own.
     /// </remarks>
     public static void VerifyDiagnosticIsNotReported(string source, string diagnosticId)
     {
         RunGenerator(source, out _, out ImmutableArray<Diagnostic> diagnostics);
+
+        // What makes the narrow assertion the right one is the refusal the input already carries
+        Assert.IsTrue(
+            diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
+            $"Nothing refuses this input, so {diagnosticId} being absent pins nothing: {string.Join(", ", diagnostics.Select(static diagnostic => diagnostic.Id).Distinct())}");
 
         Assert.IsFalse(
             diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
