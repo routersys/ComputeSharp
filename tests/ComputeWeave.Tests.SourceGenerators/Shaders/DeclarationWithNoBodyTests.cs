@@ -219,7 +219,9 @@ public class DeclarationWithNoBodyTests
     private static void AssertReportsOnly(string source, string assemblyName, string expectedId)
     {
         ImmutableArray<Diagnostic> diagnostics = Run(source, assemblyName).Diagnostics;
-        string[] actualIds = [.. diagnostics.Select(static diagnostic => diagnostic.Id).Distinct().Order()];
+
+        // Not made distinct, so that one cause reported twice fails rather than reading as one report
+        string[] actualIds = [.. diagnostics.Select(static diagnostic => diagnostic.Id).Order()];
 
         Assert.IsTrue(actualIds.SequenceEqual([expectedId]), $"{expectedId} is not the only report: {string.Join(", ", actualIds)}");
     }
