@@ -147,3 +147,22 @@ CMPW0118 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/rou
 CMPW0119 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0120 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPW0121 | ComputeWeave.Shaders | Info | [Documentation](https://github.com/routersys/ComputeWeave)
+
+## Release 2.4
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+CMPW0122 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0123 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0124 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0125 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0126 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPW0127 | ComputeWeave.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+CMPW0121 | ComputeWeave.Shaders | Error | ComputeWeave.Shaders | Info | [Documentation](https://github.com/routersys/ComputeWeave)

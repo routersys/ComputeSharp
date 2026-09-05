@@ -101,3 +101,21 @@ CMPWD2D0091 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github
 CMPWD2D0092 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPWD2D0093 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
 CMPWD2D0094 | ComputeWeave.D2D1.Shaders | Info | [Documentation](https://github.com/routersys/ComputeWeave)
+
+## Release 2.4
+
+### New Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+CMPWD2D0095 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0096 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0097 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0098 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+CMPWD2D0099 | ComputeWeave.D2D1.Shaders | Error | [Documentation](https://github.com/routersys/ComputeWeave)
+
+### Changed Rules
+
+Rule ID | New Category | New Severity | Old Category | Old Severity | Notes
+--------|--------------|--------------|--------------|--------------|-------
+CMPWD2D0094 | ComputeWeave.D2D1.Shaders | Error | ComputeWeave.D2D1.Shaders | Info | [Documentation](https://github.com/routersys/ComputeWeave)
