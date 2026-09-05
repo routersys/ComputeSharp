@@ -1022,4 +1022,73 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
 
         CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
+
+    /// <summary>
+    /// A declaration carrying no body, imported by the shader body. What reaches the generated HLSL is built
+    /// from the body, so one that has none has nothing to write, and C# reports an extern declaration as a
+    /// warning rather than an error.
+    /// </summary>
+    /// <remarks>
+    /// The rewriting that reports this is shared with the compute generator, and each of the two carries its
+    /// own identifier, so a row on one of them says nothing about the other.
+    /// </remarks>
+    [TestMethod]
+    public void ADeclarationWithNoBodyIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                public static extern float Twice(float value);
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return Helper.Twice(this.time);
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0099");
+    }
+
+    /// <summary>
+    /// The entry point written with no body, which is the one route that imports no declaration and the one
+    /// this generator reads for itself.
+    /// </summary>
+    [TestMethod]
+    public void AnEntryPointWithNoBodyIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public extern float4 Execute();
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0099");
+    }
 }
