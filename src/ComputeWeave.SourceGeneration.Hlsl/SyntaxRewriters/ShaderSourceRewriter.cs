@@ -291,8 +291,8 @@ internal sealed partial class ShaderSourceRewriter(
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Only the body is normalized, unlike a method: the import builds the declarations it writes from the
-    /// parameter list and the body alone, so the modifiers and the attribute lists are never read.
+    /// Only the body is normalized, unlike a method, which drops its modifiers as well: the import builds the
+    /// declarations it writes from the parameter list and the body alone, so the modifiers are never read.
     /// </remarks>
     public override SyntaxNode? VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
     {
