@@ -1477,4 +1477,24 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "C# brings the operands of an operation to a common type before performing it, and a signed integer beside an unsigned one brings both to a 64 bit integer, which the HLSL type set has no name for. That conversion cannot be written into the generated code, which holds the operands as they stand, so the shader compiler resolves the operation over them instead and the unsigned kind wins: a comparison answers the other way and an arithmetic result wraps at 32 bits. Neither compiler reports anything, so without this the shader silently computes a different value. The judgment is over the type the operands are widened to rather than over the pair of kinds that reached it, so any pair widening past the set is refused alike.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a variable a static field initializer would have to declare.
+    /// <para>
+    /// Format: <c>"The variable {0} cannot be declared in a static field initializer (a shader body declares it ahead of the call that writes to it, and HLSL writes an initializer as one expression with nothing ahead of it)"</c>.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// This is the Direct2D counterpart of the compute diagnostic. The rewriter that reports it is shared, so
+    /// leaving one of the two out would refuse the same initializer on one path and not the other.
+    /// </remarks>
+    public static readonly DiagnosticDescriptor VariableDeclaredInStaticFieldInitializer = new(
+        id: "CMPWD2D0098",
+        title: "Variable declared in a static field initializer",
+        messageFormat: "The variable {0} cannot be declared in a static field initializer (a shader body declares it ahead of the call that writes to it, and HLSL writes an initializer as one expression with nothing ahead of it)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "An out argument written as a declaration and a discarded one both need a variable the rewriting introduces, which a shader body declares at the start of the body and passes to the call. A static field initializer is written as one HLSL expression, so there is nowhere ahead of it to put that declaration. Giving the variable a global static of its own instead would share one storage across every invocation of the shader, and HLSL leaves the order of global static initializers undefined, so the field could read a value C# never computes. Without this the declaration is written into the call as it stands, and the shader compiler answers by naming generated code the author never wrote.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }

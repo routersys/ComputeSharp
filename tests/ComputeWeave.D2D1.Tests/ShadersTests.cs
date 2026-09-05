@@ -30,13 +30,13 @@ public class ShadersTests
     [TestMethod]
     public void FractalTiling()
     {
-        RunTest<FractalTiling>();
+        RunTest<FractalTiling>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
     public void MengerJourney()
     {
-        RunTest<MengerJourney>(0.000011f);
+        RunTest<MengerJourney>(0.000011f, usesTranscendentalHash: true);
     }
 
     // This test and the other 3 below are skipped because they do produce valid result,
@@ -47,7 +47,7 @@ public class ShadersTests
     [Ignore]
     public void TwoTiledTruchet()
     {
-        RunTest<TwoTiledTruchet>();
+        RunTest<TwoTiledTruchet>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
@@ -66,14 +66,14 @@ public class ShadersTests
     [Ignore]
     public void PyramidPattern()
     {
-        RunTest<PyramidPattern>();
+        RunTest<PyramidPattern>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
     [Ignore]
     public void TriangleGridContouring()
     {
-        RunTest<TriangleGridContouring>();
+        RunTest<TriangleGridContouring>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
@@ -104,20 +104,20 @@ public class ShadersTests
 
         ContouredLayers shader = new(0f, new int2(1280, 720));
 
-        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), resourceTextures: (0, resourceTextureManager));
+        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), usesTranscendentalHash: true, resourceTextures: (0, resourceTextureManager));
     }
 
     [TestMethod]
     public void TerracedHills()
     {
-        RunTest<TerracedHills>(0.000027f);
+        RunTest<TerracedHills>(0.000027f, usesTranscendentalHash: true);
     }
 
-    private static void RunTest<T>(float threshold = 0.00001f)
+    private static void RunTest<T>(float threshold = 0.00001f, bool usesTranscendentalHash = false)
         where T : unmanaged, ID2D1PixelShader, ID2D1PixelShaderDescriptor<T>
     {
         T shader = (T)Activator.CreateInstance(typeof(T), 0f, new int2(1280, 720))!;
 
-        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{typeof(T).Name}.png", typeof(T).Name, threshold);
+        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{typeof(T).Name}.png", typeof(T).Name, threshold, usesTranscendentalHash);
     }
 }

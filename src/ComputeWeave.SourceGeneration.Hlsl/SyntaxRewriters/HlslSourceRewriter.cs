@@ -103,6 +103,20 @@ internal abstract partial class HlslSourceRewriter(
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// An attribute list is dropped rather than written out, so nothing under one reaches the shader compiler
+    /// and nothing written there can change the generated HLSL. Returning without walking it is what keeps a
+    /// refusal from answering for a construct the author cannot correct: an attribute argument is a constant
+    /// expression, and several of the kinds one may hold are refused everywhere else for reasons that apply
+    /// only to what is written out. Dropping the list after walking it, which is what each declaration used
+    /// to do on its own, leaves those refusals reported.
+    /// </remarks>
+    public sealed override SyntaxNode? VisitAttributeList(AttributeListSyntax node)
+    {
+        return null;
+    }
+
+    /// <inheritdoc/>
     public sealed override SyntaxNode VisitCastExpression(CastExpressionSyntax node)
     {
         CastExpressionSyntax updatedNode = (CastExpressionSyntax)base.VisitCastExpression(node)!;
@@ -426,6 +440,58 @@ internal abstract partial class HlslSourceRewriter(
         }
 
         return updatedNode;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// C# brings both arms to the type of the conditional before choosing between them, and the rewriting
+    /// writes them as they stand, so the shader compiler brings them to a common type of its own instead.
+    /// Where the two disagree the shader chooses a value C# never would: one arm of each integer kind is
+    /// brought to the unsigned one there, and a negative value is chosen as a large positive one, with no
+    /// diagnostic and no compiler error. Unlike the operands of an operator, the type C# uses here is the
+    /// type of the conditional itself, which the HLSL type set does have, so the conversion can be written.
+    /// </para>
+    /// <para>
+    /// A cast is written only where the conversion changes the HLSL type name, so an arm the shader compiler
+    /// converts the same way is left as it stands. The type read is the one the conditional carries after C#
+    /// has target typed it, which is the type both arms were converted to.
+    /// </para>
+    /// </remarks>
+    public sealed override SyntaxNode? VisitConditionalExpression(ConditionalExpressionSyntax node)
+    {
+        ConditionalExpressionSyntax updatedNode = (ConditionalExpressionSyntax)base.VisitConditionalExpression(node)!;
+
+        if (SemanticModel.For(node).GetOperation(node, CancellationToken) is not IConditionalOperation { Type: { } conditionalType } ||
+            !HlslKnownTypes.TryGetMappedName(conditionalType.GetFullyQualifiedMetadataName(), out string? conditionalTypeName))
+        {
+            return updatedNode;
+        }
+
+        return updatedNode
+            .WithWhenTrue(VisitConvertedConditionalArm(node.WhenTrue, updatedNode.WhenTrue, conditionalTypeName))
+            .WithWhenFalse(VisitConvertedConditionalArm(node.WhenFalse, updatedNode.WhenFalse, conditionalTypeName));
+    }
+
+    /// <summary>
+    /// Rewrites one arm of a conditional expression to carry the conversion C# applied to it.
+    /// </summary>
+    /// <param name="node">The original arm.</param>
+    /// <param name="updatedNode">The arm as rewritten so far.</param>
+    /// <param name="conditionalTypeName">The HLSL name of the type both arms were converted to.</param>
+    /// <returns>The arm, cast to the type of the conditional where the conversion changes its HLSL name.</returns>
+    private ExpressionSyntax VisitConvertedConditionalArm(ExpressionSyntax node, ExpressionSyntax updatedNode, string conditionalTypeName)
+    {
+        ITypeSymbol? armType = SemanticModel.For(node).GetTypeInfo(node, CancellationToken).Type;
+
+        if (armType is null ||
+            !HlslKnownTypes.TryGetMappedName(armType.GetFullyQualifiedMetadataName(), out string? armTypeName) ||
+            armTypeName == conditionalTypeName)
+        {
+            return updatedNode;
+        }
+
+        return CastExpression(IdentifierName(conditionalTypeName), updatedNode.AsOperand());
     }
 
     /// <inheritdoc/>

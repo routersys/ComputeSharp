@@ -138,9 +138,19 @@ internal static class ISymbolExtensions
     /// <param name="token">The <see cref="CancellationToken"/> used to cancel the operation, if needed.</param>
     /// <param name="syntaxNode">The resulting <typeparamref name="T"/> syntax node, if found.</param>
     /// <returns>Whether or not a syntax node of type <typeparamref name="T"/> was retrieved successfully.</returns>
+    /// <remarks>
+    /// A partial member is answered with the declaration holding its body, which is the one that runs. The
+    /// references of the defining part are read first otherwise, and that part carries no body at all.
+    /// </remarks>
     public static bool TryGetSyntaxNode<T>(this ISymbol symbol, CancellationToken token, [NotNullWhen(true)] out T? syntaxNode)
         where T : SyntaxNode
     {
+        // The implementation is what C# runs, so it is the declaration to read
+        if (symbol is IMethodSymbol { PartialImplementationPart: { } implementation })
+        {
+            symbol = implementation;
+        }
+
         // If there are no syntax references, there is nothing to do
         if (symbol.DeclaringSyntaxReferences is not [SyntaxReference syntaxReference, ..])
         {

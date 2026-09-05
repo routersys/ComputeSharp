@@ -131,6 +131,67 @@ public partial class ShaderRewriterTests
         }
     }
 
+    /// <summary>
+    /// The conversions C# applies to the arguments of an intrinsic call, which the shader compiler does not
+    /// apply for itself. The rewriting is shared with the compute generator, so what this pins is that the
+    /// pixel shader generator writes the same conversions out, the named intrinsics it lowers included, and
+    /// that a static field initializer answers the same way as the body.
+    /// </summary>
+    [TestMethod]
+    public void MixedKindArguments_AreRewrittenCorrectly()
+    {
+        D2D1ShaderInfo shaderInfo = D2D1ReflectionServices.GetShaderInfo<MixedKindArgumentsShader>();
+
+        Assert.AreEqual("""
+            #define D2D_INPUT_COUNT 0
+
+            #include "d2d1effecthelpers.hlsli"
+
+            static const int Seeded = -1;
+            static const uint Offset = 2;
+            static const float Widest = max((float)Seeded, (float)Offset);
+
+            int negative;
+            uint positive;
+            int count;
+            float scale;
+            int2 low;
+            uint2 high;
+            bool2 mask;
+
+            D2D_PS_ENTRY(Execute)
+            {
+                float mixed = max((float)negative, (float)positive);
+                float named = (mask ? (float2)low : (float2)high).x;
+                float alike = max(count, count);
+                float widened = max((float)count, scale);
+                return float4(mixed, named, alike, widened + Widest);
+            }
+            """, shaderInfo.HlslSource);
+    }
+
+    [D2DInputCount(0)]
+    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+    [D2DGeneratedPixelShaderDescriptor]
+    internal readonly partial struct MixedKindArgumentsShader(int negative, uint positive, int count, float scale, int2 low, uint2 high, bool2 mask) : ID2D1PixelShader
+    {
+        private static readonly int Seeded = -1;
+
+        private static readonly uint Offset = 2;
+
+        private static readonly float Widest = Hlsl.Max(Seeded, Offset);
+
+        public float4 Execute()
+        {
+            float mixed = Hlsl.Max(negative, positive);
+            float named = Hlsl.Select(mask, low, high).X;
+            float alike = Hlsl.Max(count, count);
+            float widened = Hlsl.Max(count, scale);
+
+            return new(mixed, named, alike, widened + Widest);
+        }
+    }
+
     [TestMethod]
     public void KnownNamedIntrinsic_AndOr()
     {
@@ -178,6 +239,61 @@ public partial class ShaderRewriterTests
                 mask4_r_or.Y ? 1 : 0,
                 mask2x3_r_and.M11 ? 1 : 0,
                 mask2x3_r_or.M11 ? 1 : 0);
+        }
+    }
+
+    /// <summary>
+    /// A conditional with one arm of each integer kind, which C# brings to the type the conditional is used
+    /// as. The rewriting is shared with the compute generator, so what this pins is that the pixel shader
+    /// generator writes the same conversion out, in a static field initializer as well as in the body.
+    /// </summary>
+    [TestMethod]
+    public void MixedKindConditionalArms_AreRewrittenCorrectly()
+    {
+        D2D1ShaderInfo shaderInfo = D2D1ReflectionServices.GetShaderInfo<MixedKindConditionalArmsShader>();
+
+        Assert.AreEqual("""
+            #define D2D_INPUT_COUNT 0
+
+            #include "d2d1effecthelpers.hlsli"
+
+            static const int Seeded = -1;
+            static const uint Offset = 2;
+            static const float Chosen = Seeded < 0 ? (float)Seeded : (float)Offset;
+
+            int negative;
+            uint positive;
+            float scale;
+            bool flag;
+
+            D2D_PS_ENTRY(Execute)
+            {
+                float mixed = flag ? (float)negative : (float)positive;
+                float widened = flag ? (float)negative : scale;
+                int alike = flag ? negative : negative;
+                return float4(mixed, widened, alike, Chosen);
+            }
+            """, shaderInfo.HlslSource);
+    }
+
+    [D2DInputCount(0)]
+    [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+    [D2DGeneratedPixelShaderDescriptor]
+    internal readonly partial struct MixedKindConditionalArmsShader(int negative, uint positive, float scale, bool flag) : ID2D1PixelShader
+    {
+        private static readonly int Seeded = -1;
+
+        private static readonly uint Offset = 2;
+
+        private static readonly float Chosen = Seeded < 0 ? Seeded : Offset;
+
+        public float4 Execute()
+        {
+            float mixed = flag ? negative : positive;
+            float widened = flag ? negative : scale;
+            int alike = flag ? negative : negative;
+
+            return new(mixed, widened, alike, Chosen);
         }
     }
 

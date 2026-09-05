@@ -94,7 +94,7 @@ Retiring a shared texture generation drains the external queue before the extern
 
 ## Compile-time validation
 
-The declarations above are checked by analyzers that report 109 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix. Runtime rejections use the same `CMPW` prefix, told apart by their number band.
+The declarations above are checked by analyzers that report 110 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix. Runtime rejections use the same `CMPW` prefix, told apart by their number band.
 
 ## More
 

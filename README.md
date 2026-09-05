@@ -259,7 +259,7 @@ The budget covers the resources the device creates itself. A device using an all
 
 ### Compile-time validation
 
-The declarations above are checked by analyzers that report 109 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
+The declarations above are checked by analyzers that report 110 diagnostics with the `CMPW` prefix, covering attribute placement, host and pipeline method shape, slot declaration, resource contracts and generated overload conflicts. Some carry a code fix.
 
 ---
 
@@ -296,7 +296,7 @@ ReadOnlyMemory<byte> bytecode = D2D1PixelShader.LoadBytecode<DifferenceEffect>()
 ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEffect(1));
 ```
 
-The declarations are checked by analyzers that report 97 diagnostics with the `CMPWD2D` prefix. Shaders are compiled to DXBC with FXC, which is what Direct2D accepts; `d3dcompiler_47.dll` ships with Windows, so the package bundles no compiler of its own.
+The declarations are checked by analyzers that report 98 diagnostics with the `CMPWD2D` prefix. Shaders are compiled to DXBC with FXC, which is what Direct2D accepts; `d3dcompiler_47.dll` ships with Windows, so the package bundles no compiler of its own.
 
 ---
 
