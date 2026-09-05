@@ -41,13 +41,8 @@ internal sealed partial class StaticFieldRewriter(
     HlslShaderRequirements requirements,
     ImmutableArrayBuilder<DiagnosticInfo> diagnostics,
     CancellationToken token)
-    : HlslSourceRewriter(semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
+    : HlslSourceRewriter(shaderType, semanticModel, discoveredTypes, constantDefinitions, staticFieldDefinitions, requirements, diagnostics, token)
 {
-    /// <summary>
-    /// The type symbol for the shader type.
-    /// </summary>
-    private readonly INamedTypeSymbol shaderType = shaderType;
-
     /// <summary>
     /// The collection of discovered static methods.
     /// </summary>
@@ -116,8 +111,12 @@ internal sealed partial class StaticFieldRewriter(
             // otherwise writing it out as it stands (see ShaderSourceRewriter for more info)
             if (operation is IFieldReferenceOperation { Field.IsStatic: true } staticFieldOperation)
             {
-                if (SymbolEqualityComparer.Default.Equals(staticFieldOperation.Field.ContainingType, this.shaderType))
+                if (SymbolEqualityComparer.Default.Equals(staticFieldOperation.Field.ContainingType, ShaderType))
                 {
+                    // An initializer naming the shader to reach the field it writes closes the cycle here,
+                    // this being the only site a qualified read of it reaches
+                    ReportCyclicStaticFieldInitializer(node, staticFieldOperation.Field);
+
                     _ = HlslKnownKeywords.TryGetMappedName(staticFieldOperation.Field.Name, out string? mappedFieldName);
 
                     return IdentifierName(mappedFieldName ?? staticFieldOperation.Field.Name);
@@ -154,7 +153,7 @@ internal sealed partial class StaticFieldRewriter(
     {
         if (node.Parent is not (InvocationExpressionSyntax or MemberAccessExpressionSyntax) &&
             SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation { Field.IsStatic: true } operation &&
-            !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, this.shaderType))
+            !SymbolEqualityComparer.Default.Equals(operation.Field.ContainingType, ShaderType))
         {
             return ImportExternalStaticField(node, null, operation.Field) ?? base.VisitIdentifierName(node);
         }
@@ -257,11 +256,15 @@ internal sealed partial class StaticFieldRewriter(
             // A static method with no mapping is imported by rewriting its declaration, the same way the
             // shader body imports one. HLSL accepts a call in a static field initializer because every
             // forward declaration is written ahead of the static fields. A method on the shader type is
-            // left alone, as the generator writes those out through its own path.
-            if (method.IsStatic &&
-                !SymbolEqualityComparer.Default.Equals(this.shaderType, method.ContainingType))
+            // left alone for the generator to write out, so what it reaches is walked for a cycle instead.
+            if (method.IsStatic)
             {
-                return VisitImportedStaticMethodInvocation(node, updatedNode, method);
+                if (!SymbolEqualityComparer.Default.Equals(ShaderType, method.ContainingType))
+                {
+                    return VisitImportedStaticMethodInvocation(node, updatedNode, method);
+                }
+
+                ReportCyclicStaticFieldInitializerThroughShaderMethod(method);
             }
         }
 
@@ -345,7 +348,7 @@ internal sealed partial class StaticFieldRewriter(
     private ShaderSourceRewriter CreateImportRewriter()
     {
         return new(
-            this.shaderType,
+            ShaderType,
             SemanticModel,
             DiscoveredTypes,
             this.staticMethods,

@@ -1062,10 +1062,10 @@ namespace ComputeWeave.Tests
 
                 static float ComputeWeave_Tests_ShaderCompilerTests_StructType2_StaticMethod(int x);
 
-                static const float Init = abs(__ComputeWeave_Tests_ShaderCompilerTests_ShaderWithAllSupportedMembers__PI);
-                static int Temp;
                 static int ComputeWeave_Tests_ShaderCompilerTests_ExternalContainerClass_Temp;
                 static const float ComputeWeave_Tests_ShaderCompilerTests_ExternalContainerClass_PI2 = 3.14 * 2;
+                static const float Init = abs(__ComputeWeave_Tests_ShaderCompilerTests_ShaderWithAllSupportedMembers__PI);
+                static int Temp;
 
                 cbuffer _ : register(b0)
                 {

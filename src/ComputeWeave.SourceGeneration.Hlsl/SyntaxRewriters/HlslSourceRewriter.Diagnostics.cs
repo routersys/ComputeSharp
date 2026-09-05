@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ComputeWeave.SourceGeneration.Extensions;
 using ComputeWeave.SourceGeneration.Mappings;
 using Microsoft.CodeAnalysis;
@@ -66,6 +67,112 @@ partial class HlslSourceRewriter
         {
             Diagnostics.Add(InvalidPropertyAccess, node, operation.Member);
         }
+    }
+
+    /// <summary>
+    /// Reports a read of a static field of the shader that its own initializer has reached.
+    /// </summary>
+    /// <param name="node">The read that closes the cycle, which the report is located on.</param>
+    /// <param name="fieldSymbol">The field being read.</param>
+    /// <remarks>
+    /// <para>
+    /// An entry with no type declaration is a field whose initializer is still being rewritten, so reaching it
+    /// means the initializer reads the field it writes. HLSL reads such a global as uninitialized, where C#
+    /// defines the same read as the default value of the type, so the two languages compute different values.
+    /// </para>
+    /// <para>
+    /// Only a field of the shader is answered here. A field of any other type is answered where an access to
+    /// an external static field is rewritten, and the one shape reaching this site instead is an initializer
+    /// reading such a field by its name alone, which is left to the shader compiler the way it already is.
+    /// </para>
+    /// </remarks>
+    protected void ReportCyclicStaticFieldInitializer(SyntaxNode node, IFieldSymbol fieldSymbol)
+    {
+        if (SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, ShaderType) &&
+            StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo) &&
+            fieldInfo.TypeDeclaration is null)
+        {
+            Diagnostics.Add(CyclicStaticFieldInitializer, node, fieldSymbol);
+        }
+    }
+
+    /// <summary>
+    /// Reports the cycles an initializer closes through a static method of the shader.
+    /// </summary>
+    /// <param name="method">The called method, which is left for the generator to write out.</param>
+    /// <remarks>
+    /// <para>
+    /// A static method of the shader is not imported by either rewriter, the generator writing those out
+    /// through a path of its own, and that path runs before any static field is claimed. No rewriting of such
+    /// a body therefore passes through the reporting sites while an initializer holds its claim, so what the
+    /// call reaches is walked here instead of being reported as it is rewritten.
+    /// </para>
+    /// <para>
+    /// The walk answers nothing unless a claim is outstanding, which is the case only while an initializer is
+    /// being rewritten. A method reading a static field is otherwise the ordinary shape this leaves alone.
+    /// </para>
+    /// </remarks>
+    protected void ReportCyclicStaticFieldInitializerThroughShaderMethod(IMethodSymbol method)
+    {
+        if (!HasClaimedStaticField())
+        {
+            return;
+        }
+
+        HashSet<IMethodSymbol> visitedMethods = new(SymbolEqualityComparer.Default);
+
+        WalkReachedDeclaration(method);
+
+        void WalkReachedDeclaration(IMethodSymbol target)
+        {
+            if (!visitedMethods.Add(target) ||
+                !target.TryGetSyntaxNode(CancellationToken, out MethodDeclarationSyntax? declaration))
+            {
+                return;
+            }
+
+            foreach (SyntaxNode reachedNode in declaration.DescendantNodes())
+            {
+                CancellationToken.ThrowIfCancellationRequested();
+
+                // Only the three kinds a field read or a call can be written as are resolved, semantic
+                // information for every node being expensive enough that the rewriting pre-filters for it too.
+                // A read written as a member access resolves on the access alone, the name under it carrying
+                // no operation of its own, which was measured, so one read stays one report
+                if (reachedNode is not (IdentifierNameSyntax or MemberAccessExpressionSyntax or InvocationExpressionSyntax))
+                {
+                    continue;
+                }
+
+                switch (SemanticModel.For(reachedNode).GetOperation(reachedNode, CancellationToken))
+                {
+                    case IFieldReferenceOperation { Field.IsStatic: true } fieldOperation:
+                        ReportCyclicStaticFieldInitializer(reachedNode, fieldOperation.Field);
+                        break;
+                    case IInvocationOperation { TargetMethod.IsStatic: true } invocationOperation
+                        when SymbolEqualityComparer.Default.Equals(invocationOperation.TargetMethod.ContainingType, ShaderType):
+                        WalkReachedDeclaration(invocationOperation.TargetMethod);
+                        break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks whether a static field is claimed, meaning its initializer is being rewritten.
+    /// </summary>
+    /// <returns>Whether any entry in <see cref="StaticFieldDefinitions"/> has no type declaration yet.</returns>
+    private bool HasClaimedStaticField()
+    {
+        foreach (HlslStaticField staticField in StaticFieldDefinitions.Values)
+        {
+            if (staticField.TypeDeclaration is null)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
