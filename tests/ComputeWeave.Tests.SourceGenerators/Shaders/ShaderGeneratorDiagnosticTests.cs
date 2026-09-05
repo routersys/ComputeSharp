@@ -577,9 +577,14 @@ public class ShaderGeneratorDiagnosticTests
     /// </summary>
     /// <remarks>
     /// <para>
-    /// There is one row per identifier the argument kinds were measured to reach. The rows are the refusals
-    /// themselves rather than the kinds: several kinds reach one identifier, and a row per kind would say the
-    /// same thing more than once while leaving an identifier free to start reporting again.
+    /// There is one row per identifier the argument kinds were measured to reach, the rows below carrying the
+    /// same constructs with the identifier each one answers for. The rows are the refusals themselves rather
+    /// than the kinds: several kinds reach one identifier, and a row per kind would say the same thing more
+    /// than once while leaving an identifier free to start reporting again.
+    /// </para>
+    /// <para>
+    /// Nothing refuses this input, so what is asserted is the whole set being empty rather than one identifier
+    /// being absent, which also answers for an identifier no row below names.
     /// </para>
     /// <para>
     /// The attribute is placed on an imported method here. Placing it on a method of the shader or on an
