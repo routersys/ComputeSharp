@@ -900,7 +900,8 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     /// </summary>
     /// <remarks>
     /// The walk that drops the list is shared with the compute generator, and each of the two carries its own
-    /// identifier for this refusal, so a row on one of them says nothing about the other.
+    /// identifier for this refusal, so a row on one of them says nothing about the other. Nothing refuses this
+    /// input, so what is asserted is the whole set being empty rather than one identifier being absent.
     /// </remarks>
     [TestMethod]
     public void SyntaxInsideAnAttributeIsNotRefused()
@@ -943,6 +944,6 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
             }
             """;
 
-        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsNotReported(source, "CMPWD2D0028");
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source);
     }
 }
