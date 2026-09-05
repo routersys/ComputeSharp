@@ -52,6 +52,39 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
+    /// Reports a declaration carrying no body, there being nothing to write out for one.
+    /// </summary>
+    /// <param name="node">The declaration a lookup handed to the rewriting.</param>
+    /// <param name="identifier">The identifier naming <paramref name="node"/>.</param>
+    /// <param name="body">The block body of <paramref name="node"/>, if it has one.</param>
+    /// <param name="expressionBody">The expression body of <paramref name="node"/>, if it has one.</param>
+    /// <remarks>
+    /// <para>
+    /// What is written into the generated HLSL is built from the body, so a declaration carrying none has
+    /// nothing to write. This is called from the visit that normalizes the body of each of the three kinds a
+    /// declaration can be, so what is reported does not depend on which of the six lookups read it, the entry
+    /// point of either generator included.
+    /// </para>
+    /// <para>
+    /// The rewriting continues over an empty body rather than ending here. Ending it discards the output for
+    /// the whole compilation unit, which leaves the author with errors naming generated types instead of the
+    /// declaration to change, and that is the failure this replaces. The report is an error, so what the
+    /// empty body produces never reaches the shader compiler.
+    /// </para>
+    /// </remarks>
+    protected void ReportDeclarationWithNoBody(
+        SyntaxNode node,
+        SyntaxToken identifier,
+        BlockSyntax? body,
+        ArrowExpressionClauseSyntax? expressionBody)
+    {
+        if (body is null && expressionBody is null)
+        {
+            Diagnostics.Add(DeclarationWithNoBody, node, identifier.Text);
+        }
+    }
+
+    /// <summary>
     /// Reports a member access that every mapping has declined, when HLSL cannot express it.
     /// </summary>
     /// <param name="node">The member access that is about to be written out as it stands.</param>

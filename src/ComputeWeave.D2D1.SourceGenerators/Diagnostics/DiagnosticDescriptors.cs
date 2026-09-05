@@ -1497,4 +1497,24 @@ partial class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "An out argument written as a declaration and a discarded one both need a variable the rewriting introduces, which a shader body declares at the start of the body and passes to the call. A static field initializer is written as one HLSL expression, so there is nowhere ahead of it to put that declaration. Giving the variable a global static of its own instead would share one storage across every invocation of the shader, and HLSL leaves the order of global static initializers undefined, so the field could read a value C# never computes. Without this the declaration is written into the call as it stands, and the shader compiler answers by naming generated code the author never wrote.",
         helpLinkUri: "https://github.com/routersys/ComputeWeave");
+
+    /// <summary>
+    /// Gets a <see cref="DiagnosticDescriptor"/> for a declaration that carries no body.
+    /// <para>
+    /// Format: <c>"The declaration of {0} cannot be used in a D2D1 pixel shader (it carries no body, so there is nothing to write into the generated HLSL)"</c>.
+    /// </para>
+    /// </summary>
+    /// <remarks>
+    /// This is the Direct2D counterpart of the compute diagnostic. The rewriter that reports it is shared, so
+    /// leaving one of the two out would refuse the same declaration on one path and not the other.
+    /// </remarks>
+    public static readonly DiagnosticDescriptor DeclarationWithNoBody = new(
+        id: "CMPWD2D0099",
+        title: "Declaration with no body",
+        messageFormat: "The declaration of {0} cannot be used in a D2D1 pixel shader (it carries no body, so there is nothing to write into the generated HLSL)",
+        category: "ComputeWeave.D2D1.Shaders",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "What is written into the generated HLSL is built from the body of the declaration, so one that carries none has nothing to write. An extern declaration is that case, and C# reports only a warning for it. Without this an imported method or local function is written out as a declaration with no body and the shader compiler answers by naming generated code the author never wrote, while an imported constructor and the entry point end the generator instead, which discards the descriptors for every shader in the compilation unit. A declaration split into parts is unaffected, the implementing part being the one that is read.",
+        helpLinkUri: "https://github.com/routersys/ComputeWeave");
 }
