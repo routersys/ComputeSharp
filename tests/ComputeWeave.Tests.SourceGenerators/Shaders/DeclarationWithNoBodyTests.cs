@@ -114,6 +114,20 @@ public class DeclarationWithNoBodyTests
         """,
         "",
         "this.buffer[0] = Helper.Outer(2.0f);")]
+    [DataRow(
+        "BodilessUncalledMethodOfTheShaderTests",
+        "",
+        "private extern float Unused(float value);",
+        "this.buffer[0] = 1.0f;")]
+    [DataRow(
+        "BodilessUncalledLocalFunctionTests",
+        "",
+        "",
+        """
+        static extern float Unused(float value);
+
+                    this.buffer[0] = 1.0f;
+        """)]
     public void ADeclarationWithNoBodyIsDiagnosed(string assemblyName, string declarations, string members, string body)
     {
         AssertReportsOnly(Shader(declarations, members, body), assemblyName, "CMPW0127");
@@ -184,6 +198,74 @@ public class DeclarationWithNoBodyTests
                     this.buffer[0] = Twice(2.0f);
         """)]
     public void ADeclarationWithABodyIsNotDiagnosed(string assemblyName, string declarations, string members, string body)
+    {
+        GeneratorRunResult result = Run(Shader(declarations, members, body), assemblyName);
+
+        Assert.IsTrue(result.Diagnostics.IsEmpty, string.Join(", ", result.Diagnostics.Select(static diagnostic => diagnostic.Id)));
+        Assert.AreNotEqual(0, GeneratorHelper.GetGeneratedSource(result.GeneratedSources, "Shaders.Shader").Length);
+    }
+
+    /// <summary>
+    /// A declaration carrying no body that the generated HLSL never holds. What is reported follows what is
+    /// written out rather than what is declared: a member of an external type is written out when the shader
+    /// reaches it, so one the shader never reaches is left alone the way it is today.
+    /// </summary>
+    /// <remarks>
+    /// The rows above cover the other side of the same rule. A method of the shader itself and a local
+    /// function are written out whether or not they are called, so both are reported there.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "UncalledBodilessMethodOnAStructTests",
+        """
+        internal struct Helper
+        {
+            public float Amount;
+
+            public extern float Unused();
+
+            public float Doubled()
+            {
+                return Amount * 2;
+            }
+        }
+        """,
+        "",
+        """
+        Helper helper = default;
+
+                    this.buffer[0] = helper.Doubled();
+        """)]
+    [DataRow(
+        "UncalledBodilessMethodOnAStaticClassTests",
+        """
+        internal static class Helper
+        {
+            public static extern float Unused(float value);
+
+            public static float Twice(float value) => value * 2;
+        }
+        """,
+        "",
+        "this.buffer[0] = Helper.Twice(2.0f);")]
+    [DataRow(
+        "UncalledBodilessConstructorTests",
+        """
+        internal struct Helper
+        {
+            public float Amount;
+
+            public extern Helper(float amount, float unused);
+
+            public Helper(float amount)
+            {
+                Amount = amount;
+            }
+        }
+        """,
+        "",
+        "this.buffer[0] = new Helper(2.0f).Amount;")]
+    public void ADeclarationTheGeneratedHlslNeverHoldsIsNotDiagnosed(string assemblyName, string declarations, string members, string body)
     {
         GeneratorRunResult result = Run(Shader(declarations, members, body), assemblyName);
 
