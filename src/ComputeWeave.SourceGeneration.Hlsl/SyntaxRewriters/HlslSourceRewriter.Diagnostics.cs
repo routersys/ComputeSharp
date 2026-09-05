@@ -62,8 +62,10 @@ partial class HlslSourceRewriter
     /// <para>
     /// What is written into the generated HLSL is built from the body, so a declaration carrying none has
     /// nothing to write. This is called from the visit that normalizes the body of each of the three kinds a
-    /// declaration can be, so what is reported does not depend on which of the six lookups read it, the entry
-    /// point of either generator included.
+    /// declaration can be, which is where every declaration that is written out arrives: the four imports and
+    /// the entry point of each of the two generators, and a method of the shader itself or a local function
+    /// as well, neither of which is looked up and both of which are written out whether or not they are
+    /// called. A member of an external type the shader never reaches is not written out and is not reported.
     /// </para>
     /// <para>
     /// The rewriting continues over an empty body rather than ending here. Ending it discards the output for
