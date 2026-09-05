@@ -116,6 +116,19 @@ internal static class HlslDefinitionsSyntaxProcessor
 
         token.ThrowIfCancellationRequested();
 
+        // A field of the shader is claimed before its initializer is rewritten, the way the caller that
+        // rewrites an external one already claims its entry, so that a read of the field reaching back into
+        // its own initializer finds a claim rather than an identifier written out as it stands. The claim is
+        // released below, this collection being the external definitions a generator writes out on top of
+        // the fields of the shader it gathers itself, which this field is already one of. The order a
+        // completed entry carries is never read for this one, the claim being released before that
+        bool isShaderStaticField = SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, structDeclarationSymbol);
+
+        if (isShaderStaticField)
+        {
+            staticFieldDefinitions.Add(fieldSymbol, (name, null, null, 0));
+        }
+
         // Create the rewriter to use, which is also returned to callers so they can extract the local
         // functions an initializer lifted out. What the initializer requires of the shader is raised
         // into the shared requirements instead, so a caller has nothing to read back out for that.
@@ -135,6 +148,11 @@ internal static class HlslDefinitionsSyntaxProcessor
         ExpressionSyntax? processedDeclaration = staticFieldRewriter.Visit(variableDeclarator);
 
         token.ThrowIfCancellationRequested();
+
+        if (isShaderStaticField)
+        {
+            _ = staticFieldDefinitions.Remove(fieldSymbol);
+        }
 
         assignmentExpression = processedDeclaration?.NormalizeWhitespace(eol: "\n").ToFullString();
 

@@ -21,6 +21,7 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// A base <see cref="CSharpSyntaxRewriter"/> type that processes C# source to convert to HLSL compliant code.
 /// This class contains only the shared logic for all derived HLSL source rewriters.
 /// </summary>
+/// <param name="shaderType">The type symbol for the shader being rewritten.</param>
 /// <param name="semanticModel">The <see cref="Microsoft.CodeAnalysis.SemanticModel"/> instance for the target syntax tree.</param>
 /// <param name="discoveredTypes">The set of discovered custom types.</param>
 /// <param name="constantDefinitions">The collection of discovered constant definitions.</param>
@@ -29,6 +30,7 @@ namespace ComputeWeave.SourceGeneration.SyntaxRewriters;
 /// <param name="diagnostics">The collection of produced <see cref="DiagnosticInfo"/> instances.</param>
 /// <param name="token">The <see cref="System.Threading.CancellationToken"/> value for the current operation.</param>
 internal abstract partial class HlslSourceRewriter(
+    INamedTypeSymbol shaderType,
     SemanticModelProvider semanticModel,
     ICollection<INamedTypeSymbol> discoveredTypes,
     IDictionary<IFieldSymbol, string> constantDefinitions,
@@ -46,6 +48,15 @@ internal abstract partial class HlslSourceRewriter(
     /// The syntax kinds this rewriter has already reported as being outside the accepted set.
     /// </summary>
     private readonly HashSet<SyntaxKind> reportedSyntaxKinds = [];
+
+    /// <summary>
+    /// Gets the type symbol for the shader being rewritten.
+    /// </summary>
+    /// <remarks>
+    /// Held here rather than on each derived rewriter, which both carried a copy of it. A rewriter is made
+    /// for one shader, and telling a member of that shader from a member of any other type is asked here too.
+    /// </remarks>
+    protected INamedTypeSymbol ShaderType { get; } = shaderType;
 
     /// <summary>
     /// Gets the <see cref="SemanticModelProvider"/> instance with semantic info on the target syntax tree.
@@ -503,17 +514,23 @@ internal abstract partial class HlslSourceRewriter(
         // and member access expressions, as those will be handled separately. Doing so avoids unnecessarily
         // retrieving semantic information for every identifier, which would otherwise be fairly expensive.
         if (node.Parent is not (InvocationExpressionSyntax or MemberAccessExpressionSyntax) &&
-            SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation operation &&
-            operation.Field.IsConst &&
-            operation.Type!.TypeKind != TypeKind.Enum &&
-            TryGetConstantLiteral(operation.Field.ConstantValue, out string? constantLiteral))
+            SemanticModel.For(node).GetOperation(node, CancellationToken) is IFieldReferenceOperation operation)
         {
-            ConstantDefinitions[operation.Field] = constantLiteral!;
+            if (operation.Field.IsConst &&
+                operation.Type!.TypeKind != TypeKind.Enum &&
+                TryGetConstantLiteral(operation.Field.ConstantValue, out string? constantLiteral))
+            {
+                ConstantDefinitions[operation.Field] = constantLiteral!;
 
-            string ownerTypeName = ((INamedTypeSymbol)operation.Field.ContainingSymbol).ToDisplayString().ToHlslIdentifierName();
-            string constantName = $"__{ownerTypeName}__{operation.Field.Name}";
+                string ownerTypeName = ((INamedTypeSymbol)operation.Field.ContainingSymbol).ToDisplayString().ToHlslIdentifierName();
+                string constantName = $"__{ownerTypeName}__{operation.Field.Name}";
 
-            return IdentifierName(constantName);
+                return IdentifierName(constantName);
+            }
+
+            // A field of the shader written by its name alone reaches no other reporting site: the rewriter for
+            // the body leaves it to this one, and the rewriter for an initializer maps constants alone
+            ReportCyclicStaticFieldInitializer(node, operation.Field);
         }
 
         return updatedNode;
