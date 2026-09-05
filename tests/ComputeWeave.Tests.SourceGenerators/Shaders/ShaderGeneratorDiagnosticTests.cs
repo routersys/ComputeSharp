@@ -417,13 +417,13 @@ public class ShaderGeneratorDiagnosticTests
     /// </para>
     /// </remarks>
     [TestMethod]
-    [DataRow("\"do not use\"", "AttributeStringArgumentTests", "CMPW0036")]
-    [DataRow("(object)null", "AttributeObjectArgumentTests", "CMPW0050")]
-    [DataRow("new int[] { 1 }", "AttributeArrayArgumentTests", "CMPW0059")]
-    [DataRow("checked(1 + 1)", "AttributeCheckedArgumentTests", "CMPW0014")]
-    public void SyntaxInsideAnAttributeIsNotRefused(string argument, string assemblyName, string unexpectedId)
+    [DataRow("\"do not use\"", "AttributeStringArgumentTests")]
+    [DataRow("(object)null", "AttributeObjectArgumentTests")]
+    [DataRow("new int[] { 1 }", "AttributeArrayArgumentTests")]
+    [DataRow("checked(1 + 1)", "AttributeCheckedArgumentTests")]
+    public void SyntaxInsideAnAttributeIsNotRefused(string argument, string assemblyName)
     {
-        AssertDoesNotReport(AttributeShader(argument), assemblyName, unexpectedId);
+        AssertReportsNothing(AttributeShader(argument), assemblyName);
     }
 
     /// <summary>
