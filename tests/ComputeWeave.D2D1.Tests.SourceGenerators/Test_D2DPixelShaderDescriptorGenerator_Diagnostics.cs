@@ -1065,6 +1065,44 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// A constructor carrying no body, imported by the shader body. This is the route that ends the generator
+    /// without the report, so the row answers for the rewriting finishing as well as for the identifier.
+    /// </summary>
+    [TestMethod]
+    public void AConstructorWithNoBodyIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal struct Helper
+            {
+                public float Amount;
+
+                public extern Helper(float amount);
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private readonly float time;
+
+                public float4 Execute()
+                {
+                    return new Helper(this.time).Amount;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnostics(source, "CMPWD2D0099");
+    }
+
+    /// <summary>
     /// The entry point written with no body, which is the one route that imports no declaration and the one
     /// this generator reads for itself.
     /// </summary>
