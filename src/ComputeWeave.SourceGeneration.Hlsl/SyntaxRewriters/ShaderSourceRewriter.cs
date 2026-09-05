@@ -73,9 +73,14 @@ internal sealed partial class ShaderSourceRewriter(
     private readonly Dictionary<IMethodSymbol, LocalFunctionStatementSyntax> localFunctions = new(SymbolEqualityComparer.Default);
 
     /// <summary>
-    /// The list of implicit variables to declare at the start of the body.
+    /// The list of implicit variables to declare at the start of the body being rewritten.
     /// </summary>
-    private readonly List<VariableDeclarationSyntax> implicitVariables = [];
+    /// <remarks>
+    /// One list per declaration rather than one per rewriter. A local function is written out as a function
+    /// of its own, so a variable declared inside one belongs to that function and not to the body that held
+    /// it; the visit of a local function swaps this list for the duration and puts the old one back.
+    /// </remarks>
+    private List<VariableDeclarationSyntax> implicitVariables = [];
 
     /// <summary>
     /// Whether or not the current instance is processing a shader entry point.
@@ -346,10 +351,26 @@ internal sealed partial class ShaderSourceRewriter(
 
             this.localFunctionDepth++;
 
+            // A variable declared inside this function belongs to the function it is written in, which is
+            // lifted out as a function of its own, so the declarations it raises are collected apart from
+            // the ones of the body holding it and written into its own body below
+            List<VariableDeclarationSyntax> enclosingImplicitVariables = this.implicitVariables;
+
+            this.implicitVariables = [];
+
             LocalFunctionStatementSyntax updatedNode =
                 ((LocalFunctionStatementSyntax)base.VisitLocalFunctionStatement(node)!)
                 .WithBlockBody()
                 .WithIdentifier(Identifier(GetLocalFunctionIdentifier(functionSymbol)));
+
+            if (this.implicitVariables.Count > 0)
+            {
+                BlockSyntax implicitBlock = Block(this.implicitVariables.Select(static v => LocalDeclarationStatement(v)).ToArray());
+
+                updatedNode = updatedNode.WithBody(implicitBlock).AddBodyStatements([.. updatedNode.Body!.Statements]);
+            }
+
+            this.implicitVariables = enclosingImplicitVariables;
 
             updatedNode = ReplaceAndTrackType(updatedNode, updatedNode.ReturnType, node!.ReturnType, SemanticModel.For(node));
 
