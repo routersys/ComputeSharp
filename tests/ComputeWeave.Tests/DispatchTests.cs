@@ -564,6 +564,34 @@ public partial class DispatchTests
     }
 
     /// <summary>
+    /// The range the alignment answers with is one the dispatch takes.
+    /// </summary>
+    /// <remarks>
+    /// The row above rejects a range of 100 for this shader. This one asks what to dispatch over instead and
+    /// runs it, which is what ties the two together: an alignment answering with a range the check still
+    /// rejects would fail here rather than pass a test of its own.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheAlignedRangeIsAccepted(Device device)
+    {
+        int x = ThreadGroupAlignment.AlignX<GroupHandoffShader>(100);
+
+        Assert.AreEqual(128, x);
+
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(x);
+
+        device.Get().For(x, new GroupHandoffShader(buffer));
+
+        int[] result = buffer.ToArray();
+
+        for (int i = 0; i < x; i++)
+        {
+            Assert.AreEqual((i / 64 * 64) + 63 - (i % 64), result[i]);
+        }
+    }
+
+    /// <summary>
     /// The axis the range is rejected for is the one that is not a multiple.
     /// </summary>
     [CombinatorialTestMethod]
