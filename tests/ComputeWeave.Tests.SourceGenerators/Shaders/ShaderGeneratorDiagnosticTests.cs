@@ -487,6 +487,204 @@ public class ShaderGeneratorDiagnosticTests
     }
 
     /// <summary>
+    /// A cycle a field of the shader closes past its own static method, through a declaration of another type
+    /// that the method calls. The second row imports that declaration from the initializer as well.
+    /// </summary>
+    /// <remarks>
+    /// The shader's own method is written out before any field is claimed, so the call it makes is rewritten
+    /// while nothing is claimed and reports nothing. The second row is what a claim alone cannot answer: the
+    /// initializer imports the same declaration, and an import is rewritten once, so by the time the claim is
+    /// taken the read that closes the cycle has already been written out.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldCycleBeyondItsOwnMethodTests",
+        """
+        internal static readonly float Value = Twice();
+
+            internal static float Twice() => Helper.Go();
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleBeyondAnImportedMethodTests",
+        """
+        internal static readonly float Value = Helper.Go() + Twice();
+
+            internal static float Twice() => Helper.Go();
+        """)]
+    public void AStaticFieldOfTheShaderReachedBeyondItsOwnMethodIsDiagnosed(string assemblyName, string members)
+    {
+        const string Declarations = """
+            internal static class Helper
+            {
+                public static float Go() => Shader.Value * 2;
+            }
+            """;
+
+        AssertReportsAt(ShaderWithStaticFields(members, declarations: Declarations), assemblyName, "CMPW0124", 1);
+    }
+
+    /// <summary>
+    /// A cycle two or more fields close between their initializers, the first reaching the second through a
+    /// static method of the shader and the second reading the first back.
+    /// </summary>
+    /// <remarks>
+    /// Only the field being initialized is claimed, so the read of the second field reports nothing and the
+    /// initializer of that field is what has to be walked to reach the read that closes the cycle. These are
+    /// the shapes the shader compiler accepts: the read of a field declared later goes through a function,
+    /// which is forward declared, where reading it directly does not. The last row leaves the shader type,
+    /// where nothing claims the field whose initializer closes the cycle, that initializer having been
+    /// written out before the claim on the field being read.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughASecondFieldTests",
+        "",
+        """
+        private static readonly float First = Second() + 1;
+
+            private static readonly float Other = (First * 3) + 5;
+
+            private static float Second() => Other * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAThirdFieldTests",
+        "",
+        """
+        private static readonly float First = FromLast() + 1;
+
+            private static readonly float Middle = First + 1;
+
+            private static readonly float Last = Middle + 1;
+
+            private static float FromLast() => Last * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAFieldReadAloneTests",
+        "",
+        """
+        private static readonly float First = Second() + 1;
+
+            private static readonly float Other = First;
+
+            private static float Second() => Other * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldCycleThroughAnImportedFieldTests",
+        """
+        internal static class Helper
+        {
+            public static readonly float Amount = Shader.First * 2;
+        }
+        """,
+        """
+        internal static readonly float First = Twice();
+
+            internal static float Twice() => Helper.Amount;
+        """)]
+    public void AStaticFieldOfTheShaderReachedThroughAnotherFieldIsDiagnosed(string assemblyName, string declarations, string members)
+    {
+        AssertReportsAt(ShaderWithStaticFields(members, "this.buffer[0] = First;", declarations), assemblyName, "CMPW0124", 1);
+    }
+
+    /// <summary>
+    /// A cycle the initializer of a field of the shader closes twice over, once by reading the field itself
+    /// and once through a static method of the shader that reads it back.
+    /// </summary>
+    /// <remarks>
+    /// The two reads are answered by different sites, the one in the initializer as it is rewritten and the
+    /// one in the method by the walk, and each is a place the author has to change. The walk does not reach
+    /// the first a second time: the field whose initializer it would walk into is the one being initialized,
+    /// which it leaves to the rewriting it was entered from.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReachingItselfTwiceIsDiagnosedAtEachRead()
+    {
+        const string Members = """
+            private static readonly float Value = Twice() + Value;
+
+                private static float Twice() => Value * 2;
+            """;
+
+        AssertReportsAt(ShaderWithStaticFields(Members), "ShaderStaticFieldCycleReachedTwiceTests", "CMPW0124", 2);
+    }
+
+    /// <summary>
+    /// Two fields the walk reaches whose initializers read each other. Neither is the field being
+    /// initialized, so neither closes a cycle on it, and the walk has to stop rather than follow them round.
+    /// </summary>
+    /// <remarks>
+    /// The set is not pinned as a whole here. The pair reads a global declared after it, which the shader
+    /// compiler refuses under an identifier of its own, and what this row holds is that the walk terminates
+    /// and reports no cycle for the field it was entered for.
+    /// </remarks>
+    [TestMethod]
+    public void APairOfStaticFieldsTheWalkReachesIsNotFollowedRound()
+    {
+        const string Members = """
+            private static readonly float Value = Twice();
+
+                private static readonly float Left = Right + 1;
+
+                private static readonly float Right = Left + 1;
+
+                private static float Twice() => Left * 2;
+            """;
+
+        AssertReportsAt(ShaderWithStaticFields(Members), "ShaderStaticFieldPairReachedByTheWalkTests", "CMPW0124", 0);
+    }
+
+    /// <summary>
+    /// The shapes the walk goes over without reaching a cycle: a declaration of another type called past the
+    /// shader's own method, a static field of another type, and a second field of the shader.
+    /// </summary>
+    /// <remarks>
+    /// A field of another type is left alone rather than walked, its initializer being rewritten under a claim
+    /// of its own, and a field of the shader is walked into an initializer that reads nothing back. Every row
+    /// reaches the walk, so a walk reporting on what it reaches rather than on the claim refuses all three.
+    /// </remarks>
+    [TestMethod]
+    [DataRow(
+        "ShaderStaticFieldReachingAnImportedMethodTests",
+        """
+        internal static class Helper
+        {
+            public static float Go() => 2.0f;
+        }
+        """,
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => Helper.Go();
+        """)]
+    [DataRow(
+        "ShaderStaticFieldReachingAnImportedFieldTests",
+        """
+        internal static class Helper
+        {
+            public static readonly float Amount = 5.0f;
+        }
+        """,
+        """
+        private static readonly float Value = Twice();
+
+            private static float Twice() => Helper.Amount * 2;
+        """)]
+    [DataRow(
+        "ShaderStaticFieldReachingASecondFieldTests",
+        "",
+        """
+        private static readonly float Value = Twice();
+
+            private static readonly float Base = 5.0f;
+
+            private static float Twice() => Base * 2;
+        """)]
+    public void AStaticFieldOfTheShaderReachingDeclarationsWithoutACycleIsNotDiagnosed(string assemblyName, string declarations, string members)
+    {
+        AssertReportsNothing(ShaderWithStaticFields(members, declarations: declarations), assemblyName);
+    }
+
+    /// <summary>
     /// The shapes that read a static field of the shader without the initializer reaching it back.
     /// </summary>
     /// <remarks>
@@ -525,12 +723,14 @@ public class ShaderGeneratorDiagnosticTests
         AssertReportsNothing(ShaderWithStaticFields(members, body), assemblyName);
     }
 
-    private static string ShaderWithStaticFields(string members, string body = "this.buffer[0] = Value;")
+    private static string ShaderWithStaticFields(string members, string body = "this.buffer[0] = Value;", string declarations = "")
     {
         return $$"""
             using ComputeWeave;
 
             namespace Shaders;
+
+            {{declarations}}
 
             [ThreadGroupSize(DefaultThreadGroupSizes.X)]
             [GeneratedComputeShaderDescriptor]

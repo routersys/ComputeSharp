@@ -987,8 +987,93 @@ public class Test_D2DPixelShaderDescriptorGenerator_Diagnostics
     }
 
     /// <summary>
+    /// A cycle a field of the shader closes past its own static method, through a declaration of another type
+    /// that the method calls.
+    /// </summary>
+    /// <remarks>
+    /// The shader's own method is written out before any field is claimed, so the call it makes is rewritten
+    /// while nothing is claimed. The walk answering this is shared with the compute generator, and each of the
+    /// two carries the descriptor under its own identifier, so a row on one of them says nothing about the
+    /// other.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReachedBeyondItsOwnMethodIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            internal static class Helper
+            {
+                public static float Go() => MyShader.Value * 2;
+            }
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                internal static readonly float Value = Twice();
+
+                internal static float Twice() => Helper.Go();
+
+                public float4 Execute()
+                {
+                    return Value;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0096");
+    }
+
+    /// <summary>
+    /// A cycle two fields of the shader close between their initializers, the first reaching the second
+    /// through a static method of the shader and the second reading the first back.
+    /// </summary>
+    /// <remarks>
+    /// Only the field being initialized is claimed, so the initializer of the second field is what has to be
+    /// walked to reach the read that closes the cycle. The walk is shared with the compute generator, and each
+    /// of the two carries the descriptor under its own identifier, so a row on one of them says nothing about
+    /// the other.
+    /// </remarks>
+    [TestMethod]
+    public void AStaticFieldOfTheShaderReachedThroughAnotherFieldIsDiagnosed()
+    {
+        const string source = """
+            using ComputeWeave;
+            using ComputeWeave.D2D1;
+            using float4 = global::ComputeWeave.Float4;
+
+            namespace MyNamespace;
+
+            [D2DInputCount(0)]
+            [D2DShaderProfile(D2D1ShaderProfile.PixelShader50)]
+            [D2DGeneratedPixelShaderDescriptor]
+            internal readonly partial struct MyShader : ID2D1PixelShader
+            {
+                private static readonly float First = Second() + 1;
+
+                private static readonly float Other = (First * 3) + 5;
+
+                private static float Second() => Other * 2;
+
+                public float4 Execute()
+                {
+                    return First;
+                }
+            }
+            """;
+
+        CSharpGeneratorTest<D2DPixelShaderDescriptorGenerator>.VerifyDiagnosticIsReported(source, "CMPWD2D0096");
+    }
+
+    /// <summary>
     /// A static method of the shader reading a static field of it, reached from the body rather than from that
-    /// field's initializer, which is the ordinary shape the walk answering the row above runs over.
+    /// field's initializer, which is the ordinary shape the walk answering the rows above runs over.
     /// </summary>
     /// <remarks>
     /// The set is pinned as a whole rather than one identifier being pinned absent, this input carrying no
