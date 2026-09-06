@@ -21,6 +21,12 @@ namespace ComputeWeave;
 /// only through resources that drop a write outside them.
 /// </para>
 /// <para>
+/// A dispatch taking fewer than three extents fixes the ones it does not take at one, so a shader whose thread
+/// group is deeper than one thread on those axes needs them asked for as well: a group of eight by eight by two
+/// is refused for the Y and Z axes of a one extent dispatch, and for the Z axis of a two extent one, whichever
+/// extents the caller wrote. Asking for those axes as well answers with one whole group on each of them.
+/// </para>
+/// <para>
 /// A pixel shader takes its extent from the texture it is run over, which no caller can round up, so a texture
 /// whose sides are not whole groups has to be allocated at the rounded size instead.
 /// </para>
