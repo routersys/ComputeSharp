@@ -592,6 +592,30 @@ public partial class DispatchTests
     }
 
     /// <summary>
+    /// The axes a dispatch does not take an extent for are asked for in the same way.
+    /// </summary>
+    /// <remarks>
+    /// A dispatch taking two extents fixes the third at one, so a shader whose group is four threads deep is
+    /// refused for an axis the caller never wrote an extent for. Asking the alignment for that axis answers
+    /// with one whole group, which the three extent dispatch takes.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheAxesADispatchDoesNotTakeAreAlignedTheSameWay(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(64);
+
+        _ = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(4, 4, new VolumeGroupHandoffShader(buffer)));
+
+        int z = ThreadGroupAlignment.AlignZ<VolumeGroupHandoffShader>(1);
+
+        Assert.AreEqual(4, z);
+
+        device.Get().For(4, 4, z, new VolumeGroupHandoffShader(buffer));
+    }
+
+    /// <summary>
     /// The axis the range is rejected for is the one that is not a multiple.
     /// </summary>
     [CombinatorialTestMethod]
