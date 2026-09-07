@@ -616,6 +616,43 @@ public partial class DispatchTests
     }
 
     /// <summary>
+    /// The axis a dispatch takes no range for is reported against the shader, and named in the message.
+    /// </summary>
+    /// <remarks>
+    /// A dispatch taking two ranges has no Z argument, so reporting one names something the caller never
+    /// wrote and cannot correct. What is named instead is the shader, whose thread group is what asks for
+    /// more than the fixed range holds, and the axis is left to the message.
+    /// </remarks>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheDepthAxisWithNoRangeIsReportedAgainstTheShader(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(64);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(4, 4, new VolumeGroupHandoffShader(buffer)));
+
+        Assert.AreEqual("shader", exception.ParamName);
+        Assert.IsTrue(exception.Message.Contains("Z axis", StringComparison.Ordinal), exception.Message);
+    }
+
+    /// <summary>
+    /// The same for the Y axis, which only a dispatch taking one range fixes.
+    /// </summary>
+    [CombinatorialTestMethod]
+    [AllDevices]
+    public void Verify_FullThreadGroups_TheHeightAxisWithNoRangeIsReportedAgainstTheShader(Device device)
+    {
+        using ReadWriteBuffer<int> buffer = device.Get().AllocateReadWriteBuffer<int>(128);
+
+        ArgumentException exception = Assert.ThrowsExactly<ArgumentException>(
+            () => device.Get().For(128, new PlanarGroupHandoffShader(buffer)));
+
+        Assert.AreEqual("shader", exception.ParamName);
+        Assert.IsTrue(exception.Message.Contains("Y axis", StringComparison.Ordinal), exception.Message);
+    }
+
+    /// <summary>
     /// The axis the range is rejected for is the one that is not a multiple.
     /// </summary>
     [CombinatorialTestMethod]
