@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using ComputeWeave.D2D1.Descriptors;
 using ComputeWeave.D2D1.Interop;
 using ComputeWeave.Tests.Helpers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
 
@@ -66,7 +65,13 @@ internal static class D2D1TestRunner
     /// <param name="shader">The shader to run.</param>
     /// <param name="threshold">The allowed difference threshold for the normalized delta.</param>
     /// <param name="usesTranscendentalHash">Whether the shader scales <c>sin</c> or <c>cos</c> past its low bits and takes the fraction, which ties the image it draws to the implementation of that function on the device.</param>
-    /// <param name="resourceTextures">The additional resource textures to use to run the shader.</param>
+    /// <param name="resourceTextures">The additional resource textures to use to run the shader, each made anew for every device the shader is drawn on.</param>
+    /// <remarks>
+    /// A shader whose image follows the device is drawn twice where a hardware adapter is present: once on the
+    /// device the fixture was given, which is what covers the dispatch and the readback there, and once on
+    /// WARP, which is where the reference images were captured and so the only device a comparison can decide
+    /// anything against.
+    /// </remarks>
     public static void RunAndCompareShader<T>(
         in T shader,
         int width,
@@ -75,7 +80,7 @@ internal static class D2D1TestRunner
         [CallerMemberName] string destinationFileName = "",
         float threshold = 0.00001f,
         bool usesTranscendentalHash = false,
-        params (int Index, D2D1ResourceTextureManager ResourceTextureManager)[] resourceTextures)
+        params (int Index, Func<D2D1ResourceTextureManager> ResourceTextureManager)[] resourceTextures)
         where T : unmanaged, ID2D1PixelShader, ID2D1PixelShaderDescriptor<T>
     {
         string assetsPath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "Assets");
@@ -93,13 +98,22 @@ internal static class D2D1TestRunner
             width,
             height,
             destinationPath,
+            forceWarp: false,
             resourceTextures);
 
-        // The reference images come from WARP, so a hash of sin or cos compares there
+        // The reference images come from WARP, so a hash of sin or cos is drawn and compared there as well
         if (usesTranscendentalHash && D2D1Helper.IsHardwareAdapterAvailable)
         {
-            Assert.Inconclusive(
-                $"{typeof(T).Name} folds sin or cos into a hash, so its image follows the implementation of that function rather than anything the library emits. Only the WARP variant is held to the reference image, so a run on a hardware adapter does not decide whether the image is right.");
+            destinationPath = Path.Combine(temporaryPath, $"{destinationFileName}.warp.png");
+
+            ExecutePixelShaderAndSaveToFile(
+                in shader,
+                null,
+                width,
+                height,
+                destinationPath,
+                forceWarp: true,
+                resourceTextures);
         }
 
         // Compare the results
@@ -160,6 +174,7 @@ internal static class D2D1TestRunner
     /// <param name="height">The resulting height.</param>
     /// <param name="transformMapper">A custom <see cref="D2D1DrawTransformMapper{T}"/> instance for the effect.</param>
     /// <param name="destinationPath">The destination path for the result.</param>
+    /// <param name="forceWarp">Whether to draw on WARP even where a hardware adapter is present.</param>
     /// <param name="resourceTextures">The additional resource textures to use to run the shader.</param>
     private static unsafe void ExecutePixelShaderAndSaveToFile<T>(
         in T shader,
@@ -167,11 +182,12 @@ internal static class D2D1TestRunner
         int width,
         int height,
         string destinationPath,
-        params (int Index, D2D1ResourceTextureManager ResourceTextureManager)[] resourceTextures)
+        bool forceWarp,
+        params (int Index, Func<D2D1ResourceTextureManager> ResourceTextureManager)[] resourceTextures)
         where T : unmanaged, ID2D1PixelShader, ID2D1PixelShaderDescriptor<T>
     {
         using ComPtr<ID2D1Factory2> d2D1Factory2 = D2D1Helper.CreateD2D1Factory2();
-        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get());
+        using ComPtr<ID2D1Device> d2D1Device = D2D1Helper.CreateD2D1Device(d2D1Factory2.Get(), forceWarp);
         using ComPtr<ID2D1DeviceContext> d2D1DeviceContext = D2D1Helper.CreateD2D1DeviceContext(d2D1Device.Get());
 
         D2D1PixelShaderEffect.RegisterForD2D1Factory1<T>(d2D1Factory2.Get(), out _);
@@ -187,9 +203,10 @@ internal static class D2D1TestRunner
             D2D1PixelShaderEffect.SetTransformMapperForD2D1Effect(d2D1Effect.Get(), transformMapper);
         }
 
-        foreach ((int index, D2D1ResourceTextureManager resourceTextureManager) in resourceTextures)
+        // A manager bound to one device fails the draw on a second, so each run is handed one of its own
+        foreach ((int index, Func<D2D1ResourceTextureManager> resourceTextureManager) in resourceTextures)
         {
-            D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager, index);
+            D2D1PixelShaderEffect.SetResourceTextureManagerForD2D1Effect(d2D1Effect.Get(), resourceTextureManager(), index);
         }
 
         using ComPtr<ID2D1Bitmap> d2D1BitmapTarget = D2D1Helper.CreateD2D1BitmapAndSetAsTarget(d2D1DeviceContext.Get(), (uint)width, (uint)height);
