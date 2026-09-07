@@ -117,15 +117,14 @@ partial class HlslSourceRewriter
     /// </para>
     /// <para>
     /// Only a field of the shader is answered here. A field of any other type is answered where an access to
-    /// an external static field is rewritten, and the one shape reaching this site instead is an initializer
-    /// reading such a field by its name alone, which is left to the shader compiler the way it already is.
+    /// an external static field is rewritten, and what reaches this site instead is left to the shader
+    /// compiler the way it already is: an initializer reading such a field by its name alone, and a read the
+    /// walk finds while following what a call reaches.
     /// </para>
     /// </remarks>
     protected void ReportCyclicStaticFieldInitializer(SyntaxNode node, IFieldSymbol fieldSymbol)
     {
-        if (SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, ShaderType) &&
-            StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo) &&
-            fieldInfo.TypeDeclaration is null)
+        if (IsClaimedStaticField(fieldSymbol))
         {
             Diagnostics.Add(CyclicStaticFieldInitializer, node, fieldSymbol);
         }
@@ -146,6 +145,14 @@ partial class HlslSourceRewriter
     /// The walk answers nothing unless a claim is outstanding, which is the case only while an initializer is
     /// being rewritten. A method reading a static field is otherwise the ordinary shape this leaves alone.
     /// </para>
+    /// <para>
+    /// What the walk reaches is every static method a reached declaration calls and the initializer of every
+    /// static field it reads, other than the initializer the walk was entered from. A call leaving the shader
+    /// type closes the cycle through a declaration of another type, and a field read closes it through the
+    /// initializer of a second field, neither of which is a shape a rewriting passes through while the claim
+    /// is held: the one is written out before any claim is taken, and the other is rewritten while the claim
+    /// is on the field being read rather than on the field the read closes the cycle on.
+    /// </para>
     /// </remarks>
     protected void ReportCyclicStaticFieldInitializerThroughShaderMethod(IMethodSymbol method)
     {
@@ -155,10 +162,11 @@ partial class HlslSourceRewriter
         }
 
         HashSet<IMethodSymbol> visitedMethods = new(SymbolEqualityComparer.Default);
+        HashSet<IFieldSymbol> visitedFields = new(SymbolEqualityComparer.Default);
 
-        WalkReachedDeclaration(method);
+        WalkReachedMethod(method);
 
-        void WalkReachedDeclaration(IMethodSymbol target)
+        void WalkReachedMethod(IMethodSymbol target)
         {
             if (!visitedMethods.Add(target) ||
                 !target.TryGetSyntaxNode(CancellationToken, out MethodDeclarationSyntax? declaration))
@@ -166,7 +174,28 @@ partial class HlslSourceRewriter
                 return;
             }
 
-            foreach (SyntaxNode reachedNode in declaration.DescendantNodes())
+            WalkReachedNodes(declaration);
+        }
+
+        void WalkReachedField(IFieldSymbol target)
+        {
+            // The claimed field is the one whose initializer is being rewritten, so walking it would read the
+            // expression the rewriting is already on, and the read that closes the cycle is reported by then
+            if (IsClaimedStaticField(target) ||
+                !visitedFields.Add(target) ||
+                !target.TryGetSyntaxNode(CancellationToken, out VariableDeclaratorSyntax? declarator) ||
+                declarator.Initializer is null)
+            {
+                return;
+            }
+
+            WalkReachedNodes(declarator.Initializer.Value);
+        }
+
+        void WalkReachedNodes(SyntaxNode root)
+        {
+            // An initializer can be the read or the call itself, so the root counts as a reached node too
+            foreach (SyntaxNode reachedNode in root.DescendantNodesAndSelf())
             {
                 CancellationToken.ThrowIfCancellationRequested();
 
@@ -183,10 +212,10 @@ partial class HlslSourceRewriter
                 {
                     case IFieldReferenceOperation { Field.IsStatic: true } fieldOperation:
                         ReportCyclicStaticFieldInitializer(reachedNode, fieldOperation.Field);
+                        WalkReachedField(fieldOperation.Field);
                         break;
-                    case IInvocationOperation { TargetMethod.IsStatic: true } invocationOperation
-                        when SymbolEqualityComparer.Default.Equals(invocationOperation.TargetMethod.ContainingType, ShaderType):
-                        WalkReachedDeclaration(invocationOperation.TargetMethod);
+                    case IInvocationOperation { TargetMethod.IsStatic: true } invocationOperation:
+                        WalkReachedMethod(invocationOperation.TargetMethod);
                         break;
                 }
             }
@@ -194,7 +223,19 @@ partial class HlslSourceRewriter
     }
 
     /// <summary>
-    /// Checks whether a static field is claimed, meaning its initializer is being rewritten.
+    /// Checks whether a static field is the one whose initializer is being rewritten.
+    /// </summary>
+    /// <param name="fieldSymbol">The field to check.</param>
+    /// <returns>Whether <paramref name="fieldSymbol"/> is a field of the shader with no type declaration yet.</returns>
+    private bool IsClaimedStaticField(IFieldSymbol fieldSymbol)
+    {
+        return SymbolEqualityComparer.Default.Equals(fieldSymbol.ContainingType, ShaderType) &&
+               StaticFieldDefinitions.TryGetValue(fieldSymbol, out HlslStaticField fieldInfo) &&
+               fieldInfo.TypeDeclaration is null;
+    }
+
+    /// <summary>
+    /// Checks whether any static field is claimed, meaning some initializer is being rewritten.
     /// </summary>
     /// <returns>Whether any entry in <see cref="StaticFieldDefinitions"/> has no type declaration yet.</returns>
     private bool HasClaimedStaticField()
