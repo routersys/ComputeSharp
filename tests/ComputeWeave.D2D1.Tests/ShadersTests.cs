@@ -39,12 +39,7 @@ public class ShadersTests
         RunTest<MengerJourney>(0.000011f, usesTranscendentalHash: true);
     }
 
-    // This test and the other 3 below are skipped because they do produce valid result,
-    // but the resulting images are different than the ones used as reference, so they
-    // cannot be compared. They can be uncommented once the reason why they are seemingly
-    // being randomized and producing different outputs has been identified and resolved.
     [TestMethod]
-    [Ignore]
     public void TwoTiledTruchet()
     {
         RunTest<TwoTiledTruchet>(usesTranscendentalHash: true);
@@ -63,21 +58,18 @@ public class ShadersTests
     }
 
     [TestMethod]
-    [Ignore]
     public void PyramidPattern()
     {
         RunTest<PyramidPattern>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
-    [Ignore]
     public void TriangleGridContouring()
     {
         RunTest<TriangleGridContouring>(usesTranscendentalHash: true);
     }
 
     [TestMethod]
-    [Ignore]
     public unsafe void ContouredLayers()
     {
         string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
@@ -104,7 +96,7 @@ public class ShadersTests
 
         ContouredLayers shader = new(0f, new int2(1280, 720));
 
-        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), usesTranscendentalHash: true, resourceTextures: (0, resourceTextureManager));
+        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), 0.0002f, usesTranscendentalHash: true, resourceTextures: (0, resourceTextureManager));
     }
 
     [TestMethod]

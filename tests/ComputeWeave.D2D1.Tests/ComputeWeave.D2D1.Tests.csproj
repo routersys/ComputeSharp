@@ -76,16 +76,16 @@
     <None Include="..\ComputeWeave.Tests\Assets\ProteanClouds.png" Link="Assets\ProteanClouds.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\PyramidPattern.png">
+    <None Include="..\ComputeWeave.Tests\Assets\PyramidPattern.png" Link="Assets\PyramidPattern.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\TriangleGridContouring.png">
+    <None Include="..\ComputeWeave.Tests\Assets\TriangleGridContouring.png" Link="Assets\TriangleGridContouring.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\TwoTiledTruchet.png">
+    <None Include="..\ComputeWeave.Tests\Assets\TwoTiledTruchet.png" Link="Assets\TwoTiledTruchet.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\ContouredLayers.png">
+    <None Include="..\ComputeWeave.Tests\Assets\ContouredLayers.png" Link="Assets\ContouredLayers.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\ComputeWeave.Tests\Assets\TerracedHills.png" Link="Assets\TerracedHills.png">
