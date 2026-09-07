@@ -454,7 +454,7 @@ ReadOnlyMemory<byte> buffer = D2D1PixelShader.GetConstantBuffer(new DifferenceEf
 - 共有テクスチャは `Bgra8Unorm` に固定されています。すべての共有テクスチャ世代のネイティブ記述子が固定されているため、`ExternalTextureFormat` はこの1件だけを宣言し、共有テクスチャのスロットはこの形式が対応する画素型だけを保持します。別の画素型で宣言したスロットは、資源集合の生成時に拒否します。
 - `ExternalTextureUsage` は `Sampled` と `RenderTarget` を宣言します。実装が外部ビューを開く方法を選ぶ値であり、ネイティブ記述子を変えません。
 - 計算シェーダーの本体に書ける C# の構文は、ジェネレーターが HLSL へ変換できる範囲に限られます。範囲外の構文はコンパイル時に報告されます。ジェネレーターがその構文の診断を持つ場合は原文を指す診断として、持たない場合は生成されたコードを名指しする HLSL コンパイラーの誤りとして現れます。
-- `AllMemoryBarrierWithGroupSync`、`DeviceMemoryBarrierWithGroupSync`、`GroupMemoryBarrierWithGroupSync` のいずれかへ到達するシェーダーは、各軸の差し渡しが群の大きさの倍数である場合にだけ派遣できます。派遣は差し渡しを群へ切り上げ、入口は要求された範囲の中にあるスレッドだけに本体を走らせるため、群が部分的になるとその一部のスレッドが障壁へ届きません。ジェネレーターがそのようなシェーダーを印し、派遣は倍数でない差し渡しを `ArgumentException` で拒否します。基底のライブラリはこれを拒否しません。
+- `AllMemoryBarrierWithGroupSync`、`DeviceMemoryBarrierWithGroupSync`、`GroupMemoryBarrierWithGroupSync` のいずれかへ到達するシェーダーは、各軸の差し渡しが群の大きさの倍数である場合にだけ派遣できます。派遣は差し渡しを群へ切り上げ、入口は要求された範囲の中にあるスレッドだけに本体を走らせるため、群が部分的になるとその一部のスレッドが障壁へ届きません。ジェネレーターがそのようなシェーダーを印し、派遣は倍数でない差し渡しを `ArgumentException` で拒否します。基底のライブラリはこれを拒否しません。`ThreadGroupAlignment.AlignX`、`AlignY`、`AlignZ` が要求すべき差し渡しを答え、この要求を持たないシェーダーの差し渡しはそのまま返します。切り上げが足したスレッドは、扱っている範囲を越えた座標で本体を走らせるため、切り上げた差し渡しで派遣するシェーダーはその座標に耐える必要があります。差し渡しを3つ取らない派遣は、取らなかった軸を1に固定するため、その軸のスレッド数が2以上の群を持つシェーダーには、その軸も渡す必要があります。
 - `ComputeWeave.Dxc` は `dxcompiler.dll` と `dxil.dll` を同梱するため、x64 と Arm64 以外のプロセスでは動作しません。
 - `Hlsl.Abort` は Direct2D の効果では使えません。既定のコンパイル指定が要求する効果のリンクはシェーダーをライブラリとして構築しますが、FXC はそこで `abort` を受け付けません。リンクを外して構築した効果は、コンパイルできても読み込みに失敗します。
 
