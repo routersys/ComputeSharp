@@ -290,7 +290,7 @@ public partial class ShaderRewriterTests
     [AllDevices]
     public void AmbiguousHlslOperators(Device device)
     {
-        int[] data = new int[30];
+        int[] data = new int[32];
 
         new Random(42).NextBytes(data.AsSpan(0, 14).Cast<int, byte>());
 
@@ -307,6 +307,7 @@ public partial class ShaderRewriterTests
 
         int2 a_shift_int = new(a.X << 2, a.Y << 2);
         int2 a_shift_uint = new(a.X >> 2, a.Y >> 2);
+        int2 a_shift_uint2 = new(a.X >> 2, a.Y >> 3);
         int2 a_and_int = new(a.X & 1, a.Y & 1);
         int2 a_and_uint = new(a.X & 4, a.Y & 4);
         int2 a_or_int = new(a.X | 1, a.Y | 1);
@@ -324,6 +325,8 @@ public partial class ShaderRewriterTests
         Assert.AreEqual(results[1], a_shift_int.Y);
         Assert.AreEqual(results[2], a_shift_uint.X);
         Assert.AreEqual(results[3], a_shift_uint.Y);
+        Assert.AreEqual(results[30], a_shift_uint2.X);
+        Assert.AreEqual(results[31], a_shift_uint2.Y);
         Assert.AreEqual(results[4], a_and_int.X);
         Assert.AreEqual(results[5], a_and_int.Y);
         Assert.AreEqual(results[6], a_and_uint.X);
@@ -371,6 +374,7 @@ public partial class ShaderRewriterTests
 
             int2 a_shift_int = a << 2;
             int2 a_shift_uint = a >> 2u;
+            int2 a_shift_uint2 = a >> new uint2(2u, 3u);
             int2 a_and_int = a & 1;
             int2 a_and_uint = a & 4u;
             int2 a_or_int = a | 1;
@@ -416,6 +420,9 @@ public partial class ShaderRewriterTests
             buffer[27] = (int)d_shift_int.M12;
             buffer[28] = (int)d_shift_int.M21;
             buffer[29] = (int)d_shift_int.M22;
+
+            buffer[30] = a_shift_uint2.X;
+            buffer[31] = a_shift_uint2.Y;
         }
     }
 
