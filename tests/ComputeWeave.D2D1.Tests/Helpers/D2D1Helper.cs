@@ -13,7 +13,7 @@ namespace ComputeWeave.D2D1.Tests.Helpers;
 internal static class D2D1Helper
 {
     /// <summary>
-    /// Whether a hardware adapter is present, which is the driver type <see cref="CreateD2D1Device"/> takes when it is.
+    /// Whether a hardware adapter is present, which is the driver type <see cref="CreateD2D1Device"/> takes unless it is asked for WARP.
     /// </summary>
     /// <remarks>
     /// Probed on its own rather than reported by the fixture, which is called from every test that needs a device and
@@ -70,8 +70,9 @@ internal static class D2D1Helper
     /// Creates an <see cref="ID2D1Device"/> instance.
     /// </summary>
     /// <param name="d2D1Factory2">The input <see cref="ID2D1Factory2"/> instance to use to create the device.</param>
+    /// <param name="forceWarp">Whether to take WARP even where a hardware adapter is present.</param>
     /// <returns>A new <see cref="ID2D1Device"/> instance.</returns>
-    public static unsafe ComPtr<ID2D1Device> CreateD2D1Device(ID2D1Factory2* d2D1Factory2)
+    public static unsafe ComPtr<ID2D1Device> CreateD2D1Device(ID2D1Factory2* d2D1Factory2, bool forceWarp = false)
     {
         using ComPtr<ID3D11Device> d3D11Device = default;
 
@@ -90,7 +91,7 @@ internal static class D2D1Helper
         // Create the Direct3D 11 API device and context
         HRESULT result = DirectX.D3D11CreateDevice(
             pAdapter: null,
-            DriverType: D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_HARDWARE,
+            DriverType: forceWarp ? D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_WARP : D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_HARDWARE,
             Software: HMODULE.NULL,
             Flags: (uint)D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_BGRA_SUPPORT,
             pFeatureLevels: featureLevels,
@@ -103,7 +104,7 @@ internal static class D2D1Helper
         // A runner with no adapter has no hardware device to create, and without a fallback the first line
         // of the fixture fails every test in the suite. WARP is also the device the image comparisons are
         // held to, so falling back runs them where they decide rather than leaving the suite out.
-        if (result.FAILED)
+        if (result.FAILED && !forceWarp)
         {
             result = DirectX.D3D11CreateDevice(
                 pAdapter: null,

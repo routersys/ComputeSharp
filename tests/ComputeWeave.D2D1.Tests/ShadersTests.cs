@@ -72,19 +72,24 @@ public class ShadersTests
     [TestMethod]
     public unsafe void ContouredLayers()
     {
-        string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-        string expectedPath = Path.Combine(assemblyPath, "Assets", "Textures", "RustyMetal.png");
+        ContouredLayers shader = new(0f, new int2(1280, 720));
 
-        D2D1ResourceTextureManager resourceTextureManager;
+        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), 0.0002f, usesTranscendentalHash: true, resourceTextures: (0, CreateResourceTextureManager));
 
-        using (Image<Rgba32> texture = Image.Load<Rgba32>(expectedPath))
+        // A manager bound to one device fails the draw on a second, so the runner asks for one per device
+        static D2D1ResourceTextureManager CreateResourceTextureManager()
         {
+            string assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            string expectedPath = Path.Combine(assemblyPath, "Assets", "Textures", "RustyMetal.png");
+
+            using Image<Rgba32> texture = Image.Load<Rgba32>(expectedPath);
+
             if (!texture.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixels))
             {
                 Assert.Inconclusive();
             }
 
-            resourceTextureManager = new D2D1ResourceTextureManager(
+            return new D2D1ResourceTextureManager(
                 extents: [(uint)texture.Width, (uint)texture.Height],
                 bufferPrecision: D2D1BufferPrecision.UInt8Normalized,
                 channelDepth: D2D1ChannelDepth.Four,
@@ -93,10 +98,6 @@ public class ShadersTests
                 data: MemoryMarshal.AsBytes(pixels.Span),
                 strides: [(uint)(texture.Width * sizeof(Rgba32))]);
         }
-
-        ContouredLayers shader = new(0f, new int2(1280, 720));
-
-        D2D1TestRunner.RunAndCompareShader(in shader, 1280, 720, $"{nameof(ContouredLayers)}.png", nameof(ContouredLayers), 0.0002f, usesTranscendentalHash: true, resourceTextures: (0, resourceTextureManager));
     }
 
     [TestMethod]
