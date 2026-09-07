@@ -32,6 +32,13 @@ namespace ComputeWeave;
 public struct ComputeContext : IDisposable, IAsyncDisposable
 {
     /// <summary>
+    /// The rule the two refusals for a partly covered thread group state, which every dispatch of a shader
+    /// waiting for its whole group has to meet.
+    /// </summary>
+    private const string FullThreadGroupsRule =
+        "The shader waits for every thread of its thread group, so the range has to be a multiple of the thread group size on every axis.";
+
+    /// <summary>
     /// The <see cref="GraphicsDevice"/> instance owning the current context.
     /// </summary>
     private readonly GraphicsDevice? device;
@@ -175,7 +182,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     internal readonly unsafe void Run<T>(int x, in T shader)
         where T : struct, IComputeShader, IComputeShaderDescriptor<T>
     {
-        Run(x, 1, 1, in shader);
+        Run(x, 1, 1, 1, in shader);
     }
 
     /// <summary>
@@ -187,7 +194,7 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     internal readonly unsafe void Run<T>(int x, int y, in T shader)
         where T : struct, IComputeShader, IComputeShaderDescriptor<T>
     {
-        Run(x, y, 1, in shader);
+        Run(x, y, 1, 2, in shader);
     }
 
     /// <summary>
@@ -199,6 +206,25 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     /// <param name="z">The number of iterations to run on the Z axis.</param>
     /// <param name="shader">The input <typeparamref name="T"/> instance representing the compute shader to run.</param>
     internal readonly unsafe void Run<T>(int x, int y, int z, in T shader)
+        where T : struct, IComputeShader, IComputeShaderDescriptor<T>
+    {
+        Run(x, y, z, 3, in shader);
+    }
+
+    /// <summary>
+    /// Runs the input shader with the specified parameters.
+    /// </summary>
+    /// <typeparam name="T">The type of compute shader to run.</typeparam>
+    /// <param name="x">The number of iterations to run on the X axis.</param>
+    /// <param name="y">The number of iterations to run on the Y axis.</param>
+    /// <param name="z">The number of iterations to run on the Z axis.</param>
+    /// <param name="rangeCount">How many ranges the caller passed, the axes past it being fixed at one.</param>
+    /// <param name="shader">The input <typeparamref name="T"/> instance representing the compute shader to run.</param>
+    /// <remarks>
+    /// An overload taking fewer than three ranges fixes the axes it does not take at one. Those axes carry no
+    /// argument, so <paramref name="rangeCount"/> is what keeps a refusal from naming one the caller never wrote.
+    /// </remarks>
+    private readonly unsafe void Run<T>(int x, int y, int z, int rangeCount, in T shader)
         where T : struct, IComputeShader, IComputeShaderDescriptor<T>
     {
         default(InvalidOperationException).ThrowIf(this.state is not ContextState.Recording);
@@ -213,7 +239,33 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
         // A shader that waits for its whole thread group needs every group to be inside the requested range
         if (T.RequiresFullThreadGroups && (modX != 0 || modY != 0 || modZ != 0))
         {
-            ThrowForPartialThreadGroup(modX != 0 ? nameof(x) : modY != 0 ? nameof(y) : nameof(z));
+            // Every overload passes a range for X, so a remainder there always has an argument to name
+            if (modX != 0)
+            {
+                ThrowForPartialThreadGroup(nameof(x));
+            }
+
+            // An axis with no range of its own is fixed at one, so the shortfall is reported against the
+            // shader, whose thread group is what asks for more than the fixed range holds
+            if (modY != 0)
+            {
+                if (rangeCount >= 2)
+                {
+                    ThrowForPartialThreadGroup(nameof(y));
+                }
+
+                ThrowForPartialFixedAxis(nameof(shader), "Y", T.ThreadsY);
+            }
+
+            if (modZ != 0)
+            {
+                if (rangeCount >= 3)
+                {
+                    ThrowForPartialThreadGroup(nameof(z));
+                }
+
+                ThrowForPartialFixedAxis(nameof(shader), "Z", T.ThreadsZ);
+            }
         }
 
         default(ArgumentOutOfRangeException).ThrowIfNotBetweenOrEqual(groupsX, 1, D3D11.D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION);
@@ -626,8 +678,25 @@ public struct ComputeContext : IDisposable, IAsyncDisposable
     {
         default(ArgumentException).Throw(
             parameterName,
-            "The shader waits for every thread of its thread group, so the range has to be a multiple of the thread group size on every axis. " +
-            "A range that is not leaves the last group partly outside it, and the threads left out never reach the barrier the others wait at.");
+            FullThreadGroupsRule +
+            " A range that is not leaves the last group partly outside it, and the threads left out never reach the barrier the others wait at.");
+    }
+
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> for an axis the dispatch fixes at one, which no range covers.
+    /// </summary>
+    /// <param name="parameterName">The name of the shader argument, which is what carries the thread group.</param>
+    /// <param name="axis">The axis the range falls short on, which the message names in place of a range.</param>
+    /// <param name="threads">The number of threads the thread group has on that axis.</param>
+    /// <exception cref="ArgumentException">Thrown for <paramref name="parameterName"/>.</exception>
+    [DoesNotReturn]
+    private static void ThrowForPartialFixedAxis(string parameterName, string axis, int threads)
+    {
+        default(ArgumentException).Throw(
+            parameterName,
+            FullThreadGroupsRule +
+            $" This dispatch fixes the {axis} axis at one, which is not a multiple of the {threads} threads the group holds on it, and the threads " +
+            "left out never reach the barrier the others wait at. A shader like this one has to be dispatched with a range for that axis.");
     }
 
     private enum ContextState
